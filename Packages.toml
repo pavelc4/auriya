@@ -1,0 +1,5 @@
+packages = [
+  "com.mobile.legends",
+  "com.tencent.ig",
+  "com.dts.freefireth",
+]
