@@ -2,4 +2,5 @@ packages = [
   "com.mobile.legends",
   "com.tencent.ig",
   "com.dts.freefireth",
+  "com.supercell.clashroyale"
 ]
