@@ -1,10 +1,15 @@
 use anyhow::{Context, Result};
-use std::{
-    path::PathBuf,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use std::sync::{Arc, Mutex, RwLock};
+use std::{path::PathBuf, sync::mpsc, thread, time::Duration};
+use tokio::sync::mpsc as other_mpsc;
+
+use std::time::SystemTime;
 use tokio::{signal, time};
 use tracing::{debug, error, info, warn};
+type SharedPackages = Arc<RwLock<Vec<String>>>;
+use std::time::UNIX_EPOCH;
+use tracing_subscriber::fmt::time::SystemTime as OtherSystemTime;
 
 #[derive(Debug, Default, Clone)]
 struct LastState {
@@ -42,16 +47,68 @@ impl Default for DaemonConfig {
     }
 }
 
+fn start_packages_watcher(
+    path: PathBuf,
+    shared: SharedPackages,
+    on_reload: impl Fn(usize) + Send + 'static,
+) -> notify::Result<RecommendedWatcher> {
+    let (tx, rx) = mpsc::channel();
+    let mut watcher = RecommendedWatcher::new(tx, Config::default())?;
+    watcher.watch(&path, RecursiveMode::NonRecursive)?;
+
+    thread::spawn(move || {
+        let mut last = std::time::Instant::now();
+        while let Ok(event) = rx.recv() {
+            if let Ok(Event {
+                kind: EventKind::Modify(_),
+                ..
+            }) = event
+            {
+                let now = std::time::Instant::now();
+                if now.duration_since(last) < Duration::from_millis(300) {
+                    continue;
+                }
+                last = now;
+                match crate::core::config::packages::PackageList::load_from_toml(&path) {
+                    Ok(new_cfg) => {
+                        let mut guard = shared.write().unwrap();
+                        *guard = new_cfg.packages.clone();
+                        on_reload(guard.len());
+                    }
+                    Err(e) => {
+                        tracing::warn!(target: "auriya::daemon", "Config reload failed: {e:?}");
+                    }
+                }
+            }
+        }
+    });
+
+    Ok(watcher)
+}
+
 pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
     info!(target: "auriya::daemon", "Starting Auriya PID-only daemon with config: {:?}", cfg);
 
-    let packages_cfg = crate::core::config::packages::PackageList::load_from_toml(&cfg.config_path)
+    let initial = crate::core::config::packages::PackageList::load_from_toml(&cfg.config_path)
         .with_context(|| format!("Failed to load packages from {:?}", cfg.config_path))?;
 
-    let packages = packages_cfg.packages;
-    info!(target: "auriya::daemon", "Loaded {} packages from config", packages.len());
+    let shared_packages: SharedPackages = Arc::new(RwLock::new(initial.packages.clone()));
+    info!(target: "auriya::daemon", "Loaded {} packages from config", initial.packages.len());
 
-    let mut last = LastState::default();
+    let last = Arc::new(std::sync::Mutex::new(LastState::default()));
+
+    let sp_clone = shared_packages.clone();
+    let last_clone = last.clone();
+    let _watch =
+        start_packages_watcher(cfg.config_path.clone(), shared_packages.clone(), move |n| {
+            tracing::info!(target: "auriya::daemon", "Config modified -> reloaded {} packages", n);
+            if let Ok(mut st) = last_clone.lock() {
+                st.pkg = None;
+                st.pid = None;
+                st.last_log_ms = None;
+            }
+        })?;
+
     let mut tick = time::interval(cfg.poll_interval);
     tick.tick().await;
 
@@ -68,8 +125,15 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
                 tick.tick().await;
                 debug!(target: "auriya::daemon", "Tick");
 
-                if let Err(e) = process_tick(&packages, &mut last, cfg).await {
-                    error!(target: "auriya::daemon", "Tick processing error: {e:?}");
+                let packages_snapshot = {
+                    let guard = sp_clone.read().unwrap();
+                    guard.clone()
+                };
+
+                if let Ok(mut st) = last.lock() {
+                    if let Err(e) = process_tick(&packages_snapshot, &mut *st, cfg).await {
+                        error!(target: "auriya::daemon", "Tick processing error: {e:?}");
+                    }
                 }
             }
         } => {}
@@ -124,9 +188,7 @@ async fn process_tick(packages: &[String], last: &mut LastState, cfg: &DaemonCon
             }
             return Ok(());
         }
-        Err(e) => {
-            return Err(e).context("Failed to get foreground package");
-        }
+        Err(e) => return Err(e).context("Failed to get foreground package"),
     };
 
     if last.pkg.as_deref() == Some(pkg.as_str()) && last.pid.is_some() {
@@ -154,9 +216,7 @@ async fn process_tick(packages: &[String], last: &mut LastState, cfg: &DaemonCon
                 last.pkg = Some(pkg);
                 last.pid = None;
             }
-            Err(e) => {
-                error!(target: "auriya::daemon", "PID check error for {}: {e:?}", pkg);
-            }
+            Err(e) => error!(target: "auriya::daemon", "PID check error for {}: {e:?}", pkg),
         }
     } else {
         let changed = last.pkg.as_deref() != Some(pkg.as_str()) || last.pid.is_some();
