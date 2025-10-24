@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex, RwLock};
 use std::{path::PathBuf, sync::mpsc, thread, time::Duration};
 use tokio::sync::mpsc as other_mpsc;
@@ -10,6 +11,7 @@ use tracing::{debug, error, info, warn};
 type SharedPackages = Arc<RwLock<Vec<String>>>;
 use std::time::UNIX_EPOCH;
 use tracing_subscriber::fmt::time::SystemTime as OtherSystemTime;
+pub mod ipc;
 
 #[derive(Debug, Default, Clone)]
 struct LastState {
@@ -108,7 +110,36 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
                 st.last_log_ms = None;
             }
         })?;
+    let enabled = Arc::new(AtomicBool::new(true));
+    let override_foreground = Arc::new(RwLock::new(None::<String>));
 
+    let path_reload = cfg.config_path.clone();
+    let sp_reload = shared_packages.clone();
+    let reload_fn = Arc::new(move || {
+        let loaded = crate::core::config::packages::PackageList::load_from_toml(&path_reload)?;
+        let mut guard = sp_reload.write().unwrap();
+        *guard = loaded.packages.clone();
+        Ok(guard.len())
+    });
+
+    let set_log_level = Arc::new(|_lvl: crate::daemon::ipc::LogLevelCmd| {
+        tracing::info!(target: "auriya::daemon", "SET_LOG accepted (no-op)");
+    });
+
+    let ipc_handles = crate::daemon::ipc::IpcHandles {
+        enabled: enabled.clone(),
+        shared_packages: shared_packages.clone(),
+        override_foreground: override_foreground.clone(),
+        reload_fn: reload_fn.clone(),
+        set_log_level,
+    };
+
+    let ipc_path = std::path::PathBuf::from("/data/local/tmp/auriya.sock");
+    tokio::spawn(async move {
+        if let Err(e) = crate::daemon::ipc::start_ipc_socket(ipc_path, ipc_handles).await {
+            tracing::error!(target: "auriya::daemon", "IPC server error: {:?}", e);
+        }
+    });
     let mut tick = time::interval(cfg.poll_interval);
     tick.tick().await;
 
