@@ -21,7 +21,13 @@ struct LastState {
     battery_saver: Option<bool>,
     last_log_ms: Option<u128>,
 }
-
+#[derive(Debug, Default, Clone)]
+pub struct CurrentState {
+    pub pkg: Option<String>,
+    pub pid: Option<i32>,
+    pub screen_awake: bool,
+    pub battery_saver: bool,
+}
 #[derive(Debug, Clone)]
 pub struct DaemonConfig {
     pub poll_interval: Duration,
@@ -126,12 +132,14 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
         tracing::info!(target: "auriya::daemon", "SET_LOG accepted (no-op)");
     });
 
+    let shared_current = Arc::new(RwLock::new(CurrentState::default()));
     let ipc_handles = crate::daemon::ipc::IpcHandles {
         enabled: enabled.clone(),
         shared_packages: shared_packages.clone(),
         override_foreground: override_foreground.clone(),
         reload_fn: reload_fn.clone(),
         set_log_level,
+        current_state: shared_current.clone(),
     };
 
     let ipc_path = std::path::PathBuf::from("/data/local/tmp/auriya.sock");
