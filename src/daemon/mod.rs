@@ -20,6 +20,7 @@ struct LastState {
     screen_awake: Option<bool>,
     battery_saver: Option<bool>,
     last_log_ms: Option<u128>,
+    profile_mode: Option<crate::core::profile::ProfileMode>, 
 }
 #[derive(Debug, Default, Clone)]
 pub struct CurrentState {
@@ -184,25 +185,24 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
 }
 
 async fn process_tick(packages: &[String], last: &mut LastState, cfg: &DaemonConfig) -> Result<()> {
+    use crate::core::profile::{self, ProfileMode};
     let power =
         crate::core::dumpsys::power::PowerState::fetch().context("Failed to fetch power state")?;
 
     let power_changed = last.screen_awake != Some(power.screen_awake)
         || last.battery_saver != Some(power.battery_saver);
 
-    if !power.screen_awake {
-        if power_changed {
-            info!(target: "auriya::daemon", "Screen off — skip");
+    if !power.screen_awake || power.battery_saver {
+        let target_mode = ProfileMode::Powersave;
+        if last.profile_mode != Some(target_mode) {
+            if let Err(e) = profile::apply_profile(target_mode) {
+                error!(target: "auriya::daemon", "Failed to apply profile: {e:?}");
+            } else {
+                info!(target: "auriya::daemon", "Applied POWERSAVE (screen off / saver on)");
+                last.profile_mode = Some(target_mode);
+            }
         }
-        last.screen_awake = Some(power.screen_awake);
-        last.battery_saver = Some(power.battery_saver);
-        return Ok(());
-    }
 
-    if power.battery_saver {
-        if power_changed {
-            info!(target: "auriya::daemon", "Battery saver ON — skip");
-        }
         last.screen_awake = Some(power.screen_awake);
         last.battery_saver = Some(power.battery_saver);
         return Ok(());
@@ -217,6 +217,16 @@ async fn process_tick(packages: &[String], last: &mut LastState, cfg: &DaemonCon
     let pkg = match crate::core::dumpsys::foreground::get_foreground_package() {
         Ok(Some(pkg)) => pkg,
         Ok(None) => {
+            let target_mode = ProfileMode::Powersave;
+                if last.profile_mode != Some(target_mode) {
+                    if let Err(e) = profile::apply_profile(target_mode) {
+                        error!(target: "auriya::daemon", "Failed to apply profile: {e:?}");
+                    } else {
+                        info!(target: "auriya::daemon", "Applied POWERSAVE (no foreground app)");
+                        last.profile_mode = Some(target_mode);
+                    }
+                }
+
             if last.pkg.is_some() || last.pid.is_some() {
                 if should_log_change(last, cfg) {
                     info!(target: "auriya::daemon", "No foreground app detected");
@@ -239,17 +249,28 @@ async fn process_tick(packages: &[String], last: &mut LastState, cfg: &DaemonCon
         match crate::core::dumpsys::activity::get_app_pid(&pkg) {
             Ok(Some(pid)) => {
                 let changed = last.pkg.as_deref() != Some(pkg.as_str()) || last.pid != Some(pid);
-                if changed && should_log_change(last, cfg) {
-                    info!(target: "auriya::daemon", "Foreground {} PID={}", pkg, pid);
-                    update_last_log_time(last);
-                }
+                    if changed && should_log_change(last, cfg) {
+                        info!(target: "auriya::daemon", "Foreground {} PID={}", pkg, pid);
+                        update_last_log_time(last);
+                    }
+
+                let target_mode = ProfileMode::Performance;
+                    if last.profile_mode != Some(target_mode) {
+                        if let Err(e) = profile::apply_profile(target_mode) {
+                            error!(target: "auriya::daemon", "Failed to apply PERFORMANCE: {e:?}");
+                        } else {
+                            info!(target: "auriya::daemon", "Applied PERFORMANCE for {}", pkg);
+                            last.profile_mode = Some(target_mode);
+                        }
+                    }
+
                 last.pkg = Some(pkg);
                 last.pid = Some(pid);
             }
             Ok(None) => {
                 let changed = last.pkg.as_deref() != Some(pkg.as_str()) || last.pid.is_some();
                 if changed && should_log_change(last, cfg) {
-                    warn!(target: "auriya::daemon", "Foreground {} PID not found", pkg);
+                warn!(target: "auriya::daemon", "Foreground {} PID not found", pkg);
                     update_last_log_time(last);
                 }
                 last.pkg = Some(pkg);
@@ -258,11 +279,21 @@ async fn process_tick(packages: &[String], last: &mut LastState, cfg: &DaemonCon
             Err(e) => error!(target: "auriya::daemon", "PID check error for {}: {e:?}", pkg),
         }
     } else {
+        let target_mode = ProfileMode::Powersave;
+            if last.profile_mode != Some(target_mode) {
+                if let Err(e) = profile::apply_profile(target_mode) {
+                    error!(target: "auriya::daemon", "Failed to apply POWERSAVE: {e:?}");
+                } else {
+                    debug!(target: "auriya::daemon", "Applied POWERSAVE (non-whitelisted)");
+                    last.profile_mode = Some(target_mode);
+                }
+            }
+
         let changed = last.pkg.as_deref() != Some(pkg.as_str()) || last.pid.is_some();
-        if changed && should_log_change(last, cfg) {
+            if changed && should_log_change(last, cfg) {
             debug!(target: "auriya::daemon", "Foreground {} (not in whitelist) — ignored", pkg);
-            update_last_log_time(last);
-        }
+                update_last_log_time(last);
+            }
         last.pkg = Some(pkg);
         last.pid = None;
     }
