@@ -1,4 +1,8 @@
-packages = [
+[settings]
+default_governor = "schedutil"
+
+[packages]
+list = [
   "com.mobile.legends",
   "com.tencent.ig",
   "com.dts.freefireth",
