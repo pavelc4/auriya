@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::{path::PathBuf, sync::mpsc, thread, time::Duration};
 use tokio::sync::mpsc as other_mpsc;
@@ -20,6 +20,7 @@ struct LastState {
     screen_awake: Option<bool>,
     battery_saver: Option<bool>,
     last_log_ms: Option<u128>,
+    profile_mode: Option<crate::core::profile::ProfileMode>, 
 }
 #[derive(Debug, Default, Clone)]
 pub struct CurrentState {
@@ -48,9 +49,9 @@ impl Default for DaemonConfig {
     fn default() -> Self {
         Self {
             poll_interval: Duration::from_secs(5),
-            config_path: PathBuf::from("packages.toml"),
+            config_path: PathBuf::from("Packages.toml"),
             log_level: LogLevel::Info,
-            log_debounce_ms: 3000,
+            log_debounce_ms: 500,
         }
     }
 }
@@ -95,27 +96,35 @@ fn start_packages_watcher(
 }
 
 pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
-    info!(target: "auriya::daemon", "Starting Auriya PID-only daemon with config: {:?}", cfg);
+    info!(target: "auriya::daemon", "Starting Auriya daemon with config: {:?}", cfg);
 
     let initial = crate::core::config::packages::PackageList::load_from_toml(&cfg.config_path)
         .with_context(|| format!("Failed to load packages from {:?}", cfg.config_path))?;
 
+    let balance_governor = initial.settings.default_governor
+        .clone()
+        .unwrap_or_else(|| "schedutil".to_string());
+    info!(target: "auriya::daemon", "Balance mode will use governor: {}", balance_governor);
     let shared_packages: SharedPackages = Arc::new(RwLock::new(initial.packages.clone()));
     info!(target: "auriya::daemon", "Loaded {} packages from config", initial.packages.len());
 
-    let last = Arc::new(std::sync::Mutex::new(LastState::default()));
+    let last = Arc::new(Mutex::new(LastState::default()));
 
     let sp_clone = shared_packages.clone();
     let last_clone = last.clone();
-    let _watch =
-        start_packages_watcher(cfg.config_path.clone(), shared_packages.clone(), move |n| {
+    let _watch = start_packages_watcher(
+        cfg.config_path.clone(), 
+        shared_packages.clone(), 
+        move |n| {
             tracing::info!(target: "auriya::daemon", "Config modified -> reloaded {} packages", n);
             if let Ok(mut st) = last_clone.lock() {
                 st.pkg = None;
                 st.pid = None;
                 st.last_log_ms = None;
             }
-        })?;
+        }
+    )?;
+
     let enabled = Arc::new(AtomicBool::new(true));
     let override_foreground = Arc::new(RwLock::new(None::<String>));
 
@@ -140,9 +149,10 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
         reload_fn: reload_fn.clone(),
         set_log_level,
         current_state: shared_current.clone(),
+        balance_governor: balance_governor.clone(),
     };
 
-    let ipc_path = std::path::PathBuf::from("/data/local/tmp/auriya.sock");
+    let ipc_path = PathBuf::from("/data/local/tmp/auriya.sock");
     tokio::spawn(async move {
         if let Err(e) = crate::daemon::ipc::start_ipc_socket(ipc_path, ipc_handles).await {
             tracing::error!(target: "auriya::daemon", "IPC server error: {:?}", e);
@@ -157,7 +167,7 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
         }
         info!(target: "auriya::daemon", "Shutdown signal received");
     };
-
+    let gov_for_tick = balance_governor.clone();
     tokio::select! {
         _ = async {
             loop {
@@ -170,7 +180,7 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
                 };
 
                 if let Ok(mut st) = last.lock() {
-                    if let Err(e) = process_tick(&packages_snapshot, &mut *st, cfg).await {
+                    if let Err(e) = process_tick(&packages_snapshot, &mut *st, cfg, &gov_for_tick).await {
                         error!(target: "auriya::daemon", "Tick processing error: {e:?}");
                     }
                 }
@@ -183,26 +193,31 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
     Ok(())
 }
 
-async fn process_tick(packages: &[String], last: &mut LastState, cfg: &DaemonConfig) -> Result<()> {
-    let power =
-        crate::core::dumpsys::power::PowerState::fetch().context("Failed to fetch power state")?;
+async fn process_tick(
+    packages: &[String], 
+    last: &mut LastState, 
+    cfg: &DaemonConfig,
+    balance_governor: &str,
+) -> Result<()> {
+    use crate::core::profile::{self, ProfileMode};
+    
+    let power = crate::core::dumpsys::power::PowerState::fetch()
+        .context("Failed to fetch power state")?;
 
     let power_changed = last.screen_awake != Some(power.screen_awake)
         || last.battery_saver != Some(power.battery_saver);
 
-    if !power.screen_awake {
-        if power_changed {
-            info!(target: "auriya::daemon", "Screen off — skip");
+    if !power.screen_awake || power.battery_saver {
+        let target_mode = ProfileMode::Powersave;
+        if last.profile_mode != Some(target_mode) {
+            if let Err(e) = profile::apply_powersave() {
+                error!(target: "auriya::daemon", "Failed to apply profile: {e:?}");
+            } else {
+                info!(target: "auriya::daemon", "Applied POWERSAVE (screen off / saver on)");
+                last.profile_mode = Some(target_mode);
+            }
         }
-        last.screen_awake = Some(power.screen_awake);
-        last.battery_saver = Some(power.battery_saver);
-        return Ok(());
-    }
 
-    if power.battery_saver {
-        if power_changed {
-            info!(target: "auriya::daemon", "Battery saver ON — skip");
-        }
         last.screen_awake = Some(power.screen_awake);
         last.battery_saver = Some(power.battery_saver);
         return Ok(());
@@ -217,6 +232,16 @@ async fn process_tick(packages: &[String], last: &mut LastState, cfg: &DaemonCon
     let pkg = match crate::core::dumpsys::foreground::get_foreground_package() {
         Ok(Some(pkg)) => pkg,
         Ok(None) => {
+            let target_mode = ProfileMode::Balance;
+            if last.profile_mode != Some(target_mode) {
+                if let Err(e) = profile::apply_balance(balance_governor) {
+                    error!(target: "auriya::daemon", "Failed to apply profile: {e:?}");
+                } else {
+                    info!(target: "auriya::daemon", "Applied BALANCE (no foreground app)");
+                    last.profile_mode = Some(target_mode);
+                }
+            }
+
             if last.pkg.is_some() || last.pid.is_some() {
                 if should_log_change(last, cfg) {
                     info!(target: "auriya::daemon", "No foreground app detected");
@@ -243,6 +268,17 @@ async fn process_tick(packages: &[String], last: &mut LastState, cfg: &DaemonCon
                     info!(target: "auriya::daemon", "Foreground {} PID={}", pkg, pid);
                     update_last_log_time(last);
                 }
+
+                let target_mode = ProfileMode::Performance;
+                if last.profile_mode != Some(target_mode) {
+                    if let Err(e) = profile::apply_performance() {
+                        error!(target: "auriya::daemon", "Failed to apply PERFORMANCE: {e:?}");
+                    } else {
+                        info!(target: "auriya::daemon", "Applied PERFORMANCE for {}", pkg);
+                        last.profile_mode = Some(target_mode);
+                    }
+                }
+
                 last.pkg = Some(pkg);
                 last.pid = Some(pid);
             }
@@ -258,6 +294,16 @@ async fn process_tick(packages: &[String], last: &mut LastState, cfg: &DaemonCon
             Err(e) => error!(target: "auriya::daemon", "PID check error for {}: {e:?}", pkg),
         }
     } else {
+        let target_mode = ProfileMode::Balance;
+        if last.profile_mode != Some(target_mode) {
+            if let Err(e) = profile::apply_balance(balance_governor) {
+                error!(target: "auriya::daemon", "Failed to apply BALANCE: {e:?}");
+            } else {
+                debug!(target: "auriya::daemon", "Applied BALANCE (non-whitelisted)");
+                last.profile_mode = Some(target_mode);
+            }
+        }
+
         let changed = last.pkg.as_deref() != Some(pkg.as_str()) || last.pid.is_some();
         if changed && should_log_change(last, cfg) {
             debug!(target: "auriya::daemon", "Foreground {} (not in whitelist) — ignored", pkg);
