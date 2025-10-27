@@ -24,14 +24,16 @@ pub fn apply_performance() -> Result<()> {
     let _ = Command::new("cmd")
         .args(["notification", "set_dnd", "on"])
         .output();
-        Ok(())
+    
+    Ok(())
 }
 
-pub fn apply_balance() -> Result<()> {
-    tracing::info!(target: "auriya::profile", "Applying BALANCE profile");
+pub fn apply_balance(governor: &str) -> Result<()> {
+    tracing::info!(target: "auriya::profile", "Applying BALANCE profile (governor: {})", governor);
     
+    let cmd = format!("for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo {} > $cpu 2>/dev/null; done", governor);
     let _ = Command::new("sh")
-        .args(["-c", "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo schedutil > $cpu 2>/dev/null; done"])
+        .args(["-c", &cmd])
         .output();
     
     Ok(())
@@ -51,10 +53,3 @@ pub fn apply_powersave() -> Result<()> {
     Ok(())
 }
 
-pub fn apply_profile(mode: ProfileMode) -> Result<()> {
-    match mode {
-        ProfileMode::Performance => apply_performance(),
-        ProfileMode::Balance => apply_balance(),
-        ProfileMode::Powersave => apply_powersave(),
-    }
-}

@@ -22,6 +22,7 @@ pub struct IpcHandles {
     pub reload_fn: Arc<dyn Fn() -> Result<usize> + Send + Sync>,
     pub set_log_level: Arc<dyn Fn(LogLevelCmd) + Send + Sync>,
     pub current_state: Arc<RwLock<CurrentState>>,
+    pub balance_governor: String,
 }
 
 fn help_text() -> &'static str {
@@ -44,6 +45,7 @@ pub async fn start_ipc_socket<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<
     let _ = std::fs::remove_file(&path);
     let listener = UnixListener::bind(&path)?;
     tracing::info!(target: "auriya::daemon", "IPC listening at {:?}", path.as_ref());
+    
     loop {
         let (stream, _) = listener.accept().await?;
         let h_clone = IpcHandles {
@@ -53,6 +55,7 @@ pub async fn start_ipc_socket<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<
             reload_fn: h.reload_fn.clone(),
             set_log_level: h.set_log_level.clone(),
             current_state: h.current_state.clone(),
+            balance_governor: h.balance_governor.clone(), 
         };
         tokio::spawn(async move {
             if let Err(e) = handle_client(stream, h_clone).await {
@@ -74,11 +77,11 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
         let cmd = parts.next().unwrap_or("").to_uppercase();
 
         match cmd.as_str() {
-            "HELP" | "?" => {
-                w.write_all(help_text().as_bytes()).await?;
-            }
-            "PING" => {
-                w.write_all(b"PONG\n").await?;
+            "HELP" | "?" => w.write_all(help_text().as_bytes()).await?,
+            "PING" => w.write_all(b"PONG\n").await?,
+            "QUIT" => {
+                w.write_all(b"BYE\n").await?;
+                break; // keluar dari loop, tutup koneksi
             }
             "GETPID" => {
                 let st = h.current_state.read().unwrap().clone();
@@ -98,7 +101,8 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 let ov = h.override_foreground.read().unwrap().clone();
                 w.write_all(
                     format!("ENABLED={enabled} PACKAGES={n} OVERRIDE={:?}\n", ov).as_bytes(),
-                ).await?;
+                )
+                .await?;
             }
             "ENABLE" => {
                 h.enabled.store(true, Ordering::Relaxed);
@@ -124,7 +128,7 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     w.write_all(b"OK SET_LOG\n").await?;
                 }
                 _ => {
-                 w.write_all(b"ERR SET_LOG usage: SET_LOG <debug|info|warn|error>\n").await?;
+                    w.write_all(b"ERR SET_LOG usage: SET_LOG <debug|info|warn|error>\n").await?;
                 }
             },
             "INJECT" => {
@@ -149,7 +153,7 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         }
                     }
                     Some("BALANCE") => {
-                        if let Err(e) = crate::core::profile::apply_balance() {
+                        if let Err(e) = crate::core::profile::apply_balance(&h.balance_governor) {
                             w.write_all(format!("ERR SET_PROFILE {e:?}\n").as_bytes()).await?;
                         } else {
                             w.write_all(b"OK SET_PROFILE BALANCE\n").await?;
@@ -167,13 +171,7 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     }
                 }
             }
-            "QUIT" => {
-                w.write_all(b"BYE\n").await?;
-                break;
-            }
-            _ => {
-                w.write_all(b"ERR UNKNOWN\n").await?;
-                w.write_all(help_text().as_bytes()).await?;
+            _ => {                w.write_all(b"ERR UNKNOWN COMMAND\n").await?;
             }
         }
         line.clear();
