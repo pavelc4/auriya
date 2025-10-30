@@ -1,10 +1,13 @@
 [settings]
 default_governor = "schedutil"
+default_enable_dnd = true
 
-[packages]
-list = [
-  "com.mobile.legends",
-  "com.tencent.ig",
-  "com.dts.freefireth",
-  "com.supercell.clashroyale"
-]
+[[games]]
+package = "com.mobile.legends"
+cpu_governor = "performance"
+enable_dnd = true
+
+[[games]]
+package = "com.supercell.clashroyale"
+cpu_governor = "schedutil"
+enable_dnd = false

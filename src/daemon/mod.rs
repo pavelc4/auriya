@@ -8,7 +8,8 @@ use tokio::sync::mpsc as other_mpsc;
 use std::time::SystemTime;
 use tokio::{signal, time};
 use tracing::{debug, error, info, warn};
-type SharedPackages = Arc<RwLock<Vec<String>>>;
+type SharedConfig = Arc<RwLock<crate::core::config::packages::PackageList>>;
+
 use std::time::UNIX_EPOCH;
 use tracing_subscriber::fmt::time::SystemTime as OtherSystemTime;
 pub mod ipc;
@@ -20,8 +21,9 @@ struct LastState {
     screen_awake: Option<bool>,
     battery_saver: Option<bool>,
     last_log_ms: Option<u128>,
-    profile_mode: Option<crate::core::profile::ProfileMode>, 
+    profile_mode: Option<crate::core::profile::ProfileMode>,
 }
+
 #[derive(Debug, Default, Clone)]
 pub struct CurrentState {
     pub pkg: Option<String>,
@@ -29,6 +31,7 @@ pub struct CurrentState {
     pub screen_awake: bool,
     pub battery_saver: bool,
 }
+
 #[derive(Debug, Clone)]
 pub struct DaemonConfig {
     pub poll_interval: Duration,
@@ -58,7 +61,7 @@ impl Default for DaemonConfig {
 
 fn start_packages_watcher(
     path: PathBuf,
-    shared: SharedPackages,
+    shared: SharedConfig,
     on_reload: impl Fn(usize) + Send + 'static,
 ) -> notify::Result<RecommendedWatcher> {
     let (tx, rx) = mpsc::channel();
@@ -80,9 +83,10 @@ fn start_packages_watcher(
                 last = now;
                 match crate::core::config::packages::PackageList::load_from_toml(&path) {
                     Ok(new_cfg) => {
+                        let count = new_cfg.games.len();
                         let mut guard = shared.write().unwrap();
-                        *guard = new_cfg.packages.clone();
-                        on_reload(guard.len());
+                        *guard = new_cfg;
+                        on_reload(count);
                     }
                     Err(e) => {
                         tracing::warn!(target: "auriya::daemon", "Config reload failed: {e:?}");
@@ -105,18 +109,19 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
         .clone()
         .unwrap_or_else(|| "schedutil".to_string());
     info!(target: "auriya::daemon", "Balance mode will use governor: {}", balance_governor);
-    let shared_packages: SharedPackages = Arc::new(RwLock::new(initial.packages.clone()));
-    info!(target: "auriya::daemon", "Loaded {} packages from config", initial.packages.len());
+
+    let shared_config: SharedConfig = Arc::new(RwLock::new(initial.clone()));
+    info!(target: "auriya::daemon", "Loaded {} games from config", initial.games.len());
 
     let last = Arc::new(Mutex::new(LastState::default()));
 
-    let sp_clone = shared_packages.clone();
+    let sp_clone = shared_config.clone();
     let last_clone = last.clone();
     let _watch = start_packages_watcher(
-        cfg.config_path.clone(), 
-        shared_packages.clone(), 
+        cfg.config_path.clone(),
+        shared_config.clone(),
         move |n| {
-            tracing::info!(target: "auriya::daemon", "Config modified -> reloaded {} packages", n);
+            tracing::info!(target: "auriya::daemon", "Config modified -> reloaded {} games", n);
             if let Ok(mut st) = last_clone.lock() {
                 st.pkg = None;
                 st.pid = None;
@@ -129,12 +134,13 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
     let override_foreground = Arc::new(RwLock::new(None::<String>));
 
     let path_reload = cfg.config_path.clone();
-    let sp_reload = shared_packages.clone();
+    let sp_reload = shared_config.clone();
     let reload_fn = Arc::new(move || {
         let loaded = crate::core::config::packages::PackageList::load_from_toml(&path_reload)?;
+        let count = loaded.games.len();
         let mut guard = sp_reload.write().unwrap();
-        *guard = loaded.packages.clone();
-        Ok(guard.len())
+        *guard = loaded;
+        Ok(count)
     });
 
     let set_log_level = Arc::new(|_lvl: crate::daemon::ipc::LogLevelCmd| {
@@ -142,9 +148,15 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
     });
 
     let shared_current = Arc::new(RwLock::new(CurrentState::default()));
+
+    let shared_packages_for_ipc = {
+        let config = shared_config.read().unwrap();
+        Arc::new(RwLock::new(config.get_packages()))
+    };
+
     let ipc_handles = crate::daemon::ipc::IpcHandles {
         enabled: enabled.clone(),
-        shared_packages: shared_packages.clone(),
+        shared_packages: shared_packages_for_ipc,
         override_foreground: override_foreground.clone(),
         reload_fn: reload_fn.clone(),
         set_log_level,
@@ -152,12 +164,13 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
         balance_governor: balance_governor.clone(),
     };
 
-    let ipc_path = PathBuf::from("/data/local/tmp/auriya.sock");
+    let ipc_path = PathBuf::from("/dev/socket/auriya");
     tokio::spawn(async move {
         if let Err(e) = crate::daemon::ipc::start_ipc_socket(ipc_path, ipc_handles).await {
             tracing::error!(target: "auriya::daemon", "IPC server error: {:?}", e);
         }
     });
+
     let mut tick = time::interval(cfg.poll_interval);
     tick.tick().await;
 
@@ -167,6 +180,7 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
         }
         info!(target: "auriya::daemon", "Shutdown signal received");
     };
+
     let gov_for_tick = balance_governor.clone();
     tokio::select! {
         _ = async {
@@ -174,13 +188,13 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
                 tick.tick().await;
                 debug!(target: "auriya::daemon", "Tick");
 
-                let packages_snapshot = {
+                let config_snapshot = {
                     let guard = sp_clone.read().unwrap();
                     guard.clone()
                 };
 
                 if let Ok(mut st) = last.lock() {
-                    if let Err(e) = process_tick(&packages_snapshot, &mut *st, cfg, &gov_for_tick).await {
+                    if let Err(e) = process_tick(&config_snapshot, &mut *st, cfg, &gov_for_tick).await {
                         error!(target: "auriya::daemon", "Tick processing error: {e:?}");
                     }
                 }
@@ -194,13 +208,13 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
 }
 
 async fn process_tick(
-    packages: &[String], 
-    last: &mut LastState, 
+    config: &crate::core::config::packages::PackageList,
+    last: &mut LastState,
     cfg: &DaemonConfig,
     balance_governor: &str,
 ) -> Result<()> {
     use crate::core::profile::{self, ProfileMode};
-    
+
     let power = crate::core::dumpsys::power::PowerState::fetch()
         .context("Failed to fetch power state")?;
 
@@ -260,6 +274,7 @@ async fn process_tick(
         return Ok(());
     }
 
+    let packages = config.get_packages();
     if packages.iter().any(|allowed| allowed == &pkg) {
         match crate::core::dumpsys::activity::get_app_pid(&pkg) {
             Ok(Some(pid)) => {
@@ -271,10 +286,22 @@ async fn process_tick(
 
                 let target_mode = ProfileMode::Performance;
                 if last.profile_mode != Some(target_mode) {
-                    if let Err(e) = profile::apply_performance() {
+                    let game_config = config.get_game_config(&pkg);
+                    let governor = game_config
+                        .and_then(|c| c.cpu_governor.as_deref())
+                        .unwrap_or("performance");
+                    let enable_dnd = game_config
+                        .and_then(|c| c.enable_dnd)
+                        .unwrap_or(true);
+
+                    if let Err(e) = profile::apply_performance_with_config(governor, enable_dnd) {
                         error!(target: "auriya::daemon", "Failed to apply PERFORMANCE: {e:?}");
                     } else {
-                        info!(target: "auriya::daemon", "Applied PERFORMANCE for {}", pkg);
+                        info!(
+                            target: "auriya::daemon",
+                            "Applied PERFORMANCE for {} (governor: {}, dnd: {})",
+                            pkg, governor, enable_dnd
+                        );
                         last.profile_mode = Some(target_mode);
                     }
                 }
