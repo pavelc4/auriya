@@ -42,9 +42,23 @@ fn help_text() -> &'static str {
 }
 
 pub async fn start_ipc_socket<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
-    let _ = std::fs::remove_file(&path);
-    let listener = UnixListener::bind(&path)?;
-    tracing::info!(target: "auriya::daemon", "IPC listening at {:?}", path.as_ref());
+    let path_ref = path.as_ref();
+    let _ = std::fs::remove_file(path_ref);
+    let listener = UnixListener::bind(path_ref)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let permissions = std::fs::Permissions::from_mode(0o666);
+        if let Err(e) = std::fs::set_permissions(path_ref, permissions) {
+            tracing::warn!(
+                target: "auriya::daemon",
+                "Failed to set socket permissions (non-critical): {:?}",
+                e
+            );
+        }
+    }
+
+    tracing::info!(target: "auriya::daemon", "IPC listening at {:?}", path_ref);
 
     loop {
         let (stream, _) = listener.accept().await?;

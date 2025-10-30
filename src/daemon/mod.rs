@@ -164,7 +164,7 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
         balance_governor: balance_governor.clone(),
     };
 
-    let ipc_path = PathBuf::from("/data/local/tmp/auriya.sock");
+    let ipc_path = PathBuf::from("/dev/socket/auriya");
     tokio::spawn(async move {
         if let Err(e) = crate::daemon::ipc::start_ipc_socket(ipc_path, ipc_handles).await {
             tracing::error!(target: "auriya::daemon", "IPC server error: {:?}", e);
