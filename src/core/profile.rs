@@ -41,6 +41,14 @@ pub fn apply_performance_with_config(governor: &str, enable_dnd: bool) -> Result
         );
     }
 
+    if let Err(e) = crate::core::io::apply_gaming_io() {
+        tracing::warn!(target: "auriya::profile", "Failed to apply I/O scheduler: {}", e);
+    }
+
+    if let Err(e) = crate::core::lmk::apply_gaming_lmk() {
+           tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
+       }
+
     if enable_dnd {
         let dnd_result = Command::new("cmd")
             .args(["notification", "set_dnd", "on"])
@@ -74,6 +82,14 @@ pub fn apply_balance(governor: &str) -> Result<()> {
         "Applying BALANCE profile (governor: {})",
         governor
     );
+
+    if let Err(e) = crate::core::io::apply_gaming_io() {
+        tracing::warn!(target: "auriya::profile", "Failed to apply I/O scheduler: {}", e);
+    }
+
+    if let Err(e) = crate::core::lmk::apply_balanced_lmk() {
+        tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
+    }
 
     let cmd = format!(
         "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo {} > \"$cpu\" 2>/dev/null; done",
@@ -116,6 +132,9 @@ pub fn apply_powersave() -> Result<()> {
             stderr
         );
     }
+    if let Err(e) = crate::core::lmk::apply_powersave_lmk() {
+            tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
+        }
 
     let _ = Command::new("cmd")
         .args(["notification", "set_dnd", "off"])
