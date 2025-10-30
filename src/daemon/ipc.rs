@@ -45,7 +45,7 @@ pub async fn start_ipc_socket<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<
     let _ = std::fs::remove_file(&path);
     let listener = UnixListener::bind(&path)?;
     tracing::info!(target: "auriya::daemon", "IPC listening at {:?}", path.as_ref());
-    
+
     loop {
         let (stream, _) = listener.accept().await?;
         let h_clone = IpcHandles {
@@ -55,7 +55,7 @@ pub async fn start_ipc_socket<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<
             reload_fn: h.reload_fn.clone(),
             set_log_level: h.set_log_level.clone(),
             current_state: h.current_state.clone(),
-            balance_governor: h.balance_governor.clone(), 
+            balance_governor: h.balance_governor.clone(),
         };
         tokio::spawn(async move {
             if let Err(e) = handle_client(stream, h_clone).await {
@@ -81,7 +81,7 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
             "PING" => w.write_all(b"PONG\n").await?,
             "QUIT" => {
                 w.write_all(b"BYE\n").await?;
-                break; // keluar dari loop, tutup koneksi
+                break;
             }
             "GETPID" => {
                 let st = h.current_state.read().unwrap().clone();

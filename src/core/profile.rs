@@ -14,14 +14,21 @@ impl Default for ProfileMode {
     }
 }
 
-pub fn apply_performance() -> Result<()> {
-    tracing::info!(target: "auriya::profile", "Applying PERFORMANCE profile");
+pub fn apply_performance_with_config(governor: &str, enable_dnd: bool) -> Result<()> {
+    tracing::info!(
+        target: "auriya::profile",
+        "Applying PERFORMANCE profile (governor: {}, dnd: {})",
+        governor,
+        enable_dnd
+    );
+
+    let cmd = format!(
+        "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo {} > \"$cpu\" 2>/dev/null; done",
+        governor
+    );
 
     let output = Command::new("sh")
-        .args([
-            "-c",
-            "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo performance > \"$cpu\" 2>/dev/null; done"
-        ])
+        .args(["-c", &cmd])
         .output()
         .context("Failed to execute CPU governor command")?;
 
@@ -34,26 +41,31 @@ pub fn apply_performance() -> Result<()> {
         );
     }
 
-    let dnd_result = Command::new("cmd")
-        .args(["notification", "set_dnd", "on"])
-        .output()
-        .context("Failed to execute DND command");
+    if enable_dnd {
+        let dnd_result = Command::new("cmd")
+            .args(["notification", "set_dnd", "on"])
+            .output();
 
-    match dnd_result {
-        Ok(out) if !out.status.success() => {
-            tracing::warn!(
-                target: "auriya::profile",
-                "DND command failed: {}",
-                String::from_utf8_lossy(&out.stderr)
-            );
+        match dnd_result {
+            Ok(out) if !out.status.success() => {
+                tracing::warn!(
+                    target: "auriya::profile",
+                    "DND command failed: {}",
+                    String::from_utf8_lossy(&out.stderr)
+                );
+            }
+            Err(e) => {
+                tracing::warn!(target: "auriya::profile", "Failed to set DND: {:#}", e);
+            }
+            _ => {}
         }
-        Err(e) => {
-            tracing::warn!(target: "auriya::profile", "Failed to set DND: {:#}", e);
-        }
-        _ => {}
     }
 
     Ok(())
+}
+
+pub fn apply_performance() -> Result<()> {
+    apply_performance_with_config("performance", true)
 }
 
 pub fn apply_balance(governor: &str) -> Result<()> {
@@ -62,13 +74,6 @@ pub fn apply_balance(governor: &str) -> Result<()> {
         "Applying BALANCE profile (governor: {})",
         governor
     );
-
-    if !governor
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
-    {
-        anyhow::bail!("Invalid governor name: {}", governor);
-    }
 
     let cmd = format!(
         "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo {} > \"$cpu\" 2>/dev/null; done",
@@ -112,24 +117,9 @@ pub fn apply_powersave() -> Result<()> {
         );
     }
 
-    let dnd_result = Command::new("cmd")
+    let _ = Command::new("cmd")
         .args(["notification", "set_dnd", "off"])
-        .output()
-        .context("Failed to execute DND command");
-
-    match dnd_result {
-        Ok(out) if !out.status.success() => {
-            tracing::warn!(
-                target: "auriya::profile",
-                "DND command failed: {}",
-                String::from_utf8_lossy(&out.stderr)
-            );
-        }
-        Err(e) => {
-            tracing::warn!(target: "auriya::profile", "Failed to unset DND: {:#}", e);
-        }
-        _ => {}
-    }
+        .output();
 
     Ok(())
 }
