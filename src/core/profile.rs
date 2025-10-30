@@ -41,6 +41,10 @@ pub fn apply_performance_with_config(governor: &str, enable_dnd: bool) -> Result
         );
     }
 
+    if let Err(e) = crate::core::io::apply_gaming_io() {
+        tracing::warn!(target: "auriya::profile", "Failed to apply I/O scheduler: {}", e);
+    }
+
     if enable_dnd {
         let dnd_result = Command::new("cmd")
             .args(["notification", "set_dnd", "on"])
