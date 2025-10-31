@@ -6,7 +6,7 @@ mod daemon;
 
 #[derive(Parser)]
 struct Args {
-    #[arg(long, default_value = "Packages.toml")]
+    #[arg(long, default_value = "/data/adb/.config/auriya/auriya.toml")]
     packages: String,
 }
 

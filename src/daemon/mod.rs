@@ -52,7 +52,7 @@ impl Default for DaemonConfig {
     fn default() -> Self {
         Self {
             poll_interval: Duration::from_secs(5),
-            config_path: PathBuf::from("Packages.toml"),
+            config_path: PathBuf::from("/data/adb/.config/auriya/auriya.toml"),
             log_level: LogLevel::Info,
             log_debounce_ms: 500,
         }
