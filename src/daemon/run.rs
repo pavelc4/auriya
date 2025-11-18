@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex, RwLock},
+    sync::atomic::AtomicBool,
     time::Duration,
 };
 use tokio::{signal, time};
@@ -67,6 +68,48 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
     let override_foreground: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
     let last = Arc::new(Mutex::new(LastState::default()));
 
+    info!(target: "auriya::daemon", "Setting up IPC socket...");
+
+    let ipc_handles = crate::daemon::ipc::IpcHandles {
+        enabled: Arc::new(AtomicBool::new(true)),
+        shared_config: shared_config.clone(),
+        override_foreground: override_foreground.clone(),
+        reload_fn: Arc::new({
+            let cfg_path = cfg.config_path.clone();
+            let shared = shared_config.clone();
+            move || {
+                match crate::core::config::packages::PackageList::load_from_toml(&cfg_path) {
+                    Ok(new_cfg) => {
+                        if let Ok(mut g) = shared.write() {
+                            let count = new_cfg.games.len();
+                            *g = new_cfg;
+                            Ok(count)
+                        } else {
+                            Err(anyhow::anyhow!("Config lock poisoned"))
+                        }
+                    }
+                    Err(e) => Err(e),
+                }
+            }
+        }),
+        set_log_level: Arc::new(|lvl| {
+            info!(target: "auriya::ipc", "Log level change requested: {:?} (not implemented yet)", lvl);
+        }),
+        current_state: shared_current.clone(),
+        balance_governor: balance_governor.clone(),
+    };
+
+    tokio::spawn(async move {
+        info!(target: "auriya::daemon", "Starting IPC socket listener...");
+        match crate::daemon::ipc::start("/dev/socket/auriya.sock", ipc_handles).await {
+            Ok(_) => info!(target: "auriya::daemon", "IPC listener stopped gracefully"),
+            Err(e) => error!(target: "auriya::daemon", "IPC error: {:?}", e),
+        }
+    });
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+    info!(target: "auriya::daemon", "IPC socket should be ready at /dev/socket/auriya.sock");
+
     info!(target: "auriya::daemon", "Tick loop started (interval: {:?})", cfg.poll_interval);
     let mut tick = time::interval(cfg.poll_interval);
     tick.tick().await;
@@ -78,12 +121,18 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
 
                 let snapshot = match shared_config.read() {
                     Ok(g) => g.clone(),
-                    Err(_) => { warn!(target: "auriya::daemon", "Config lock poisoned, skip tick"); continue; }
+                    Err(_) => {
+                        warn!(target: "auriya::daemon", "Config lock poisoned, skip tick");
+                        continue;
+                    }
                 };
 
                 let mut st = match last.lock() {
                     Ok(s) => s,
-                    Err(_) => { warn!(target: "auriya::daemon", "LastState lock poisoned, skip tick"); continue; }
+                    Err(_) => {
+                        warn!(target: "auriya::daemon", "LastState lock poisoned, skip tick");
+                        continue;
+                    }
                 };
 
                 if let Err(e) = process_tick(&snapshot, &mut *st, cfg, &balance_governor, &override_foreground).await {
@@ -97,7 +146,7 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
                 }
             }
             _ = signal::ctrl_c() => {
-                info!(target: "auriya::daemon", "Shutdown");
+                info!(target: "auriya::daemon", "Received Ctrl-C, shutting down...");
                 break;
             }
         }
@@ -155,8 +204,12 @@ pub async fn process_tick(
                     }
                 }
                 if last.pkg.is_some() || last.pid.is_some() {
-                    if should_log_change(last, cfg) { info!(target: "auriya::daemon", "No foreground app detected"); bump_log(last); }
-                    last.pkg = None; last.pid = None;
+                    if should_log_change(last, cfg) {
+                        info!(target: "auriya::daemon", "No foreground app detected");
+                        bump_log(last);
+                    }
+                    last.pkg = None;
+                    last.pid = None;
                 }
                 return Ok(());
             }
@@ -205,7 +258,10 @@ pub async fn process_tick(
                     }
                 }
                 if last.pkg.as_deref() != Some(pkg.as_str()) || last.pid.is_some() {
-                    if should_log_change(last, cfg) { warn!(target: "auriya::daemon", "Foreground {} PID not found", pkg); bump_log(last); }
+                    if should_log_change(last, cfg) {
+                        warn!(target: "auriya::daemon", "Foreground {} PID not found", pkg);
+                        bump_log(last);
+                    }
                 }
                 last.pkg = Some(pkg);
                 last.pid = None;
@@ -221,7 +277,10 @@ pub async fn process_tick(
             }
         }
         if last.pkg.as_deref() != Some(pkg.as_str()) || last.pid.is_some() {
-            if should_log_change(last, cfg) { info!(target: "auriya::daemon", "Foreground {} (not whitelisted)", pkg); bump_log(last); }
+            if should_log_change(last, cfg) {
+                info!(target: "auriya::daemon", "Foreground {} (not whitelisted)", pkg);
+                bump_log(last);
+            }
         }
         last.pkg = Some(pkg);
         last.pid = None;
