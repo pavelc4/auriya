@@ -14,5 +14,9 @@ struct Args {
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
     let args = Args::parse();
-    daemon::run_pid_only_with_path(&args.packages).await
+    let cfg = daemon::run::DaemonConfig {
+        config_path: std::path::PathBuf::from(&args.packages),
+        ..Default::default()
+    };
+    daemon::run::run_with_config(&cfg).await
 }
