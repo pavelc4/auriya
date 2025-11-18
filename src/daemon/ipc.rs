@@ -1,70 +1,91 @@
-use crate::daemon::CurrentState;
 use anyhow::Result;
+use std::{path::Path, sync::{Arc, RwLock}, str::FromStr};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::{
-    path::Path,
-    sync::{Arc, RwLock},
-};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
-#[derive(Debug, Clone)]
-pub enum LogLevelCmd {
-    Debug,
-    Info,
-    Warn,
-    Error,
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use std::os::unix::fs::PermissionsExt;
+use crate::daemon::state::CurrentState;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LogLevelCmd { Debug, Info, Warn, Error }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProfileMode { Performance, Balance, Powersave }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Command {
+    Help, Status, Enable, Disable, Reload, SetLog(LogLevelCmd),
+    Inject(String), ClearInject, GetPid, Ping, Quit, SetProfile(ProfileMode),
+}
+impl FromStr for Command {
+    type Err = &'static str;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut it = s.split_whitespace();
+        let c = it.next().ok_or("empty")?.to_ascii_uppercase();
+        Ok(match c.as_str() {
+            "HELP" | "?" => Self::Help,
+            "STATUS" => Self::Status,
+            "ENABLE" => Self::Enable,
+            "DISABLE" => Self::Disable,
+            "RELOAD" => Self::Reload,
+            "SET_LOG" => match it.next() {
+                Some("DEBUG") | Some("debug") => Self::SetLog(LogLevelCmd::Debug),
+                Some("INFO") | Some("info") => Self::SetLog(LogLevelCmd::Info),
+                Some("WARN") | Some("warn") => Self::SetLog(LogLevelCmd::Warn),
+                Some("ERROR") | Some("error") => Self::SetLog(LogLevelCmd::Error),
+                _ => return Err("usage: SET_LOG <debug|info|warn|error>"),
+            },
+            "INJECT" => Self::Inject(it.next().ok_or("usage: INJECT <pkg>")?.to_string()),
+            "CLEAR_INJECT" => Self::ClearInject,
+            "GETPID" => Self::GetPid,
+            "PING" => Self::Ping,
+            "QUIT" => Self::Quit,
+            "SET_PROFILE" => match it.next() {
+                Some("PERFORMANCE") => Self::SetProfile(ProfileMode::Performance),
+                Some("BALANCE") => Self::SetProfile(ProfileMode::Balance),
+                Some("POWERSAVE") => Self::SetProfile(ProfileMode::Powersave),
+                _ => return Err("usage: SET_PROFILE <PERFORMANCE|BALANCE|POWERSAVE>"),
+            },
+            _ => return Err("unknown command"),
+        })
+    }
 }
 
 pub struct IpcHandles {
     pub enabled: Arc<AtomicBool>,
-    pub shared_packages: Arc<RwLock<Vec<String>>>,
+    pub shared_config: Arc<RwLock<crate::core::config::packages::PackageList>>,
     pub override_foreground: Arc<RwLock<Option<String>>>,
-    pub reload_fn: Arc<dyn Fn() -> Result<usize> + Send + Sync>,
+    pub reload_fn: Arc<dyn Fn() -> anyhow::Result<usize> + Send + Sync>,
     pub set_log_level: Arc<dyn Fn(LogLevelCmd) + Send + Sync>,
     pub current_state: Arc<RwLock<CurrentState>>,
     pub balance_governor: String,
 }
 
-fn help_text() -> &'static str {
-    "CMDS:\n\
-     - HELP | ?\n\
-     - STATUS\n\
-     - ENABLE | DISABLE\n\
-     - RELOAD\n\
-     - SET_LOG <debug|info|warn|error>\n\
-     - INJECT <package>\n\
-     - CLEAR_INJECT\n\
-     - GETPID\n\
-     - PING\n\
-     - QUIT\n
-     - SET_PROFILE <PERFORMANCE|BALANCE|POWERSAVE>\n
-     "
-}
+const HELP: &str = "CMDS:
+        - HELP | ?
+        - STATUS
+        - ENABLE | DISABLE
+        - RELOAD
+        - SET_LOG <debug|info|warn|error>
+        - INJECT <pkg>
+        - CLEAR_INJECT
+        - GETPID
+        - PING
+        - QUIT
+        - SET_PROFILE <PERFORMANCE|BALANCE|POWERSAVE>
+ ";
 
-pub async fn start_ipc_socket<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
+ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
     let path_ref = path.as_ref();
     let _ = std::fs::remove_file(path_ref);
     let listener = UnixListener::bind(path_ref)?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let permissions = std::fs::Permissions::from_mode(0o666);
-        if let Err(e) = std::fs::set_permissions(path_ref, permissions) {
-            tracing::warn!(
-                target: "auriya::daemon",
-                "Failed to set socket permissions (non-critical): {:?}",
-                e
-            );
-        }
-    }
-
+    let _ = std::fs::set_permissions(path_ref, std::fs::Permissions::from_mode(0o660));
     tracing::info!(target: "auriya::daemon", "IPC listening at {:?}", path_ref);
 
     loop {
         let (stream, _) = listener.accept().await?;
-        let h_clone = IpcHandles {
+        let hc = IpcHandles {
             enabled: h.enabled.clone(),
-            shared_packages: h.shared_packages.clone(),
+            shared_config: h.shared_config.clone(),
             override_foreground: h.override_foreground.clone(),
             reload_fn: h.reload_fn.clone(),
             set_log_level: h.set_log_level.clone(),
@@ -72,8 +93,8 @@ pub async fn start_ipc_socket<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<
             balance_governor: h.balance_governor.clone(),
         };
         tokio::spawn(async move {
-            if let Err(e) = handle_client(stream, h_clone).await {
-                tracing::warn!(target: "auriya::daemon", "IPC client error: {:?}", e);
+            if let Err(e) = handle_client(stream, hc).await {
+                tracing::warn!(target: "auriya::daemon", "client error: {:?}", e);
             }
         });
     }
@@ -86,108 +107,51 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
     w.write_all(b"OK AURIYA IPC\n").await?;
 
     while reader.read_line(&mut line).await? > 0 {
-        let msg = line.trim();
-        let mut parts = msg.split_whitespace();
-        let cmd = parts.next().unwrap_or("").to_uppercase();
-
-        match cmd.as_str() {
-            "HELP" | "?" => w.write_all(help_text().as_bytes()).await?,
-            "PING" => w.write_all(b"PONG\n").await?,
-            "QUIT" => {
-                w.write_all(b"BYE\n").await?;
-                break;
-            }
-            "GETPID" => {
-                let st = h.current_state.read().unwrap().clone();
-                match (st.pkg, st.pid) {
-                    (Some(p), Some(id)) => {
-                        w.write_all(format!("PKG={} PID={}\n", p, id).as_bytes()).await?;
-                    }
-                    (Some(p), None) => {
-                        w.write_all(format!("PKG={} PID=None\n", p).as_bytes()).await?;
-                    }
-                    _ => w.write_all(b"PKG=None PID=None\n").await?,
-                }
-            }
-            "STATUS" => {
-                let enabled = h.enabled.load(Ordering::Relaxed);
-                let n = h.shared_packages.read().unwrap().len();
-                let ov = h.override_foreground.read().unwrap().clone();
-                w.write_all(
-                    format!("ENABLED={enabled} PACKAGES={n} OVERRIDE={:?}\n", ov).as_bytes(),
-                )
-                .await?;
-            }
-            "ENABLE" => {
-                h.enabled.store(true, Ordering::Relaxed);
-                w.write_all(b"OK ENABLED\n").await?;
-            }
-            "DISABLE" => {
-                h.enabled.store(false, Ordering::Relaxed);
-                w.write_all(b"OK DISABLED\n").await?;
-            }
-            "RELOAD" => match (h.reload_fn)() {
-                Ok(n) => w.write_all(format!("OK RELOADED {n}\n").as_bytes()).await?,
-                Err(e) => w.write_all(format!("ERR RELOAD {e:?}\n").as_bytes()).await?,
-            },
-            "SET_LOG" => match parts.next().map(|s| s.to_lowercase()) {
-                Some(lvl) if ["debug", "info", "warn", "error"].contains(&lvl.as_str()) => {
-                    let m = match lvl.as_str() {
-                        "debug" => LogLevelCmd::Debug,
-                        "info" => LogLevelCmd::Info,
-                        "warn" => LogLevelCmd::Warn,
-                        _ => LogLevelCmd::Error,
-                    };
-                    (h.set_log_level)(m);
-                    w.write_all(b"OK SET_LOG\n").await?;
-                }
-                _ => {
-                    w.write_all(b"ERR SET_LOG usage: SET_LOG <debug|info|warn|error>\n").await?;
-                }
-            },
-            "INJECT" => {
-                if let Some(pkg) = parts.next() {
-                    *h.override_foreground.write().unwrap() = Some(pkg.to_string());
-                    w.write_all(b"OK INJECT\n").await?;
-                } else {
-                    w.write_all(b"ERR INJECT usage: INJECT <package>\n").await?;
-                }
-            }
-            "CLEAR_INJECT" => {
-                *h.override_foreground.write().unwrap() = None;
-                w.write_all(b"OK CLEAR_INJECT\n").await?;
-            }
-            "SET_PROFILE" => {
-                match parts.next().map(|s| s.to_uppercase()).as_deref() {
-                    Some("PERFORMANCE") => {
-                        if let Err(e) = crate::core::profile::apply_performance() {
-                            w.write_all(format!("ERR SET_PROFILE {e:?}\n").as_bytes()).await?;
-                        } else {
-                            w.write_all(b"OK SET_PROFILE PERFORMANCE\n").await?;
-                        }
-                    }
-                    Some("BALANCE") => {
-                        if let Err(e) = crate::core::profile::apply_balance(&h.balance_governor) {
-                            w.write_all(format!("ERR SET_PROFILE {e:?}\n").as_bytes()).await?;
-                        } else {
-                            w.write_all(b"OK SET_PROFILE BALANCE\n").await?;
-                        }
-                    }
-                    Some("POWERSAVE") => {
-                        if let Err(e) = crate::core::profile::apply_powersave() {
-                            w.write_all(format!("ERR SET_PROFILE {e:?}\n").as_bytes()).await?;
-                        } else {
-                            w.write_all(b"OK SET_PROFILE POWERSAVE\n").await?;
-                        }
-                    }
-                    _ => {
-                        w.write_all(b"ERR SET_PROFILE usage: SET_PROFILE <PERFORMANCE|BALANCE|POWERSAVE>\n").await?;
-                    }
-                }
-            }
-            _ => {                w.write_all(b"ERR UNKNOWN COMMAND\n").await?;
-            }
+        let s = line.trim();
+        if s.len() > 256 {
+            w.write_all(b"ERR input too long\n").await?;
+            line.clear();
+            continue;
         }
+        let resp = match s.parse::<Command>() {
+            Ok(Command::Help) => HELP.to_string(),
+            Ok(Command::Ping) => "PONG\n".into(),
+            Ok(Command::Quit) => { w.write_all(b"BYE\n").await?; break; }
+            Ok(Command::GetPid) => {
+            let st = h.current_state.read().ok().map(|g| g.clone()).unwrap_or_default();
+                match (st.pkg, st.pid) {
+                    (Some(p), Some(id)) => format!("PKG={} PID={}\n", p, id),
+                    (Some(p), None) => format!("PKG={} PID=None\n", p),
+                    _ => "PKG=None PID=None\n".into(),
+                }
+            }
+            Ok(Command::Status) => {
+                let enabled = h.enabled.load(Ordering::Acquire);
+                let n = h.shared_config.read().ok().map(|c| c.games.len()).unwrap_or(0);
+                let ov = h.override_foreground.read().ok().and_then(|o| o.clone());
+                format!("ENABLED={} PACKAGES={} OVERRIDE={:?}\n", enabled, n, ov)
+            }
+            Ok(Command::Enable) => { h.enabled.store(true, Ordering::Release); "OK ENABLED\n".into() }
+            Ok(Command::Disable) => { h.enabled.store(false, Ordering::Release); "OK DISABLED\n".into() }
+            Ok(Command::Reload) => match (h.reload_fn)() {
+                Ok(n) => format!("OK RELOADED {}\n", n),
+                Err(e) => format!("ERR RELOAD {:?}\n", e),
+            },
+            Ok(Command::SetLog(lvl)) => { (h.set_log_level)(lvl); "OK SET_LOG\n".into() }
+            Ok(Command::Inject(pkg)) => { if let Ok(mut g)=h.override_foreground.write(){*g=Some(pkg);} "OK INJECT\n".into() }
+            Ok(Command::ClearInject) => { if let Ok(mut g)=h.override_foreground.write(){*g=None;} "OK CLEAR_INJECT\n".into() }
+            Ok(Command::SetProfile(mode)) => {
+                use crate::core::profile;
+                let r = match mode {
+                    ProfileMode::Performance => profile::apply_performance(),
+                    ProfileMode::Balance => profile::apply_balance(&h.balance_governor),
+                    ProfileMode::Powersave => profile::apply_powersave(),
+                };
+                match r { Ok(_) => format!("OK SET_PROFILE {:?}\n", mode), Err(e) => format!("ERR SET_PROFILE {:?}\n", e) }
+            }
+            Err(e) => format!("ERR {}\n", e),
+        };
+        if !resp.is_empty() { w.write_all(resp.as_bytes()).await?; }
         line.clear();
     }
     Ok(())
