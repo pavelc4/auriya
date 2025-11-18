@@ -32,18 +32,3 @@ enable_dnd = true
 package = "com.supercell.clashroyale"
 cpu_governor = "schedutil"
 enable_dnd = false
-
-[[games]]
-package = "com.dts.freefireth"
-cpu_governor = "performance"
-enable_dnd = true
-
-[[games]]
-package = "com.tencent.ig"
-cpu_governor = "performance"
-enable_dnd = true
-
-[[games]]
-package = "com.miHoYo.GenshinImpact"
-cpu_governor = "performance"
-enable_dnd = true
