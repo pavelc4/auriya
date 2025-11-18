@@ -4,6 +4,7 @@ pub struct CurrentState {
     pub pid: Option<i32>,
     pub screen_awake: bool,
     pub battery_saver: bool,
+    pub profile: crate::core::profile::ProfileMode,
 }
 
 #[derive(Debug, Default, Clone)]
