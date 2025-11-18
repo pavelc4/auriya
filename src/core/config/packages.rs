@@ -118,14 +118,14 @@ impl PackageList {
     pub fn get_game_config(&self, package: &str) -> Option<&GameConfig> {
         self.games.iter().find(|g| g.package == package)
     }
-
+    #[allow(dead_code)]
     pub fn get_governor(&self, package: &str) -> String {
         self.get_game_config(package)
             .and_then(|g| g.cpu_governor.clone())
             .or_else(|| self.settings.default_governor.clone())
             .unwrap_or_else(|| "schedutil".to_string())
     }
-
+    #[allow(dead_code)]
     pub fn should_enable_dnd(&self, package: &str) -> bool {
         self.get_game_config(package)
             .and_then(|g| g.enable_dnd)

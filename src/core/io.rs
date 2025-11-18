@@ -10,7 +10,13 @@ pub enum IoScheduler {
     Cfq,
     Noop,
     Bfq,
-    Mq_deadline,
+    MqDeadline,
+}
+
+#[allow(dead_code)]
+pub fn revert_io_scheduler() -> Result<()> {
+    info!(target: "auriya::io", "Reverting I/O scheduler to default");
+    Ok(())
 }
 
 impl ToString for IoScheduler {
@@ -21,7 +27,7 @@ impl ToString for IoScheduler {
             IoScheduler::Cfq => "cfq".to_string(),
             IoScheduler::Noop => "noop".to_string(),
             IoScheduler::Bfq => "bfq".to_string(),
-            IoScheduler::Mq_deadline => "mq-deadline".to_string(),
+            IoScheduler::MqDeadline => "mq-deadline".to_string(),
         }
     }
 }
@@ -45,7 +51,7 @@ pub fn get_available_schedulers(device: &str) -> Result<Vec<IoScheduler>> {
             "cfq" => schedulers.push(IoScheduler::Cfq),
             "noop" => schedulers.push(IoScheduler::Noop),
             "bfq" => schedulers.push(IoScheduler::Bfq),
-            "mq-deadline" => schedulers.push(IoScheduler::Mq_deadline),
+            "mq-deadline" => schedulers.push(IoScheduler::MqDeadline),
             _ => {}
         }
     }
@@ -68,7 +74,7 @@ pub fn get_current_scheduler(device: &str) -> Result<Option<IoScheduler>> {
                 "cfq" => Some(IoScheduler::Cfq),
                 "noop" => Some(IoScheduler::Noop),
                 "bfq" => Some(IoScheduler::Bfq),
-                "mq-deadline" => Some(IoScheduler::Mq_deadline),
+                "mq-deadline" => Some(IoScheduler::MqDeadline),
                 _ => None,
             });
         }
@@ -86,7 +92,7 @@ pub fn select_best_gaming_scheduler(device: &str) -> Result<IoScheduler> {
         IoScheduler::Bfq,
         IoScheduler::Noop,
         IoScheduler::Cfq,
-        IoScheduler::Mq_deadline,
+        IoScheduler::MqDeadline,
     ];
 
     for scheduler in &preferred_order {
@@ -206,10 +212,5 @@ pub fn apply_gaming_io() -> Result<()> {
         skip_count
     );
 
-    Ok(())
-}
-
-pub fn revert_io_scheduler() -> Result<()> {
-    info!(target: "auriya::io", "Reverting I/O scheduler to default");
     Ok(())
 }
