@@ -1,73 +1,41 @@
 #!/system/bin/sh
 
-if [ -z "$MODPATH" ]; then
-    MODPATH=$(dirname "$0")
-    case "$MODPATH" in
-        /*) : ;;
-        *) MODPATH="$PWD/$MODPATH" ;;
-    esac
-fi
 
-MODNAME="auriya"
-MODVERSION="1.0.0"
-MODULE_CONFIG="/data/adb/.config/$MODNAME"
+ui_print ">> Installing Auriya"
 
-make_dir() {
-    [ ! -d "$1" ] && mkdir -p "$1"
-}
-
-
+mkdir -p "$MODPATH/system/bin"
+ARCH="$(getprop ro.product.cpu.abi)"
 case "$ARCH" in
-    arm64) ARCH_TMP="arm64-v8a" ;;
-    arm) ARCH_TMP="armeabi-v7a" ;;
-    x64) ARCH_TMP="x86_64" ;;
-    x86) ARCH_TMP="x86" ;;
-    riscv64) ARCH_TMP="riscv64" ;;
-    *) abort " Unsupported architecture: $ARCH" ;;
+  arm64-v8a|arm64*|aarch64*) BIN_SRC="$TMPDIR/auriya-aarch64";;
+  armeabi-v7a|armeabi*|armv7*) BIN_SRC="$TMPDIR/auriya-armv7";;
+  *) BIN_SRC="$TMPDIR/auriya-aarch64";;
 esac
 
-ui_print "- Detected architecture: $ARCH_TMP"
+[ -f "$TMPDIR/auriya" ] && BIN_SRC="$TMPDIR/auriya"
 
-if [ "$KSU" = "true" ] || [ "$APATCH" = "true" ]; then
-    ui_print "- KSU/APatch detected, enabling skip_mount"
-
-    if ! touch "$MODPATH/skip_mount" 2>/dev/null; then
-        ui_print " Failed to create skip_mount at $MODPATH"
-    fi
-
-    manager_paths="/data/adb/ap/bin /data/adb/ksu/bin"
-    BIN_PATH="$MODPATH/system/bin"
-
-    for dir in $manager_paths; do
-        if [ -d "$dir" ]; then
-            ui_print "- Creating symlink in $dir"
-            ln -sf "$BIN_PATH/auriya" "$dir/auriya" 2>/dev/null
-        fi
-    done
-fi
-
-
-make_dir "$MODULE_CONFIG"
-chmod 0755 "$MODULE_CONFIG"
-
-if [ ! -f "$MODULE_CONFIG/auriya.toml" ]; then
-    if [ -f "$MODPATH/Packages.toml" ]; then
-        ui_print "- Copying default config"
-        cp "$MODPATH/Packages.toml" "$MODULE_CONFIG/auriya.toml"
-        chmod 0644 "$MODULE_CONFIG/auriya.toml"
-    else
-        ui_print " Packages.toml not found!"
-    fi
-fi
-
-# Permissions
-if [ -d "$MODPATH/system/bin" ]; then
-    ui_print "- Setting permissions"
-    set_perm_recursive "$MODPATH/system/bin" 0 0 0755 0755
-    set_perm "$MODPATH/system/bin/auriya" 0 0 0755
+if [ -f "$BIN_SRC" ]; then
+  cp -fp "$BIN_SRC" "$MODPATH/system/bin/auriya"
+  chmod 0755 "$MODPATH/system/bin/auriya"
+  ui_print "  + Binary installed"
 else
-    ui_print " Missing directory: $MODPATH/system/bin"
+  ui_print "  ! Binary not found in zip"
 fi
 
-ui_print ""
-ui_print " Installation complete!"
+CFGDIR="/data/adb/.config/auriya"
+CFGPATH="$CFGDIR/auriya.toml"
+mkdir -p "$CFGDIR"
+chmod 0771 "$CFGDIR"
+
+if [ ! -f "$CFGPATH" ]; then
+  if [ -f "$TMPDIR/auriya.toml" ]; then
+    cp -fp "$TMPDIR/auriya.toml" "$CFGPATH"
+    chmod 0644 "$CFGPATH"
+    ui_print "  + Default config created at $CFGPATH"
+  else
+    ui_print "  ! No default config found in zip"
+  fi
+else
+  ui_print "  = Keeping existing config at $CFGPATH"
+fi
+
+ui_print ">> Install done"
