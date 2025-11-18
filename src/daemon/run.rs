@@ -10,14 +10,12 @@ use tracing::{debug, error, info, warn};
 use crate::daemon::state::{CurrentState, LastState};
 use crate::core::profile::ProfileMode;
 
-
 #[derive(Debug, Clone)]
 pub struct DaemonConfig {
     pub poll_interval: Duration,
     pub config_path: PathBuf,
     pub log_debounce_ms: u128,
 }
-
 
 impl Default for DaemonConfig {
     fn default() -> Self {
@@ -53,7 +51,6 @@ pub type ReloadHandle = tracing_subscriber::reload::Handle<
     tracing_subscriber::Registry,
 >;
 
-
 pub async fn run_with_config_and_logger(cfg: &DaemonConfig, _reload: ReloadHandle) -> Result<()> {
     run_with_config(cfg).await
 }
@@ -67,6 +64,17 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
     let shared_current = Arc::new(RwLock::new(CurrentState::default()));
     let override_foreground: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
     let last = Arc::new(Mutex::new(LastState::default()));
+
+    let fas_controller = {
+        let cfg_guard = shared_config.read().map_err(|_| anyhow::anyhow!("Config lock poisoned"))?;
+        if cfg_guard.settings.fas_enabled {
+            info!(target: "auriya::daemon", "FAS enabled (mode: {})", cfg_guard.settings.fas_mode);
+            Some(Arc::new(Mutex::new(crate::daemon::fas::FasController::new())))
+        } else {
+            info!(target: "auriya::daemon", "FAS disabled");
+            None
+        }
+    };
 
     info!(target: "auriya::daemon", "Setting up IPC socket...");
 
@@ -135,7 +143,14 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
                     }
                 };
 
-                if let Err(e) = process_tick(&snapshot, &mut *st, cfg, &balance_governor, &override_foreground).await {
+                if let Err(e) = process_tick(
+                    &snapshot,
+                    &mut *st,
+                    cfg,
+                    &balance_governor,
+                    &override_foreground,
+                    &fas_controller,
+                ).await {
                     error!(target: "auriya::daemon", "Tick error: {:?}", e);
                 } else if let Ok(mut cur) = shared_current.write() {
                     cur.pkg = st.pkg.clone();
@@ -162,6 +177,7 @@ pub async fn process_tick(
     cfg: &DaemonConfig,
     balance_governor: &str,
     override_foreground: &Arc<RwLock<Option<String>>>,
+    fas_controller: &Option<Arc<Mutex<crate::daemon::fas::FasController>>>,
 ) -> anyhow::Result<()> {
     use crate::core::profile;
 
@@ -218,7 +234,22 @@ pub async fn process_tick(
     let pkg = pkg_opt.unwrap();
 
     if last.pkg.as_deref() == Some(pkg.as_str()) && last.pid.is_some() {
-        debug!(target: "auriya::daemon", "Same app with known PID; skip");
+        if let Some(fas) = fas_controller {
+            if config.get_packages().iter().any(|a| a == &pkg) {
+                let game_cfg = config.get_game_config(&pkg);
+                let governor = game_cfg.and_then(|c| c.cpu_governor.as_deref()).unwrap_or("performance");
+
+                match run_fas_tick(config, fas, governor, balance_governor, &mut last.profile_mode) {
+                    Ok(_) => {
+                        debug!(target: "auriya::fas", "FAS tick completed");
+                    }
+                    Err(e) => {
+                        warn!(target: "auriya::fas", "FAS tick error: {:?}", e);
+                    }
+                }
+            }
+        }
+        debug!(target: "auriya::daemon", "Same app with known PID; skip profile reapply");
         return Ok(());
     }
 
@@ -286,4 +317,47 @@ pub async fn process_tick(
         last.pid = None;
     }
     Ok(())
+}
+
+fn run_fas_tick(
+    config: &crate::core::config::packages::PackageList,
+    fas: &Arc<Mutex<crate::daemon::fas::FasController>>,
+    game_governor: &str,
+    balance_governor: &str,
+    last_profile: &mut Option<ProfileMode>,
+) -> anyhow::Result<bool> {
+    use crate::core::{profile, scaling::ScalingAction};
+
+    let margin = config.get_fas_margin(None);
+    let thermal_thresh = config.get_fas_thermal();
+
+    let mut fas_guard = fas.lock().map_err(|_| anyhow::anyhow!("FAS lock poisoned"))?;
+    let action = fas_guard.tick(margin, thermal_thresh)?;
+
+    match action {
+        ScalingAction::Boost => {
+            if *last_profile != Some(ProfileMode::Performance) {
+                info!(target: "auriya::fas", "FAS decision: BOOST → applying PERFORMANCE");
+                profile::apply_performance_with_config(game_governor, true)?;
+                *last_profile = Some(ProfileMode::Performance);
+            } else {
+                debug!(target: "auriya::fas", "FAS decision: BOOST → already PERFORMANCE, skip");
+            }
+            Ok(true)
+        }
+        ScalingAction::Maintain => {
+            debug!(target: "auriya::fas", "FAS decision: MAINTAIN → no change");
+            Ok(true)
+        }
+        ScalingAction::Reduce => {
+            if *last_profile != Some(ProfileMode::Balance) {
+                info!(target: "auriya::fas", "FAS decision: REDUCE → applying BALANCE");
+                profile::apply_balance(balance_governor)?;
+                *last_profile = Some(ProfileMode::Balance);
+            } else {
+                debug!(target: "auriya::fas", "FAS decision: REDUCE → already BALANCE, skip");
+            }
+            Ok(true)
+        }
+    }
 }
