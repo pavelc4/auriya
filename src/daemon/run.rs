@@ -10,6 +10,7 @@ use tracing::{debug, error, info, warn};
 use crate::daemon::state::{CurrentState, LastState};
 use crate::core::profile::ProfileMode;
 use tracing_subscriber::{EnvFilter};
+use notify::{Watcher, RecursiveMode, EventKind};
 
 #[derive(Debug, Clone)]
 pub struct DaemonConfig {
@@ -163,6 +164,87 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     tick.tick().await;
     let mut last_error: Option<(String, u128)> = None;
     let error_debounce_ms: u128 = 30_000;
+    let (watch_tx, mut watch_rx) = tokio::sync::mpsc::channel::<()>(10);
+    let config_path_for_watcher = cfg.config_path.clone();
+    let shared_for_watcher = shared_config.clone();
+
+    std::thread::spawn(move || {
+        let tx = watch_tx;
+        let shared = shared_for_watcher;
+        let path = config_path_for_watcher.clone();
+        let path_for_closure = config_path_for_watcher;
+
+        let mut watcher = match notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+            if let Ok(event) = res {
+                if matches!(event.kind, EventKind::Modify(_)) {
+                    info!(target: "auriya::daemon", "Config file changed, reloading...");
+                    let max_retries = 3;
+                    let mut retry_count = 0;
+                    let mut success = false;
+
+                    while retry_count < max_retries && !success {
+                        match crate::core::config::packages::PackageList::load_from_toml(&path_for_closure) {
+                            Ok(new_cfg) => {
+                                match shared.write() {
+                                    Ok(mut g) => {
+                                        let count = new_cfg.games.len();
+                                        *g = new_cfg;
+                                        info!(target: "auriya::daemon", "Config reloaded: {} games", count);
+                                        success = true;
+                                    }
+                                    Err(_) => {
+                                        error!(target: "auriya::daemon", "Failed to acquire config lock");
+                                        break;
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                retry_count += 1;
+                                if retry_count < max_retries {
+                                    warn!(
+                                        target: "auriya::daemon",
+                                        "Failed to reload config (attempt {}/{}): {:?}. Retrying in 2s...",
+                                        retry_count,
+                                        max_retries,
+                                        e
+                                    );
+                                    std::thread::sleep(std::time::Duration::from_secs(2));
+                                } else {
+                                    error!(
+                                        target: "auriya::daemon",
+                                        "Failed to reload config after {} attempts: {:?}",
+                                        max_retries,
+                                        e
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    let _ = tx.blocking_send(());
+                }
+            }
+        }) {
+            Ok(w) => w,
+            Err(e) => {
+                error!(target: "auriya::daemon", "Failed to create file watcher: {}", e);
+                return;
+            }
+        };
+
+        if let Err(e) = watcher.watch(&path, RecursiveMode::NonRecursive) {
+            error!(target: "auriya::daemon", "Failed to watch config file: {}", e);
+            return;
+        }
+
+        info!(target: "auriya::daemon", "Config file watcher started");
+
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(3600));
+        }
+    });
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
     loop {
         tokio::select! {
@@ -226,6 +308,10 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                     cur.profile = st.profile_mode.unwrap_or(ProfileMode::Balance);
                 }
             }
+            Some(_) = watch_rx.recv() => {
+                 debug!(target: "auriya::daemon", "Config reload notification received");
+            }
+
             _ = signal::ctrl_c() => {
                 info!(target: "auriya::daemon", "Received Ctrl-C, shutting down...");
                 break;
