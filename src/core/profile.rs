@@ -46,12 +46,12 @@ pub fn apply_performance_with_config(governor: &str, enable_dnd: bool) -> Result
     }
 
     if let Err(e) = crate::core::lmk::apply_gaming_lmk() {
-           tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
-       }
+        tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
+    }
 
     if enable_dnd {
         let dnd_result = Command::new("cmd")
-            .args(["notification", "set_dnd", "on"])
+            .args(["notification", "set_dnd", "priority"])
             .output();
 
         match dnd_result {
@@ -65,7 +65,12 @@ pub fn apply_performance_with_config(governor: &str, enable_dnd: bool) -> Result
             Err(e) => {
                 tracing::warn!(target: "auriya::profile", "Failed to set DND: {:#}", e);
             }
-            _ => {}
+            Ok(_) => {
+                tracing::debug!(
+                    target: "auriya::profile",
+                    "DND enabled (priority mode - allows game audio)"
+                );
+            }
         }
     }
 
@@ -110,6 +115,26 @@ pub fn apply_balance(governor: &str) -> Result<()> {
         );
     }
 
+    let dnd_result = Command::new("cmd")
+        .args(["notification", "set_dnd", "off"])
+        .output();
+
+    match dnd_result {
+        Ok(out) if !out.status.success() => {
+            tracing::warn!(
+                target: "auriya::profile",
+                "Failed to disable DND: {}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+        }
+        Err(e) => {
+            tracing::warn!(target: "auriya::profile", "Failed to disable DND: {}", e);
+        }
+        Ok(_) => {
+            tracing::debug!(target: "auriya::profile", "DND disabled (balance mode)");
+        }
+    }
+
     Ok(())
 }
 
@@ -119,7 +144,7 @@ pub fn apply_powersave() -> Result<()> {
     let output = Command::new("sh")
         .args([
             "-c",
-            "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo powersave > \"$cpu\" 2>/dev/null; done"
+            "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo powersave > \"$cpu\" 2>/dev/null; don"
         ])
         .output()
         .context("Failed to execute CPU governor command")?;
@@ -133,8 +158,8 @@ pub fn apply_powersave() -> Result<()> {
         );
     }
     if let Err(e) = crate::core::lmk::apply_powersave_lmk() {
-            tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
-        }
+        tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
+    }
 
     let _ = Command::new("cmd")
         .args(["notification", "set_dnd", "off"])
