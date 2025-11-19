@@ -2,6 +2,27 @@
 default_governor = "schedutil"
 default_enable_dnd = true
 
+fas_enabled = true
+fas_mode = "balance"
+fas_thermal_threshold = 90.0
+fas_poll_interval_ms = 300
+
+[modes.powersave]
+margin = 5.0
+thermal_threshold = 80.0
+
+[modes.balance]
+margin = 2.0
+thermal_threshold = 90.0
+
+[modes.performance]
+margin = 1.0
+thermal_threshold = 95.0
+
+[modes.fast]
+margin = 0.0
+thermal_threshold = 95.0
+
 [[games]]
 package = "com.mobile.legends"
 cpu_governor = "performance"

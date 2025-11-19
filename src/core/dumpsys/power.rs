@@ -1,7 +1,3 @@
-use crate::core::dumpsys::power;
-use clap::Arg;
-use std::process::{Command, Output};
-
 #[derive(Debug, Default, Clone)]
 pub struct PowerState {
     pub screen_awake: bool,

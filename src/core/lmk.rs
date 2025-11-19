@@ -129,7 +129,7 @@ pub fn apply_lmk(config: &LmkConfig) -> Result<()> {
 }
 
 pub fn apply_gaming_lmk() -> Result<()> {
-    let total_ram = get_total_ram_mb().unwrap_or(6144);
+    let total_ram = get_total_ram_mb().unwrap_or(4096);
 
     if !should_apply_lmk(total_ram) {
         info!(target: "auriya::lmk", "Skipping LMK for {}MB RAM", total_ram);
@@ -152,7 +152,7 @@ pub fn apply_gaming_lmk() -> Result<()> {
 }
 
 pub fn apply_balanced_lmk() -> Result<()> {
-    let total_ram = get_total_ram_mb().unwrap_or(6144);
+    let total_ram = get_total_ram_mb().unwrap_or(4096);
 
     if !should_apply_lmk(total_ram) {
         debug!(target: "auriya::lmk", "Skipping LMK for {}MB RAM", total_ram);
@@ -175,7 +175,7 @@ pub fn apply_balanced_lmk() -> Result<()> {
 }
 
 pub fn apply_powersave_lmk() -> Result<()> {
-    let total_ram = get_total_ram_mb().unwrap_or(6144);
+    let total_ram = get_total_ram_mb().unwrap_or(4096);
 
     if !should_apply_lmk(total_ram) {
         debug!(target: "auriya::lmk", "Skipping LMK for {}MB RAM", total_ram);
