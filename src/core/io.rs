@@ -150,16 +150,81 @@ pub fn set_io_scheduler(device: &str, scheduler: &IoScheduler) -> Result<()> {
     Ok(())
 }
 
+pub fn discover_block_devices() -> Result<Vec<String>> {
+    let sys_block_path = "/sys/block";
+
+    let entries = fs::read_dir(sys_block_path)
+        .with_context(|| format!("Failed to read {}", sys_block_path))?;
+
+    let mut devices = Vec::new();
+
+    for entry in entries {
+        let entry = entry?;
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name.starts_with("loop")
+            || name.starts_with("ram")
+            || name.starts_with("dm-")
+            || name.starts_with("zram")
+        {
+            debug!(
+                target: "auriya::io",
+                "Skipping virtual device: {}",
+                name
+            );
+            continue;
+        }
+
+        if name.starts_with("sd")
+            || name.starts_with("nvme")
+            || name.starts_with("mmcblk")
+            || name.starts_with("vd")
+        {
+            debug!(
+                target: "auriya::io",
+                "Discovered block device: {}",
+                name
+            );
+            devices.push(name);
+        }
+    }
+
+    if devices.is_empty() {
+        debug!(
+            target: "auriya::io",
+            "No block devices discovered, falling back to common names"
+        );
+        devices = vec![
+            "sda".to_string(),
+            "mmcblk0".to_string(),
+        ];
+    }
+
+    Ok(devices)
+}
 pub fn apply_gaming_io() -> Result<()> {
     info!(target: "auriya::io", "Applying gaming I/O scheduler");
 
-    let devices = [
-        "sda", "sdb", "sdc",
-        "mmcblk0", "mmcblk1",
-        "nvme0n1", "nvme1n1",
-        "vda", "vdb",
-        "loop0", "loop1",
-    ];
+    let devices = match discover_block_devices() {
+        Ok(devs) => devs,
+        Err(e) => {
+            debug!(
+                target: "auriya::io",
+                "Failed to discover devices: {}. Using fallback list.",
+                e
+            );
+            vec![
+                "sda".to_string(),
+                "mmcblk0".to_string(),
+                "nvme0n1".to_string(),
+            ]
+        }
+    };
+
+    debug!(
+        target: "auriya::io",
+        "Applying I/O scheduler to {} devices",
+        devices.len()
+    );
 
     let mut success_count = 0;
     let mut skip_count = 0;
