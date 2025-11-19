@@ -27,25 +27,33 @@ impl FromStr for Command {
             "ENABLE" => Self::Enable,
             "DISABLE" => Self::Disable,
             "RELOAD" => Self::Reload,
-            "SET_LOG" => match it.next() {
+
+            "SET_LOG" | "SETLOG" => match it.next() {
                 Some("DEBUG") | Some("debug") => Self::SetLog(LogLevelCmd::Debug),
                 Some("INFO") | Some("info") => Self::SetLog(LogLevelCmd::Info),
                 Some("WARN") | Some("warn") => Self::SetLog(LogLevelCmd::Warn),
                 Some("ERROR") | Some("error") => Self::SetLog(LogLevelCmd::Error),
-                _ => return Err("usage: SET_LOG <debug|info|warn|error>"),
+                _ => return Err("usage: SETLOG <DEBUG|INFO|WARN|ERROR>"),
             },
-            "INJECT" => Self::Inject(it.next().ok_or("usage: INJECT <pkg>")?.to_string()),
-            "CLEAR_INJECT" => Self::ClearInject,
-            "GETPID" => Self::GetPid,
+
+            "INJECT" => {
+                let pkg = it.next().ok_or("usage: INJECT <package>")?;
+                Self::Inject(pkg.to_string())
+            }
+
+            "CLEAR_INJECT" | "CLEARINJECT" => Self::ClearInject,
+            "GETPID" | "GET_PID" => Self::GetPid,
             "PING" => Self::Ping,
             "QUIT" => Self::Quit,
-            "SET_PROFILE" => match it.next() {
-                Some("PERFORMANCE") => Self::SetProfile(ProfileMode::Performance),
-                Some("BALANCE") => Self::SetProfile(ProfileMode::Balance),
-                Some("POWERSAVE") => Self::SetProfile(ProfileMode::Powersave),
-                _ => return Err("usage: SET_PROFILE <PERFORMANCE|BALANCE|POWERSAVE>"),
+
+            "SET_PROFILE" | "SETPROFILE" => match it.next() {
+                Some("PERFORMANCE") | Some("performance") => Self::SetProfile(ProfileMode::Performance),
+                Some("BALANCE") | Some("balance") => Self::SetProfile(ProfileMode::Balance),
+                Some("POWERSAVE") | Some("powersave") => Self::SetProfile(ProfileMode::Powersave),
+                _ => return Err("usage: SETPROFILE <PERFORMANCE|BALANCE|POWERSAVE>"),
             },
-            _ => return Err("unknown command"),
+
+            _ => return Err("unknown command (try HELP)"),
         })
     }
 }
@@ -65,7 +73,7 @@ const HELP: &str = "CMDS:
         - STATUS
         - ENABLE | DISABLE
         - RELOAD
-        - SET_LOG <debug|info|warn|error>
+        - SETLOG <DEBUG|INFO|WARN|ERROR>
         - INJECT <pkg>
         - CLEAR_INJECT
         - GETPID

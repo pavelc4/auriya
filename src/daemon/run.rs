@@ -9,6 +9,7 @@ use tokio::{signal, time};
 use tracing::{debug, error, info, warn};
 use crate::daemon::state::{CurrentState, LastState};
 use crate::core::profile::ProfileMode;
+use tracing_subscriber::{EnvFilter, reload};
 
 #[derive(Debug, Clone)]
 pub struct DaemonConfig {
@@ -62,11 +63,11 @@ pub type ReloadHandle = tracing_subscriber::reload::Handle<
     tracing_subscriber::Registry,
 >;
 
-pub async fn run_with_config_and_logger(cfg: &DaemonConfig, _reload: ReloadHandle) -> Result<()> {
-    run_with_config(cfg).await
+pub async fn run_with_config_and_logger(cfg: &DaemonConfig, reload: ReloadHandle) -> Result<()> {
+    run_with_config(cfg, reload).await
 }
 
-pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
+pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) -> Result<()> {
     info!(target: "auriya::daemon", "Starting Auriya daemon...");
     let initial = crate::core::config::packages::PackageList::load_from_toml(&cfg.config_path)?;
     let balance_governor = initial.settings.default_governor.clone().unwrap_or_else(|| "schedutil".into());
@@ -111,8 +112,36 @@ pub async fn run_with_config(cfg: &DaemonConfig) -> Result<()> {
                 }
             }
         }),
-        set_log_level: Arc::new(|lvl| {
-            info!(target: "auriya::ipc", "Log level change requested: {:?} (not implemented yet)", lvl);
+
+        set_log_level: Arc::new({
+            let handle = filter_handle.clone();
+            move |lvl| {
+                use crate::daemon::ipc::LogLevelCmd;
+
+                let filter_str = match lvl {
+                    LogLevelCmd::Debug => "debug",
+                    LogLevelCmd::Info => "info",
+                    LogLevelCmd::Warn => "warn",
+                    LogLevelCmd::Error => "error",
+                };
+
+                match handle.reload(EnvFilter::new(filter_str)) {
+                    Ok(_) => {
+                        info!(
+                            target: "auriya::ipc",
+                            "Log level changed to {:?}",
+                            lvl
+                        );
+                    }
+                    Err(e) => {
+                        error!(
+                            target: "auriya::ipc",
+                            "Failed to change log level: {}",
+                            e
+                        );
+                    }
+                }
+            }
         }),
         current_state: shared_current.clone(),
         balance_governor: balance_governor.clone(),
