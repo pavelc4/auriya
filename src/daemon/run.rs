@@ -9,7 +9,7 @@ use tokio::{signal, time};
 use tracing::{debug, error, info, warn};
 use crate::daemon::state::{CurrentState, LastState};
 use crate::core::profile::ProfileMode;
-use tracing_subscriber::{EnvFilter, reload};
+use tracing_subscriber::{EnvFilter};
 
 #[derive(Debug, Clone)]
 pub struct DaemonConfig {
@@ -161,6 +161,8 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     info!(target: "auriya::daemon", "Tick loop started (interval: {:?})", cfg.poll_interval);
     let mut tick = time::interval(cfg.poll_interval);
     tick.tick().await;
+    let mut last_error: Option<(String, u128)> = None;
+    let error_debounce_ms: u128 = 30_000;
 
     loop {
         tokio::select! {
@@ -191,7 +193,31 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                     &override_foreground,
                     &fas_controller,
                 ).await {
-                    error!(target: "auriya::daemon", "Tick error: {:?}", e);
+                    // Debounced error logging
+                    let err_msg = e.to_string();
+                    let now = now_ms();
+
+                    let should_log = match &last_error {
+                        None => true,
+                        Some((last_msg, last_time)) => {
+                            err_msg != *last_msg || (now.saturating_sub(*last_time) >= error_debounce_ms)
+                        }
+                    };
+
+                    if should_log {
+                        error!(
+                            target: "auriya::daemon",
+                            "Tick error: {:?}",
+                            e
+                        );
+                        last_error = Some((err_msg, now));
+                    } else {
+                        debug!(
+                            target: "auriya::daemon",
+                            "Tick error (suppressed): {:?}",
+                            e
+                        );
+                    }
                 } else if let Ok(mut cur) = shared_current.write() {
                     cur.pkg = st.pkg.clone();
                     cur.pid = st.pid;
