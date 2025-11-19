@@ -29,8 +29,19 @@ impl Default for DaemonConfig {
 
 #[inline]
 fn now_ms() -> u128 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis()
+    use std::time::{SystemTime, UNIX_EPOCH, Duration};
+
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_else(|e| {
+            tracing::warn!(
+                target: "auriya::daemon",
+                "System clock error: {}. Using fallback timestamp.",
+                e
+            );
+            Duration::from_secs(0)
+        })
+        .as_millis()
 }
 
 #[inline]
