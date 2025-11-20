@@ -17,7 +17,7 @@ impl Default for ProfileMode {
 pub fn apply_performance_with_config(governor: &str, enable_dnd: bool) -> Result<()> {
     tracing::info!(
         target: "auriya::profile",
-        "Applying PERFORMANCE profile (governor: {}, dnd: {})",
+        "Applying PERFORMANCE profile (governor: {}, suppress_notifs: {})",
         governor,
         enable_dnd
     );
@@ -50,28 +50,22 @@ pub fn apply_performance_with_config(governor: &str, enable_dnd: bool) -> Result
     }
 
     if enable_dnd {
-        let dnd_result = Command::new("cmd")
-            .args(["notification", "set_dnd", "priority"])
+        let _ = Command::new("settings")
+            .args(["put", "global", "heads_up_notifications_enabled", "0"])
             .output();
 
-        match dnd_result {
-            Ok(out) if !out.status.success() => {
-                tracing::warn!(
-                    target: "auriya::profile",
-                    "DND command failed: {}",
-                    String::from_utf8_lossy(&out.stderr)
-                );
-            }
-            Err(e) => {
-                tracing::warn!(target: "auriya::profile", "Failed to set DND: {:#}", e);
-            }
-            Ok(_) => {
-                tracing::debug!(
-                    target: "auriya::profile",
-                    "DND enabled (priority mode - allows game audio)"
-                );
-            }
-        }
+        let _ = Command::new("settings")
+            .args(["put", "global", "notification_sound", "null"])
+            .output();
+
+        let _ = Command::new("settings")
+            .args(["put", "system", "notification_sound", "null"])
+            .output();
+
+        tracing::info!(
+            target: "auriya::profile",
+            "Gaming mode: notifications silenced"
+        );
     }
 
     Ok(())
@@ -115,25 +109,11 @@ pub fn apply_balance(governor: &str) -> Result<()> {
         );
     }
 
-    let dnd_result = Command::new("cmd")
-        .args(["notification", "set_dnd", "off"])
+    let _ = Command::new("settings")
+        .args(["put", "global", "heads_up_notifications_enabled", "1"])
         .output();
 
-    match dnd_result {
-        Ok(out) if !out.status.success() => {
-            tracing::warn!(
-                target: "auriya::profile",
-                "Failed to disable DND: {}",
-                String::from_utf8_lossy(&out.stderr)
-            );
-        }
-        Err(e) => {
-            tracing::warn!(target: "auriya::profile", "Failed to disable DND: {}", e);
-        }
-        Ok(_) => {
-            tracing::debug!(target: "auriya::profile", "DND disabled (balance mode)");
-        }
-    }
+    tracing::debug!(target: "auriya::profile", "Normal mode: notifications restored");
 
     Ok(())
 }
@@ -144,7 +124,7 @@ pub fn apply_powersave() -> Result<()> {
     let output = Command::new("sh")
         .args([
             "-c",
-            "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo powersave > \"$cpu\" 2>/dev/null; don"
+            "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo powersave > \"$cpu\" 2>/dev/null; done"
         ])
         .output()
         .context("Failed to execute CPU governor command")?;
@@ -161,8 +141,8 @@ pub fn apply_powersave() -> Result<()> {
         tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
     }
 
-    let _ = Command::new("cmd")
-        .args(["notification", "set_dnd", "off"])
+    let _ = Command::new("settings")
+        .args(["put", "global", "heads_up_notifications_enabled", "1"])
         .output();
 
     Ok(())
