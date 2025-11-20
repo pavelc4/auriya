@@ -1,21 +1,14 @@
 use anyhow::Result;
-use clap::Parser;
-use tracing_subscriber::{fmt, EnvFilter};
-use tracing_subscriber::{reload, prelude::*};
+use tracing_subscriber::{fmt, EnvFilter, reload, prelude::*};
 
 mod core;
 mod daemon;
 
-#[derive(Parser)]
-struct Args {
-    #[arg(long, default_value = "/data/adb/.config/auriya/auriya.toml")]
-    packages: String,
-}
+const CONFIG_PATH: &str = "/data/adb/.config/auriya/auriya.toml";
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     let base_filter = EnvFilter::new("info");
-
     let (filter_layer, filter_handle) = reload::Layer::new(base_filter);
 
     let fmt_layer = fmt::layer()
@@ -26,10 +19,9 @@ async fn main() -> Result<()> {
         .with(filter_layer)
         .with(fmt_layer)
         .init();
-
-    let args = Args::parse();
+    tracing::info!("Auriya daemon v{} starting", env!("CARGO_PKG_VERSION"));
     let cfg = daemon::run::DaemonConfig {
-        config_path: std::path::PathBuf::from(&args.packages),
+        config_path: CONFIG_PATH.into(),
         ..Default::default()
     };
     daemon::run::run_with_config_and_logger(&cfg, filter_handle).await
