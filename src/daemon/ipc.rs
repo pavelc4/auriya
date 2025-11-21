@@ -5,6 +5,7 @@ use tokio::net::{UnixListener, UnixStream};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use std::os::unix::fs::PermissionsExt;
 use crate::daemon::state::CurrentState;
+use crate::core::config::gamelist::GameList;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogLevelCmd { Debug, Info, Warn, Error }
@@ -60,7 +61,7 @@ impl FromStr for Command {
 
 pub struct IpcHandles {
     pub enabled: Arc<AtomicBool>,
-    pub shared_config: Arc<RwLock<crate::core::config::packages::PackageList>>,
+    pub shared_config: Arc<RwLock<GameList>>,
     pub override_foreground: Arc<RwLock<Option<String>>>,
     pub reload_fn: Arc<dyn Fn() -> anyhow::Result<usize> + Send + Sync>,
     pub set_log_level: Arc<dyn Fn(LogLevelCmd) + Send + Sync>,
@@ -135,7 +136,7 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
             }
             Ok(Command::Status) => {
                 let enabled = h.enabled.load(Ordering::Acquire);
-                let n = h.shared_config.read().ok().map(|c| c.games.len()).unwrap_or(0);
+                let n = h.shared_config.read().ok().map(|c| c.game.len()).unwrap_or(0);
                 let ov = h.override_foreground.read().ok().and_then(|o| o.clone());
                 format!("ENABLED={} PACKAGES={} OVERRIDE={:?}\n", enabled, n, ov)
             }

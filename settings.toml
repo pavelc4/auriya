@@ -1,0 +1,31 @@
+[daemon]
+log_level = "info"
+check_interval_ms = 2000
+
+[cpu]
+default_governor = "schedutil"
+
+[dnd]
+default_enable = true
+
+[fas]
+enabled = true
+default_mode = "balance"
+thermal_threshold = 90.0
+poll_interval_ms = 300
+
+[modes.powersave]
+margin = 5.0
+thermal_threshold = 80.0
+
+[modes.balance]
+margin = 2.0
+thermal_threshold = 90.0
+
+[modes.performance]
+margin = 1.0
+thermal_threshold = 95.0
+
+[modes.fast]
+margin = 0.0
+thermal_threshold = 95.0

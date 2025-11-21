@@ -1,0 +1,15 @@
+[[game]]
+package = "com.mobile.legends"
+cpu_governor = "performance"
+enable_dnd = true
+
+[[game]]
+package = "com.supercell.clashroyale"
+cpu_governor = "schedutil"
+enable_dnd = false
+
+[[game]]
+package = "com.tencent.ig"
+cpu_governor = "performance"
+enable_dnd = true
+

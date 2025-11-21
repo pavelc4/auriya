@@ -1,6 +1,5 @@
 use anyhow::Result;
 use std::{
-    path::PathBuf,
     sync::{Arc, Mutex, RwLock},
     sync::atomic::AtomicBool,
     time::Duration,
@@ -9,21 +8,25 @@ use tokio::{signal, time};
 use tracing::{debug, error, info, warn};
 use crate::daemon::state::{CurrentState, LastState};
 use crate::core::profile::ProfileMode;
-use tracing_subscriber::{EnvFilter};
+use tracing_subscriber::EnvFilter;
 use notify::{Watcher, RecursiveMode, EventKind};
 
 #[derive(Debug, Clone)]
 pub struct DaemonConfig {
     pub poll_interval: Duration,
-    pub config_path: PathBuf,
+    pub settings: crate::core::config::Settings,
+    pub gamelist: crate::core::config::GameList,
     pub log_debounce_ms: u128,
 }
 
 impl Default for DaemonConfig {
     fn default() -> Self {
+        let settings = crate::core::config::Settings::load(crate::core::config::settings_path()).unwrap();
+        let gamelist = crate::core::config::GameList::load(crate::core::config::gamelist_path()).unwrap();
         Self {
             poll_interval: Duration::from_secs(2),
-            config_path: PathBuf::from("/data/adb/.config/auriya/auriya.toml"),
+            settings,
+            gamelist,
             log_debounce_ms: 2000,
         }
     }
@@ -70,18 +73,22 @@ pub async fn run_with_config_and_logger(cfg: &DaemonConfig, reload: ReloadHandle
 
 pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) -> Result<()> {
     info!(target: "auriya::daemon", "Starting Auriya daemon...");
-    let initial = crate::core::config::packages::PackageList::load_from_toml(&cfg.config_path)?;
-    let balance_governor = initial.settings.default_governor.clone().unwrap_or_else(|| "schedutil".into());
 
-    let shared_config: Arc<RwLock<_>> = Arc::new(RwLock::new(initial));
+    let shared_settings = Arc::new(RwLock::new(cfg.settings.clone()));
+    let shared_gamelist = Arc::new(RwLock::new(cfg.gamelist.clone()));
     let shared_current = Arc::new(RwLock::new(CurrentState::default()));
     let override_foreground: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
     let last = Arc::new(Mutex::new(LastState::default()));
 
+    let balance_governor = {
+        let settings_guard = shared_settings.read().map_err(|_| anyhow::anyhow!("Settings lock poisoned"))?;
+        settings_guard.cpu.default_governor.clone()
+    };
+
     let fas_controller = {
-        let cfg_guard = shared_config.read().map_err(|_| anyhow::anyhow!("Config lock poisoned"))?;
-        if cfg_guard.settings.fas_enabled {
-            info!(target: "auriya::daemon", "FAS enabled (mode: {})", cfg_guard.settings.fas_mode);
+        let settings_guard = shared_settings.read().map_err(|_| anyhow::anyhow!("Settings lock poisoned"))?;
+        if settings_guard.fas.enabled {
+            info!(target: "auriya::daemon", "FAS enabled (default mode: {})", settings_guard.fas.default_mode);
             Some(Arc::new(Mutex::new(crate::daemon::fas::FasController::new())))
         } else {
             info!(target: "auriya::daemon", "FAS disabled");
@@ -89,24 +96,22 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
         }
     };
 
-    info!(target: "auriya::daemon", "Setting up IPC socket...");
-
     let ipc_handles = crate::daemon::ipc::IpcHandles {
         enabled: Arc::new(AtomicBool::new(true)),
-        shared_config: shared_config.clone(),
+        shared_config: shared_gamelist.clone(),
         override_foreground: override_foreground.clone(),
+
         reload_fn: Arc::new({
-            let cfg_path = cfg.config_path.clone();
-            let shared = shared_config.clone();
+            let shared_cfg = shared_gamelist.clone();
             move || {
-                match crate::core::config::packages::PackageList::load_from_toml(&cfg_path) {
+                match crate::core::config::GameList::load(crate::core::config::gamelist_path()) {
                     Ok(new_cfg) => {
-                        if let Ok(mut g) = shared.write() {
-                            let count = new_cfg.games.len();
+                        if let Ok(mut g) = shared_cfg.write() {
+                            let count = new_cfg.game.len();
                             *g = new_cfg;
                             Ok(count)
                         } else {
-                            Err(anyhow::anyhow!("Config lock poisoned"))
+                            Err(anyhow::anyhow!("Gamelist lock poisoned"))
                         }
                     }
                     Err(e) => Err(e),
@@ -156,44 +161,44 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
         }
     });
 
-    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+    tokio::time::sleep(time::Duration::from_millis(200)).await;
     info!(target: "auriya::daemon", "IPC socket should be ready at /dev/socket/auriya.sock");
 
     info!(target: "auriya::daemon", "Tick loop started (interval: {:?})", cfg.poll_interval);
-    let mut tick = time::interval(cfg.poll_interval);
-    tick.tick().await;
+    let mut tick_interval = time::interval(cfg.poll_interval);
+    tick_interval.tick().await;
+
     let mut last_error: Option<(String, u128)> = None;
     let error_debounce_ms: u128 = 30_000;
+
     let (watch_tx, mut watch_rx) = tokio::sync::mpsc::channel::<()>(10);
-    let config_path_for_watcher = cfg.config_path.clone();
-    let shared_for_watcher = shared_config.clone();
+    let config_path_for_watcher = Arc::new(crate::core::config::gamelist_path());
+    let shared_for_watcher = shared_gamelist.clone();
 
     std::thread::spawn(move || {
         let tx = watch_tx;
-        let shared = shared_for_watcher;
         let path = config_path_for_watcher.clone();
-        let path_for_closure = config_path_for_watcher;
 
         let mut watcher = match notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
             if let Ok(event) = res {
                 if matches!(event.kind, EventKind::Modify(_)) {
-                    info!(target: "auriya::daemon", "Config file changed, reloading...");
+                    info!(target: "auriya::daemon", "Gamelist file changed, reloading...");
                     let max_retries = 3;
                     let mut retry_count = 0;
                     let mut success = false;
 
                     while retry_count < max_retries && !success {
-                        match crate::core::config::packages::PackageList::load_from_toml(&path_for_closure) {
+                        match crate::core::config::GameList::load(&*path) {
                             Ok(new_cfg) => {
-                                match shared.write() {
+                                match shared_for_watcher.write() {
                                     Ok(mut g) => {
-                                        let count = new_cfg.games.len();
+                                        let count = new_cfg.game.len();
                                         *g = new_cfg;
-                                        info!(target: "auriya::daemon", "Config reloaded: {} games", count);
+                                        info!(target: "auriya::daemon", "Gamelist reloaded: {} games", count);
                                         success = true;
                                     }
                                     Err(_) => {
-                                        error!(target: "auriya::daemon", "Failed to acquire config lock");
+                                        error!(target: "auriya::daemon", "Failed to acquire gamelist lock");
                                         break;
                                     }
                                 }
@@ -203,7 +208,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                                 if retry_count < max_retries {
                                     warn!(
                                         target: "auriya::daemon",
-                                        "Failed to reload config (attempt {}/{}): {:?}. Retrying in 2s...",
+                                        "Failed reloading gamelist (attempt {}/{}): {:?}, retrying in 2s...",
                                         retry_count,
                                         max_retries,
                                         e
@@ -212,7 +217,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                                 } else {
                                     error!(
                                         target: "auriya::daemon",
-                                        "Failed to reload config after {} attempts: {:?}",
+                                        "Failed to reload gamelist after {} attempts: {:?}",
                                         max_retries,
                                         e
                                     );
@@ -227,34 +232,34 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
         }) {
             Ok(w) => w,
             Err(e) => {
-                error!(target: "auriya::daemon", "Failed to create file watcher: {}", e);
+                error!(target: "auriya::daemon", "Failed to create gamelist watcher: {}", e);
                 return;
             }
         };
 
-        if let Err(e) = watcher.watch(&path, RecursiveMode::NonRecursive) {
-            error!(target: "auriya::daemon", "Failed to watch config file: {}", e);
+        if let Err(e) = watcher.watch(&*config_path_for_watcher, RecursiveMode::NonRecursive) {
+            error!(target: "auriya::daemon", "Failed to watch gamelist file: {}", e);
             return;
         }
 
-        info!(target: "auriya::daemon", "Config file watcher started");
+        info!(target: "auriya::daemon", "Gamelist file watcher started");
 
         loop {
             std::thread::sleep(std::time::Duration::from_secs(3600));
         }
     });
 
-    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    tokio::time::sleep(time::Duration::from_millis(100)).await;
 
     loop {
         tokio::select! {
-            _ = tick.tick() => {
+            _ = tick_interval.tick() => {
                 debug!(target: "auriya::daemon", "Tick");
 
-                let snapshot = match shared_config.read() {
+                let snapshot = match shared_gamelist.read() {
                     Ok(g) => g.clone(),
                     Err(_) => {
-                        warn!(target: "auriya::daemon", "Config lock poisoned, skip tick");
+                        warn!(target: "auriya::daemon", "Gamelist lock poisoned, skipping tick");
                         continue;
                     }
                 };
@@ -262,20 +267,20 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                 let mut st = match last.lock() {
                     Ok(s) => s,
                     Err(_) => {
-                        warn!(target: "auriya::daemon", "LastState lock poisoned, skip tick");
+                        warn!(target: "auriya::daemon", "LastState lock poisoned, skipping tick");
                         continue;
                     }
                 };
 
                 if let Err(e) = process_tick(
                     &snapshot,
+                    &shared_settings.read().expect("Settings lock poisoned"),
                     &mut *st,
                     cfg,
                     &balance_governor,
                     &override_foreground,
                     &fas_controller,
                 ).await {
-                    // Debounced error logging
                     let err_msg = e.to_string();
                     let now = now_ms();
 
@@ -287,18 +292,10 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                     };
 
                     if should_log {
-                        error!(
-                            target: "auriya::daemon",
-                            "Tick error: {:?}",
-                            e
-                        );
+                        error!(target: "auriya::daemon", "Tick error: {:?}", e);
                         last_error = Some((err_msg, now));
                     } else {
-                        debug!(
-                            target: "auriya::daemon",
-                            "Tick error (suppressed): {:?}",
-                            e
-                        );
+                        debug!(target: "auriya::daemon", "Tick error suppressed: {:?}", e);
                     }
                 } else if let Ok(mut cur) = shared_current.write() {
                     cur.pkg = st.pkg.clone();
@@ -309,22 +306,21 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                 }
             }
             Some(_) = watch_rx.recv() => {
-                 debug!(target: "auriya::daemon", "Config reload notification received");
+                debug!(target: "auriya::daemon", "Gamelist reload notification received");
             }
-
             _ = signal::ctrl_c() => {
                 info!(target: "auriya::daemon", "Received Ctrl-C, shutting down...");
                 break;
             }
         }
     }
-
     info!(target: "auriya::daemon", "Daemon stopped");
     Ok(())
 }
 
 pub async fn process_tick(
-    config: &crate::core::config::packages::PackageList,
+    gamelist: &crate::core::config::GameList,
+    _settings: &crate::core::config::Settings,
     last: &mut LastState,
     cfg: &DaemonConfig,
     balance_governor: &str,
@@ -387,11 +383,11 @@ pub async fn process_tick(
 
     if last.pkg.as_deref() == Some(pkg.as_str()) && last.pid.is_some() {
         if let Some(fas) = fas_controller {
-            if config.get_packages().iter().any(|a| a == &pkg) {
-                let game_cfg = config.get_game_config(&pkg);
-                let governor = game_cfg.and_then(|c| c.cpu_governor.as_deref()).unwrap_or("performance");
+            if gamelist.game.iter().any(|a| a.package == pkg) {
+                let game_cfg = gamelist.find(&pkg);
+                let governor = game_cfg.map(|c| &c.cpu_governor[..]).unwrap_or("performance");
 
-                match run_fas_tick(config, fas, governor, balance_governor, &mut last.profile_mode) {
+                match run_fas_tick(gamelist, fas, governor, balance_governor, &mut last.profile_mode) {
                     Ok(_) => {
                         debug!(target: "auriya::fas", "FAS tick completed");
                     }
@@ -405,7 +401,7 @@ pub async fn process_tick(
         return Ok(());
     }
 
-    let allowed = config.get_packages();
+    let allowed = gamelist.game.iter().map(|g| g.package.clone()).collect::<Vec<String>>();
     if allowed.iter().any(|a| a == &pkg) {
         match crate::core::dumpsys::activity::get_app_pid(&pkg)? {
             Some(pid) => {
@@ -415,9 +411,9 @@ pub async fn process_tick(
                     bump_log(last);
                 }
 
-                let game_cfg = config.get_game_config(&pkg);
-                let governor = game_cfg.and_then(|c| c.cpu_governor.as_deref()).unwrap_or("performance");
-                let enable_dnd = game_cfg.and_then(|c| c.enable_dnd).unwrap_or(true);
+                let game_cfg = gamelist.find(&pkg);
+                let governor = game_cfg.map(|c| &c.cpu_governor[..]).unwrap_or("performance");
+                let enable_dnd = game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
 
                 if last.profile_mode != Some(ProfileMode::Performance) {
                     if let Err(e) = profile::apply_performance_with_config(governor, enable_dnd) {
@@ -472,7 +468,7 @@ pub async fn process_tick(
 }
 
 fn run_fas_tick(
-    config: &crate::core::config::packages::PackageList,
+    _gamelist: &crate::core::config::GameList,
     fas: &Arc<Mutex<crate::daemon::fas::FasController>>,
     game_governor: &str,
     balance_governor: &str,
@@ -480,8 +476,8 @@ fn run_fas_tick(
 ) -> anyhow::Result<bool> {
     use crate::core::{profile, scaling::ScalingAction};
 
-    let margin = config.get_fas_margin(None);
-    let thermal_thresh = config.get_fas_thermal();
+    let margin = 2.0;
+    let thermal_thresh = 90.0;
 
     let mut fas_guard = fas.lock().map_err(|_| anyhow::anyhow!("FAS lock poisoned"))?;
     let action = fas_guard.tick(margin, thermal_thresh)?;
