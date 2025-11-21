@@ -65,29 +65,33 @@ fi
 SIZE=$(stat -c%s "$MODPATH/system/bin/auriya" 2>/dev/null || stat -f%z "$MODPATH/system/bin/auriya")
 ui_print "   Binary: $((SIZE / 1024 / 1024))MB [OK]"
 
-[ ! -f "$MODPATH/Packages.toml" ] && { ui_print "! Config missing!"; abort; }
-ui_print "   Config: [OK]"
-[ "$GPU_TYPE" = "adreno" ] && ui_print "[+] Adreno GPU (FAS fully supported)" || ui_print "[!] $GPU_TYPE GPU (limited FAS)"
-ui_print ">> Setting permissions..."
-set_perm_recursive "$MODPATH" 0 0 0755 0644
-set_perm "$MODPATH/system/bin/auriya" 0 0 0755
-chmod 0755 "$MODPATH"/*.sh 2>/dev/null
-
 make_dir "$MODULE_CONFIG"
-CONFIG_FILE="$MODULE_CONFIG/auriya.toml"
+CONFIG_SETTINGS="$MODULE_CONFIG/settings.toml"
+CONFIG_GAMELIST="$MODULE_CONFIG/gamelist.toml"
 
-if [ -f "$CONFIG_FILE" ]; then
-    ui_print "[+] Config preserved"
+if [ -f "$CONFIG_SETTINGS" ]; then
+    ui_print "[+] Settings config preserved"
 else
-    ui_print ">> Installing config..."
-    mv "$MODPATH/Packages.toml" "$CONFIG_FILE"
-    chmod 0644 "$CONFIG_FILE"
-    ui_print "[+] Config installed"
+    ui_print ">> Installing settings config..."
+    mv "$MODPATH/settings.toml" "$CONFIG_SETTINGS"
+    chmod 0644 "$CONFIG_SETTINGS"
+    ui_print "[+] Settings config installed"
 fi
 
-rm -f "$MODPATH/Packages.toml"
+if [ -f "$CONFIG_GAMELIST" ]; then
+    ui_print "[+] Gamelist config preserved"
+else
+    ui_print ">> Installing gamelist config..."
+    mv "$MODPATH/gamelist.toml" "$CONFIG_GAMELIST"
+    chmod 0644 "$CONFIG_GAMELIST"
+    ui_print "[+] Gamelist config installed"
+fi
+
+rm -f "$MODPATH/settings.toml" "$MODPATH/gamelist.toml"
+
 make_node "$GPU_TYPE" "$MODULE_CONFIG/gpu_type"
 make_node "$ARCH" "$MODULE_CONFIG/arch"
+
 make_dir "$LOG_DIR"
 chmod 0755 "$LOG_DIR"
 [ -f "$LOG_DIR/daemon.log" ] && mv "$LOG_DIR/daemon.log" "$LOG_DIR/daemon.log.old"
@@ -104,9 +108,10 @@ ui_print "============================================"
 ui_print "          Installation Successful!          "
 ui_print "============================================"
 ui_print ""
-ui_print "Config:  $CONFIG_FILE"
-ui_print "Logs:    $LOG_DIR/daemon.log"
-ui_print "IPC:     /dev/socket/auriya.sock"
+ui_print "Settings Config:  $CONFIG_SETTINGS"
+ui_print "Gamelist Config:  $CONFIG_GAMELIST"
+ui_print "Logs:             $LOG_DIR/daemon.log"
+ui_print "IPC:              /dev/socket/auriya.sock"
 ui_print ""
 ui_print "Daemon starts on boot. Reboot to activate."
 ui_print ""
