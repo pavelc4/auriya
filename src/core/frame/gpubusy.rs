@@ -1,7 +1,7 @@
+use super::FrameSource;
 use anyhow::Result;
 use std::fs;
 use std::sync::Mutex;
-use super::FrameSource;
 
 pub struct GpuBusySource {
     last_busy: Mutex<u64>,
@@ -11,7 +11,6 @@ pub struct GpuBusySource {
 pub fn is_available() -> bool {
     std::path::Path::new("/sys/class/kgsl/kgsl-3d0/gpubusy").exists()
 }
-
 
 impl GpuBusySource {
     pub fn new() -> Self {

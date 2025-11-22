@@ -3,7 +3,8 @@ MODDIR="${0%/*}"
 MODPATH="/data/adb/modules/auriya"
 MODULE_CONFIG="/data/adb/.config/auriya"
 AURIYA_BIN="$MODDIR/system/bin/auriya"
-CFG="$MODULE_CONFIG/auriya.toml"
+SETTINGS_CFG="$MODULE_CONFIG/settings.toml"
+GAMELIST_CFG="$MODULE_CONFIG/gamelist.toml"
 LOGDIR="/data/adb/auriya"
 AURIYA_LOG="$LOGDIR/daemon.log"
 SOCK="/dev/socket/auriya.sock"
@@ -23,9 +24,15 @@ if [ ! -f "$AURIYA_BIN" ]; then
     exit 1
 fi
 
-if [ ! -f "$CFG" ]; then
-    log -t auriya "ERROR: Config not found at $CFG"
-    echo "[$(date)] ERROR: Config not found" >> "$AURIYA_LOG"
+if [ ! -f "$SETTINGS_CFG" ]; then
+    log -t auriya "ERROR: Settings config not found at $SETTINGS_CFG"
+    echo "[$(date)] ERROR: Settings config not found" >> "$AURIYA_LOG"
+    exit 1
+fi
+
+if [ ! -f "$GAMELIST_CFG" ]; then
+    log -t auriya "ERROR: Gamelist config not found at $GAMELIST_CFG"
+    echo "[$(date)] ERROR: Gamelist config not found" >> "$AURIYA_LOG"
     exit 1
 fi
 
@@ -59,12 +66,12 @@ export RUST_LOG=info
 export RUST_BACKTRACE=1
 
 if command -v stdbuf >/dev/null 2>&1; then
-    stdbuf -oL -eL "$AURIYA_BIN" --packages "$CFG" 2>&1 | while IFS= read -r line; do
+    stdbuf -oL -eL "$AURIYA_BIN" --settings "$SETTINGS_CFG" --gamelist "$GAMELIST_CFG" 2>&1 | while IFS= read -r line; do
         log -t auriya "$line"
         echo "$line" >> "$AURIYA_LOG"
     done &
 else
-    "$AURIYA_BIN" --packages "$CFG" 2>&1 | while IFS= read -r line; do
+    "$AURIYA_BIN" --settings "$SETTINGS_CFG" --gamelist "$GAMELIST_CFG" 2>&1 | while IFS= read -r line; do
         log -t auriya "$line"
         echo "$line" >> "$AURIYA_LOG"
     done &

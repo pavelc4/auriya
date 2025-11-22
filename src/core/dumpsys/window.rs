@@ -13,7 +13,7 @@ pub struct WindowDisplays {
 }
 
 impl WindowDisplays {
-     #[allow(dead_code)]
+    #[allow(dead_code)]
     pub fn fetch() -> anyhow::Result<Self> {
         let out = Command::new("/system/bin/dumpsys")
             .args(["window", "displays"])

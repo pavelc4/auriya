@@ -1,8 +1,7 @@
 pub mod config;
 pub mod dumpsys;
-pub mod profile;
-pub mod io;
-pub mod lmk;
-pub mod thermal;
-pub mod scaling;
 pub mod frame;
+pub mod profile;
+pub mod scaling;
+pub mod thermal;
+pub mod tweaks;
