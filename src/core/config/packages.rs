@@ -1,6 +1,6 @@
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use anyhow::{Context, Result};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PackageList {
@@ -81,14 +81,24 @@ impl Default for FasModeConfig {
     }
 }
 
-fn default_enable_dnd() -> bool { true }
-fn default_fas_mode() -> String { "balance".into() }
-fn default_thermal() -> f32 { 90.0 }
-fn default_poll_interval() -> u64 { 300 }
-fn default_margin() -> f32 { 2.0 }
+fn default_enable_dnd() -> bool {
+    true
+}
+fn default_fas_mode() -> String {
+    "balance".into()
+}
+fn default_thermal() -> f32 {
+    90.0
+}
+fn default_poll_interval() -> u64 {
+    300
+}
+fn default_margin() -> f32 {
+    2.0
+}
 
 impl PackageList {
-	#[allow(dead_code)]
+    #[allow(dead_code)]
     pub fn load_from_toml<P: AsRef<Path>>(path: P) -> Result<Self> {
         let content = std::fs::read_to_string(&path)
             .with_context(|| format!("Failed to read {:?}", path.as_ref()))?;
@@ -97,7 +107,9 @@ impl PackageList {
             .with_context(|| format!("Failed to parse TOML from {:?}", path.as_ref()))?;
 
         if !list.packages.list.is_empty() && list.games.is_empty() {
-            list.games = list.packages.list
+            list.games = list
+                .packages
+                .list
                 .iter()
                 .map(|pkg| GameConfig {
                     package: pkg.clone(),

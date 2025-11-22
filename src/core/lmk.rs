@@ -10,8 +10,7 @@ pub struct LmkConfig {
 }
 
 pub fn get_total_ram_mb() -> Result<u64> {
-    let content = fs::read_to_string("/proc/meminfo")
-        .context("Failed to read /proc/meminfo")?;
+    let content = fs::read_to_string("/proc/meminfo").context("Failed to read /proc/meminfo")?;
 
     for line in content.lines() {
         if line.starts_with("MemTotal:") {
@@ -64,7 +63,10 @@ pub fn calculate_lmk_for_ram(total_ram_mb: u64, profile: &str) -> LmkConfig {
     let content = (total_pages * con_pct) / 100;
     let empty = (total_pages * emp_pct) / 100;
 
-    let minfree = format!("{},{},{},{},{},{}", foreground, visible, secondary, hidden, content, empty);
+    let minfree = format!(
+        "{},{},{},{},{},{}",
+        foreground, visible, secondary, hidden, content, empty
+    );
 
     info!(
         target: "auriya::lmk",

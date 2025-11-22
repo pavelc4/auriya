@@ -5,11 +5,7 @@ pub enum ScalingAction {
     Reduce,
 }
 
-pub fn decide_from_gpu_util(
-    gpu_util: f32,
-    margin: f32,
-    thermal_throttle: bool,
-) -> ScalingAction {
+pub fn decide_from_gpu_util(gpu_util: f32, margin: f32, thermal_throttle: bool) -> ScalingAction {
     if thermal_throttle {
         return ScalingAction::Reduce;
     }

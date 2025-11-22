@@ -1,5 +1,5 @@
+use crate::core::{frame::FrameSource, scaling, thermal::ThermalMonitor};
 use anyhow::Result;
-use crate::core::{frame::FrameSource, thermal::ThermalMonitor, scaling};
 
 pub struct FasController {
     frame_source: Box<dyn FrameSource>,
@@ -14,11 +14,7 @@ impl FasController {
         }
     }
 
-    pub fn tick(
-        &mut self,
-        margin: f32,
-        thermal_thresh: f32,
-    ) -> Result<scaling::ScalingAction> {
+    pub fn tick(&mut self, margin: f32, thermal_thresh: f32) -> Result<scaling::ScalingAction> {
         let gpu_util = self.frame_source.get_metric()?.unwrap_or(50.0);
         let temp = self.thermal.get_max_temp()?;
         let throttle = temp > thermal_thresh;

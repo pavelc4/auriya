@@ -24,25 +24,21 @@ impl GameList {
             return Ok(Self { game: vec![] });
         }
 
-        let content = std::fs::read_to_string(path)
-            .context(format!("Failed to read {}", path.display()))?;
+        let content =
+            std::fs::read_to_string(path).context(format!("Failed to read {}", path.display()))?;
 
-        toml::from_str(&content)
-            .context("Failed to parse gamelist.toml")
+        toml::from_str(&content).context("Failed to parse gamelist.toml")
     }
     #[allow(dead_code)]
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let path = path.as_ref();
 
-        let toml_string = toml::to_string_pretty(self)
-            .context("Failed to serialize gamelist")?;
+        let toml_string = toml::to_string_pretty(self).context("Failed to serialize gamelist")?;
 
         let temp_path = path.with_extension("toml.tmp");
-        std::fs::write(&temp_path, toml_string)
-            .context("Failed to write temporary file")?;
+        std::fs::write(&temp_path, toml_string).context("Failed to write temporary file")?;
 
-        std::fs::rename(&temp_path, path)
-            .context("Failed to rename to final file")?;
+        std::fs::rename(&temp_path, path).context("Failed to rename to final file")?;
 
         tracing::info!("Gamelist saved to {}", path.display());
         Ok(())

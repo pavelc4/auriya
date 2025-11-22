@@ -1,6 +1,6 @@
+use crate::core::tweaks::{cpu, gpu, memory};
 use anyhow::{Context, Result};
 use std::process::Command;
-use crate::core::tweaks::{cpu, gpu, memory};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ProfileMode {
@@ -15,7 +15,11 @@ impl Default for ProfileMode {
     }
 }
 
-pub fn apply_performance_with_config(governor: &str, enable_dnd: bool, pid: Option<i32>) -> Result<()> {
+pub fn apply_performance_with_config(
+    governor: &str,
+    enable_dnd: bool,
+    pid: Option<i32>,
+) -> Result<()> {
     tracing::info!(
         target: "auriya::profile",
         "Applying PERFORMANCE profile (governor: {}, suppress_notifs: {}, pid: {:?})",
@@ -41,11 +45,9 @@ pub fn apply_performance_with_config(governor: &str, enable_dnd: bool, pid: Opti
         );
     }
 
-
     cpu::enable_boost()?;
     cpu::online_all_cores()?;
     gpu::set_performance_mode()?;
-
 
     memory::drop_caches()?;
     memory::adjust_for_gaming()?;
@@ -69,7 +71,6 @@ pub fn apply_performance_with_config(governor: &str, enable_dnd: bool, pid: Opti
 pub fn apply_performance() -> Result<()> {
     apply_performance_with_config("performance", true, None)
 }
-
 
 pub fn apply_balance(governor: &str) -> Result<()> {
     tracing::info!(target: "auriya::profile", "Applying BALANCE profile (governor: {})", governor);

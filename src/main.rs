@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tracing_subscriber::{fmt, EnvFilter, reload, prelude::*};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*, reload};
 
 mod core;
 mod daemon;
@@ -11,10 +11,12 @@ async fn main() -> Result<()> {
 
     tracing_subscriber::registry()
         .with(filter_layer)
-        .with(fmt::layer()
-            .with_ansi(false)
-            .with_target(false)
-            .with_writer(std::io::stderr))
+        .with(
+            fmt::layer()
+                .with_ansi(false)
+                .with_target(false)
+                .with_writer(std::io::stderr),
+        )
         .init();
 
     tracing::info!("Auriya daemon v{} starting", env!("CARGO_PKG_VERSION"));

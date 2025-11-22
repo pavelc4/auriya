@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Settings {
     pub daemon: DaemonConfig,
@@ -51,11 +50,10 @@ impl Settings {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
 
-        let content = std::fs::read_to_string(path)
-            .context(format!("Failed to read {}", path.display()))?;
+        let content =
+            std::fs::read_to_string(path).context(format!("Failed to read {}", path.display()))?;
 
-        toml::from_str(&content)
-            .context("Failed to parse settings.toml")
+        toml::from_str(&content).context("Failed to parse settings.toml")
     }
 
     #[allow(dead_code)]

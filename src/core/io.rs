@@ -41,9 +41,7 @@ pub fn get_available_schedulers(device: &str) -> Result<Vec<IoScheduler>> {
     let mut schedulers = Vec::new();
 
     for scheduler_name in content.split_whitespace() {
-        let cleaned = scheduler_name
-            .trim_start_matches('[')
-            .trim_end_matches(']');
+        let cleaned = scheduler_name.trim_start_matches('[').trim_end_matches(']');
 
         match cleaned {
             "kyber" => schedulers.push(IoScheduler::Kyber),
@@ -67,7 +65,7 @@ pub fn get_current_scheduler(device: &str) -> Result<Option<IoScheduler>> {
 
     for part in content.split_whitespace() {
         if part.starts_with('[') && part.ends_with(']') {
-            let scheduler_name = &part[1..part.len()-1];
+            let scheduler_name = &part[1..part.len() - 1];
             return Ok(match scheduler_name {
                 "kyber" => Some(IoScheduler::Kyber),
                 "deadline" => Some(IoScheduler::Deadline),
@@ -133,12 +131,13 @@ pub fn set_io_scheduler(device: &str, scheduler: &IoScheduler) -> Result<()> {
         return Ok(());
     }
 
-    fs::write(&path, scheduler.to_string())
-        .with_context(|| format!(
+    fs::write(&path, scheduler.to_string()).with_context(|| {
+        format!(
             "Failed to set scheduler {} for device {}",
             scheduler.to_string(),
             device
-        ))?;
+        )
+    })?;
 
     info!(
         target: "auriya::io",
@@ -193,10 +192,7 @@ pub fn discover_block_devices() -> Result<Vec<String>> {
             target: "auriya::io",
             "No block devices discovered, falling back to common names"
         );
-        devices = vec![
-            "sda".to_string(),
-            "mmcblk0".to_string(),
-        ];
+        devices = vec!["sda".to_string(), "mmcblk0".to_string()];
     }
 
     Ok(devices)
@@ -240,23 +236,21 @@ pub fn apply_gaming_io() -> Result<()> {
         }
 
         match select_best_gaming_scheduler(device) {
-            Ok(scheduler) => {
-                match set_io_scheduler(device, &scheduler) {
-                    Ok(_) => {
-                        success_count += 1;
-                    }
-                    Err(e) => {
-                        debug!(
-                            target: "auriya::io",
-                            "Failed to set {} for {}: {}",
-                            scheduler.to_string(),
-                            device,
-                            e
-                        );
-                        error_count += 1;
-                    }
+            Ok(scheduler) => match set_io_scheduler(device, &scheduler) {
+                Ok(_) => {
+                    success_count += 1;
                 }
-            }
+                Err(e) => {
+                    debug!(
+                        target: "auriya::io",
+                        "Failed to set {} for {}: {}",
+                        scheduler.to_string(),
+                        device,
+                        e
+                    );
+                    error_count += 1;
+                }
+            },
             Err(e) => {
                 debug!(
                     target: "auriya::io",
