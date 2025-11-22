@@ -372,7 +372,8 @@ impl Daemon {
                     let enable_dnd = game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
 
                     if self.last.profile_mode != Some(ProfileMode::Performance) {
-                        if let Err(e) = profile::apply_performance_with_config(governor, enable_dnd)
+                        if let Err(e) =
+                            profile::apply_performance_with_config(governor, enable_dnd, Some(pid))
                         {
                             error!(target: "auriya::profile", ?e, "Failed to apply PERFORMANCE");
                         } else {
@@ -443,7 +444,7 @@ impl Daemon {
             ScalingAction::Boost => {
                 if self.last.profile_mode != Some(ProfileMode::Performance) {
                     info!(target: "auriya::fas", "FAS decision: BOOST → applying PERFORMANCE");
-                    profile::apply_performance_with_config(game_governor, true)?;
+                    profile::apply_performance_with_config(game_governor, true, None)?;
                     self.last.profile_mode = Some(ProfileMode::Performance);
                 } else {
                     debug!(target: "auriya::fas", "FAS decision: BOOST → already PERFORMANCE, skip");

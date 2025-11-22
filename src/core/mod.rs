@@ -6,3 +6,4 @@ pub mod lmk;
 pub mod thermal;
 pub mod scaling;
 pub mod frame;
+pub mod tweaks;
