@@ -2,17 +2,12 @@ use crate::core::tweaks::{cpu, gpu, memory};
 use anyhow::{Context, Result};
 use std::process::Command;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum ProfileMode {
     Performance,
+    #[default]
     Balance,
     Powersave,
-}
-
-impl Default for ProfileMode {
-    fn default() -> Self {
-        ProfileMode::Balance
-    }
 }
 
 pub fn apply_performance_with_config(
@@ -120,7 +115,7 @@ pub fn apply_powersave() -> Result<()> {
             stderr
         );
     }
-    if let Err(e) = crate::core::lmk::apply_powersave_lmk() {
+    if let Err(e) = memory::apply_powersave_lmk() {
         tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
     }
 

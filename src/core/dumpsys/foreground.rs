@@ -7,19 +7,17 @@ pub fn get_foreground_package() -> anyhow::Result<Option<String>> {
     let s = String::from_utf8_lossy(&out.stdout);
 
     for line in s.lines() {
-        if let Some(pos) = line.find("ResumedActivity:") {
-            if let Some(pkg) = parse_pkg_from_activity_line(&line[pos..]) {
+        if let Some(pos) = line.find("ResumedActivity:")
+            && let Some(pkg) = parse_pkg_from_activity_line(&line[pos..]) {
                 return Ok(Some(pkg));
             }
-        }
     }
 
     for line in s.lines() {
-        if let Some(pos) = line.find("mCurrentFocus=") {
-            if let Some(pkg) = parse_pkg_from_window_line(&line[pos..]) {
+        if let Some(pos) = line.find("mCurrentFocus=")
+            && let Some(pkg) = parse_pkg_from_window_line(&line[pos..]) {
                 return Ok(Some(pkg));
             }
-        }
     }
     Ok(None)
 }

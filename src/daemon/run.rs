@@ -69,7 +69,7 @@ pub type ReloadHandle =
 
 pub struct Daemon {
     cfg: DaemonConfig,
-    shared_settings: Arc<RwLock<crate::core::config::Settings>>,
+    _shared_settings: Arc<RwLock<crate::core::config::Settings>>,
     shared_gamelist: Arc<RwLock<crate::core::config::GameList>>,
     shared_current: Arc<RwLock<CurrentState>>,
     override_foreground: Arc<RwLock<Option<String>>>,
@@ -103,7 +103,7 @@ impl Daemon {
 
         Ok(Self {
             cfg,
-            shared_settings,
+            _shared_settings: shared_settings,
             shared_gamelist,
             shared_current,
             override_foreground,
@@ -179,40 +179,40 @@ impl Daemon {
 
             let mut watcher = match notify::recommended_watcher(
                 move |res: Result<notify::Event, notify::Error>| {
-                    if let Ok(event) = res {
-                        if matches!(event.kind, EventKind::Modify(_)) {
-                            info!(target: "auriya::daemon", "Gamelist file changed, reloading...");
-                            let max_retries = 3;
-                            let mut retry_count = 0;
-                            let mut success = false;
+                    if let Ok(event) = res
+                        && matches!(event.kind, EventKind::Modify(_))
+                    {
+                        info!(target: "auriya::daemon", "Gamelist file changed, reloading...");
+                        let max_retries = 3;
+                        let mut retry_count = 0;
+                        let mut success = false;
 
-                            while retry_count < max_retries && !success {
-                                match crate::core::config::GameList::load(&*path) {
-                                    Ok(new_cfg) => match shared_for_watcher.write() {
-                                        Ok(mut g) => {
-                                            let count = new_cfg.game.len();
-                                            *g = new_cfg;
-                                            info!(target: "auriya::daemon", "Gamelist reloaded: {} games", count);
-                                            success = true;
-                                        }
-                                        Err(_) => {
-                                            error!(target: "auriya::daemon", "Failed to acquire gamelist lock");
-                                            break;
-                                        }
-                                    },
-                                    Err(e) => {
-                                        retry_count += 1;
-                                        if retry_count < max_retries {
-                                            warn!(target: "auriya::daemon", "Failed reloading gamelist (attempt {}/{}): {:?}, retrying in 2s...", retry_count, max_retries, e);
-                                            std::thread::sleep(std::time::Duration::from_secs(2));
-                                        } else {
-                                            error!(target: "auriya::daemon", "Failed to reload gamelist after {} attempts: {:?}", max_retries, e);
-                                        }
+                        while retry_count < max_retries && !success {
+                            match crate::core::config::GameList::load(&*path) {
+                                Ok(new_cfg) => match shared_for_watcher.write() {
+                                    Ok(mut g) => {
+                                        let count = new_cfg.game.len();
+                                        *g = new_cfg;
+                                        info!(target: "auriya::daemon", "Gamelist reloaded: {} games", count);
+                                        success = true;
+                                    }
+                                    Err(_) => {
+                                        error!(target: "auriya::daemon", "Failed to acquire gamelist lock");
+                                        break;
+                                    }
+                                },
+                                Err(e) => {
+                                    retry_count += 1;
+                                    if retry_count < max_retries {
+                                        warn!(target: "auriya::daemon", "Failed reloading gamelist (attempt {}/{}): {:?}, retrying in 2s...", retry_count, max_retries, e);
+                                        std::thread::sleep(std::time::Duration::from_secs(2));
+                                    } else {
+                                        error!(target: "auriya::daemon", "Failed to reload gamelist after {} attempts: {:?}", max_retries, e);
                                     }
                                 }
                             }
-                            let _ = tx.blocking_send(());
                         }
+                        let _ = tx.blocking_send(());
                     }
                 },
             ) {
@@ -223,7 +223,7 @@ impl Daemon {
                 }
             };
 
-            if let Err(e) = watcher.watch(&*config_path_for_watcher, RecursiveMode::NonRecursive) {
+            if let Err(e) = watcher.watch(&config_path_for_watcher, RecursiveMode::NonRecursive) {
                 error!(target: "auriya::daemon", "Failed to watch gamelist file: {}", e);
                 return;
             }
@@ -333,17 +333,17 @@ impl Daemon {
 
         if self.last.pkg.as_deref() == Some(pkg.as_str()) && self.last.pid.is_some() {
             let fas_clone = self.fas_controller.clone();
-            if let Some(fas) = fas_clone {
-                if gamelist.game.iter().any(|a| a.package == pkg) {
-                    let game_cfg = gamelist.find(&pkg);
-                    let governor = game_cfg
-                        .map(|c| &c.cpu_governor[..])
-                        .unwrap_or("performance");
+            if let Some(fas) = fas_clone
+                && gamelist.game.iter().any(|a| a.package == pkg)
+            {
+                let game_cfg = gamelist.find(&pkg);
+                let governor = game_cfg
+                    .map(|c| &c.cpu_governor[..])
+                    .unwrap_or("performance");
 
-                    match self.run_fas_tick(&fas, governor) {
-                        Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
-                        Err(e) => warn!(target: "auriya::fas", "FAS tick error: {:?}", e),
-                    }
+                match self.run_fas_tick(&fas, governor) {
+                    Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
+                    Err(e) => warn!(target: "auriya::fas", "FAS tick error: {:?}", e),
                 }
             }
             debug!(target: "auriya::daemon", "Same app with known PID; skip profile reapply");
@@ -394,11 +394,11 @@ impl Daemon {
                             self.last.profile_mode = Some(ProfileMode::Balance);
                         }
                     }
-                    if self.last.pkg.as_deref() != Some(pkg.as_str()) || self.last.pid.is_some() {
-                        if should_log_change(&self.last, &self.cfg) {
-                            warn!(target: "auriya::daemon", "Foreground {} PID not found", pkg);
-                            bump_log(&mut self.last);
-                        }
+                    if (self.last.pkg.as_deref() != Some(pkg.as_str()) || self.last.pid.is_some())
+                        && should_log_change(&self.last, &self.cfg)
+                    {
+                        warn!(target: "auriya::daemon", "Foreground {} PID not found", pkg);
+                        bump_log(&mut self.last);
                     }
                     self.last.pkg = Some(pkg);
                     self.last.pid = None;
@@ -413,11 +413,11 @@ impl Daemon {
                     self.last.profile_mode = Some(ProfileMode::Balance);
                 }
             }
-            if self.last.pkg.as_deref() != Some(pkg.as_str()) || self.last.pid.is_some() {
-                if should_log_change(&self.last, &self.cfg) {
-                    info!(target: "auriya::daemon", "Foreground {} (not whitelisted)", pkg);
-                    bump_log(&mut self.last);
-                }
+            if (self.last.pkg.as_deref() != Some(pkg.as_str()) || self.last.pid.is_some())
+                && should_log_change(&self.last, &self.cfg)
+            {
+                info!(target: "auriya::daemon", "Foreground {} (not whitelisted)", pkg);
+                bump_log(&mut self.last);
             }
             self.last.pkg = Some(pkg);
             self.last.pid = None;

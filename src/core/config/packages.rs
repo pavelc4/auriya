@@ -146,13 +146,11 @@ impl PackageList {
     }
     #[allow(dead_code)]
     pub fn get_fas_margin(&self, package: Option<&str>) -> f32 {
-        if let Some(pkg) = package {
-            if let Some(game) = self.get_game_config(pkg) {
-                if let Some(margin) = game.fas_override_margin {
+        if let Some(pkg) = package
+            && let Some(game) = self.get_game_config(pkg)
+                && let Some(margin) = game.fas_override_margin {
                     return margin;
                 }
-            }
-        }
 
         match self.settings.fas_mode.as_str() {
             "powersave" => self.modes.powersave.margin,

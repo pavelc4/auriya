@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GpuVendor {
@@ -26,7 +26,7 @@ pub fn set_performance_mode() -> Result<()> {
         }
     }
 
-    info!("GPU set to performance mode");
+    info!("GPU di-set ke mode performance");
     Ok(())
 }
 
@@ -58,11 +58,9 @@ pub fn set_balanced_mode() -> Result<()> {
 
             let min_freq_path = format!("{}/devfreq/min_freq", base);
             if let Ok(avail) = fs::read_to_string(format!("{}/devfreq/available_frequencies", base))
-            {
-                if let Some(min) = avail.split_whitespace().next() {
+                && let Some(min) = avail.split_whitespace().next() {
                     let _ = fs::write(&min_freq_path, min);
                 }
-            }
 
             let _ = fs::write(format!("{}/force_clk_on", base), "0");
             let _ = fs::write(format!("{}/force_bus_on", base), "0");
