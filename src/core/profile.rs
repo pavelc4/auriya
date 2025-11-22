@@ -1,37 +1,36 @@
+use crate::core::tweaks::{cpu, gpu, memory};
 use anyhow::{Context, Result};
 use std::process::Command;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum ProfileMode {
     Performance,
+    #[default]
     Balance,
     Powersave,
 }
 
-impl Default for ProfileMode {
-    fn default() -> Self {
-        ProfileMode::Balance
-    }
-}
-
-pub fn apply_performance_with_config(governor: &str, enable_dnd: bool) -> Result<()> {
+pub fn apply_performance_with_config(
+    governor: &str,
+    enable_dnd: bool,
+    pid: Option<i32>,
+) -> Result<()> {
     tracing::info!(
         target: "auriya::profile",
-        "Applying PERFORMANCE profile (governor: {}, dnd: {})",
+        "Applying PERFORMANCE profile (governor: {}, suppress_notifs: {}, pid: {:?})",
         governor,
-        enable_dnd
+        enable_dnd,
+        pid
     );
 
     let cmd = format!(
         "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo {} > \"$cpu\" 2>/dev/null; done",
         governor
     );
-
     let output = Command::new("sh")
         .args(["-c", &cmd])
         .output()
         .context("Failed to execute CPU governor command")?;
-
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         tracing::warn!(
@@ -41,74 +40,58 @@ pub fn apply_performance_with_config(governor: &str, enable_dnd: bool) -> Result
         );
     }
 
-    if let Err(e) = crate::core::io::apply_gaming_io() {
-        tracing::warn!(target: "auriya::profile", "Failed to apply I/O scheduler: {}", e);
+    cpu::enable_boost()?;
+    cpu::online_all_cores()?;
+    gpu::set_performance_mode()?;
+
+    memory::drop_caches()?;
+    memory::adjust_for_gaming()?;
+
+    if let Some(game_pid) = pid {
+        cpu::set_game_affinity_dynamic(game_pid, "performance")?;
+        cpu::set_process_priority(game_pid)?;
     }
 
-    if let Err(e) = crate::core::lmk::apply_gaming_lmk() {
-           tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
-       }
-
     if enable_dnd {
-        let dnd_result = Command::new("cmd")
-            .args(["notification", "set_dnd", "on"])
+        let _ = Command::new("settings")
+            .args(["put", "global", "heads_up_notifications_enabled", "0"])
             .output();
 
-        match dnd_result {
-            Ok(out) if !out.status.success() => {
-                tracing::warn!(
-                    target: "auriya::profile",
-                    "DND command failed: {}",
-                    String::from_utf8_lossy(&out.stderr)
-                );
-            }
-            Err(e) => {
-                tracing::warn!(target: "auriya::profile", "Failed to set DND: {:#}", e);
-            }
-            _ => {}
-        }
+        tracing::info!(target: "auriya::profile", "Gaming mode: notifications silenced");
     }
 
     Ok(())
 }
 
 pub fn apply_performance() -> Result<()> {
-    apply_performance_with_config("performance", true)
+    apply_performance_with_config("performance", true, None)
 }
 
 pub fn apply_balance(governor: &str) -> Result<()> {
-    tracing::info!(
-        target: "auriya::profile",
-        "Applying BALANCE profile (governor: {})",
-        governor
-    );
-
-    if let Err(e) = crate::core::io::apply_gaming_io() {
-        tracing::warn!(target: "auriya::profile", "Failed to apply I/O scheduler: {}", e);
-    }
-
-    if let Err(e) = crate::core::lmk::apply_balanced_lmk() {
-        tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
-    }
+    tracing::info!(target: "auriya::profile", "Applying BALANCE profile (governor: {})", governor);
 
     let cmd = format!(
         "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo {} > \"$cpu\" 2>/dev/null; done",
         governor
     );
-
     let output = Command::new("sh")
         .args(["-c", &cmd])
         .output()
         .context("Failed to execute CPU governor command")?;
-
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        tracing::warn!(
-            target: "auriya::profile",
-            "CPU governor command exited with error: {}",
-            stderr
-        );
+        tracing::warn!(target: "auriya::profile", "CPU governor command exited with error: {}", stderr);
     }
+
+    cpu::disable_boost()?;
+    gpu::set_balanced_mode()?;
+    memory::restore_balanced()?;
+
+    let _ = Command::new("settings")
+        .args(["put", "global", "heads_up_notifications_enabled", "1"])
+        .output();
+
+    tracing::info!(target: "auriya::profile", "Normal mode: notifications restored");
 
     Ok(())
 }
@@ -119,7 +102,7 @@ pub fn apply_powersave() -> Result<()> {
     let output = Command::new("sh")
         .args([
             "-c",
-            "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo powersave > \"$cpu\" 2>/dev/null; done"
+            "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo powersave > \"$cpu\" 2>/dev/null; done",
         ])
         .output()
         .context("Failed to execute CPU governor command")?;
@@ -132,12 +115,12 @@ pub fn apply_powersave() -> Result<()> {
             stderr
         );
     }
-    if let Err(e) = crate::core::lmk::apply_powersave_lmk() {
-            tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
-        }
+    if let Err(e) = memory::apply_powersave_lmk() {
+        tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
+    }
 
-    let _ = Command::new("cmd")
-        .args(["notification", "set_dnd", "off"])
+    let _ = Command::new("settings")
+        .args(["put", "global", "heads_up_notifications_enabled", "1"])
         .output();
 
     Ok(())

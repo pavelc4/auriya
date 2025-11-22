@@ -18,21 +18,18 @@ fn try_visible_activity_process() -> anyhow::Result<Option<i32>> {
         .args(["activity", "activities"])
         .output()?;
     let s = String::from_utf8_lossy(&out.stdout);
-    if let Some(line) = s.lines().find(|l| l.contains("VisibleActivityProcess:[")) {
-        if let Some(open) = line.find('{') {
+    if let Some(line) = s.lines().find(|l| l.contains("VisibleActivityProcess:["))
+        && let Some(open) = line.find('{') {
             let inner = &line[(open + 1)..];
             let inner = inner.split('}').next().unwrap_or(inner);
             for tok in inner.split_whitespace() {
-                if let Some((pid_str, _rest)) = tok.split_once(':') {
-                    if let Ok(pid) = pid_str.parse::<i32>() {
-                        if pid > 0 {
+                if let Some((pid_str, _rest)) = tok.split_once(':')
+                    && let Ok(pid) = pid_str.parse::<i32>()
+                        && pid > 0 {
                             return Ok(Some(pid));
                         }
-                    }
-                }
             }
         }
-    }
     Ok(None)
 }
 
@@ -64,11 +61,10 @@ fn ps_fallback(package: &str) -> anyhow::Result<Option<i32>> {
     let s = String::from_utf8_lossy(&out.stdout);
     for line in s.lines().filter(|l| l.contains(package)) {
         for tok in line.split_whitespace() {
-            if let Ok(n) = tok.parse::<i32>() {
-                if n > 0 {
+            if let Ok(n) = tok.parse::<i32>()
+                && n > 0 {
                     return Ok(Some(n));
                 }
-            }
         }
     }
     Ok(None)
@@ -80,13 +76,11 @@ fn parse_pid_from_str(s: &str) -> Option<i32> {
         let end = rest
             .find(|c: char| !c.is_ascii_digit())
             .unwrap_or(rest.len());
-        if end > 0 {
-            if let Ok(pid) = rest[..end].parse::<i32>() {
-                if pid > 0 {
+        if end > 0
+            && let Ok(pid) = rest[..end].parse::<i32>()
+                && pid > 0 {
                     return Some(pid);
                 }
-            }
-        }
     }
     None
 }

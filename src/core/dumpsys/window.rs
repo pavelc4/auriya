@@ -1,6 +1,7 @@
 use std::process::Command;
 
 #[derive(Debug, Default, Clone)]
+#[allow(dead_code)]
 pub struct RecentApp {
     pub package_name: String,
     pub visible: bool,
@@ -12,6 +13,7 @@ pub struct WindowDisplays {
 }
 
 impl WindowDisplays {
+    #[allow(dead_code)]
     pub fn fetch() -> anyhow::Result<Self> {
         let out = Command::new("/system/bin/dumpsys")
             .args(["window", "displays"])
