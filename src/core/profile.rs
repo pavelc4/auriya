@@ -10,6 +10,16 @@ pub enum ProfileMode {
     Powersave,
 }
 
+impl std::fmt::Display for ProfileMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProfileMode::Performance => write!(f, "Performance"),
+            ProfileMode::Balance => write!(f, "Balance"),
+            ProfileMode::Powersave => write!(f, "Powersave"),
+        }
+    }
+}
+
 pub fn apply_performance_with_config(
     governor: &str,
     enable_dnd: bool,
