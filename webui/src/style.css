@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@theme {
+    /* Auriya Rust Theme (Material 3 Structure) */
+    --color-on-primary: var(--onPrimary, #ffffff);
+    --color-primary-container: var(--primaryContainer, #dea584ff);
+    --color-on-primary-container: var(--onPrimaryContainer, #3e2d16ff);
+    --color-inverse-primary: var(--inversePrimary, #ffb59bff);
+    --color-secondary: var(--secondary, #77574eff);
+    --color-on-secondary: var(--onSecondary, #ffffff);
+    --color-secondary-container: var(--secondaryContainer, #ffdbd1ff);
+    --color-on-secondary-container: var(--onSecondaryContainer, #2c150fff);
+    --color-tertiary: var(--tertiary, #6b5d2eff);
+    --color-on-tertiary: var(--onTertiary, #ffffff);
+    --color-tertiary-container: var(--tertiaryContainer, #f5e1a6ff);
+    --color-on-tertiary-container: var(--onTertiaryContainer, #231b00ff);
+    --color-background: var(--background, #1a110dff);
+    --color-on-background: var(--onBackground, #f0ded8ff);
+    --color-surface: var(--surface, #1a110dff);
+    --color-tonal-surface: var(--tonalSurface, #251a16ff);
+    --color-on-surface: var(--onSurface, #f0ded8ff);
+    --color-surface-variant: var(--surfaceVariant, #53433fff);
+    --color-on-surface-variant: var(--onSurfaceVariant, #d8c2bcff);
+    --color-surface-tint: var(--surfaceTint, #b7410eff);
+    --color-inverse-surface: var(--inverseSurface, #f0ded8ff);
+    --color-inverse-on-surface: var(--inverseOnSurface, #362f27ff);
+    --color-error: var(--error, #ba1a1aff);
+    --color-on-error: var(--onError, #ffffff);
+    --color-error-container: var(--errorContainer, #ffdad6ff);
+    --color-on-error-container: var(--onErrorContainer, #410002ff);
+    --color-outline: var(--outline, #a08c87ff);
+    --color-outline-variant: var(--outlineVariant, #53433fff);
+    --color-scrim: var(--scrim, #000000ff);
+    --color-surface-bright: var(--surfaceBright, #423731ff);
+    --color-surface-dim: var(--surfaceDim, #1a110dff);
+    --color-surface-container: var(--surfaceContainer, #251a16ff);
+    --color-surface-container-high: var(--surfaceContainerHigh, #302420ff);
+    --color-surface-container-highest: var(--surfaceContainerHighest, #3b2e2aff);
+    --color-surface-container-low: var(--surfaceContainerLow, #1a110dff);
+    --color-surface-container-lowest: var(--surfaceContainerLowest, #0f0c0aff);
+    --color-filled-tonal-button-content-color: var(--filledTonalButtonContentColor, #3e2d16ff);
+    --color-filled-tonal-button-container-color: var(--filledTonalButtonContainerColor, #dea584ff);
+    --color-filled-tonal-button-disabled-content-color: var(--filledTonalButtonDisabledContentColor, #1f1f1f61);
+    --color-filled-tonal-button-disabled-container-color: var(--filledTonalButtonDisabledContainerColor, #1f1f1f1f);
+    --color-filled-card-content-color: var(--filledCardContentColor, #f0ded8ff);
+    --color-filled-card-container-color: var(--filledCardContainerColor, #3b2e2aff);
+    --color-filled-card-disabled-content-color: var(--filledCardDisabledContentColor, #1f1f1f61);
+    --color-filled-card-disabled-container-color: var(--filledCardDisabledContainerColor, #1f1f1f1f);
+
+    /* Custom Gradient (Rust Style) */
+    --image-rust-gradient: linear-gradient(135deg, #b7410e 0%, #dea584 100%);
+}
+
+.text-gradient {
+    background: var(--image-rust-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bg-gradient-primary {
+    background: var(--image-rust-gradient);
+}
+
+:root {
+    background-color: var(--color-background, #171209);
+    color: var(--color-on-background, #ece0d1);
+}
+
+/* Bottom Navigation Styles - Handled in HTML via utility classes */
+
+/* View Transitions */
+.view-section {
+    @apply transition-opacity duration-200 ease-in-out;
+}
+
+.view-section.hidden {
+    @apply hidden opacity-0;
+}
