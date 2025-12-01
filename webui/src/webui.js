@@ -23,10 +23,9 @@ export class WebUI {
         try {
             if (typeof window !== 'undefined' && !window.ksu && !window.$auriya) {
                 console.log(`[Mock Exec] ${cmd}`)
-                // Mock responses for development
                 if (cmd.includes('pidof')) return "1234"
                 if (cmd.includes('module.prop')) return "1.0.0"
-                if (cmd.includes('current_profile')) return "1" // Performance
+                if (cmd.includes('current_profile')) return "1"
                 if (cmd.includes('ro.board.platform')) return "taro"
                 if (cmd.includes('uname')) return "5.10.101"
                 if (cmd.includes('scaling_available_governors')) return "schedutil performance powersave"
@@ -34,7 +33,13 @@ export class WebUI {
                 return "Mock Output"
             }
 
-            const { errno, stdout, stderr } = await exec(cmd, cwd ? { cwd } : {})
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Command timed out")), 5000)
+            )
+
+            const execPromise = exec(cmd, cwd ? { cwd } : {})
+            const { errno, stdout, stderr } = await Promise.race([execPromise, timeoutPromise])
+
             if (errno !== 0) {
                 console.warn(`Command failed: ${cmd}`, stderr)
                 return { error: stderr || "Unknown error" }
@@ -49,8 +54,6 @@ export class WebUI {
     async init() {
         this.setupNavigation()
         this.setupEventListeners()
-
-        // Load data in parallel or sequentially, but don't block nav
         try {
             await this.loadSystemInfo()
             await this.loadSettings()
@@ -68,7 +71,6 @@ export class WebUI {
             btn.addEventListener('click', () => {
                 const targetId = btn.dataset.target
 
-                // Update buttons
                 navBtns.forEach(b => {
                     b.classList.remove('active', 'text-primary')
                     b.classList.add('text-on-surface', 'opacity-60')
@@ -76,7 +78,6 @@ export class WebUI {
                 btn.classList.add('active', 'text-primary')
                 btn.classList.remove('text-on-surface', 'opacity-60')
 
-                // Update views
                 views.forEach(view => {
                     if (view.id === targetId) {
                         view.classList.remove('hidden')
@@ -91,7 +92,6 @@ export class WebUI {
             })
         })
 
-        // Search listener
         const searchInput = document.getElementById('game-search')
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -105,13 +105,10 @@ export class WebUI {
         const listContainer = document.getElementById('game-list')
         listContainer.innerHTML = '<div class="text-center py-8 opacity-50">Loading packages...</div>'
 
-        // Use IPC to list packages
         const socketPath = '/dev/socket/auriya.sock'
         const cmd = `echo "LIST_PACKAGES" | nc -U ${socketPath}`
 
-        let output = await this.runCommand(cmd, null, 10000) // 10s timeout for listing
-
-        // Fallback to direct pm if IPC fails or returns error
+        let output = await this.runCommand(cmd, null, 10000)
         if (output && (output.error || output.includes('ERR'))) {
             console.warn("IPC ListPackages failed, trying direct pm...", output)
             output = await this.runCommand('/system/bin/pm list packages', null, 10000)
@@ -120,9 +117,9 @@ export class WebUI {
         if (typeof output === 'string') {
             const lines = output.split('\n')
             this.state.packages = lines
-                .filter(line => line.includes('package:')) // Relaxed check
-                .map(line => line.split('package:')[1]?.trim()) // Safe split
-                .filter(Boolean) // Remove nulls
+                .filter(line => line.includes('package:'))
+                .map(line => line.split('package:')[1]?.trim())
+                .filter(Boolean)
                 .sort()
 
             if (this.state.packages.length === 0) {
@@ -148,17 +145,20 @@ export class WebUI {
     }
 
     async loadActiveGames() {
-        // Read gamelist.toml directly
-        const content = await this.runCommand(`cat ${modPath}/gamelist.toml`)
-        if (content && !content.error) {
+        const socketPath = '/dev/socket/auriya.sock'
+        const cmd = `echo "GET_GAMELIST" | nc -U ${socketPath}`
+
+        const output = await this.runCommand(cmd)
+
+        if (output && !output.error && !output.startsWith('ERR')) {
             try {
-                const parsed = parse(content)
-                if (parsed && parsed.game) {
-                    this.state.activeGames = parsed.game.map(g => g.package)
-                }
+                this.state.activeGames = JSON.parse(output)
             } catch (e) {
-                console.error("Failed to parse gamelist", e)
+                console.error("Failed to parse active games JSON", e)
+                this.state.activeGames = []
             }
+        } else {
+            this.state.activeGames = []
         }
         this.renderGameList()
     }
@@ -177,55 +177,175 @@ export class WebUI {
         }
 
         listContainer.innerHTML = filtered.map(pkg => {
-            const isChecked = this.state.activeGames.includes(pkg)
+            const activeProfile = this.state.activeGames.find(g => g.package === pkg)
+            const isEnabled = !!activeProfile
+
             // Card UI
             return `
-                <div class="flex items-center justify-between p-4 mb-2 bg-surface-container-highest/50 rounded-2xl border border-outline/5 hover:bg-surface-container-highest transition-colors">
+                <div class="flex items-center justify-between p-4 mb-2 bg-surface-container-highest/50 rounded-2xl border border-outline/5 hover:bg-surface-container-highest transition-colors cursor-pointer"
+                    onclick="window.webui.openGameSettings('${pkg}')">
                     <div class="flex items-center gap-4 overflow-hidden">
-                        <div class="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+                        <div class="p-2.5 rounded-xl ${isEnabled ? 'bg-primary/20 text-primary' : 'bg-surface-container-highest text-on-surface-variant'} shrink-0 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
                             </svg>
                         </div>
                         <div class="min-w-0">
                             <p class="text-sm font-medium truncate text-on-surface">${pkg}</p>
-                            <p class="text-xs text-on-surface-variant opacity-60 truncate">Package Name</p>
+                            <p class="text-xs ${isEnabled ? 'text-primary' : 'text-on-surface-variant'} opacity-80 truncate">
+                                ${isEnabled ? `Active • ${activeProfile.cpu_governor}` : 'Not Optimized'}
+                            </p>
                         </div>
                     </div>
-                    <label class="cursor-pointer ml-2">
-                        <input type="checkbox" class="toggle toggle-primary" 
-                            ${isChecked ? 'checked' : ''} 
-                            onchange="window.webui.toggleGame('${pkg}', this.checked)">
-                    </label>
+                    <div class="text-on-surface-variant opacity-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
                 </div>
             `
         }).join('')
     }
 
-    async toggleGame(pkg, isEnabled) {
-        const cmd = isEnabled ? `ADD_GAME ${pkg}` : `REMOVE_GAME ${pkg}`
-        // Use nc to send command to unix socket
-        // echo "CMD" | nc -U /dev/socket/auriya.sock
-        // We need to ensure nc is available or use a helper
-        // Assuming busybox nc is available
+    async openGameSettings(pkg) {
+        try {
+            const activeProfile = this.state.activeGames.find(g => g.package === pkg)
 
-        const socketPath = '/dev/socket/auriya.sock'
-        const fullCmd = `echo "${cmd}" | nc -U ${socketPath}`
+            document.getElementById('modal-pkg-name').textContent = pkg
 
-        const res = await this.runCommand(fullCmd)
+            const enableToggle = document.getElementById('modal-enable-toggle')
+            const govSelect = document.getElementById('modal-gov-select')
+            const dndToggle = document.getElementById('modal-dnd-toggle')
+            const saveBtn = document.getElementById('modal-save-btn')
+            const modal = document.getElementById('game-settings-modal')
 
-        if (res && !res.error) {
-            // Update local state
-            if (isEnabled) {
-                if (!this.state.activeGames.includes(pkg)) this.state.activeGames.push(pkg)
+            this.loadCpuGovernors(govSelect)
+
+            if (activeProfile) {
+                enableToggle.checked = true
+                govSelect.value = activeProfile.cpu_governor || 'performance'
+                dndToggle.checked = activeProfile.enable_dnd || false
+                govSelect.disabled = false
+                dndToggle.disabled = false
             } else {
-                this.state.activeGames = this.state.activeGames.filter(p => p !== pkg)
+                enableToggle.checked = false
+                govSelect.value = 'performance'
+                dndToggle.checked = false
+                govSelect.disabled = true
+                dndToggle.disabled = true
             }
-            toast(isEnabled ? `Added ${pkg}` : `Removed ${pkg}`)
+
+            enableToggle.onchange = (e) => {
+                govSelect.disabled = !e.target.checked
+                dndToggle.disabled = !e.target.checked
+            }
+
+            saveBtn.onclick = async () => {
+                const isEnabled = enableToggle.checked
+                const gov = govSelect.value
+                const dnd = dndToggle.checked
+
+                await this.saveGameSettings(pkg, isEnabled, gov, dnd)
+                modal.close()
+            }
+
+            modal.showModal()
+        } catch (e) {
+            console.error("openGameSettings failed", e)
+            toast(`Error opening settings: ${e.message}`)
+        }
+    }
+
+    async loadCpuGovernors(selectElement) {
+        const defaults = ['performance', 'schedutil', 'powersave', 'interactive', 'conservative', 'ondemand', 'userspace']
+        const render = (list) => {
+            selectElement.innerHTML = ''
+            list.forEach(gov => {
+                const opt = document.createElement('option')
+                opt.value = gov
+                opt.textContent = gov
+                selectElement.appendChild(opt)
+            })
+            if (this.state.gameGov && list.includes(this.state.gameGov)) {
+                selectElement.value = this.state.gameGov
+            }
+        }
+
+        if (this.state.availableGovernors && this.state.availableGovernors.length > 0) {
+            render(this.state.availableGovernors)
         } else {
-            toast(`Failed to ${isEnabled ? 'add' : 'remove'} game`)
-            // Revert checkbox if failed (would need re-render)
-            this.loadActiveGames() // Reload to sync
+        }
+        try {
+            if (this.state.availableGovernors && this.state.availableGovernors.length > 0) {
+                return
+            }
+
+            const paths = [
+                '/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors',
+                '/sys/devices/system/cpu/cpufreq/policy0/scaling_available_governors',
+                '/sys/devices/system/cpu/cpu0/cpufreq/scaling_governors'
+            ]
+
+            let output = null
+            for (const path of paths) {
+                let res = await this.runCommand(`cat ${path}`)
+                if (res && !res.error && res.length > 0) {
+                    output = res
+                    break
+                }
+
+                res = await this.runCommand(`busybox cat ${path}`)
+                if (res && !res.error && res.length > 0) {
+                    output = res
+                    break
+                }
+            }
+
+            if (output) {
+                const realGovs = output.split(/\s+/).filter(g => g)
+                if (realGovs.length > 0) {
+                    this.state.availableGovernors = realGovs
+                    render(realGovs)
+
+                }
+            }
+        } catch (e) {
+            console.warn("Failed to fetch governors, keeping defaults", e)
+
+        }
+    }
+
+    async saveGameSettings(pkg, isEnabled, gov, dnd) {
+        const socketPath = '/dev/socket/auriya.sock'
+
+
+        try {
+            if (isEnabled) {
+
+                const activeProfile = this.state.activeGames.find(g => g.package === pkg)
+                if (!activeProfile) {
+
+                    const res = await this.runCommand(`echo "ADD_GAME ${pkg}" | nc -U ${socketPath}`)
+
+                }
+
+                const updateCmd = `UPDATE_GAME ${pkg} gov=${gov} dnd=${dnd}`
+
+                const res = await this.runCommand(`echo "${updateCmd}" | nc -U ${socketPath}`)
+
+
+                toast(`Saved settings for ${pkg}`)
+            } else {
+
+                await this.runCommand(`echo "REMOVE_GAME ${pkg}" | nc -U ${socketPath}`)
+                toast(`Removed ${pkg} from optimization`)
+            }
+
+
+            await this.loadActiveGames()
+        } catch (e) {
+            console.error("Save failed", e)
+            toast(`Save failed: ${e.message}`)
         }
     }
 
@@ -279,7 +399,6 @@ export class WebUI {
             govSelect.appendChild(opt)
         })
 
-        // Game Governor Select
         const gameGovSelect = document.getElementById('game-cpu-gov-select')
         gameGovSelect.innerHTML = ''
         govs.forEach(gov => {
@@ -289,7 +408,6 @@ export class WebUI {
             gameGovSelect.appendChild(opt)
         })
 
-        // TOML Config
         const content = await this.runCommand(`/system/bin/cat ${configPath}/settings.toml`)
         if (content && !content.error) {
             try {
