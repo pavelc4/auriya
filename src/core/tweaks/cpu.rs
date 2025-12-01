@@ -186,8 +186,20 @@ pub fn set_process_priority(pid: i32) -> Result<()> {
         .output();
 
     let oom_path = format!("/proc/{}/oom_score_adj", pid);
-    let _ = fs::write(&oom_path, "-1000");
+    if Path::new(&oom_path).exists() {
+        let _ = std::fs::write(oom_path, "-800");
+    }
 
     info!("Process priority set for PID {}", pid);
     Ok(())
+}
+
+pub fn fix_mediatek_ppm() {
+    let ppm_path = "/proc/ppm/enabled";
+    if Path::new(ppm_path).exists() {
+        let _ = fs::write(ppm_path, "0");
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        let _ = fs::write(ppm_path, "1");
+        info!("Applied MediaTek PPM fix");
+    }
 }

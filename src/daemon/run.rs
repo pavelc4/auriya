@@ -1,7 +1,9 @@
 use crate::core::profile::ProfileMode;
+use crate::core::tweaks::{battery, cpu};
 use crate::daemon::state::{CurrentState, LastState};
 use anyhow::Result;
 use notify::{EventKind, RecursiveMode, Watcher};
+use std::process::Command;
 use std::{
     sync::atomic::AtomicBool,
     sync::{Arc, Mutex, RwLock},
@@ -10,6 +12,22 @@ use std::{
 use tokio::{signal, time};
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::EnvFilter;
+
+fn update_magisk_description(status: &str) {
+    let description = format!("Special performance module for your Device. [{}]", status);
+    debug!(target: "auriya::daemon", "Magisk Description Update: {}", description);
+
+    let module_prop = "/data/adb/modules/auriya/module.prop";
+    if std::path::Path::new(module_prop).exists() {
+        let _ = Command::new("sed")
+            .args([
+                "-i",
+                &format!("s/^description=.*/description={}/", description),
+                module_prop,
+            ])
+            .output();
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct DaemonConfig {
@@ -239,6 +257,7 @@ impl Daemon {
 
     pub async fn tick(&mut self) {
         debug!(target: "auriya::daemon", "Tick");
+        cpu::fix_mediatek_ppm();
 
         let gamelist = match self.shared_gamelist.read() {
             Ok(g) => g.clone(),
@@ -247,6 +266,26 @@ impl Daemon {
                 return;
             }
         };
+        let _settings = match self._shared_settings.read() {
+            Ok(s) => s.clone(),
+            Err(_) => {
+                warn!(target: "auriya::daemon", "Settings lock poisoned, skipping tick");
+                return;
+            }
+        };
+
+        let battery_saver = battery::is_low_power_mode_enabled().unwrap_or(false);
+        if battery_saver {
+            if self.last.profile_mode != Some(ProfileMode::Powersave) {
+                info!(target: "auriya::daemon", "Battery Saver detected! Forcing powersave mode.");
+                if let Err(e) = crate::core::profile::apply_powersave() {
+                    error!(target: "auriya::daemon", "Failed to apply powersave: {}", e);
+                }
+                self.last.profile_mode = Some(ProfileMode::Powersave);
+                update_magisk_description("Powersave (Battery Saver)");
+            }
+            return;
+        }
 
         if let Err(e) = self.process_tick_logic(&gamelist).await {
             let err_msg = e.to_string();
@@ -272,6 +311,15 @@ impl Daemon {
             cur.screen_awake = self.last.screen_awake.unwrap_or(false);
             cur.battery_saver = self.last.battery_saver.unwrap_or(false);
             cur.profile = self.last.profile_mode.unwrap_or(ProfileMode::Balance);
+
+            if self.last.profile_mode.is_some() && cur.profile != self.last.profile_mode.unwrap() {
+                update_magisk_description(&format!("Running - {}", cur.profile.to_string()));
+            } else if self.last.profile_mode.is_some() {
+                update_magisk_description(&format!(
+                    "Running - {}",
+                    self.last.profile_mode.unwrap().to_string()
+                ));
+            }
         }
     }
 

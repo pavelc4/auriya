@@ -69,4 +69,24 @@ impl GameList {
 
         Ok(())
     }
+
+    #[allow(dead_code)]
+    pub fn update(
+        &mut self,
+        package: &str,
+        governor: Option<String>,
+        dnd: Option<bool>,
+    ) -> Result<()> {
+        if let Some(profile) = self.game.iter_mut().find(|g| g.package == package) {
+            if let Some(gov) = governor {
+                profile.cpu_governor = gov;
+            }
+            if let Some(d) = dnd {
+                profile.enable_dnd = d;
+            }
+            Ok(())
+        } else {
+            anyhow::bail!("Game {} not found", package)
+        }
+    }
 }
