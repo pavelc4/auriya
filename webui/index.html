@@ -39,7 +39,7 @@
             <!-- Device Info -->
             <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
                 <h2 class="text-lg font-semibold mb-4">Device Info</h2>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4">
                     <!-- Module -->
                     <div class="flex items-start gap-3 p-2">
                         <div class="p-3 rounded-2xl bg-primary/10 text-primary">
@@ -51,7 +51,7 @@
                         </div>
                         <div>
                             <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Module</p>
-                            <p class="font-bold text-base" id="module-version">...</p>
+                            <p class="font-bold text-sm" id="module-version">...</p>
                         </div>
                     </div>
 
@@ -66,7 +66,7 @@
                         </div>
                         <div>
                             <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Profile</p>
-                            <p class="font-bold text-base" id="current-profile">...</p>
+                            <p class="font-bold text-sm" id="current-profile">...</p>
                         </div>
                     </div>
 
@@ -76,12 +76,14 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                         </div>
                         <div>
                             <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Kernel</p>
-                            <p class="font-bold text-base" id="kernel-version">...</p>
+                            <p class="font-bold text-sm break-all" id="kernel-version">...</p>
                         </div>
                     </div>
 
@@ -91,12 +93,12 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                             </svg>
                         </div>
                         <div>
                             <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Chipset</p>
-                            <p class="font-bold text-base" id="chipset-name">...</p>
+                            <p class="font-bold text-sm" id="chipset-name">...</p>
                         </div>
                     </div>
 
@@ -111,56 +113,28 @@
                         </div>
                         <div>
                             <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Codename</p>
-                            <p class="font-bold text-base" id="device-codename">...</p>
+                            <p class="font-bold text-sm" id="device-codename">...</p>
                         </div>
                     </div>
 
                     <!-- Android SDK -->
                     <div class="flex items-start gap-3 p-2">
                         <div class="p-3 rounded-2xl bg-surface-variant text-on-surface-variant">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor"
+                                viewBox="0 0 24 24">
+                                <path
+                                    d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993s-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993s-.4482.9997-.9993.9997m11.4055-6.0208l-1.9643-3.4028c-.1383-.2395-.4439-.3214-.6834-.1831-.2395.1383-.3214.4439-.1831.6834l1.9454 3.37c-1.3972-.6411-2.9771-1.0046-4.6644-1.0046-1.7148 0-3.318.374-4.7302 1.0356l1.917-3.3208c.1436-.2487.0626-.5634-.1861-.707-.2487-.1436-.5634-.0626-.707.1861l-1.967 3.4075c-2.613 1.423-4.4074 4.0209-4.6368 7.0866h19.8634c-.2312-3.0901-2.0498-5.703-4.6975-7.1293" />
                             </svg>
                         </div>
                         <div>
                             <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Android SDK</p>
-                            <p class="font-bold text-base" id="android-sdk">...</p>
+                            <p class="font-bold text-sm" id="android-sdk">...</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- System Status -->
-            <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
-                <h2 class="text-lg font-semibold mb-4">System Status</h2>
-                <div class="space-y-4">
-                    <!-- RAM Usage -->
-                    <div>
-                        <div class="flex justify-between mb-2">
-                            <span class="text-xs font-medium opacity-70 uppercase tracking-wider">RAM Usage</span>
-                            <span class="text-xs font-bold" id="ram-text">...</span>
-                        </div>
-                        <div class="w-full bg-surface-variant rounded-full h-2.5">
-                            <div id="ram-bar" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
-                        </div>
-                    </div>
 
-                    <!-- ZRAM Usage -->
-                    <div>
-                        <div class="flex justify-between mb-2">
-                            <span class="text-xs font-medium opacity-70 uppercase tracking-wider">ZRAM Usage</span>
-                            <span class="text-xs font-bold" id="zram-text">...</span>
-                        </div>
-                        <div class="w-full bg-surface-variant rounded-full h-2.5">
-                            <div id="zram-bar" class="bg-secondary h-2.5 rounded-full" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Project Info -->
             <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface mb-4">
