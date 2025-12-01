@@ -3,8 +3,8 @@ use std::process::Command;
 use tracing::{debug, error};
 
 pub fn is_low_power_mode_enabled() -> Result<bool> {
-    let output = Command::new("settings")
-        .args(["get", "global", "low_power"])
+    let output = Command::new("/system/bin/cmd")
+        .args(["settings", "get", "global", "low_power"])
         .output()?;
 
     if output.status.success() {

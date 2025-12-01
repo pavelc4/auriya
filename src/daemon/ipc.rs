@@ -1,6 +1,7 @@
 use crate::core::config::gamelist::GameList;
 use crate::daemon::state::CurrentState;
 use anyhow::Result;
+use log::{error, info};
 use std::os::unix::fs::PermissionsExt;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
@@ -129,7 +130,7 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
     let path_ref = path.as_ref();
     let _ = std::fs::remove_file(path_ref);
     let listener = UnixListener::bind(path_ref)?;
-    let _ = std::fs::set_permissions(path_ref, std::fs::Permissions::from_mode(0o660));
+    let _ = std::fs::set_permissions(path_ref, std::fs::Permissions::from_mode(0o666));
     tracing::info!(target: "auriya::daemon", "IPC listening at {:?}", path_ref);
 
     loop {
@@ -268,14 +269,24 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 }
             }
             Ok(Command::ListPackages) => {
-                use std::process::Command as ShellCommand;
-                match ShellCommand::new("pm").arg("list").arg("packages").output() {
+                use tokio::process::Command as TokioCommand;
+                info!(target: "auriya::ipc", "Executing ListPackages...");
+                match TokioCommand::new("pm")
+                    .arg("list")
+                    .arg("packages")
+                    .output()
+                    .await
+                {
                     Ok(output) => {
                         let stdout = String::from_utf8_lossy(&output.stdout);
+                        info!(target: "auriya::ipc", "ListPackages success, len: {}", stdout.len());
                         // Return raw output, client will parse
                         format!("{}\n", stdout)
                     }
-                    Err(e) => format!("ERR LIST_PACKAGES {:?}\n", e),
+                    Err(e) => {
+                        error!(target: "auriya::ipc", "ListPackages failed: {:?}", e);
+                        format!("ERR LIST_PACKAGES {:?}\n", e)
+                    }
                 }
             }
             Err(e) => format!("ERR {}\n", e),
