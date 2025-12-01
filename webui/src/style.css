@@ -3,7 +3,6 @@
 
 @theme {
     /* Auriya Rust Theme (Material 3 Structure) */
-    --color-primary: var(--primary, #b7410eff);
     --color-on-primary: var(--onPrimary, #ffffff);
     --color-primary-container: var(--primaryContainer, #dea584ff);
     --color-on-primary-container: var(--onPrimaryContainer, #3e2d16ff);

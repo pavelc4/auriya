@@ -72,10 +72,12 @@ export class WebUI {
                 const targetId = btn.dataset.target
 
                 navBtns.forEach(b => {
-                    b.classList.remove('active', 'text-primary')
+                    b.classList.remove('active', 'text-white')
                     b.classList.add('text-on-surface', 'opacity-60')
+                    const icon = b.querySelector('.material-symbols-rounded');
+                    if (icon) icon.classList.remove('icon-filled');
                 })
-                btn.classList.add('active', 'text-primary')
+                btn.classList.add('active', 'text-white')
                 btn.classList.remove('text-on-surface', 'opacity-60')
 
                 views.forEach(view => {
@@ -129,7 +131,7 @@ export class WebUI {
                     <span class="opacity-50 text-xs">Raw output length: ${output.length}</span>
                     <br>
                     <button class="btn btn-xs btn-outline mt-2" onclick="alert('Raw Output:\\n' + '${output.replace(/\n/g, '\\n').substring(0, 500)}...')">Show Raw Output</button>
-                    <button class="btn btn-xs btn-primary mt-2 ml-2" onclick="window.webui.loadPackages()">Retry</button>
+                    <button class="btn btn-xs btn-white mt-2 ml-2" onclick="window.webui.loadPackages()">Retry</button>
                 </div>`
                 return
             }
@@ -179,31 +181,25 @@ export class WebUI {
         listContainer.innerHTML = filtered.map(pkg => {
             const activeProfile = this.state.activeGames.find(g => g.package === pkg)
             const isEnabled = !!activeProfile
-
-            // Card UI
             return `
-                <div class="flex items-center justify-between p-4 mb-2 bg-surface-container-highest/50 rounded-2xl border border-outline/5 hover:bg-surface-container-highest transition-colors cursor-pointer"
-                    onclick="window.webui.openGameSettings('${pkg}')">
-                    <div class="flex items-center gap-4 overflow-hidden">
-                        <div class="p-2.5 rounded-xl ${isEnabled ? 'bg-primary/20 text-primary' : 'bg-surface-container-highest text-on-surface-variant'} shrink-0 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
-                            </svg>
-                        </div>
-                        <div class="min-w-0">
-                            <p class="text-sm font-medium truncate text-on-surface">${pkg}</p>
-                            <p class="text-xs ${isEnabled ? 'text-primary' : 'text-on-surface-variant'} opacity-80 truncate">
-                                ${isEnabled ? `Active • ${activeProfile.cpu_governor}` : 'Not Optimized'}
-                            </p>
-                        </div>
+            <div class="flex items-center justify-between p-4 mb-2 bg-surface-container-highest/50 rounded-2xl border border-outline/5 hover:bg-surface-container-highest transition-colors cursor-pointer"
+                onclick="window.webui.openGameSettings('${pkg}')">
+                <div class="flex items-center gap-4 overflow-hidden">
+                    <div class="p-2.5 rounded-xl ${isEnabled ? 'bg-primary/20 text-primary' : 'bg-surface-container-highest text-on-surface-variant'} shrink-0 transition-colors flex items-center justify-center">
+                        <span class="material-symbols-rounded">android</span>
                     </div>
-                    <div class="text-on-surface-variant opacity-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium truncate text-on-surface">${pkg}</p>
+                        <p class="text-xs ${isEnabled ? 'text-primary' : 'text-on-surface-variant'} opacity-80 truncate">
+                            ${isEnabled ? `Active • ${activeProfile.cpu_governor}` : 'Not Optimized'}
+                        </p>
                     </div>
                 </div>
-            `
+                <div class="text-on-surface-variant opacity-50 flex items-center">
+                    <span class="material-symbols-rounded">chevron_right</span>
+                </div>
+            </div>
+        `
         }).join('')
     }
 
@@ -455,7 +451,6 @@ export class WebUI {
 
             const newContent = stringify(settings)
             await this.runCommand(`echo '${newContent}' > ${configPath}/settings.toml`)
-            // toast("Settings saved")
         } catch (e) {
             console.error("Save Error", e)
         }
