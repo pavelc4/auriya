@@ -39,6 +39,9 @@ pub enum Command {
     Ping,
     Quit,
     SetProfile(ProfileMode),
+    AddGame(String),
+    RemoveGame(String),
+    ListPackages,
 }
 impl FromStr for Command {
     type Err = &'static str;
@@ -79,6 +82,18 @@ impl FromStr for Command {
                 _ => return Err("usage: SETPROFILE <PERFORMANCE|BALANCE|POWERSAVE>"),
             },
 
+            "ADD_GAME" | "ADDGAME" => {
+                let pkg = it.next().ok_or("usage: ADD_GAME <package>")?;
+                Self::AddGame(pkg.to_string())
+            }
+
+            "REMOVE_GAME" | "REMOVEGAME" => {
+                let pkg = it.next().ok_or("usage: REMOVE_GAME <package>")?;
+                Self::RemoveGame(pkg.to_string())
+            }
+
+            "LIST_PACKAGES" | "LISTPACKAGES" => Self::ListPackages,
+
             _ => return Err("unknown command (try HELP)"),
         })
     }
@@ -106,6 +121,8 @@ const HELP: &str = "CMDS:
         - PING
         - QUIT
         - SET_PROFILE <PERFORMANCE|BALANCE|POWERSAVE>
+        - ADD_GAME <pkg>
+        - REMOVE_GAME <pkg>
  ";
 
 pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
@@ -216,6 +233,49 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 match r {
                     Ok(_) => format!("OK SET_PROFILE {:?}\n", mode),
                     Err(e) => format!("ERR SET_PROFILE {:?}\n", e),
+                }
+            }
+            Ok(Command::AddGame(pkg)) => {
+                use crate::core::config::gamelist::GameProfile;
+                let mut gl = h.shared_config.write().unwrap();
+                let profile = GameProfile {
+                    package: pkg.clone(),
+                    cpu_governor: "performance".to_string(),
+                    enable_dnd: true,
+                };
+                match gl.add(profile) {
+                    Ok(_) => {
+                        if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
+                            format!("ERR SAVE_GAMELIST {:?}\n", e)
+                        } else {
+                            format!("OK ADD_GAME {}\n", pkg)
+                        }
+                    }
+                    Err(e) => format!("ERR ADD_GAME {:?}\n", e),
+                }
+            }
+            Ok(Command::RemoveGame(pkg)) => {
+                let mut gl = h.shared_config.write().unwrap();
+                match gl.remove(&pkg) {
+                    Ok(_) => {
+                        if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
+                            format!("ERR SAVE_GAMELIST {:?}\n", e)
+                        } else {
+                            format!("OK REMOVE_GAME {}\n", pkg)
+                        }
+                    }
+                    Err(e) => format!("ERR REMOVE_GAME {:?}\n", e),
+                }
+            }
+            Ok(Command::ListPackages) => {
+                use std::process::Command as ShellCommand;
+                match ShellCommand::new("pm").arg("list").arg("packages").output() {
+                    Ok(output) => {
+                        let stdout = String::from_utf8_lossy(&output.stdout);
+                        // Return raw output, client will parse
+                        format!("{}\n", stdout)
+                    }
+                    Err(e) => format!("ERR LIST_PACKAGES {:?}\n", e),
                 }
             }
             Err(e) => format!("ERR {}\n", e),

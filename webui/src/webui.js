@@ -12,7 +12,10 @@ export class WebUI {
             fasMode: 'performance',
             defaultGov: '',
             gameGov: '',
-            availableGovernors: []
+            availableGovernors: [],
+            packages: [],
+            activeGames: [],
+            searchQuery: ''
         }
     }
 
@@ -44,9 +47,186 @@ export class WebUI {
     }
 
     async init() {
-        await this.loadSystemInfo()
-        await this.loadSettings()
+        this.setupNavigation()
         this.setupEventListeners()
+
+        // Load data in parallel or sequentially, but don't block nav
+        try {
+            await this.loadSystemInfo()
+            await this.loadSettings()
+            this.loadActiveGames()
+        } catch (e) {
+            console.error("Init data load failed", e)
+        }
+    }
+
+    setupNavigation() {
+        const navBtns = document.querySelectorAll('.nav-btn')
+        const views = document.querySelectorAll('.view-section')
+
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.dataset.target
+
+                // Update buttons
+                navBtns.forEach(b => {
+                    b.classList.remove('active', 'text-primary')
+                    b.classList.add('text-on-surface', 'opacity-60')
+                })
+                btn.classList.add('active', 'text-primary')
+                btn.classList.remove('text-on-surface', 'opacity-60')
+
+                // Update views
+                views.forEach(view => {
+                    if (view.id === targetId) {
+                        view.classList.remove('hidden')
+                    } else {
+                        view.classList.add('hidden')
+                    }
+                })
+
+                if (targetId === 'view-games' && this.state.packages.length === 0) {
+                    this.loadPackages()
+                }
+            })
+        })
+
+        // Search listener
+        const searchInput = document.getElementById('game-search')
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.state.searchQuery = e.target.value.toLowerCase()
+                this.renderGameList()
+            })
+        }
+    }
+
+    async loadPackages() {
+        const listContainer = document.getElementById('game-list')
+        listContainer.innerHTML = '<div class="text-center py-8 opacity-50">Loading packages...</div>'
+
+        // Use IPC to list packages
+        const socketPath = '/dev/socket/auriya.sock'
+        const cmd = `echo "LIST_PACKAGES" | nc -U ${socketPath}`
+
+        let output = await this.runCommand(cmd, null, 10000) // 10s timeout for listing
+
+        // Fallback to direct pm if IPC fails or returns error
+        if (output && (output.error || output.includes('ERR'))) {
+            console.warn("IPC ListPackages failed, trying direct pm...", output)
+            output = await this.runCommand('/system/bin/pm list packages', null, 10000)
+        }
+
+        if (typeof output === 'string') {
+            const lines = output.split('\n')
+            this.state.packages = lines
+                .filter(line => line.includes('package:')) // Relaxed check
+                .map(line => line.split('package:')[1]?.trim()) // Safe split
+                .filter(Boolean) // Remove nulls
+                .sort()
+
+            if (this.state.packages.length === 0) {
+                console.warn("No packages parsed. Raw output length:", output.length)
+                listContainer.innerHTML = `<div class="p-4 text-center text-error text-sm">
+                    No packages found.<br>
+                    <span class="opacity-50 text-xs">Raw output length: ${output.length}</span>
+                    <br>
+                    <button class="btn btn-xs btn-outline mt-2" onclick="alert('Raw Output:\\n' + '${output.replace(/\n/g, '\\n').substring(0, 500)}...')">Show Raw Output</button>
+                    <button class="btn btn-xs btn-primary mt-2 ml-2" onclick="window.webui.loadPackages()">Retry</button>
+                </div>`
+                return
+            }
+
+            this.renderGameList()
+        } else {
+            console.error("Failed to load packages:", output)
+            listContainer.innerHTML = `<div class="p-4 text-center text-error text-sm">
+                Failed to load packages.<br>
+                <span class="opacity-50 text-xs">${output?.error || "Unknown error"}</span>
+            </div>`
+        }
+    }
+
+    async loadActiveGames() {
+        // Read gamelist.toml directly
+        const content = await this.runCommand(`cat ${modPath}/gamelist.toml`)
+        if (content && !content.error) {
+            try {
+                const parsed = parse(content)
+                if (parsed && parsed.game) {
+                    this.state.activeGames = parsed.game.map(g => g.package)
+                }
+            } catch (e) {
+                console.error("Failed to parse gamelist", e)
+            }
+        }
+        this.renderGameList()
+    }
+
+    renderGameList() {
+        const listContainer = document.getElementById('game-list')
+        if (!listContainer) return
+
+        const filtered = this.state.packages.filter(pkg =>
+            pkg.toLowerCase().includes(this.state.searchQuery)
+        )
+
+        if (filtered.length === 0) {
+            listContainer.innerHTML = '<div class="text-center py-8 opacity-50">No packages found</div>'
+            return
+        }
+
+        listContainer.innerHTML = filtered.map(pkg => {
+            const isChecked = this.state.activeGames.includes(pkg)
+            // Card UI
+            return `
+                <div class="flex items-center justify-between p-4 mb-2 bg-surface-container-highest/50 rounded-2xl border border-outline/5 hover:bg-surface-container-highest transition-colors">
+                    <div class="flex items-center gap-4 overflow-hidden">
+                        <div class="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium truncate text-on-surface">${pkg}</p>
+                            <p class="text-xs text-on-surface-variant opacity-60 truncate">Package Name</p>
+                        </div>
+                    </div>
+                    <label class="cursor-pointer ml-2">
+                        <input type="checkbox" class="toggle toggle-primary" 
+                            ${isChecked ? 'checked' : ''} 
+                            onchange="window.webui.toggleGame('${pkg}', this.checked)">
+                    </label>
+                </div>
+            `
+        }).join('')
+    }
+
+    async toggleGame(pkg, isEnabled) {
+        const cmd = isEnabled ? `ADD_GAME ${pkg}` : `REMOVE_GAME ${pkg}`
+        // Use nc to send command to unix socket
+        // echo "CMD" | nc -U /dev/socket/auriya.sock
+        // We need to ensure nc is available or use a helper
+        // Assuming busybox nc is available
+
+        const socketPath = '/dev/socket/auriya.sock'
+        const fullCmd = `echo "${cmd}" | nc -U ${socketPath}`
+
+        const res = await this.runCommand(fullCmd)
+
+        if (res && !res.error) {
+            // Update local state
+            if (isEnabled) {
+                if (!this.state.activeGames.includes(pkg)) this.state.activeGames.push(pkg)
+            } else {
+                this.state.activeGames = this.state.activeGames.filter(p => p !== pkg)
+            }
+            toast(isEnabled ? `Added ${pkg}` : `Removed ${pkg}`)
+        } else {
+            toast(`Failed to ${isEnabled ? 'add' : 'remove'} game`)
+            // Revert checkbox if failed (would need re-render)
+            this.loadActiveGames() // Reload to sync
+        }
     }
 
     async loadSystemInfo() {
