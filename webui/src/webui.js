@@ -2,7 +2,7 @@ import { setupTheme } from './modules/theme.js'
 import { setupNavigation } from './modules/navigation.js'
 import { setupEasterEgg } from './modules/easterEgg.js'
 import { loadSystemInfo } from './modules/system.js'
-import { loadSettings, saveSettings } from './modules/settings.js'
+import { loadSettings, saveSettings, setupSettings } from './modules/settings.js'
 import { loadPackages, loadActiveGames, renderGameList, openGameSettings, saveGameSettings, setupGames } from './modules/games.js'
 import { runCommand } from './modules/utils.js'
 
@@ -27,6 +27,7 @@ export class WebUI {
         setupNavigation(this)
         setupEasterEgg()
         setupGames(this)
+        setupSettings(this)
         this.setupEventListeners()
 
         try {

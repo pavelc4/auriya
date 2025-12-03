@@ -3,6 +3,13 @@ import { runCommand } from './utils.js'
 
 const configPath = '/data/adb/.config/auriya'
 
+export function setupSettings(webui) {
+    const exportBtn = document.getElementById('export-logs-btn')
+    if (exportBtn) {
+        exportBtn.onclick = () => exportLogs()
+    }
+}
+
 export async function loadSettings(webui) {
     // Governors
     const govOutput = await runCommand('/system/bin/cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors')
@@ -141,6 +148,28 @@ export async function loadCpuGovernors(webui, selectElement) {
         }
     } catch (e) {
         console.warn("Failed to fetch governors, keeping defaults", e)
+    }
+}
 
+export async function exportLogs() {
+    const logDir = '/sdcard/Download/AuriyaLogs'
+    const daemonLog = '/data/adb/auriya/daemon.log'
+
+    try {
+        await runCommand(`mkdir -p ${logDir}`)
+        await runCommand(`cp ${daemonLog} ${logDir}/auriya.log`)
+        await runCommand(`dmesg > ${logDir}/kernel.log`)
+
+        // Try to zip if possible
+        const zipRes = await runCommand(`tar -czf /sdcard/Download/AuriyaLogs.tar.gz -C /sdcard/Download AuriyaLogs`)
+
+        if (zipRes && !zipRes.error) {
+            import('kernelsu').then(ksu => ksu.toast(`Logs exported to /sdcard/Download/AuriyaLogs.tar.gz`))
+        } else {
+            import('kernelsu').then(ksu => ksu.toast(`Logs exported to ${logDir}`))
+        }
+    } catch (e) {
+        console.error("Log export failed", e)
+        import('kernelsu').then(ksu => ksu.toast(`Export failed: ${e.message}`))
     }
 }
