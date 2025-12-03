@@ -66,29 +66,88 @@ export class WebUI {
     }
 
     setupNavigation() {
+        // Theme Logic
+        const themeToggle = document.getElementById('theme-toggle')
+        const savedTheme = localStorage.getItem('theme') || 'dark'
+
+        // Apply saved theme
+        if (savedTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light')
+            if (themeToggle) themeToggle.checked = false
+        } else {
+            document.documentElement.removeAttribute('data-theme')
+            if (themeToggle) themeToggle.checked = true
+        }
+
+        // Handle toggle
+        if (themeToggle) {
+            themeToggle.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    // Dark Mode
+                    document.documentElement.removeAttribute('data-theme')
+                    localStorage.setItem('theme', 'dark')
+                } else {
+                    // Light Mode
+                    document.documentElement.setAttribute('data-theme', 'light')
+                    localStorage.setItem('theme', 'light')
+                }
+            })
+        }
+
+        // Easter Egg
+        const ferrisLogo = document.getElementById('daemon-status-icon')
+        let clickCount = 0
+        let resetTimer
+
+        if (ferrisLogo) {
+            ferrisLogo.addEventListener('click', () => {
+                clickCount++
+                clearTimeout(resetTimer)
+
+                // Reset count if no click for 2 seconds
+                resetTimer = setTimeout(() => {
+                    clickCount = 0
+                }, 2000)
+
+                if (clickCount === 5) {
+                    ferrisLogo.classList.add('animate-barrel-roll')
+
+                    // Stop suddenly after 3 seconds
+                    setTimeout(() => {
+                        ferrisLogo.classList.remove('animate-barrel-roll')
+                    }, 3000)
+
+                    clickCount = 0
+                }
+            })
+        }
+
+        // Navigation Logic
         const navBtns = document.querySelectorAll('.nav-btn')
-        const views = document.querySelectorAll('.view-section')
+        const sections = document.querySelectorAll('.view-section')
 
         navBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                const targetId = btn.dataset.target
-
+                // Remove active state from all buttons
                 navBtns.forEach(b => {
-                    b.classList.remove('active', 'text-white')
-                    b.classList.add('text-on-surface', 'opacity-60')
+                    b.classList.remove('active')
+                    b.classList.add('opacity-60')
                     const icon = b.querySelector('.material-symbols-rounded');
                     if (icon) icon.classList.remove('icon-filled');
                 })
-                btn.classList.add('active', 'text-white')
-                btn.classList.remove('text-on-surface', 'opacity-60')
 
-                views.forEach(view => {
-                    if (view.id === targetId) {
-                        view.classList.remove('hidden')
-                    } else {
-                        view.classList.add('hidden')
-                    }
-                })
+                // Add active state to clicked button
+                btn.classList.add('active')
+                btn.classList.remove('opacity-60')
+                const icon = btn.querySelector('.material-symbols-rounded');
+                if (icon) icon.classList.add('icon-filled');
+
+                // Hide all sections
+                sections.forEach(s => s.classList.add('hidden'))
+
+                // Show target section
+                const targetId = btn.dataset.target
+                document.getElementById(targetId).classList.remove('hidden')
 
                 if (targetId === 'view-games' && this.state.packages.length === 0) {
                     this.loadPackages()
