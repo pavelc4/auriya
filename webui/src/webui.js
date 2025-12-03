@@ -1,5 +1,7 @@
 import { exec, toast } from 'kernelsu'
 import { parse, stringify } from 'smol-toml'
+import ferrisHappy from './public/ferris_happy.svg'
+import ferrisSleep from './public/ferris_sleep.svg'
 
 const configPath = '/data/adb/.config/auriya'
 const modPath = '/data/adb/modules/auriya'
@@ -373,12 +375,22 @@ export class WebUI {
 
         // Daemon Status
         const pid = await this.runCommand('/system/bin/toybox pidof auriya || echo null')
+        const icon = document.getElementById('daemon-status-icon')
+
         if (pid !== "null" && pid.length > 0) {
             document.getElementById('daemon-status').textContent = "Working ✨"
             document.getElementById('daemon-pid').textContent = `Daemon PID: ${pid}`
+            if (icon) {
+                icon.src = ferrisHappy
+                icon.classList.remove('opacity-0')
+            }
         } else {
             document.getElementById('daemon-status').textContent = "Stopped 💤"
             document.getElementById('daemon-pid').textContent = "Service not running"
+            if (icon) {
+                icon.src = ferrisSleep
+                icon.classList.remove('opacity-0')
+            }
         }
     }
 
