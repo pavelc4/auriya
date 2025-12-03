@@ -3,7 +3,6 @@ use crate::core::tweaks::{battery, cpu};
 use crate::daemon::state::{CurrentState, LastState};
 use anyhow::Result;
 use notify::{EventKind, RecursiveMode, Watcher};
-use std::process::Command;
 use std::{
     sync::atomic::AtomicBool,
     sync::{Arc, Mutex, RwLock},
@@ -13,19 +12,22 @@ use tokio::{signal, time};
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::EnvFilter;
 
-fn update_magisk_description(status: &str) {
-    let description = format!("Special performance module for your Device. [{}]", status);
-    debug!(target: "auriya::daemon", "Magisk Description Update: {}", description);
+fn update_current_profile_file(mode: ProfileMode) {
+    let val = match mode {
+        ProfileMode::Performance => "1",
+        ProfileMode::Balance => "2",
+        ProfileMode::Powersave => "3",
+    };
 
-    let module_prop = "/data/adb/modules/auriya/module.prop";
-    if std::path::Path::new(module_prop).exists() {
-        let _ = Command::new("sed")
-            .args([
-                "-i",
-                &format!("s/^description=.*/description={}/", description),
-                module_prop,
-            ])
-            .output();
+    let config_path = crate::core::config::CONFIG_DIR;
+    let profile_file = format!("{}/current_profile", config_path);
+
+    let _ = std::fs::create_dir_all(config_path);
+
+    if let Err(e) = std::fs::write(&profile_file, val) {
+        error!(target: "auriya::daemon", "Failed to update current_profile: {}", e);
+    } else {
+        debug!(target: "auriya::daemon", "Updated current_profile to {} ({})", val, mode);
     }
 }
 
@@ -282,7 +284,7 @@ impl Daemon {
                     error!(target: "auriya::daemon", "Failed to apply powersave: {}", e);
                 }
                 self.last.profile_mode = Some(ProfileMode::Powersave);
-                update_magisk_description("Powersave (Battery Saver)");
+                update_current_profile_file(ProfileMode::Powersave);
             }
             return;
         }
@@ -313,12 +315,9 @@ impl Daemon {
             cur.profile = self.last.profile_mode.unwrap_or(ProfileMode::Balance);
 
             if self.last.profile_mode.is_some() && cur.profile != self.last.profile_mode.unwrap() {
-                update_magisk_description(&format!("Running - {}", cur.profile.to_string()));
+                update_current_profile_file(cur.profile);
             } else if self.last.profile_mode.is_some() {
-                update_magisk_description(&format!(
-                    "Running - {}",
-                    self.last.profile_mode.unwrap().to_string()
-                ));
+                update_current_profile_file(self.last.profile_mode.unwrap());
             }
         }
     }

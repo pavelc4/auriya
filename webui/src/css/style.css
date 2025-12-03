@@ -52,6 +52,86 @@
     --image-rust-gradient: linear-gradient(135deg, #b7410e 0%, #dea584 100%);
 }
 
+:root {
+    /* Dark Theme (Default) */
+    --onPrimary: #ffffff;
+    --primaryContainer: #dea584ff;
+    --onPrimaryContainer: #3e2d16ff;
+    --inversePrimary: #ffb59bff;
+    --secondary: #77574eff;
+    --onSecondary: #ffffff;
+    --secondaryContainer: #ffdbd1ff;
+    --onSecondaryContainer: #2c150fff;
+    --tertiary: #6b5d2eff;
+    --onTertiary: #ffffff;
+    --tertiaryContainer: #f5e1a6ff;
+    --onTertiaryContainer: #231b00ff;
+    --background: #1a110dff;
+    --onBackground: #f0ded8ff;
+    --surface: #1a110dff;
+    --tonalSurface: #251a16ff;
+    --onSurface: #f0ded8ff;
+    --surfaceVariant: #53433fff;
+    --onSurfaceVariant: #d8c2bcff;
+    --surfaceTint: #b7410eff;
+    --inverseSurface: #f0ded8ff;
+    --inverseOnSurface: #362f27ff;
+    --error: #ba1a1aff;
+    --onError: #ffffff;
+    --errorContainer: #ffdad6ff;
+    --onErrorContainer: #410002ff;
+    --outline: #a08c87ff;
+    --outlineVariant: #53433fff;
+    --scrim: #000000ff;
+    --surfaceBright: #423731ff;
+    --surfaceDim: #1a110dff;
+    --surfaceContainer: #251a16ff;
+    --surfaceContainerHigh: #302420ff;
+    --surfaceContainerHighest: #3b2e2aff;
+    --surfaceContainerLow: #1a110dff;
+    --surfaceContainerLowest: #0f0c0aff;
+}
+
+[data-theme="light"] {
+    /* Light Theme */
+    --onPrimary: #ffffff;
+    --primaryContainer: #ffdbd1;
+    --onPrimaryContainer: #3e2d16;
+    --inversePrimary: #b7410e;
+    --secondary: #77574e;
+    --onSecondary: #ffffff;
+    --secondaryContainer: #ffdbd1;
+    --onSecondaryContainer: #2c150f;
+    --tertiary: #6b5d2e;
+    --onTertiary: #ffffff;
+    --tertiaryContainer: #f5e1a6;
+    --onTertiaryContainer: #231b00;
+    --background: #fff8f6;
+    --onBackground: #231917;
+    --surface: #fff8f6;
+    --tonalSurface: #fceae5;
+    --onSurface: #231917;
+    --surfaceVariant: #f5ded8;
+    --onSurfaceVariant: #53433f;
+    --surfaceTint: #b7410e;
+    --inverseSurface: #392e2b;
+    --inverseOnSurface: #ffede8;
+    --error: #ba1a1a;
+    --onError: #ffffff;
+    --errorContainer: #ffdad6;
+    --onErrorContainer: #410002;
+    --outline: #85736e;
+    --outlineVariant: #d8c2bc;
+    --scrim: #000000;
+    --surfaceBright: #fff8f6;
+    --surfaceDim: #e8d6d2;
+    --surfaceContainer: #fceae5;
+    --surfaceContainerHigh: #f7e4df;
+    --surfaceContainerHighest: #f1ded9;
+    --surfaceContainerLow: #fff1ed;
+    --surfaceContainerLowest: #ffffff;
+}
+
 .text-gradient {
     background: var(--image-rust-gradient);
     -webkit-background-clip: text;
@@ -77,4 +157,18 @@
 
 .view-section.hidden {
     @apply hidden opacity-0;
+}
+
+@keyframes barrel-roll {
+    0% {
+        transform: rotateY(0deg);
+    }
+
+    100% {
+        transform: rotateY(360deg);
+    }
+}
+
+.animate-barrel-roll {
+    animation: barrel-roll 0.2s linear infinite;
 }
