@@ -3,7 +3,7 @@ import { setupNavigation } from './modules/navigation.js'
 import { setupEasterEgg } from './modules/easterEgg.js'
 import { loadSystemInfo } from './modules/system.js'
 import { loadSettings, saveSettings } from './modules/settings.js'
-import { loadPackages, loadActiveGames, renderGameList, openGameSettings, saveGameSettings } from './modules/games.js'
+import { loadPackages, loadActiveGames, renderGameList, openGameSettings, saveGameSettings, setupGames } from './modules/games.js'
 import { runCommand } from './modules/utils.js'
 
 export class WebUI {
@@ -17,7 +17,8 @@ export class WebUI {
             availableGovernors: [],
             packages: [],
             activeGames: [],
-            searchQuery: ''
+            searchQuery: '',
+            showSystemApps: false
         }
     }
 
@@ -25,6 +26,7 @@ export class WebUI {
         setupTheme()
         setupNavigation(this)
         setupEasterEgg()
+        setupGames(this)
         this.setupEventListeners()
 
         try {
@@ -43,7 +45,6 @@ export class WebUI {
         })
     }
 
-    // Expose methods for HTML onclick handlers
     loadPackages() {
         return loadPackages(this)
     }

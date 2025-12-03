@@ -2,17 +2,44 @@ import { toast } from 'kernelsu'
 import { runCommand } from './utils.js'
 import { loadCpuGovernors } from './settings.js'
 
+export function setupGames(webui) {
+    webui.state.showSystemApps = false
+
+    const filterBtn = document.getElementById('filter-btn')
+    if (filterBtn) {
+        filterBtn.onclick = () => {
+            webui.state.showSystemApps = !webui.state.showSystemApps
+            loadPackages(webui)
+        }
+    }
+}
+
 export async function loadPackages(webui) {
     const listContainer = document.getElementById('game-list')
-    listContainer.innerHTML = '<div class="text-center py-8 opacity-50">Loading packages...</div>'
+    listContainer.innerHTML = '<div class="text-center py-8 opacity-50 flex flex-col items-center"><span class="loading loading-spinner loading-lg text-secondary mb-4"></span><p>Loading packages...</p></div>'
 
-    const socketPath = '/dev/socket/auriya.sock'
-    const cmd = `echo "LIST_PACKAGES" | nc -U ${socketPath}`
+    const filterBtn = document.getElementById('filter-btn')
+    if (filterBtn) {
+        const icon = filterBtn.querySelector('span')
+        if (webui.state.showSystemApps) {
+            filterBtn.classList.add('bg-surface-variant', 'text-on-surface-variant')
+            filterBtn.classList.remove('bg-surface-container-highest', 'text-on-surface-variant')
+            if (icon) icon.textContent = 'filter_alt_off'
+        } else {
+            filterBtn.classList.remove('bg-surface-variant', 'text-on-surface-variant')
+            filterBtn.classList.add('bg-surface-container-highest', 'text-on-surface-variant')
+            if (icon) icon.textContent = 'filter_list'
+        }
+    }
 
-    let output = await runCommand(cmd, null, 10000)
-    if (output && (output.error || output.includes('ERR'))) {
-        console.warn("IPC ListPackages failed, trying direct pm...", output)
-        output = await runCommand('/system/bin/pm list packages', null, 10000)
+    const cmdStr = webui.state.showSystemApps ? '/system/bin/pm list packages' : '/system/bin/pm list packages -3'
+    let output = await runCommand(cmdStr, null, 10000)
+
+    if (!output || output.error) {
+        console.warn("pm list packages failed, trying socket...", output)
+        const socketPath = '/dev/socket/auriya.sock'
+        const cmd = `echo "LIST_PACKAGES" | nc -U ${socketPath}`
+        output = await runCommand(cmd, null, 10000)
     }
 
     if (typeof output === 'string') {
@@ -24,13 +51,9 @@ export async function loadPackages(webui) {
             .sort()
 
         if (webui.state.packages.length === 0) {
-            console.warn("No packages parsed. Raw output length:", output.length)
             listContainer.innerHTML = `<div class="p-4 text-center text-error text-sm">
                 No packages found.<br>
-                <span class="opacity-50 text-xs">Raw output length: ${output.length}</span>
-                <br>
-                <button class="btn btn-xs btn-outline mt-2" onclick="alert('Raw Output:\\n' + '${output.replace(/\n/g, '\\n').substring(0, 500)}...')">Show Raw Output</button>
-                <button class="btn btn-xs btn-white mt-2 ml-2" onclick="window.webui.loadPackages()">Retry</button>
+                <button class="btn btn-xs btn-white mt-2" onclick="window.webui.loadPackages()">Retry</button>
             </div>`
             return
         }
@@ -53,9 +76,14 @@ export async function loadActiveGames(webui) {
 
     if (output && !output.error && !output.startsWith('ERR')) {
         try {
-            webui.state.activeGames = JSON.parse(output)
+            let jsonStr = output
+            const jsonStartIndex = jsonStr.indexOf('[')
+            if (jsonStartIndex !== -1) {
+                jsonStr = jsonStr.substring(jsonStartIndex)
+            }
+            webui.state.activeGames = JSON.parse(jsonStr)
         } catch (e) {
-            console.error("Failed to parse active games JSON", e)
+            console.error("Failed to parse active games JSON", e, output)
             webui.state.activeGames = []
         }
     } else {
@@ -68,7 +96,7 @@ export function renderGameList(webui) {
     const listContainer = document.getElementById('game-list')
     if (!listContainer) return
 
-    const filtered = webui.state.packages.filter(pkg =>
+    let filtered = webui.state.packages.filter(pkg =>
         pkg.toLowerCase().includes(webui.state.searchQuery)
     )
 
@@ -77,25 +105,54 @@ export function renderGameList(webui) {
         return
     }
 
+    // Sort: Active games first
+    filtered.sort((a, b) => {
+        const aActive = !!webui.state.activeGames.find(g => g.package === a)
+        const bActive = !!webui.state.activeGames.find(g => g.package === b)
+        if (aActive && !bActive) return -1
+        if (!aActive && bActive) return 1
+        return a.localeCompare(b)
+    })
+
     listContainer.innerHTML = filtered.map(pkg => {
         const activeProfile = webui.state.activeGames.find(g => g.package === pkg)
         const isEnabled = !!activeProfile
+
+        const cardClass = isEnabled
+            ? 'bg-surface-variant/20 border-surface-variant/50 shadow-lg'
+            : 'bg-surface-container-highest/30 border-outline/5 hover:bg-surface-container-highest/50'
+
+        const iconClass = isEnabled
+            ? 'bg-surface-variant text-on-surface-variant shadow-md'
+            : 'bg-surface-container text-on-surface-variant/70'
+
+        const iconName = isEnabled ? 'sports_esports' : 'android'
+        const statusText = isEnabled ? 'Optimized' : 'Tap to optimize'
+        const statusColor = isEnabled ? 'text-on-surface-variant' : 'text-on-surface-variant opacity-60'
+
         return `
-        <div class="flex items-center justify-between p-4 mb-2 bg-surface-container-highest/50 rounded-2xl border border-outline/5 hover:bg-surface-container-highest transition-colors cursor-pointer"
+        <div class="relative group overflow-hidden p-4 mb-3 rounded-[24px] border transition-all duration-300 cursor-pointer ${cardClass}"
             onclick="window.webui.openGameSettings('${pkg}')">
-            <div class="flex items-center gap-4 overflow-hidden">
-                <div class="p-2.5 rounded-xl ${isEnabled ? 'bg-primary/20 text-primary' : 'bg-surface-container-highest text-on-surface-variant'} shrink-0 transition-colors flex items-center justify-center">
-                    <span class="material-symbols-rounded">android</span>
+            
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-12 h-12 rounded-2xl ${iconClass} flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
+                    <span class="material-symbols-rounded text-[24px]">${iconName}</span>
                 </div>
-                <div class="min-w-0">
-                    <p class="text-sm font-medium truncate text-on-surface">${pkg}</p>
-                    <p class="text-xs ${isEnabled ? 'text-primary' : 'text-on-surface-variant'} opacity-80 truncate">
-                        ${isEnabled ? `Active • ${activeProfile.cpu_governor}` : 'Not Optimized'}
-                    </p>
+                
+                <div class="min-w-0 flex-grow">
+                    <div class="flex items-center gap-2 mb-0.5">
+                        <p class="text-base font-semibold truncate text-on-surface">${pkg}</p>
+                        ${isEnabled ? `<span class="border border-[#dea584]/30 bg-[#dea584]/10 text-[#dea584] rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm">Active</span>` : ''}
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="${statusColor} font-medium">${statusText}</span>
+                        ${isEnabled ? `<span class="w-1 h-1 rounded-full bg-on-surface/20"></span> <span class="opacity-60">${activeProfile.cpu_governor}</span>` : ''}
+                    </div>
                 </div>
-            </div>
-            <div class="text-on-surface-variant opacity-50 flex items-center">
-                <span class="material-symbols-rounded">chevron_right</span>
+
+                <div class="w-10 h-10 rounded-full bg-surface-variant/20 flex items-center justify-center text-on-surface opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
+                    <span class="material-symbols-rounded">edit</span>
+                </div>
             </div>
         </div>
     `
@@ -177,6 +234,8 @@ export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd) {
         }
 
 
+        // Small delay to ensure daemon processes the update
+        await new Promise(r => setTimeout(r, 500))
         await loadActiveGames(webui)
     } catch (e) {
         console.error("Save failed", e)

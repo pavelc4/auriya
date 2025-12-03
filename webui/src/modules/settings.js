@@ -8,22 +8,26 @@ export async function loadSettings(webui) {
     const govOutput = await runCommand('/system/bin/cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors')
     const govs = (typeof govOutput === 'string' && govOutput) ? govOutput.split(/\s+/).filter(g => g) : []
     const govSelect = document.getElementById('cpu-gov-select')
-    govSelect.innerHTML = ''
-    govs.forEach(gov => {
-        const opt = document.createElement('option')
-        opt.value = gov
-        opt.textContent = gov
-        govSelect.appendChild(opt)
-    })
+    if (govSelect) {
+        govSelect.innerHTML = ''
+        govs.forEach(gov => {
+            const opt = document.createElement('option')
+            opt.value = gov
+            opt.textContent = gov
+            govSelect.appendChild(opt)
+        })
+    }
 
     const gameGovSelect = document.getElementById('game-cpu-gov-select')
-    gameGovSelect.innerHTML = ''
-    govs.forEach(gov => {
-        const opt = document.createElement('option')
-        opt.value = gov
-        opt.textContent = gov
-        gameGovSelect.appendChild(opt)
-    })
+    if (gameGovSelect) {
+        gameGovSelect.innerHTML = ''
+        govs.forEach(gov => {
+            const opt = document.createElement('option')
+            opt.value = gov
+            opt.textContent = gov
+            gameGovSelect.appendChild(opt)
+        })
+    }
 
     const content = await runCommand(`/system/bin/cat ${configPath}/settings.toml`)
     if (content && !content.error) {
