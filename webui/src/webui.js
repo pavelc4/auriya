@@ -352,7 +352,7 @@ export class WebUI {
 
         // Profile
         const profileCode = await this.runCommand(`/system/bin/cat ${configPath}/current_profile`)
-        const profiles = { "0": "Init", "1": "Performance", "2": "Normal", "3": "Powersave" }
+        const profiles = { "0": "Init", "1": "Performance", "2": "Balance", "3": "Powersave" }
         document.getElementById('current-profile').textContent = (typeof profileCode === 'string' && profiles[profileCode]) ? profiles[profileCode] : "Unknown"
 
         // Kernel
