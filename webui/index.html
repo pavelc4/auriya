@@ -30,6 +30,10 @@
                     <h2 class="text-xl font-bold mb-1" id="daemon-status">Loading...</h2>
                     <p class="text-sm opacity-70" id="daemon-pid">One moment please...</p>
                 </div>
+                <div class="bg-surface-variant/30 p-2 rounded-2xl">
+                    <img id="daemon-status-icon"
+                        class="w-24 h-24 opacity-0 transition-opacity duration-500 cursor-pointer" />
+                </div>
             </div>
 
             <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
@@ -61,7 +65,7 @@
                     <div class="flex items-center gap-4 p-2">
                         <div
                             class="w-12 h-12 rounded-2xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
-                            <span class="material-symbols-rounded">memory</span>
+                            <span class="material-symbols-rounded">settings</span>
                         </div>
                         <div>
                             <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Kernel</p>
@@ -83,7 +87,7 @@
                     <div class="flex items-center gap-4 p-2">
                         <div
                             class="w-12 h-12 rounded-2xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
-                            <span class="material-symbols-rounded">fingerprint</span>
+                            <span class="material-symbols-rounded">memory</span>
                         </div>
                         <div>
                             <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Codename</p>
@@ -107,7 +111,7 @@
 
             <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface mb-4">
                 <h2 class="text-lg font-bold mb-2">About Auriya</h2>
-                <p class="text-lg opacity-90">
+                <p class="text-sl opacity-90">
                     auriya This project is actually my hobby project that I do in my spare time when I have nothing else
                     to do.
                 </p>
@@ -123,7 +127,8 @@
                     </a>
                     <a href="https://t.me/pvlcply" target="_blank"
                         class="btn btn-sm bg-surface-container-high hover:bg-surface-variant text-on-surface border-none rounded-full px-4 gap-2 h-10 shadow-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                            class="fill-current">
                             <path
                                 d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                         </svg>
@@ -139,9 +144,10 @@
                     class="inline-flex cursor-pointer hover:opacity-70 transition-opacity text-white">
                     <a href="https://t.me/Pavellc" target="_blank"
                         class="btn btn-sm bg-surface-container-high hover:bg-surface-variant text-on-surface border-none rounded-full px-4 gap-2 h-10 shadow-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
                             <path
-                                d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                                d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"
+                                class="fill-current" />
                         </svg>
                         Telegram
                     </a>
@@ -150,20 +156,26 @@
         </div>
 
         <div id="view-games" class="view-section hidden space-y-4">
-            <div class="sticky top-0 z-10 bg-surface/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4">
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="material-symbols-rounded text-on-surface-variant">search</span>
+            <div class="pt-4 pb-2">
+                <div class="flex items-center gap-3">
+                    <div class="relative flex-grow">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <span class="material-symbols-rounded text-on-surface-variant">search</span>
+                        </div>
+                        <input type="text" id="game-search" placeholder="Search packages..."
+                            class="input w-full pl-12 pr-4 rounded-full bg-surface-container-highest text-on-surface placeholder:text-on-surface-variant/70 h-14 border-none focus:outline-none focus:ring-2 focus:ring-surface-variant/50 transition-all shadow-sm">
                     </div>
-                    <input type="text" id="game-search" placeholder="Search packages..."
-                        class="input input-bordered w-full pl-10 rounded-2xl bg-surface-container-high border-none focus:ring-2 focus:ring-primary/50 text-on-surface placeholder:text-on-surface-variant/50 h-12">
+                    <button id="filter-btn"
+                        class="btn btn-square h-14 w-14 rounded-2xl bg-surface-container-highest border-none text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all shadow-sm">
+                        <span class="material-symbols-rounded">filter_list</span>
+                    </button>
                 </div>
             </div>
 
-            <div class="bg-surface-container p-2 rounded-[28px] card_border text-on-surface min-h-[50vh]">
-                <div id="game-list" class="pb-20 p-2 space-y-2">
+            <div class="min-h-[50vh]">
+                <div id="game-list" class="pb-20 space-y-2">
                     <div class="text-center py-12 opacity-50 flex flex-col items-center">
-                        <span class="loading loading-spinner loading-lg text-primary mb-4"></span>
+                        <span class="loading loading-spinner loading-lg text-secondary mb-4"></span>
                         <p>Loading packages...</p>
                     </div>
                 </div>
@@ -229,89 +241,184 @@
                 </button>
             </div>
 
-            <div id="view-about" class="view-section hidden space-y-4">
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-                    <div
-                        class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface h-full flex flex-col">
-                        <div class="flex items-center gap-3 mb-3">
-                            <div
-                                class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
-                                <span class="material-symbols-rounded text-[20px]">lightbulb</span>
-                            </div>
-                            <h2 class="text-lg font-semibold">The Philosophy</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface h-full flex flex-col">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-[20px]">lightbulb</span>
                         </div>
-                        <p class="text-sm opacity-80 leading-relaxed flex-grow">
-                            Most modules rely on brute force—locking max frequencies (draining battery) or throttling
-                            too hard.
-                            <br><br>
-                            Auriya acts as an <b>intelligent bridge</b> between user intent and kernel scheduling. It
-                            dynamically allocates resources to deliver peak FPS when gaming and deep power efficiency
-                            when idle.
-                        </p>
+                        <h2 class="text-lg font-semibold">The Philosophy</h2>
                     </div>
+                    <p class="text-sm opacity-80 leading-relaxed flex-grow">
+                        Most modules rely on brute force—locking max frequencies (draining battery) or throttling
+                        too hard.
+                        <br><br>
+                        Auriya acts as an <b>intelligent bridge</b> between user intent and kernel scheduling. It
+                        dynamically allocates resources to deliver peak FPS when gaming and deep power efficiency
+                        when idle.
+                    </p>
+                </div>
 
-                    <div
-                        class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface h-full flex flex-col">
-                        <div class="flex items-center gap-3 mb-3">
-                            <div
-                                class="w-10 h-10 rounded-xl bg-[#dea584]/20 text-[#dea584] flex items-center justify-center shrink-0">
-                                <span class="material-symbols-rounded text-[20px]">code</span>
-                            </div>
-                            <h2 class="text-lg font-semibold">Powered by Rust</h2>
+                <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface h-full flex flex-col">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-[#dea584]/20 text-[#dea584] flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-[20px]">code</span>
                         </div>
-                        <p class="text-sm opacity-80 leading-relaxed flex-grow">
-                            We chose Rust for mission-critical stability. With <b>zero-cost abstractions and memory
-                                safety</b>, it allows Auriya to interact directly with the kernel.
-                            <br><br>
-                            The result is a daemon that is lighter than shell scripts, crash-resistant, and operates
-                            with minimal system overhead.
-                        </p>
+                        <h2 class="text-lg font-semibold">Powered by Rust</h2>
                     </div>
+                    <p class="text-sm opacity-80 leading-relaxed flex-grow">
+                        We chose Rust for mission-critical stability. With <b>zero-cost abstractions and memory
+                            safety</b>, it allows Auriya to interact directly with the kernel.
+                        <br><br>
+                        The result is a daemon that is lighter than shell scripts, crash-resistant, and operates
+                        with minimal system overhead.
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
+                <div class="flex items-center gap-3 mb-4">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-secondary/20 text-secondary flex items-center justify-center shrink-0">
+                        <span class="material-symbols-rounded text-[20px]">group</span>
+                    </div>
+                    <h2 class="text-lg font-semibold">Contributors</h2>
+                </div>
+
+                <div class="space-y-3">
+                    <a href="https://github.com/pavelc4" target="_blank"
+                        class="flex items-center gap-4 p-3 rounded-2xl bg-surface-variant/20 hover:bg-surface-variant/40 transition-colors border border-white/5">
+                        <img src="https://github.com/pavelc4.png"
+                            class="w-10 h-10 rounded-full bg-surface-variant shrink-0" alt="pavelc4">
+                        <div>
+                            <p class="text-sm font-medium">pavelc4</p>
+                            <p class="text-xs opacity-60">Creator & Lead Developer</p>
+                        </div>
+                    </a>
+
+                    <a href="https://github.com/pavelc4/auriya/graphs/contributors" target="_blank"
+                        class="flex items-center justify-center gap-2 p-3 rounded-2xl border border-white/5 hover:bg-white/5 transition-colors text-sm opacity-70 hover:opacity-100">
+                        <span class="material-symbols-rounded text-lg">open_in_new</span>
+                        View all contributors on GitHub
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
+                <div class="flex items-center gap-3 mb-4">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+                        <span class="material-symbols-rounded text-[20px]">library_books</span>
+                    </div>
+                    <h2 class="text-lg font-semibold">Open Source Libraries</h2>
+                </div>
+                <p class="text-sm opacity-80 mb-4">Auriya is built on the shoulders of giants.</p>
+                <div class="flex flex-wrap gap-2">
+                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">tokio</span>
+                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">anyhow</span>
+                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">serde</span>
+                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">notify</span>
+                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">tracing</span>
+                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">toml</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-500 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-[20px]">forum</span>
+                        </div>
+                        <h2 class="text-lg font-semibold">Join Community</h2>
+                    </div>
+                    <p class="text-sm opacity-80 mb-4">
+                        Join our Telegram group to discuss features, report bugs, or just hang out.
+                    </p>
+                    <a href="https://t.me/XtraManagerSoftware" target="_blank"
+                        class="btn btn-sm bg-blue-500 hover:bg-blue-600 text-white border-none rounded-full px-4 w-full">
+                        Join Discussion
+                    </a>
                 </div>
 
                 <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
-                    <div class="flex items-center gap-3 mb-4">
+                    <div class="flex items-center gap-3 mb-3">
                         <div
-                            class="w-10 h-10 rounded-xl bg-secondary/20 text-secondary flex items-center justify-center shrink-0">
-                            <span class="material-symbols-rounded text-[20px]">group</span>
+                            class="w-10 h-10 rounded-xl bg-green-500/20 text-green-500 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-[20px]">policy</span>
                         </div>
-                        <h2 class="text-lg font-semibold">Contributors</h2>
+                        <h2 class="text-lg font-semibold">License</h2>
                     </div>
-
-                    <div class="space-y-3">
-                        <a href="https://github.com/pavelc4" target="_blank"
-                            class="flex items-center gap-4 p-3 rounded-2xl bg-surface-variant/20 hover:bg-surface-variant/40 transition-colors border border-white/5">
-                            <img src="https://github.com/pavelc4.png"
-                                class="w-10 h-10 rounded-full bg-surface-variant shrink-0" alt="pavelc4">
-                            <div>
-                                <p class="text-sm font-medium">pavelc4</p>
-                                <p class="text-xs opacity-60">Creator & Lead Developer</p>
-                            </div>
-                        </a>
-
-                        <a href="https://github.com/pavelc4/auriya/graphs/contributors" target="_blank"
-                            class="flex items-center justify-center gap-2 p-3 rounded-2xl border border-white/5 hover:bg-white/5 transition-colors text-sm opacity-70 hover:opacity-100">
-                            <span class="material-symbols-rounded text-lg">open_in_new</span>
-                            View all contributors on GitHub
-                        </a>
+                    <p class="text-sm opacity-80 mb-4">
+                        Auriya is free software licensed under the <b>MIT License</b>. You are free to use, modify,
+                        and distribute it.
+                    </p>
+                    <div class="flex items-center gap-2 text-xs opacity-60">
+                        <span class="material-symbols-rounded text-[16px]">copyright</span>
+                        2025 pavelc4
                     </div>
                 </div>
+            </div>
 
+
+        </div>
+
+        <div id="view-settings" class="view-section hidden space-y-4">
+            <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
+                <h2 class="text-lg font-semibold mb-4">Appearance</h2>
+
+                <div class="flex items-center justify-between p-2">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded">dark_mode</span>
+                        </div>
+                        <div>
+                            <p class="font-medium">Dark Mode</p>
+                            <p class="text-xs opacity-70">Toggle light/dark theme</p>
+                        </div>
+                    </div>
+                    <input type="checkbox" id="theme-toggle"
+                        class="toggle checked:bg-[#b7410e] checked:border-[#b7410e] [--tglbg:#d8c2bc] checked:[--tglbg:#ffffff]"
+                        checked />
+                </div>
+            </div>
+
+            <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
+                <h2 class="text-lg font-semibold mb-4">System</h2>
+
+                <div class="flex items-center justify-between p-2 cursor-pointer hover:bg-surface-variant/10 rounded-xl transition-colors"
+                    id="export-logs-btn">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded">bug_report</span>
+                        </div>
+                        <div>
+                            <p class="font-medium">Export Logs</p>
+                            <p class="text-xs opacity-70">Save kernel & daemon logs</p>
+                        </div>
+                    </div>
+                    <span class="material-symbols-rounded text-on-surface-variant">chevron_right</span>
+                </div>
             </div>
         </div>
 
     </main>
 
     <div
-        class="bg-surface-container-high/90 backdrop-blur-md border-t-0 fixed bottom-4 z-[100] h-20 rounded-[28px] shadow-lg w-[calc(100%-2rem)] max-w-2xl mx-auto left-0 right-0 grid grid-cols-3 items-center">
+        class="bg-surface-container-high/90 backdrop-blur-md border-t-0 fixed bottom-4 z-[100] h-20 rounded-[28px] shadow-lg w-[calc(100%-2rem)] max-w-2xl mx-auto left-0 right-0 grid grid-cols-4 items-center">
 
         <button id="nav-dashboard" data-target="view-dashboard"
-            class="nav-btn text-white active group flex flex-col items-center justify-center w-full h-full">
+            class="nav-btn text-on-surface active group flex flex-col items-center justify-center w-full h-full">
             <div
-                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-white/10 flex items-center justify-center">
-                <span class="material-symbols-rounded group-[.active]:icon-filled">home</span>
+                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant flex items-center justify-center">
+                <span class="material-symbols-rounded icon-filled">dashboard</span>
             </div>
             <span class="btm-nav-label text-xs font-medium mt-1">Home</span>
         </button>
@@ -319,8 +426,8 @@
         <button id="nav-games" data-target="view-games"
             class="nav-btn text-on-surface opacity-60 group flex flex-col items-center justify-center w-full h-full">
             <div
-                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-white/10 flex items-center justify-center">
-                <span class="material-symbols-rounded group-[.active]:icon-filled">sports_esports</span>
+                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant flex items-center justify-center">
+                <span class="material-symbols-rounded">sports_esports</span>
             </div>
             <span class="btm-nav-label text-xs font-medium mt-1">Games</span>
         </button>
@@ -328,10 +435,19 @@
         <button id="nav-about" data-target="view-about"
             class="nav-btn text-on-surface opacity-60 group flex flex-col items-center justify-center w-full h-full">
             <div
-                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-white/10 flex items-center justify-center">
-                <span class="material-symbols-rounded group-[.active]:icon-filled">info</span>
+                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant flex items-center justify-center">
+                <span class="material-symbols-rounded">info</span>
             </div>
             <span class="btm-nav-label text-xs font-medium mt-1">About</span>
+        </button>
+
+        <button id="nav-settings" data-target="view-settings"
+            class="nav-btn text-on-surface opacity-60 group flex flex-col items-center justify-center w-full h-full">
+            <div
+                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant flex items-center justify-center">
+                <span class="material-symbols-rounded group-[.active]:icon-filled">settings</span>
+            </div>
+            <span class="btm-nav-label text-xs font-medium mt-1">Settings</span>
         </button>
     </div>
 

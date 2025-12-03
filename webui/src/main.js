@@ -1,4 +1,4 @@
-import './style.css'
+import './css/style.css'
 import { WebUI } from './webui.js'
 
 document.addEventListener('DOMContentLoaded', async () => {
