@@ -112,9 +112,9 @@ impl Daemon {
         let balance_governor = cfg.settings.cpu.default_governor.clone();
 
         let fas_controller = if cfg.settings.fas.enabled {
-            info!(target: "auriya::daemon", "FAS enabled (default mode: {})", cfg.settings.fas.default_mode);
+            info!(target: "auriya::daemon", "FAS enabled");
             Some(Arc::new(Mutex::new(
-                crate::daemon::fas::FasController::new(),
+                crate::daemon::fas::FasController::new(cfg.settings.fas.target_fps),
             )))
         } else {
             info!(target: "auriya::daemon", "FAS disabled");
@@ -143,6 +143,16 @@ impl Daemon {
                     guard.set_target_fps(fps);
                 }
             }
+        });
+
+        let fas_clone_for_get = self.fas_controller.clone();
+        let get_fps = Arc::new(move || -> u32 {
+            if let Some(fas) = &fas_clone_for_get {
+                if let Ok(guard) = fas.lock() {
+                    return guard.get_target_fps();
+                }
+            }
+            60 // Default if not available
         });
 
         let shared_cfg = self.shared_gamelist.clone();
@@ -188,6 +198,7 @@ impl Daemon {
             reload_fn,
             set_log_level,
             set_fps,
+            get_fps,
             current_state: current_state.clone(),
             balance_governor: cfg.settings.cpu.default_governor.clone(),
         };

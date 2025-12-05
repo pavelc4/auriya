@@ -46,6 +46,7 @@ pub enum Command {
     GetGameList,
     UpdateGame(String, Option<String>, Option<bool>),
     SetFps(u32),
+    GetFps,
 }
 
 impl FromStr for Command {
@@ -76,6 +77,8 @@ impl FromStr for Command {
                 Ok(val) => Ok(Command::SetFps(val)),
                 Err(_) => Err("usage: SET_FPS <number>"),
             },
+
+            ["GET_FPS"] | ["GETFPS"] => Ok(Command::GetFps),
 
             ["INJECT", pkg] => Ok(Command::Inject(pkg.to_string())),
             ["CLEAR_INJECT"] | ["CLEARINJECT"] => Ok(Command::ClearInject),
@@ -116,6 +119,7 @@ pub struct IpcHandles {
     pub reload_fn: Arc<dyn Fn() -> anyhow::Result<usize> + Send + Sync>,
     pub set_log_level: Arc<dyn Fn(LogLevelCmd) + Send + Sync>,
     pub set_fps: Arc<dyn Fn(u32) + Send + Sync>,
+    pub get_fps: Arc<dyn Fn() -> u32 + Send + Sync>,
     pub current_state: Arc<RwLock<CurrentState>>,
     pub balance_governor: String,
 }
@@ -152,6 +156,7 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
             reload_fn: h.reload_fn.clone(),
             set_log_level: h.set_log_level.clone(),
             set_fps: h.set_fps.clone(),
+            get_fps: h.get_fps.clone(),
             current_state: h.current_state.clone(),
             balance_governor: h.balance_governor.clone(),
         };
@@ -324,6 +329,10 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
             Ok(Command::SetFps(fps)) => {
                 (h.set_fps)(fps);
                 format!("OK SET_FPS {}\n", fps)
+            }
+            Ok(Command::GetFps) => {
+                let fps = (h.get_fps)();
+                format!("FPS={}\n", fps)
             }
             Err(e) => format!("ERR {}\n", e),
         };

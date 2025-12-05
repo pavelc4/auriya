@@ -61,8 +61,32 @@ export async function loadSettings(webui) {
 
             webui.state.gameGov = settings.cpu?.game_governor ?? 'performance'
             if (gameGovSelect) gameGovSelect.value = webui.state.gameGov
+
+            webui.state.targetFps = settings.fas?.target_fps ?? 60
         } catch (e) {
             console.error("TOML Parse Error", e)
+        }
+    }
+    const fpsSelect = document.getElementById('fps-select')
+    if (fpsSelect) {
+        fpsSelect.value = webui.state.targetFps
+
+        try {
+            const fpsRes = await runCommand(`echo "GET_FPS" | nc -U /dev/socket/auriya.sock`)
+            if (fpsRes && fpsRes.startsWith("FPS=")) {
+                const fps = fpsRes.split('=')[1].trim()
+                fpsSelect.value = fps
+                webui.state.targetFps = fps
+            }
+        } catch (e) {
+            console.warn("Failed to get FPS", e)
+        }
+
+        fpsSelect.onchange = async (e) => {
+            const newFps = e.target.value
+            webui.state.targetFps = newFps
+            await runCommand(`echo "SET_FPS ${newFps}" | nc -U /dev/socket/auriya.sock`)
+            await saveSettings(webui)
         }
     }
 }
@@ -78,6 +102,7 @@ export async function saveSettings(webui) {
         if (!settings.fas) settings.fas = {}
         settings.fas.enabled = webui.state.fasEnabled
         settings.fas.default_mode = webui.state.fasMode
+        settings.fas.target_fps = parseInt(webui.state.targetFps) || 60
 
         if (!settings.dnd) settings.dnd = {}
         settings.dnd.default_enable = webui.state.dndEnabled

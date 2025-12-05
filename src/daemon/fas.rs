@@ -12,12 +12,12 @@ pub struct FasController {
 }
 
 impl FasController {
-    pub fn new() -> Self {
+    pub fn new(target_fps: u32) -> Self {
         Self {
             frame_monitor: FrameMonitor::new("".to_string()),
             pid: PidController::new(0.05, 0.001, 0.01), // Tunable parameters
             thermal: ThermalMonitor::new(),
-            target_frame_time: 16.6, // Default to 60 FPS
+            target_frame_time: 1000.0 / target_fps as f32,
         }
     }
 
@@ -34,6 +34,10 @@ impl FasController {
             tracing::info!(target: "auriya::fas", "Target FPS set to {} ({:.2}ms)", fps, self.target_frame_time);
             self.pid.reset();
         }
+    }
+
+    pub fn get_target_fps(&self) -> u32 {
+        (1000.0 / self.target_frame_time).round() as u32
     }
 
     pub fn tick(&mut self, margin: f32, thermal_thresh: f32) -> Result<ScalingAction> {
