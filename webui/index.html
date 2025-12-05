@@ -370,6 +370,30 @@
 
         <div id="view-settings" class="view-section hidden space-y-4">
             <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
+                <h2 class="text-lg font-semibold mb-4">Performance</h2>
+
+                <div class="flex items-center justify-between p-2">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded">speed</span>
+                        </div>
+                        <div>
+                            <p class="font-medium">Target FPS</p>
+                            <p class="text-xs opacity-70">Global frame rate target</p>
+                        </div>
+                    </div>
+                    <select id="fps-select" class="select select-bordered bg-surface-container-high w-24">
+                        <option value="30">30</option>
+                        <option value="45">45</option>
+                        <option value="60">60</option>
+                        <option value="90">90</option>
+                        <option value="120">120</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
                 <h2 class="text-lg font-semibold mb-4">Appearance</h2>
 
                 <div class="flex items-center justify-between p-2">

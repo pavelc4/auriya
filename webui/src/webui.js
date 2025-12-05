@@ -18,7 +18,8 @@ export class WebUI {
             packages: [],
             activeGames: [],
             searchQuery: '',
-            showSystemApps: false
+            showSystemApps: false,
+            targetFps: '60'
         }
     }
 

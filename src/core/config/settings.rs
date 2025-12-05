@@ -36,7 +36,10 @@ pub struct FasConfig {
     pub enabled: bool,
     pub default_mode: String,
     pub thermal_threshold: f64,
+    #[serde(default = "default_poll_interval")]
     pub poll_interval_ms: u64,
+    #[serde(default = "default_target_fps")]
+    pub target_fps: u32,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -68,4 +71,12 @@ fn default_log_level() -> String {
 
 fn default_check_interval() -> u64 {
     2000
+}
+
+fn default_poll_interval() -> u64 {
+    100
+}
+
+fn default_target_fps() -> u32 {
+    60
 }
