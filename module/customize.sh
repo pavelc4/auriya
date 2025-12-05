@@ -13,78 +13,61 @@ detect_gpu() {
     echo "unknown"
 }
 
-ui_print "============================================"
-ui_print "            Auriya  Daemon                  "
-ui_print "     Frame-Aware Performance Optimizer      "
-ui_print "============================================"
+ui_print "    ___               _               "
+ui_print "   /   |  __  _______(_)__  ______ _  "
+ui_print "  / /| | / / / / ___/ / / / / __ \`/  "
+ui_print " / ___ |/ /_/ / /  / / /_/ / /_/ /    "
+ui_print "/_/  |_|\__,_/_/  /_/\__, /\__,_/     "
+ui_print "                    /____/            "
+ui_print ""
+ui_print "- Frame-Aware Performance Optimizer"
 ui_print ""
 
-ui_print "==== System Information ===="
-ui_print " Android:  $(getprop ro.build.version.release)"
-ui_print " SDK:      $(getprop ro.build.version.sdk)"
-ui_print " Device:   $(getprop ro.product.model)"
-ui_print " Arch:     $ARCH"
-ui_print " SOC:      $(getprop ro.hardware)"
+ui_print "- Device: $(getprop ro.product.model) ($ARCH)"
+ui_print "- Android: $(getprop ro.build.version.release) (SDK $(getprop ro.build.version.sdk))"
 
 GPU_TYPE=$(detect_gpu)
-ui_print " GPU:      $GPU_TYPE"
+ui_print "- GPU: $GPU_TYPE"
 
-[ "$KSU" = "true" ] && ui_print " Root:     KernelSU" || ui_print " Root:     Magisk"
-ui_print "============================"
+[ "$KSU" = "true" ] && ui_print "- Root: KernelSU" || ui_print "- Root: Magisk"
 ui_print ""
 
 case $ARCH in
-    arm64|arm|x64|x86) ui_print ">> Installing for $ARCH..." ;;
+    arm64|arm|x64|x86) ;;
     *) ui_print "! Unsupported Architecture: $ARCH"; abort ;;
 esac
 
-ui_print ">> Extracting files..."
+ui_print "- Extracting module files"
 
 if [ ! -f "$MODPATH/system/bin/auriya" ]; then
-    ui_print "   Using manual extraction..."
-
     if ! unzip -oq "$ZIPFILE" -d "$MODPATH" 2>&1; then
-        ui_print "! ERROR: unzip failed!"
         if command -v busybox >/dev/null 2>&1; then
-            ui_print "   Trying busybox unzip..."
             busybox unzip -oq "$ZIPFILE" -d "$MODPATH" 2>&1 || {
-                ui_print "! ERROR: All extraction methods failed!"
+                ui_print "! Extraction failed"
                 abort
             }
         else
-            abort "Extraction failed"
+            abort "! Extraction failed"
         fi
     fi
 fi
 
 if [ ! -f "$MODPATH/system/bin/auriya" ]; then
-    ui_print "! ERROR: Binary not found!"
-    abort "Installation failed"
+    abort "! Binary not found"
 fi
-
-SIZE=$(stat -c%s "$MODPATH/system/bin/auriya" 2>/dev/null || stat -f%z "$MODPATH/system/bin/auriya")
-ui_print "   Binary: $((SIZE / 1024 / 1024))MB [OK]"
 
 make_dir "$MODULE_CONFIG"
 CONFIG_SETTINGS="$MODULE_CONFIG/settings.toml"
 CONFIG_GAMELIST="$MODULE_CONFIG/gamelist.toml"
 
-if [ -f "$CONFIG_SETTINGS" ]; then
-    ui_print "[+] Settings config preserved"
-else
-    ui_print ">> Installing settings config..."
+if [ ! -f "$CONFIG_SETTINGS" ]; then
     mv "$MODPATH/settings.toml" "$CONFIG_SETTINGS"
     chmod 0644 "$CONFIG_SETTINGS"
-    ui_print "[+] Settings config installed"
 fi
 
-if [ -f "$CONFIG_GAMELIST" ]; then
-    ui_print "[+] Gamelist config preserved"
-else
-    ui_print ">> Installing gamelist config..."
+if [ ! -f "$CONFIG_GAMELIST" ]; then
     mv "$MODPATH/gamelist.toml" "$CONFIG_GAMELIST"
     chmod 0644 "$CONFIG_GAMELIST"
-    ui_print "[+] Gamelist config installed"
 fi
 
 rm -f "$MODPATH/settings.toml" "$MODPATH/gamelist.toml"
@@ -97,23 +80,10 @@ chmod 0755 "$LOG_DIR"
 [ -f "$LOG_DIR/daemon.log" ] && mv "$LOG_DIR/daemon.log" "$LOG_DIR/daemon.log.old"
 
 if [ "$KSU" = "true" ] || [ "$APATCH" = "true" ]; then
-    ui_print ">> Creating symlinks..."
     for dir in /data/adb/ksu/bin /data/adb/ap/bin; do
-        [ -d "$dir" ] && ln -sf "$MODPATH/system/bin/auriya" "$dir/auriya" && ui_print "   $dir [OK]"
+        [ -d "$dir" ] && ln -sf "$MODPATH/system/bin/auriya" "$dir/auriya"
     done
 fi
 
-ui_print ""
-ui_print "============================================"
-ui_print "          Installation Successful!          "
-ui_print "============================================"
-ui_print ""
-ui_print "Settings Config:  $CONFIG_SETTINGS"
-ui_print "Gamelist Config:  $CONFIG_GAMELIST"
-ui_print "Logs:             $LOG_DIR/daemon.log"
-ui_print "IPC:              /dev/socket/auriya.sock"
-ui_print ""
-ui_print "Daemon starts on boot. Reboot to activate."
-ui_print ""
-[ "$GPU_TYPE" = "adreno" ] && ui_print ">> Enjoy smooth gaming!" || ui_print "[!] FAS limited on $GPU_TYPE"
+ui_print "- Installation complete"
 ui_print ""
