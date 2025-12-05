@@ -56,6 +56,10 @@ jobs:
 
     - name: Build Rust Binary
       run: |
+        # Remove hardcoded linker paths but keep rustflags
+        sed -i '/ar =/d' .cargo/config.toml
+        sed -i '/linker =/d' .cargo/config.toml
+        
         # cargo-ndk handles the linker setup automatically
         cargo ndk -t aarch64-linux-android -p 26 build --release
         # Strip the binary
