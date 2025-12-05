@@ -2,14 +2,16 @@
 package = "com.mobile.legends"
 cpu_governor = "performance"
 enable_dnd = true
+target_fps = 120
 
 [[game]]
 package = "com.supercell.clashroyale"
 cpu_governor = "schedutil"
 enable_dnd = false
+target_fps = 60
 
 [[game]]
 package = "com.tencent.ig"
 cpu_governor = "performance"
 enable_dnd = true
-
+target_fps = 120
