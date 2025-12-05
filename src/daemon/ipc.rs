@@ -44,7 +44,7 @@ pub enum Command {
     RemoveGame(String),
     ListPackages,
     GetGameList,
-    UpdateGame(String, Option<String>, Option<bool>),
+    UpdateGame(String, Option<String>, Option<bool>, Option<u32>),
     SetFps(u32),
     GetFps,
 }
@@ -95,16 +95,24 @@ impl FromStr for Command {
             ["UPDATE_GAME", pkg, rest @ ..] | ["UPDATEGAME", pkg, rest @ ..] => {
                 let mut governor = None;
                 let mut dnd = None;
+                let mut target_fps = None;
 
                 for arg in rest {
                     if let Some(gov) = arg.strip_prefix("gov=") {
                         governor = Some(gov.to_string());
                     } else if let Some(dnd_val) = arg.strip_prefix("dnd=") {
                         dnd = Some(dnd_val.parse::<bool>().unwrap_or(true));
+                    } else if let Some(fps_val) = arg.strip_prefix("fps=") {
+                        target_fps = fps_val.parse::<u32>().ok();
                     }
                 }
 
-                Ok(Command::UpdateGame(pkg.to_string(), governor, dnd))
+                Ok(Command::UpdateGame(
+                    pkg.to_string(),
+                    governor,
+                    dnd,
+                    target_fps,
+                ))
             }
 
             _ => Err("unknown command (try HELP)"),
@@ -259,6 +267,7 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     package: pkg.clone(),
                     cpu_governor: "performance".to_string(),
                     enable_dnd: true,
+                    target_fps: None,
                 };
                 match gl.add(profile) {
                     Ok(_) => {
@@ -313,9 +322,9 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     Err(e) => format!("ERR GET_GAMELIST {:?}\n", e),
                 }
             }
-            Ok(Command::UpdateGame(pkg, gov, dnd)) => {
+            Ok(Command::UpdateGame(pkg, gov, dnd, target_fps)) => {
                 let mut gl = h.shared_config.write().unwrap();
-                match gl.update(&pkg, gov, dnd) {
+                match gl.update(&pkg, gov, dnd, target_fps) {
                     Ok(_) => {
                         if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
                             format!("ERR SAVE_GAMELIST {:?}\n", e)

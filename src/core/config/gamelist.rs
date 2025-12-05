@@ -13,6 +13,8 @@ pub struct GameProfile {
     pub package: String,
     pub cpu_governor: String,
     pub enable_dnd: bool,
+    #[serde(default)]
+    pub target_fps: Option<u32>,
 }
 
 impl GameList {
@@ -76,6 +78,7 @@ impl GameList {
         package: &str,
         governor: Option<String>,
         dnd: Option<bool>,
+        target_fps: Option<u32>,
     ) -> Result<()> {
         if let Some(profile) = self.game.iter_mut().find(|g| g.package == package) {
             if let Some(gov) = governor {
@@ -83,6 +86,9 @@ impl GameList {
             }
             if let Some(d) = dnd {
                 profile.enable_dnd = d;
+            }
+            if target_fps.is_some() {
+                profile.target_fps = target_fps;
             }
             Ok(())
         } else {

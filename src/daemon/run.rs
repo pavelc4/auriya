@@ -412,6 +412,21 @@ impl Daemon {
                     .map(|c| &c.cpu_governor[..])
                     .unwrap_or("performance");
 
+                if let Some(cfg) = game_cfg {
+                    if let Some(fps) = cfg.target_fps {
+                        let mut f = fas.lock().unwrap();
+                        if f.get_target_fps() != fps {
+                            f.set_target_fps(fps);
+                        }
+                    } else {
+                        let global_fps = self.cfg.settings.fas.target_fps;
+                        let mut f = fas.lock().unwrap();
+                        if f.get_target_fps() != global_fps {
+                            f.set_target_fps(global_fps);
+                        }
+                    }
+                }
+
                 match self.run_fas_tick(&fas, &pkg, governor) {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
                     Err(e) => warn!(target: "auriya::fas", "FAS tick error: {:?}", e),
