@@ -17,7 +17,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Needed for git log in scripts
+
+    - name: Start Build Timer & Notification
+      if: env.CHAT_ID != '' && env.BOT_TOKEN != ''
+      env:
+        CHAT_ID: ${{ secrets.CHAT_ID }}
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      run: |
+        date +%s > build_start_time
+        chmod +x .github/scripts/telegram_start.sh
+        .github/scripts/telegram_start.sh
 
     - name: Setup Bun
       uses: oven-sh/setup-bun@v1

@@ -3,7 +3,7 @@
 # Check secrets
 if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
     echo "Error: BOT_TOKEN or CHAT_ID not set."
-    exit 1
+    exit 0
 fi
 
 # Find the zip file
@@ -14,24 +14,46 @@ if [ -z "$ZIP_FILE" ]; then
     exit 1
 fi
 
+# Calculate stats
 FILE_NAME=$(basename "$ZIP_FILE")
+FILE_SIZE=$(du -h "$ZIP_FILE" | cut -f1)
+CHECKSUM=$(sha256sum "$ZIP_FILE" | cut -d' ' -f1)
 COMMIT_HASH=$(git rev-parse --short HEAD)
-CHANGELOG=$(git log -3 --pretty=format:"- %s (%h)")
+COMMIT_MSG=$(git log -1 --pretty=%s)
 
-CAPTION="🚀 *Auriya Build Complete*
+# Calculate duration
+if [ -f "build_start_time" ]; then
+    START_TIME=$(cat build_start_time)
+    END_TIME=$(date +%s)
+    DURATION=$((END_TIME - START_TIME))
+    MINUTES=$((DURATION / 60))
+    SECONDS=$((DURATION % 60))
+    TOTAL_TIME="${MINUTES}m ${SECONDS}s"
+else
+    TOTAL_TIME="Unknown"
+fi
 
-📦 *File:* \`$FILE_NAME\`
-Commit: \`$COMMIT_HASH\`
+CAPTION="🚀 <b>New Build Deployed Successfully!</b>
 
-*Changelog:*
-$CHANGELOG"
+📦 <b>File:</b> <code>$FILE_NAME</code>
+<b>Size:</b> $FILE_SIZE
+<b>Path:</b> <code>build/release/</code>
+
+<b>Checksum (SHA256):</b>
+<code>$CHECKSUM</code>
+
+<b>Build Info:</b>
+  • <b>Commit:</b> <code>$COMMIT_HASH</code>
+  • <b>Message:</b> $COMMIT_MSG
+  • <b>Runner:</b> $RUNNER_OS ($RUNNER_ARCH)
+  • <b>Total Time:</b> $TOTAL_TIME"
 
 echo "Uploading $FILE_NAME to Telegram..."
 
 curl -F chat_id="$CHAT_ID" \
      -F document=@"$ZIP_FILE" \
      -F caption="$CAPTION" \
-     -F parse_mode="Markdown" \
+     -F parse_mode="HTML" \
      "https://api.telegram.org/bot$BOT_TOKEN/sendDocument"
 
 # Upload Binary
@@ -41,15 +63,19 @@ if [ -f "$BINARY_FILE" ]; then
     BINARY_NAME="auriya-binary-$COMMIT_HASH"
     cp "$BINARY_FILE" "$BINARY_NAME"
     
-    BINARY_CAPTION="⚙️ *Auriya Binary*
+    BINARY_SIZE=$(du -h "$BINARY_NAME" | cut -f1)
+    BINARY_SUM=$(sha256sum "$BINARY_NAME" | cut -d' ' -f1)
     
-Target: \`aarch64-linux-android\`
-Commit: \`$COMMIT_HASH\`"
+    BINARY_CAPTION="<b>Auriya Binary</b>
+    
+Target: <code>aarch64-linux-android</code>
+Size: $BINARY_SIZE
+Checksum: <code>$BINARY_SUM</code>"
 
     curl -F chat_id="$CHAT_ID" \
          -F document=@"$BINARY_NAME" \
          -F caption="$BINARY_CAPTION" \
-         -F parse_mode="Markdown" \
+         -F parse_mode="HTML" \
          "https://api.telegram.org/bot$BOT_TOKEN/sendDocument"
     
     rm "$BINARY_NAME"
