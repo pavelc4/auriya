@@ -61,7 +61,8 @@ jobs:
         sed -i '/linker =/d' .cargo/config.toml
         
         # cargo-ndk handles the linker setup automatically
-        cargo ndk -t aarch64-linux-android -p 26 build --release
+        # Use --platform to avoid ambiguity with cargo's -p (package) flag
+        cargo ndk -t aarch64-linux-android --platform 26 -- build --release
         # Strip the binary
         ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip target/aarch64-linux-android/release/auriya
 
