@@ -1,4 +1,6 @@
 name: Build Auriya
+permissions:
+  contents: read
 
 on:
   push:
