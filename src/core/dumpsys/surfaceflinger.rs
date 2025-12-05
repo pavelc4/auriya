@@ -12,7 +12,7 @@ impl SurfaceFlinger {
 
         let stdout = String::from_utf8_lossy(&output.stdout);
 
-        let mut best_match = None;
+        let best_match = None;
 
         for line in stdout.lines() {
             let line = line.trim();
