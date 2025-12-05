@@ -28,6 +28,14 @@ impl FasController {
         }
     }
 
+    pub fn set_target_fps(&mut self, fps: u32) {
+        if fps > 0 {
+            self.target_frame_time = 1000.0 / fps as f32;
+            tracing::info!(target: "auriya::fas", "Target FPS set to {} ({:.2}ms)", fps, self.target_frame_time);
+            self.pid.reset();
+        }
+    }
+
     pub fn tick(&mut self, margin: f32, thermal_thresh: f32) -> Result<ScalingAction> {
         let frame_time = self.frame_monitor.get_frame_time().unwrap_or(0.0);
         let temp = self.thermal.get_max_temp()?;
