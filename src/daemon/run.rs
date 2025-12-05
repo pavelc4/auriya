@@ -136,47 +136,60 @@ impl Daemon {
     }
 
     pub async fn init_ipc(&self, filter_handle: ReloadHandle) {
+        let fas_clone_for_ipc = self.fas_controller.clone();
+        let set_fps = Arc::new(move |fps: u32| {
+            if let Some(fas) = &fas_clone_for_ipc {
+                if let Ok(mut guard) = fas.lock() {
+                    guard.set_target_fps(fps);
+                }
+            }
+        });
+
+        let shared_cfg = self.shared_gamelist.clone();
+        let reload_fn = Arc::new(move || {
+            match crate::core::config::GameList::load(crate::core::config::gamelist_path()) {
+                Ok(new_cfg) => {
+                    if let Ok(mut g) = shared_cfg.write() {
+                        let count = new_cfg.game.len();
+                        *g = new_cfg;
+                        Ok(count)
+                    } else {
+                        Err(anyhow::anyhow!("Gamelist lock poisoned"))
+                    }
+                }
+                Err(e) => Err(e),
+            }
+        });
+
+        let handle = filter_handle.clone();
+        let set_log_level = Arc::new(move |lvl| {
+            use crate::daemon::ipc::LogLevelCmd;
+            let filter_str = match lvl {
+                LogLevelCmd::Debug => "debug",
+                LogLevelCmd::Info => "info",
+                LogLevelCmd::Warn => "warn",
+                LogLevelCmd::Error => "error",
+            };
+            match handle.reload(EnvFilter::new(filter_str)) {
+                Ok(_) => info!(target: "auriya::ipc", "Log level changed to {:?}", lvl),
+                Err(e) => {
+                    error!(target: "auriya::ipc", "Failed to change log level: {}", e)
+                }
+            }
+        });
+
+        let current_state = self.shared_current.clone();
+        let cfg = &self.cfg; // Borrow cfg for accessing settings
+
         let ipc_handles = crate::daemon::ipc::IpcHandles {
             enabled: Arc::new(AtomicBool::new(true)),
             shared_config: self.shared_gamelist.clone(),
             override_foreground: self.override_foreground.clone(),
-            reload_fn: Arc::new({
-                let shared_cfg = self.shared_gamelist.clone();
-                move || match crate::core::config::GameList::load(
-                    crate::core::config::gamelist_path(),
-                ) {
-                    Ok(new_cfg) => {
-                        if let Ok(mut g) = shared_cfg.write() {
-                            let count = new_cfg.game.len();
-                            *g = new_cfg;
-                            Ok(count)
-                        } else {
-                            Err(anyhow::anyhow!("Gamelist lock poisoned"))
-                        }
-                    }
-                    Err(e) => Err(e),
-                }
-            }),
-            set_log_level: Arc::new({
-                let handle = filter_handle.clone();
-                move |lvl| {
-                    use crate::daemon::ipc::LogLevelCmd;
-                    let filter_str = match lvl {
-                        LogLevelCmd::Debug => "debug",
-                        LogLevelCmd::Info => "info",
-                        LogLevelCmd::Warn => "warn",
-                        LogLevelCmd::Error => "error",
-                    };
-                    match handle.reload(EnvFilter::new(filter_str)) {
-                        Ok(_) => info!(target: "auriya::ipc", "Log level changed to {:?}", lvl),
-                        Err(e) => {
-                            error!(target: "auriya::ipc", "Failed to change log level: {}", e)
-                        }
-                    }
-                }
-            }),
-            current_state: self.shared_current.clone(),
-            balance_governor: self.balance_governor.clone(),
+            reload_fn,
+            set_log_level,
+            set_fps,
+            current_state: current_state.clone(),
+            balance_governor: cfg.settings.cpu.default_governor.clone(),
         };
 
         tokio::spawn(async move {
