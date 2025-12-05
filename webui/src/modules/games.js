@@ -167,6 +167,7 @@ export async function openGameSettings(webui, pkg) {
 
         const enableToggle = document.getElementById('modal-enable-toggle')
         const govSelect = document.getElementById('modal-gov-select')
+        const fpsSelect = document.getElementById('modal-fps-select')
         const dndToggle = document.getElementById('modal-dnd-toggle')
         const saveBtn = document.getElementById('modal-save-btn')
         const modal = document.getElementById('game-settings-modal')
@@ -176,28 +177,34 @@ export async function openGameSettings(webui, pkg) {
         if (activeProfile) {
             enableToggle.checked = true
             govSelect.value = activeProfile.cpu_governor || 'performance'
+            fpsSelect.value = activeProfile.target_fps || ''
             dndToggle.checked = activeProfile.enable_dnd || false
             govSelect.disabled = false
+            fpsSelect.disabled = false
             dndToggle.disabled = false
         } else {
             enableToggle.checked = false
             govSelect.value = 'performance'
+            fpsSelect.value = ''
             dndToggle.checked = false
             govSelect.disabled = true
+            fpsSelect.disabled = true
             dndToggle.disabled = true
         }
 
         enableToggle.onchange = (e) => {
             govSelect.disabled = !e.target.checked
+            fpsSelect.disabled = !e.target.checked
             dndToggle.disabled = !e.target.checked
         }
 
         saveBtn.onclick = async () => {
             const isEnabled = enableToggle.checked
             const gov = govSelect.value
+            const fps = fpsSelect.value
             const dnd = dndToggle.checked
 
-            await saveGameSettings(webui, pkg, isEnabled, gov, dnd)
+            await saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps)
             modal.close()
         }
 
@@ -208,7 +215,7 @@ export async function openGameSettings(webui, pkg) {
     }
 }
 
-export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd) {
+export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps) {
     const socketPath = '/dev/socket/auriya.sock'
 
     try {
@@ -221,7 +228,10 @@ export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd) {
 
             }
 
-            const updateCmd = `UPDATE_GAME ${pkg} gov=${gov} dnd=${dnd}`
+            let updateCmd = `UPDATE_GAME ${pkg} gov=${gov} dnd=${dnd}`
+            if (fps) {
+                updateCmd += ` fps=${fps}`
+            }
 
             const res = await runCommand(`echo "${updateCmd}" | nc -U ${socketPath}`)
 
