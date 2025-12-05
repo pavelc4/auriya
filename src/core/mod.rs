@@ -1,5 +1,6 @@
 pub mod config;
 pub mod dumpsys;
+pub mod fas;
 pub mod frame;
 pub mod profile;
 pub mod scaling;
