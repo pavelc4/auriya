@@ -17,7 +17,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Needed for git log in scripts
+
+    - name: Start Build Timer & Notification
+      if: env.CHAT_ID != '' && env.BOT_TOKEN != ''
+      env:
+        CHAT_ID: ${{ secrets.CHAT_ID }}
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      run: |
+        date +%s > build_start_time
+        chmod +x .github/scripts/telegram_start.sh
+        .github/scripts/telegram_start.sh
 
     - name: Setup Bun
       uses: oven-sh/setup-bun@v1
@@ -56,8 +69,13 @@ jobs:
 
     - name: Build Rust Binary
       run: |
+        # Remove hardcoded linker paths but keep rustflags
+        sed -i '/ar =/d' .cargo/config.toml
+        sed -i '/linker =/d' .cargo/config.toml
+        
         # cargo-ndk handles the linker setup automatically
-        cargo ndk -t aarch64-linux-android -p 26 build --release
+        # Use --platform to avoid ambiguity with cargo's -p (package) flag
+        cargo ndk -t aarch64-linux-android --platform 26 -- build --release
         # Strip the binary
         ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip target/aarch64-linux-android/release/auriya
 
