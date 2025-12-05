@@ -388,7 +388,7 @@ impl Daemon {
                     .map(|c| &c.cpu_governor[..])
                     .unwrap_or("performance");
 
-                match self.run_fas_tick(&fas, governor) {
+                match self.run_fas_tick(&fas, &pkg, governor) {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
                     Err(e) => warn!(target: "auriya::fas", "FAS tick error: {:?}", e),
                 }
@@ -475,6 +475,7 @@ impl Daemon {
     fn run_fas_tick(
         &mut self,
         fas: &Arc<Mutex<crate::daemon::fas::FasController>>,
+        pkg: &str,
         game_governor: &str,
     ) -> Result<bool> {
         use crate::core::{profile, scaling::ScalingAction};
@@ -485,6 +486,8 @@ impl Daemon {
         let mut fas_guard = fas
             .lock()
             .map_err(|_| anyhow::anyhow!("FAS lock poisoned"))?;
+
+        fas_guard.set_package(pkg.to_string());
         let action = fas_guard.tick(margin, thermal_thresh)?;
 
         match action {
