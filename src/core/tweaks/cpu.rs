@@ -42,7 +42,7 @@ pub fn disable_boost() -> Result<()> {
 
 pub fn get_online_cores() -> Result<Vec<usize>> {
     let content = fs::read_to_string("/sys/devices/system/cpu/online")
-        .context("Gagal membaca file cpu online")?;
+        .context("Failed to read cpu online file")?;
     Ok(parse_online_cores(&content))
 }
 
