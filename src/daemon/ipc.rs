@@ -45,6 +45,7 @@ pub enum Command {
     ListPackages,
     GetGameList,
     UpdateGame(String, Option<String>, Option<bool>),
+    SetFps(u32),
 }
 
 impl FromStr for Command {
@@ -69,6 +70,11 @@ impl FromStr for Command {
                 "WARN" => Ok(Command::SetLog(LogLevelCmd::Warn)),
                 "ERROR" => Ok(Command::SetLog(LogLevelCmd::Error)),
                 _ => Err("usage: SETLOG <DEBUG|INFO|WARN|ERROR>"),
+            },
+
+            ["SET_FPS", fps] | ["SETFPS", fps] => match fps.parse::<u32>() {
+                Ok(val) => Ok(Command::SetFps(val)),
+                Err(_) => Err("usage: SET_FPS <number>"),
             },
 
             ["INJECT", pkg] => Ok(Command::Inject(pkg.to_string())),
@@ -109,6 +115,7 @@ pub struct IpcHandles {
     pub override_foreground: Arc<RwLock<Option<String>>>,
     pub reload_fn: Arc<dyn Fn() -> anyhow::Result<usize> + Send + Sync>,
     pub set_log_level: Arc<dyn Fn(LogLevelCmd) + Send + Sync>,
+    pub set_fps: Arc<dyn Fn(u32) + Send + Sync>,
     pub current_state: Arc<RwLock<CurrentState>>,
     pub balance_governor: String,
 }
@@ -144,6 +151,7 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
             override_foreground: h.override_foreground.clone(),
             reload_fn: h.reload_fn.clone(),
             set_log_level: h.set_log_level.clone(),
+            set_fps: h.set_fps.clone(),
             current_state: h.current_state.clone(),
             balance_governor: h.balance_governor.clone(),
         };
@@ -312,6 +320,10 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     }
                     Err(e) => format!("ERR UPDATE_GAME {:?}\n", e),
                 }
+            }
+            Ok(Command::SetFps(fps)) => {
+                (h.set_fps)(fps);
+                format!("OK SET_FPS {}\n", fps)
             }
             Err(e) => format!("ERR {}\n", e),
         };
