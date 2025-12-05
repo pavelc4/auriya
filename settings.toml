@@ -13,6 +13,7 @@ enabled = true
 default_mode = "balance"
 thermal_threshold = 90.0
 poll_interval_ms = 300
+target_fps = 60
 
 [modes.powersave]
 margin = 5.0
