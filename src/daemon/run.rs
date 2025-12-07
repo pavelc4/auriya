@@ -171,6 +171,9 @@ impl Daemon {
             }
         });
 
+        let current_log_level = Arc::new(RwLock::new(crate::daemon::ipc::LogLevelCmd::Info));
+        let log_level_clone = current_log_level.clone();
+
         let handle = filter_handle.clone();
         let set_log_level = Arc::new(move |lvl| {
             use crate::daemon::ipc::LogLevelCmd;
@@ -180,6 +183,9 @@ impl Daemon {
                 LogLevelCmd::Warn => "warn",
                 LogLevelCmd::Error => "error",
             };
+            if let Ok(mut l) = log_level_clone.write() {
+                *l = lvl;
+            }
             match handle.reload(EnvFilter::new(filter_str)) {
                 Ok(_) => info!(target: "auriya::ipc", "Log level changed to {:?}", lvl),
                 Err(e) => {
@@ -201,6 +207,7 @@ impl Daemon {
             get_fps,
             current_state: current_state.clone(),
             balance_governor: cfg.settings.cpu.default_governor.clone(),
+            current_log_level,
         };
 
         tokio::spawn(async move {

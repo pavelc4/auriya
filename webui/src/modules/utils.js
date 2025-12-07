@@ -11,6 +11,7 @@ export async function runCommand(cmd, cwd = null) {
             if (cmd.includes('uname')) return "5.10.101"
             if (cmd.includes('scaling_available_governors')) return "schedutil performance powersave"
             if (cmd.includes('cat') && cmd.includes('settings.toml')) return "fas = { enabled = true, default_mode = 'performance' }\ndnd = { default_enable = false }\ncpu = { default_governor = 'schedutil' }"
+            if (cmd.includes('STATUS')) return "ENABLED=true PACKAGES=5 OVERRIDE=None LOG_LEVEL=Info"
             return "Mock Output"
         }
 

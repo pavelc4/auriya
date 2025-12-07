@@ -8,6 +8,14 @@ export function setupSettings(webui) {
     if (exportBtn) {
         exportBtn.onclick = () => exportLogs()
     }
+
+    const debugToggle = document.getElementById('debug-mode-toggle')
+    if (debugToggle) {
+        debugToggle.onchange = async (e) => {
+            const cmd = e.target.checked ? 'SETLOG DEBUG' : 'SETLOG INFO'
+            await runCommand(`echo "${cmd}" | nc -U /dev/socket/auriya.sock`)
+        }
+    }
 }
 
 export async function loadSettings(webui) {
@@ -88,6 +96,23 @@ export async function loadSettings(webui) {
             await runCommand(`echo "SET_FPS ${newFps}" | nc -U /dev/socket/auriya.sock`)
             await saveSettings(webui)
         }
+    }
+
+    // Load Debug Mode status
+    try {
+        const statusRes = await runCommand(`echo "STATUS" | nc -U /dev/socket/auriya.sock`)
+        if (statusRes && statusRes.includes("LOG_LEVEL=")) {
+            const match = statusRes.match(/LOG_LEVEL=(\w+)/)
+            if (match && match[1]) {
+                const level = match[1].toLowerCase()
+                const debugToggle = document.getElementById('debug-mode-toggle')
+                if (debugToggle) {
+                    debugToggle.checked = (level === 'debug')
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to get status for debug mode", e)
     }
 }
 

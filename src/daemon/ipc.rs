@@ -130,6 +130,7 @@ pub struct IpcHandles {
     pub get_fps: Arc<dyn Fn() -> u32 + Send + Sync>,
     pub current_state: Arc<RwLock<CurrentState>>,
     pub balance_governor: String,
+    pub current_log_level: Arc<RwLock<LogLevelCmd>>,
 }
 
 const HELP: &str = "CMDS:
@@ -167,6 +168,7 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
             get_fps: h.get_fps.clone(),
             current_state: h.current_state.clone(),
             balance_governor: h.balance_governor.clone(),
+            current_log_level: h.current_log_level.clone(),
         };
         tokio::spawn(async move {
             if let Err(e) = handle_client(stream, hc).await {
@@ -218,7 +220,11 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     .map(|c| c.game.len())
                     .unwrap_or(0);
                 let ov = h.override_foreground.read().ok().and_then(|o| o.clone());
-                format!("ENABLED={} PACKAGES={} OVERRIDE={:?}\n", enabled, n, ov)
+                let log_level = h.current_log_level.read().unwrap();
+                format!(
+                    "ENABLED={} PACKAGES={} OVERRIDE={:?} LOG_LEVEL={:?}\n",
+                    enabled, n, ov, *log_level
+                )
             }
             Ok(Command::Enable) => {
                 h.enabled.store(true, Ordering::Release);
