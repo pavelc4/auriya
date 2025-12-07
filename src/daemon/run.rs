@@ -138,10 +138,9 @@ impl Daemon {
     pub async fn init_ipc(&self, filter_handle: ReloadHandle) {
         let fas_clone_for_ipc = self.fas_controller.clone();
         let set_fps = Arc::new(move |fps: u32| {
-            if let Some(fas) = &fas_clone_for_ipc {
-                if let Ok(mut guard) = fas.lock() {
+            if let Some(fas) = &fas_clone_for_ipc
+                &&  let Ok(mut guard) = fas.lock() {
                     guard.set_target_fps(fps);
-                }
             }
         });
 
