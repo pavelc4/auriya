@@ -18,11 +18,9 @@ pub fn apply_performance() -> Result<()> {
                     || name.contains("cpubw")
                     || name.contains("kgsl-ddr-qos")
                 {
-                    // Unlock max freq
-                    if let Ok(avail) = fs::read_to_string(path.join("available_frequencies")) {
-                        if let Some(max) = avail
-                            .split_whitespace()
-                            .max_by_key(|x| x.parse::<u64>().unwrap_or(0))
+                    if let Ok(avail) = fs::read_to_string(path.join("available_frequencies")) && let Some(max) = avail
+                        .split_whitespace()
+                        .max_by_key(|x| x.parse::<u64>().unwrap_or(0)){
                         {
                             let _ = fs::write(path.join("max_freq"), max);
                             let _ = fs::write(path.join("min_freq"), max);
