@@ -32,8 +32,7 @@ fn disable_kernel_panic() -> Result<()> {
 
 fn optimize_io() -> Result<()> {
     if let Ok(entries) = fs::read_dir("/sys/block") {
-        for entry in entries {
-            if let Ok(entry) = entry {
+        for entry in entries.flatten() {
                 let path = entry.path();
                 let queue_path = path.join("queue");
 
@@ -48,7 +47,6 @@ fn optimize_io() -> Result<()> {
                         let _ = fs::write(add_random, "0");
                     }
                 }
-            }
         }
     }
     debug!("I/O optimized (iostats, add_random disabled)");
