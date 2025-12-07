@@ -25,36 +25,36 @@ impl std::fmt::Display for SocType {
 }
 
 pub fn detect_soc() -> SocType {
-    // 1. Check ro.board.platform
     if let Ok(platform) = get_prop("ro.board.platform") {
         let p = platform.to_lowercase();
-        if p.starts_with("mt") || p.starts_with("k6") {
-            return SocType::MediaTek;
-        } else if p.starts_with("sm")
-            || p.starts_with("sdm")
-            || p.starts_with("msm")
-            || p.starts_with("apq")
-        {
-            return SocType::Snapdragon;
-        } else if p.starts_with("exynos") {
-            return SocType::Exynos;
-        } else if p.starts_with("ud710") || p.starts_with("ums") {
-            return SocType::Unisoc;
-        } else if p.starts_with("gs") {
-            return SocType::Tensor;
+        let platform_patterns = [
+            (&["mt", "k6"][..], SocType::MediaTek),
+            (&["sm", "sdm", "msm", "apq"], SocType::Snapdragon),
+            (&["exynos"], SocType::Exynos),
+            (&["ud710", "ums"], SocType::Unisoc),
+            (&["gs"], SocType::Tensor),
+        ];
+
+        for (prefixes, soc_type) in platform_patterns {
+            if prefixes.iter().any(|prefix| p.starts_with(prefix)) {
+                return soc_type;
+            }
         }
     }
 
     if let Ok(hardware) = get_prop("ro.hardware") {
         let h = hardware.to_lowercase();
-        if h.contains("mt") {
-            return SocType::MediaTek;
-        } else if h.contains("qcom") {
-            return SocType::Snapdragon;
-        } else if h.contains("exynos") {
-            return SocType::Exynos;
-        } else if h.contains("samsung") {
-            return SocType::Exynos;
+        let hardware_patterns = [
+            ("mt", SocType::MediaTek),
+            ("qcom", SocType::Snapdragon),
+            ("exynos", SocType::Exynos),
+            ("samsung", SocType::Exynos),
+        ];
+
+        for (substring, soc_type) in hardware_patterns {
+            if h.contains(substring) {
+                return soc_type;
+            }
         }
     }
 
