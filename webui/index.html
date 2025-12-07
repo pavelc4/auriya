@@ -18,140 +18,269 @@
                 <h1 class="text-3xl font-bold tracking-tight text-gradient">Auriya</h1>
             </div>
 
-            <button id="lang-btn" class="btn btn-ghost btn-circle text-on-surface-variant">
+            <button id="lang-btn" class="btn btn-ghost btn-circle text-on-surface-variant hover:bg-surface-variant/20">
                 <span class="material-symbols-rounded">language</span>
             </button>
         </div>
 
-        <div id="view-dashboard" class="view-section space-y-4">
+        <div id="view-dashboard" class="view-section space-y-6">
+
             <div
-                class="bg-surface-container p-6 rounded-[28px] flex items-center justify-between card_border text-on-surface">
-                <div>
-                    <h2 class="text-xl font-bold mb-1" id="daemon-status">Loading...</h2>
-                    <p class="text-sm opacity-70" id="daemon-pid">One moment please...</p>
-                </div>
-                <div class="bg-surface-variant/30 p-2 rounded-2xl">
-                    <img id="daemon-status-icon"
-                        class="w-24 h-24 opacity-0 transition-opacity duration-500 cursor-pointer" />
-                </div>
-            </div>
-
-            <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
-                <h2 class="text-lg font-semibold mb-4">Device Info</h2>
-                <div class="grid grid-cols-1 gap-4">
-
-                    <div class="flex items-center gap-4 p-2">
-                        <div
-                            class="w-12 h-12 rounded-2xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
-                            <span class="material-symbols-rounded">extension</span>
+                class="relative overflow-hidden bg-gradient-to-br from-surface-container via-surface-container to-[var(--primary)]/10 p-8 rounded-[32px] card_border text-on-surface shadow-lg shadow-[var(--primary)]/5">
+                <div class="relative z-10 flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center gap-3 mb-1">
+                            <p class="text-sm font-medium opacity-60 uppercase tracking-wider">Daemon Status</p>
                         </div>
-                        <div>
-                            <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Module</p>
-                            <p class="font-bold text-sm" id="module-version">...</p>
+                        <h2 class="text-2xl font-bold mb-2" id="daemon-status">Loading...</h2>
+                        <div class="flex flex-wrap gap-2">
+                            <div
+                                class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-variant/20 border border-white/5">
+                                <span class="w-2 h-2 rounded-full bg-[var(--tertiary)] animate-pulse"></span>
+                                <p class="text-[10px] font-mono opacity-80" id="daemon-pid">PID: ...</p>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="flex items-center gap-4 p-2">
-                        <div
-                            class="w-12 h-12 rounded-2xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
-                            <span class="material-symbols-rounded">bolt</span>
-                        </div>
-                        <div>
-                            <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Profile</p>
-                            <p class="font-bold text-sm" id="current-profile">...</p>
-                        </div>
+                    <div class="bg-surface-variant/10 p-4 rounded-[24px] backdrop-blur-sm">
+                        <img id="daemon-status-icon" class="w-16 h-16 opacity-0 transition-opacity duration-500" />
                     </div>
-
-                    <div class="flex items-center gap-4 p-2">
-                        <div
-                            class="w-12 h-12 rounded-2xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
-                            <span class="material-symbols-rounded">settings</span>
-                        </div>
-                        <div>
-                            <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Kernel</p>
-                            <p class="font-bold text-sm break-all" id="kernel-version">...</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-4 p-2">
-                        <div
-                            class="w-12 h-12 rounded-2xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
-                            <span class="material-symbols-rounded">developer_board</span>
-                        </div>
-                        <div>
-                            <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Chipset</p>
-                            <p class="font-bold text-sm" id="chipset-name">...</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-4 p-2">
-                        <div
-                            class="w-12 h-12 rounded-2xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
-                            <span class="material-symbols-rounded">memory</span>
-                        </div>
-                        <div>
-                            <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Codename</p>
-                            <p class="font-bold text-sm" id="device-codename">...</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-4 p-2">
-                        <div
-                            class="w-12 h-12 rounded-2xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
-                            <span class="material-symbols-rounded">android</span>
-                        </div>
-                        <div>
-                            <p class="text-xs font-medium opacity-70 uppercase tracking-wider">Android SDK</p>
-                            <p class="font-bold text-sm" id="android-sdk">...</p>
-                        </div>
-                    </div>
-
                 </div>
             </div>
 
-            <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface mb-4">
-                <h2 class="text-lg font-bold mb-2">About Auriya</h2>
-                <p class="text-sl opacity-90">
-                    auriya This project is actually my hobby project that I do in my spare time when I have nothing else
-                    to do.
-                </p>
-                <div class="mt-4 flex gap-3">
-                    <a href="https://github.com/pavelc4/auriya" target="_blank"
-                        class="btn btn-sm bg-surface-container-high hover:bg-surface-variant text-on-surface border-none rounded-full px-4 gap-2 h-10 shadow-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                            fill="currentColor">
-                            <path
-                                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                        </svg>
-                        GitHub
-                    </a>
-                    <a href="https://t.me/pvlcply" target="_blank"
-                        class="btn btn-sm bg-surface-container-high hover:bg-surface-variant text-on-surface border-none rounded-full px-4 gap-2 h-10 shadow-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                            class="fill-current">
-                            <path
-                                d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-                        </svg>
-                        Telegram
-                    </a>
+            <div>
+                <h3 class="text-lg font-bold mb-3 px-2">Live Metrics</h3>
+                <div class="bg-surface-container p-5 rounded-[32px] card_border">
+                    <div class="grid grid-cols-2 gap-3">
+
+                        <div
+                            class="bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 transition-colors p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-36">
+                            <div
+                                class="w-10 h-10 rounded-full bg-[var(--primary)]/20 text-[var(--primary)] flex items-center justify-center">
+                                <span class="material-symbols-rounded">bolt</span>
+                            </div>
+                            <div>
+                                <p class="text-xs opacity-60 font-medium">Profile</p>
+                                <p class="text-lg font-bold truncate" id="current-profile">...</p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-[var(--secondary)]/5 p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-36">
+                            <div class="flex justify-between items-start">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-[var(--secondary)]/20 text-[var(--secondary)] flex items-center justify-center">
+                                    <span class="material-symbols-rounded text-[20px]">memory</span>
+                                </div>
+                                <span
+                                    class="text-[10px] font-bold uppercase tracking-wider opacity-60 bg-[var(--secondary)]/10 text-[var(--secondary)] px-2 py-1 rounded-full">RAM</span>
+                            </div>
+                            <div>
+                                <p class="text-xs opacity-60 font-medium">Daemon Usage</p>
+                                <p class="text-lg font-bold truncate" id="daemon-ram">...</p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-[var(--tertiary)]/5 p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-36">
+                            <div class="flex justify-between items-start">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-[var(--tertiary)]/20 text-[var(--tertiary)] flex items-center justify-center">
+                                    <span class="material-symbols-rounded text-[20px]">battery_full</span>
+                                </div>
+                                <span
+                                    class="text-[10px] font-bold uppercase tracking-wider opacity-60 bg-[var(--tertiary)]/10 text-[var(--tertiary)] px-2 py-1 rounded-full">PWR</span>
+                            </div>
+                            <div>
+                                <p class="text-xs opacity-60 font-medium">Battery</p>
+                                <p class="text-xl font-bold truncate" id="battery-level">...</p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-[var(--error)]/5 p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-36">
+                            <div class="flex justify-between items-start">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-surface-variant text-white flex items-center justify-center">
+                                    <span class="material-symbols-rounded text-[20px]">thermostat</span>
+                                </div>
+                                <span
+                                    class="text-[10px] font-bold uppercase tracking-wider opacity-60 bg-[var(--error)]/10 text-[var(--error)] px-2 py-1 rounded-full">TMP</span>
+                            </div>
+                            <div>
+                                <p class="text-xs opacity-60 font-medium">Thermal</p>
+                                <p class="text-xl font-bold truncate" id="thermal-temp">...</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
-                <h2 class="text-lg font-semibold mb-2">Support Me</h2>
-                <p class="mb-4 opacity-80 text-base">Auriya always be open source. want to Donate ?</p>
-                <a href="https://t.me/Pavellc" target="_blank" id="donate-btn-home"
-                    class="inline-flex cursor-pointer hover:opacity-70 transition-opacity text-white">
-                    <a href="https://t.me/Pavellc" target="_blank"
-                        class="btn btn-sm bg-surface-container-high hover:bg-surface-variant text-on-surface border-none rounded-full px-4 gap-2 h-10 shadow-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
-                            <path
-                                d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"
-                                class="fill-current" />
-                        </svg>
-                        Telegram
-                    </a>
-                </a>
+            <div>
+                <h3 class="text-lg font-bold mb-3 px-2">Device Details</h3>
+                <div class="bg-surface-container p-5 rounded-[32px] card_border">
+                    <div class="grid grid-cols-2 gap-3">
+
+                        <div
+                            class="bg-surface-container-high p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-32">
+                            <div
+                                class="w-10 h-10 rounded-full bg-surface-variant/20 flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-rounded text-[20px]">developer_board</span>
+                            </div>
+                            <div>
+                                <p class="text-xs opacity-60 font-medium">Chipset</p>
+                                <p class="text-lg font-bold truncate" id="chipset-name">...</p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-surface-container-high p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-32">
+                            <div
+                                class="w-10 h-10 rounded-full bg-surface-variant/20 flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-rounded text-[20px]">admin_panel_settings</span>
+                            </div>
+                            <div>
+                                <p class="text-xs opacity-60 font-medium">Root Method</p>
+                                <p class="text-lg font-bold truncate" id="root-method">...</p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-surface-container-high p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-32">
+                            <div
+                                class="w-10 h-10 rounded-full bg-surface-variant/20 flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-rounded text-[20px]">smartphone</span>
+                            </div>
+                            <div>
+                                <p class="text-xs opacity-60 font-medium">Codename</p>
+                                <p class="text-lg font-bold truncate" id="device-codename">...</p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-surface-container-high p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-32">
+                            <div
+                                class="w-10 h-10 rounded-full bg-surface-variant/20 flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-rounded text-[20px]">android</span>
+                            </div>
+                            <div>
+                                <p class="text-xs opacity-60 font-medium">Android SDK</p>
+                                <p class="text-lg font-bold truncate" id="android-sdk">...</p>
+                            </div>
+                        </div>
+
+                        <div class="col-span-2 bg-surface-container-high p-5 rounded-[24px] text-on-surface">
+                            <div class="flex items-center gap-5 mb-3">
+                                <span
+                                    class="material-symbols-rounded text-on-surface-variant text-[20px]">settings</span>
+                                <p class="text-xl opacity-90 font-bold">Kernel Version</p>
+                            </div>
+                            <p class="text-sl font-mono opacity-90 break-all leading-relaxed" id="kernel-version">...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-bold mb-3 px-2">Module Info</h3>
+
+                <div class="bg-surface-container p-5 rounded-[32px] card_border">
+                    <div class="grid grid-cols-2 gap-4">
+
+                        <div
+                            class="relative z-50 bg-surface-container-high p-4 pb-6 mb-[-18px] rounded-t-[24px] rounded-bl-none rounded-br-none text-on-surface h-48 flex flex-col justify-between group">
+
+                            <div
+                                class="absolute bottom-0 -right-[16px] w-[16px] h-[16px] bg-surface-container-high overflow-hidden">
+                                <div class="w-full h-full bg-surface-container rounded-bl-[16px]"></div>
+                            </div>
+
+                            <div class="flex justify-between items-start">
+                                <div class="relative">
+                                    <div
+                                        class="w-16 h-16 rounded-2xl overflow-hidden border-2 border-surface shadow-md">
+                                        <img src="https://github.com/Pavelc4.png" alt="Pavelc4"
+                                            class="w-full h-full object-cover">
+                                    </div>
+                                    <div
+                                        class="absolute -bottom-1 -right-1 w-5 h-5 bg-surface rounded-full flex items-center justify-center">
+                                        <div class="w-3 h-3 bg-[var(--tertiary)] rounded-full animate-pulse"></div>
+                                    </div>
+                                </div>
+                                <span
+                                    class="px-2.5 py-1 rounded-lg bg-surface-variant/20 border border-white/5 text-[10px] font-bold tracking-wider uppercase opacity-70">
+                                    Lead Dev
+                                </span>
+                            </div>
+
+                            <div>
+                                <p
+                                    class="text-[10px] text-on-surface-variant font-medium uppercase tracking-widest mb-1">
+                                    Maintainer</p>
+                                <div class="flex items-center gap-1">
+                                    <h4 class="text-lg font-bold leading-none">Pavelc4</h4>
+                                    <span
+                                        class="material-symbols-rounded text-[var(--primary)] text-[18px]">verified</span>
+                                </div>
+                                <p class="text-xs opacity-50 font-mono mt-1">@pavelc4</p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="relative z-20 bg-surface-container-high p-4 rounded-[24px] text-on-surface flex flex-col justify-between h-44">
+                            <div class="flex justify-between items-start">
+                                <div
+                                    class="w-10 h-10 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center">
+                                    <span class="material-symbols-rounded text-[24px]">deployed_code</span>
+                                </div>
+                                <div class="flex flex-col items-end">
+                                    <span id="module-status-badge"
+                                        class="px-2 py-0.5 rounded-full bg-[var(--tertiaryContainer)]/20 text-[var(--tertiary)] text-[10px] font-bold border border-[var(--tertiary)]/20">
+                                        STABLE
+                                    </span>
+                                    <span id="module-commit" class="text-[10px] opacity-40 font-mono mt-1">b7a9f2</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <p
+                                    class="text-[10px] text-on-surface-variant font-medium uppercase tracking-widest mb-0.5">
+                                    Release</p>
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-2xl font-bold tracking-tighter" id="module-version">...</span>
+                                    <span class="text-xs opacity-50" id="module-arch">...</span>
+                                </div>
+                                <p class="text-[10px] opacity-40 mt-1" id="module-update-time">Latest Update</p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="relative z-10 col-span-2 bg-surface-container-high p-4 pt-7 rounded-b-[24px] rounded-tr-[24px] rounded-tl-none border-t-0 text-on-surface">
+                            <div class="mb-4">
+                                <p class="text-sm opacity-80 leading-snug font-normal">
+                                    A fully <span class="text-[var(--tertiary)] font-bold">free</span> and open-source
+                                    hobby project.
+                                    Built with <span class="text-[var(--primary)] font-bold">Rust</span> for
+                                    performance.
+                                </p>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <a href="https://github.com/Pavelc4/Auriya" target="_blank"
+                                    class="flex-1 btn btn-sm bg-surface-container hover:bg-surface-variant/10 border-0 text-on-surface rounded-xl normal-case font-medium">
+                                    <img src="https://github.com/fluidicon.png" class="w-4 h-4 opacity-70 grayscale"
+                                        alt="GitHub">
+                                    GitHub
+                                </a>
+                                <a href="https://t.me/AuriyaDiscussion" target="_blank"
+                                    class="flex-1 btn btn-sm bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] border-0 rounded-xl normal-case font-medium">
+                                    <span class="material-symbols-rounded text-[18px]">send</span>
+                                    Telegram
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -163,7 +292,7 @@
                             <span class="material-symbols-rounded text-on-surface-variant">search</span>
                         </div>
                         <input type="text" id="game-search" placeholder="Search packages..."
-                            class="input w-full pl-12 pr-4 rounded-full bg-surface-container-highest text-on-surface placeholder:text-on-surface-variant/70 h-14 border-none focus:outline-none focus:ring-2 focus:ring-surface-variant/50 transition-all shadow-sm">
+                            class="input w-full pl-12 pr-4 rounded-full bg-surface-container-highest text-on-surface placeholder:text-on-surface-variant/70 h-14 border-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50 transition-all shadow-sm">
                     </div>
                     <button id="filter-btn"
                         class="btn btn-square h-14 w-14 rounded-2xl bg-surface-container-highest border-none text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-all shadow-sm">
@@ -175,7 +304,7 @@
             <div class="min-h-[50vh]">
                 <div id="game-list" class="pb-20 space-y-2">
                     <div class="text-center py-12 opacity-50 flex flex-col items-center">
-                        <span class="loading loading-spinner loading-lg text-secondary mb-4"></span>
+                        <span class="loading loading-spinner loading-lg text-[var(--primary)] mb-4"></span>
                         <p>Loading packages...</p>
                     </div>
                 </div>
@@ -195,7 +324,8 @@
                     </div>
                     <div class="form-control w-full">
                         <label class="label"><span class="label-text text-on-surface">CPU Governor</span></label>
-                        <select id="modal-gov-select" class="select select-bordered w-full bg-surface-container-high">
+                        <select id="modal-gov-select"
+                            class="select select-bordered w-full bg-surface-container-high focus:border-[var(--primary)]">
                             <option value="performance">performance</option>
                             <option value="schedutil" selected>schedutil</option>
                             <option value="powersave">powersave</option>
@@ -204,7 +334,8 @@
                     </div>
                     <div class="form-control w-full">
                         <label class="label"><span class="label-text text-on-surface">Target FPS</span></label>
-                        <select id="modal-fps-select" class="select select-bordered w-full bg-surface-container-high">
+                        <select id="modal-fps-select"
+                            class="select select-bordered w-full bg-surface-container-high focus:border-[var(--primary)]">
                             <option value="">Default (Global)</option>
                             <option value="30">30 FPS</option>
                             <option value="45">45 FPS</option>
@@ -225,7 +356,7 @@
                     <form method="dialog">
                         <button class="btn btn-ghost">Cancel</button>
                     </form>
-                    <button id="modal-save-btn" class="btn btn-primary">Save</button>
+                    <button id="modal-save-btn" class="btn btn-primary text-on-primary">Save</button>
                 </div>
             </div>
             <form method="dialog" class="modal-backdrop">
@@ -242,52 +373,38 @@
                     helpful, consider supporting its development.
                 </p>
                 <button id="donate-btn"
-                    class="btn bg-white text-black w-full rounded-full hover:bg-gray-200 border-none h-12 text-base font-medium normal-case gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                        fill="currentColor">
-                        <path
-                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
-                    </svg>
-                    want to donnate pm
+                    class="btn bg-[var(--primary)] text-on-primary w-full rounded-full hover:bg-[var(--primary)]/90 border-none h-12 text-base font-medium normal-case gap-2">
+                    <span class="material-symbols-rounded">favorite</span>
+                    Donate via PM
                 </button>
             </div>
 
-
-
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
                 <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface h-full flex flex-col">
                     <div class="flex items-center gap-3 mb-3">
                         <div
-                            class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+                            class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0">
                             <span class="material-symbols-rounded text-[20px]">lightbulb</span>
                         </div>
                         <h2 class="text-lg font-semibold">The Philosophy</h2>
                     </div>
                     <p class="text-sm opacity-80 leading-relaxed flex-grow">
-                        Most modules rely on brute force—locking max frequencies (draining battery) or throttling
-                        too hard.
-                        <br><br>
-                        Auriya acts as an <b>intelligent bridge</b> between user intent and kernel scheduling. It
-                        dynamically allocates resources to deliver peak FPS when gaming and deep power efficiency
-                        when idle.
+                        Most modules rely on brute force. Auriya acts as an <b>intelligent bridge</b> between user
+                        intent and kernel scheduling, allocating resources dynamically.
                     </p>
                 </div>
 
                 <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface h-full flex flex-col">
                     <div class="flex items-center gap-3 mb-3">
                         <div
-                            class="w-10 h-10 rounded-xl bg-[#dea584]/20 text-[#dea584] flex items-center justify-center shrink-0">
+                            class="w-10 h-10 rounded-xl bg-[var(--primary)]/20 text-[var(--primary)] flex items-center justify-center shrink-0">
                             <span class="material-symbols-rounded text-[20px]">code</span>
                         </div>
                         <h2 class="text-lg font-semibold">Powered by Rust</h2>
                     </div>
                     <p class="text-sm opacity-80 leading-relaxed flex-grow">
-                        We chose Rust for mission-critical stability. With <b>zero-cost abstractions and memory
-                            safety</b>, it allows Auriya to interact directly with the kernel.
-                        <br><br>
-                        The result is a daemon that is lighter than shell scripts, crash-resistant, and operates
-                        with minimal system overhead.
+                        We chose Rust for mission-critical stability. Zero-cost abstractions and memory safety allow
+                        Auriya to interact directly with the kernel efficiently.
                     </p>
                 </div>
             </div>
@@ -295,7 +412,7 @@
             <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
                 <div class="flex items-center gap-3 mb-4">
                     <div
-                        class="w-10 h-10 rounded-xl bg-secondary/20 text-secondary flex items-center justify-center shrink-0">
+                        class="w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--secondary)] flex items-center justify-center shrink-0">
                         <span class="material-symbols-rounded text-[20px]">group</span>
                     </div>
                     <h2 class="text-lg font-semibold">Contributors</h2>
@@ -313,29 +430,10 @@
                     </a>
 
                     <a href="https://github.com/pavelc4/auriya/graphs/contributors" target="_blank"
-                        class="flex items-center justify-center gap-2 p-3 rounded-2xl border border-white/5 hover:bg-white/5 transition-colors text-sm opacity-70 hover:opacity-100">
+                        class="flex items-center justify-center gap-2 p-3 rounded-2xl border border-outline/20 hover:bg-surface-variant/10 transition-colors text-sm opacity-70 hover:opacity-100">
                         <span class="material-symbols-rounded text-lg">open_in_new</span>
                         View all contributors on GitHub
                     </a>
-                </div>
-            </div>
-
-            <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
-                <div class="flex items-center gap-3 mb-4">
-                    <div
-                        class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
-                        <span class="material-symbols-rounded text-[20px]">library_books</span>
-                    </div>
-                    <h2 class="text-lg font-semibold">Open Source Libraries</h2>
-                </div>
-                <p class="text-sm opacity-80 mb-4">Auriya is built on the shoulders of giants.</p>
-                <div class="flex flex-wrap gap-2">
-                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">tokio</span>
-                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">anyhow</span>
-                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">serde</span>
-                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">notify</span>
-                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">tracing</span>
-                    <span class="badge badge-neutral bg-surface-variant/30 border-none text-on-surface">toml</span>
                 </div>
             </div>
 
@@ -343,7 +441,7 @@
                 <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
                     <div class="flex items-center gap-3 mb-3">
                         <div
-                            class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-500 flex items-center justify-center shrink-0">
+                            class="w-10 h-10 rounded-xl bg-[var(--tertiary)]/20 text-[var(--tertiary)] flex items-center justify-center shrink-0">
                             <span class="material-symbols-rounded text-[20px]">forum</span>
                         </div>
                         <h2 class="text-lg font-semibold">Join Community</h2>
@@ -352,7 +450,7 @@
                         Join our Telegram group to discuss features, report bugs, or just hang out.
                     </p>
                     <a href="https://t.me/XtraManagerSoftware" target="_blank"
-                        class="btn btn-sm bg-blue-500 hover:bg-blue-600 text-white border-none rounded-full px-4 w-full">
+                        class="btn btn-sm bg-[var(--tertiary)]/20 hover:bg-[var(--tertiary)]/30 text-[var(--tertiary)] border-none rounded-full px-4 w-full">
                         Join Discussion
                     </a>
                 </div>
@@ -360,14 +458,13 @@
                 <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
                     <div class="flex items-center gap-3 mb-3">
                         <div
-                            class="w-10 h-10 rounded-xl bg-green-500/20 text-green-500 flex items-center justify-center shrink-0">
+                            class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0">
                             <span class="material-symbols-rounded text-[20px]">policy</span>
                         </div>
                         <h2 class="text-lg font-semibold">License</h2>
                     </div>
                     <p class="text-sm opacity-80 mb-4">
-                        Auriya is free software licensed under the <b>MIT License</b>. You are free to use, modify,
-                        and distribute it.
+                        Auriya is free software licensed under the <b>MIT License</b>.
                     </p>
                     <div class="flex items-center gap-2 text-xs opacity-60">
                         <span class="material-symbols-rounded text-[16px]">copyright</span>
@@ -375,18 +472,15 @@
                     </div>
                 </div>
             </div>
-
-
         </div>
 
         <div id="view-settings" class="view-section hidden space-y-4">
             <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
                 <h2 class="text-lg font-semibold mb-4">Performance</h2>
-
                 <div class="flex items-center justify-between p-2">
                     <div class="flex items-center gap-3">
                         <div
-                            class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+                            class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0">
                             <span class="material-symbols-rounded">speed</span>
                         </div>
                         <div>
@@ -394,7 +488,8 @@
                             <p class="text-xs opacity-70">Global frame rate target</p>
                         </div>
                     </div>
-                    <select id="fps-select" class="select select-bordered bg-surface-container-high w-24">
+                    <select id="fps-select"
+                        class="select select-bordered bg-surface-container-high w-24 focus:border-[var(--primary)]">
                         <option value="30">30</option>
                         <option value="45">45</option>
                         <option value="60">60</option>
@@ -406,11 +501,10 @@
 
             <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
                 <h2 class="text-lg font-semibold mb-4">Appearance</h2>
-
                 <div class="flex items-center justify-between p-2">
                     <div class="flex items-center gap-3">
                         <div
-                            class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+                            class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0">
                             <span class="material-symbols-rounded">dark_mode</span>
                         </div>
                         <div>
@@ -418,20 +512,17 @@
                             <p class="text-xs opacity-70">Toggle light/dark theme</p>
                         </div>
                     </div>
-                    <input type="checkbox" id="theme-toggle"
-                        class="toggle checked:bg-[#b7410e] checked:border-[#b7410e] [--tglbg:#d8c2bc] checked:[--tglbg:#ffffff]"
-                        checked />
+                    <input type="checkbox" id="theme-toggle" class="toggle toggle-primary" checked />
                 </div>
             </div>
 
             <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
                 <h2 class="text-lg font-semibold mb-4">System</h2>
-
                 <div class="flex items-center justify-between p-2 cursor-pointer hover:bg-surface-variant/10 rounded-xl transition-colors"
                     id="export-logs-btn">
                     <div class="flex items-center gap-3">
                         <div
-                            class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+                            class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0">
                             <span class="material-symbols-rounded">bug_report</span>
                         </div>
                         <div>
@@ -444,7 +535,7 @@
                 <div class="flex items-center justify-between p-2 mt-2">
                     <div class="flex items-center gap-3">
                         <div
-                            class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+                            class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0">
                             <span class="material-symbols-rounded">terminal</span>
                         </div>
                         <div>
@@ -452,8 +543,7 @@
                             <p class="text-xs opacity-70">Enable verbose logging</p>
                         </div>
                     </div>
-                    <input type="checkbox" id="debug-mode-toggle"
-                        class="toggle checked:bg-[#b7410e] checked:border-[#b7410e] [--tglbg:#d8c2bc] checked:[--tglbg:#ffffff]" />
+                    <input type="checkbox" id="debug-mode-toggle" class="toggle toggle-primary" />
                 </div>
             </div>
         </div>
@@ -462,39 +552,37 @@
 
     <div
         class="bg-surface-container-high/90 backdrop-blur-md border-t-0 fixed bottom-4 z-[100] h-20 rounded-[28px] shadow-lg w-[calc(100%-2rem)] max-w-2xl mx-auto left-0 right-0 grid grid-cols-4 items-center">
-
         <button id="nav-dashboard" data-target="view-dashboard"
             class="nav-btn text-on-surface active group flex flex-col items-center justify-center w-full h-full">
             <div
-                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant flex items-center justify-center">
-                <span class="material-symbols-rounded icon-filled">dashboard</span>
+                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-white/20 flex items-center justify-center">
+                <span
+                    class="material-symbols-rounded icon-filled group-[.active]:text-[var(--primary)]">dashboard</span>
             </div>
             <span class="btm-nav-label text-xs font-medium mt-1">Home</span>
         </button>
-
         <button id="nav-games" data-target="view-games"
             class="nav-btn text-on-surface opacity-60 group flex flex-col items-center justify-center w-full h-full">
             <div
-                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant flex items-center justify-center">
-                <span class="material-symbols-rounded">sports_esports</span>
+                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-white/20 flex items-center justify-center">
+                <span class="material-symbols-rounded group-[.active]:text-[var(--primary)]">sports_esports</span>
             </div>
             <span class="btm-nav-label text-xs font-medium mt-1">Games</span>
         </button>
-
         <button id="nav-about" data-target="view-about"
             class="nav-btn text-on-surface opacity-60 group flex flex-col items-center justify-center w-full h-full">
             <div
-                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant flex items-center justify-center">
-                <span class="material-symbols-rounded">info</span>
+                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-white/20 flex items-center justify-center">
+                <span class="material-symbols-rounded group-[.active]:text-[var(--primary)]">info</span>
             </div>
             <span class="btm-nav-label text-xs font-medium mt-1">About</span>
         </button>
-
         <button id="nav-settings" data-target="view-settings"
             class="nav-btn text-on-surface opacity-60 group flex flex-col items-center justify-center w-full h-full">
             <div
-                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant flex items-center justify-center">
-                <span class="material-symbols-rounded group-[.active]:icon-filled">settings</span>
+                class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-white/20 flex items-center justify-center">
+                <span
+                    class="material-symbols-rounded group-[.active]:icon-filled group-[.active]:text-[var(--primary)]">settings</span>
             </div>
             <span class="btm-nav-label text-xs font-medium mt-1">Settings</span>
         </button>

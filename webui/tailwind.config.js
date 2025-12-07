@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+import daisyui from 'daisyui'
+
 export default {
     content: [
         "./index.html",
@@ -7,40 +9,41 @@ export default {
     theme: {
         extend: {
             colors: {
-                'surface': '#1a110d',
-                'on-surface': '#f0ded8',
-                'on-surface-variant': '#d8c2bc',
-                'surface-container': '#251a16',
-                'surface-container-high': '#302420',
+                'surface': '#120d0a',
+                'on-surface': '#ede0db',
+                'on-surface-variant': '#d7c1be',
+                'surface-container': '#1f1612',
+                'surface-container-high': '#2a201a',
                 'surface-container-highest': '#3b2e2a',
-                'surface-variant': '#53433f',
+                'surface-variant': '#5e4d48',
                 'outline': '#a08c87',
             }
         },
     },
     plugins: [
-        require('daisyui'),
+        daisyui,
     ],
     daisyui: {
         themes: [
             {
                 auriya: {
-                    "primary": "#b7410e",
-                    "primary-content": "#481616ff",
+                    "primary": "#ff914d",
+                    "primary-content": "#481a00",
 
-                    "secondary": "#77574e",
-                    "secondary-content": "#ffffff",
+                    "secondary": "#ffcf40",
+                    "secondary-content": "#412d00",
 
-                    "accent": "#6b5d2e",
-                    "accent-content": "#ffffff",
+                    "accent": "#eec193",
+                    "accent-content": "#462a0b",
 
-                    "neutral": "#1a110d",
-                    "neutral-content": "#f0ded8",
+                    "neutral": "#120d0a",
+                    "neutral-content": "#ede0db",
 
-                    "base-100": "#171209",
-                    "base-200": "#251a16",
-                    "base-300": "#3b2e2a",
-                    "base-content": "#ece0d1",
+                    "base-100": "#120d0a",
+                    "base-200": "#1f1612",
+                    "base-300": "#2a201a",
+                    "base-content": "#ede0db",
+
                     "info": "#00add8",
                     "success": "#219138",
                     "warning": "#f7df1e",

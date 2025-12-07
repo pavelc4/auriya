@@ -2,173 +2,104 @@
 @plugin "daisyui";
 
 @theme {
-    /* Auriya Rust Theme (Material 3 Structure) */
-    --color-on-primary: var(--onPrimary, #ffffff);
-    --color-primary-container: var(--primaryContainer, #dea584ff);
-    --color-on-primary-container: var(--onPrimaryContainer, #3e2d16ff);
-    --color-inverse-primary: var(--inversePrimary, #ffb59bff);
-    --color-secondary: var(--secondary, #77574eff);
-    --color-on-secondary: var(--onSecondary, #ffffff);
-    --color-secondary-container: var(--secondaryContainer, #ffdbd1ff);
-    --color-on-secondary-container: var(--onSecondaryContainer, #2c150fff);
-    --color-tertiary: var(--tertiary, #6b5d2eff);
-    --color-on-tertiary: var(--onTertiary, #ffffff);
-    --color-tertiary-container: var(--tertiaryContainer, #f5e1a6ff);
-    --color-on-tertiary-container: var(--onTertiaryContainer, #231b00ff);
-    --color-background: var(--background, #1a110dff);
-    --color-on-background: var(--onBackground, #f0ded8ff);
-    --color-surface: var(--surface, #1a110dff);
-    --color-tonal-surface: var(--tonalSurface, #251a16ff);
-    --color-on-surface: var(--onSurface, #f0ded8ff);
-    --color-surface-variant: var(--surfaceVariant, #53433fff);
-    --color-on-surface-variant: var(--onSurfaceVariant, #d8c2bcff);
-    --color-surface-tint: var(--surfaceTint, #b7410eff);
-    --color-inverse-surface: var(--inverseSurface, #f0ded8ff);
-    --color-inverse-on-surface: var(--inverseOnSurface, #362f27ff);
-    --color-error: var(--error, #ba1a1aff);
-    --color-on-error: var(--onError, #ffffff);
-    --color-error-container: var(--errorContainer, #ffdad6ff);
-    --color-on-error-container: var(--onErrorContainer, #410002ff);
-    --color-outline: var(--outline, #a08c87ff);
-    --color-outline-variant: var(--outlineVariant, #53433fff);
-    --color-scrim: var(--scrim, #000000ff);
-    --color-surface-bright: var(--surfaceBright, #423731ff);
-    --color-surface-dim: var(--surfaceDim, #1a110dff);
-    --color-surface-container: var(--surfaceContainer, #251a16ff);
-    --color-surface-container-high: var(--surfaceContainerHigh, #302420ff);
-    --color-surface-container-highest: var(--surfaceContainerHighest, #3b2e2aff);
-    --color-surface-container-low: var(--surfaceContainerLow, #1a110dff);
-    --color-surface-container-lowest: var(--surfaceContainerLowest, #0f0c0aff);
-    --color-filled-tonal-button-content-color: var(--filledTonalButtonContentColor, #3e2d16ff);
-    --color-filled-tonal-button-container-color: var(--filledTonalButtonContainerColor, #dea584ff);
-    --color-filled-tonal-button-disabled-content-color: var(--filledTonalButtonDisabledContentColor, #1f1f1f61);
-    --color-filled-tonal-button-disabled-container-color: var(--filledTonalButtonDisabledContainerColor, #1f1f1f1f);
-    --color-filled-card-content-color: var(--filledCardContentColor, #f0ded8ff);
-    --color-filled-card-container-color: var(--filledCardContainerColor, #3b2e2aff);
-    --color-filled-card-disabled-content-color: var(--filledCardDisabledContentColor, #1f1f1f61);
-    --color-filled-card-disabled-container-color: var(--filledCardDisabledContainerColor, #1f1f1f1f);
+    --color-primary: var(--primary);
+    --color-on-primary: var(--onPrimary);
+    --color-primary-container: var(--primaryContainer);
+    --color-on-primary-container: var(--onPrimaryContainer);
 
-    /* Custom Gradient (Rust Style) */
-    --image-rust-gradient: linear-gradient(135deg, #b7410e 0%, #dea584 100%);
+    --color-secondary: var(--secondary);
+    --color-on-secondary: var(--onSecondary);
+    --color-secondary-container: var(--secondaryContainer);
+
+    --color-tertiary: var(--tertiary);
+    --color-on-tertiary: var(--onTertiary);
+    --color-tertiary-container: var(--tertiaryContainer);
+
+    --color-background: var(--background);
+    --color-on-background: var(--onBackground);
+
+    --color-surface: var(--surface);
+    --color-on-surface: var(--onSurface);
+
+    --color-surface-container: var(--surfaceContainer);
+    --color-surface-container-high: var(--surfaceContainerHigh);
+
+    --color-surface-variant: var(--surfaceVariant);
+    --color-on-surface-variant: var(--onSurfaceVariant);
+
+    --color-outline: var(--outline);
+    --color-outline-variant: var(--outlineVariant);
+
+    --image-brand-gradient: var(--brand-gradient);
 }
 
 :root {
-    /* Dark Theme (Default) */
-    --onPrimary: #ffffff;
-    --primaryContainer: #dea584ff;
-    --onPrimaryContainer: #3e2d16ff;
-    --inversePrimary: #ffb59bff;
-    --secondary: #77574eff;
-    --onSecondary: #ffffff;
-    --secondaryContainer: #ffdbd1ff;
-    --onSecondaryContainer: #2c150fff;
-    --tertiary: #6b5d2eff;
-    --onTertiary: #ffffff;
-    --tertiaryContainer: #f5e1a6ff;
-    --onTertiaryContainer: #231b00ff;
-    --background: #1a110dff;
-    --onBackground: #f0ded8ff;
-    --surface: #1a110dff;
-    --tonalSurface: #251a16ff;
-    --onSurface: #f0ded8ff;
-    --surfaceVariant: #53433fff;
-    --onSurfaceVariant: #d8c2bcff;
-    --surfaceTint: #b7410eff;
-    --inverseSurface: #f0ded8ff;
-    --inverseOnSurface: #362f27ff;
-    --error: #ba1a1aff;
-    --onError: #ffffff;
-    --errorContainer: #ffdad6ff;
-    --onErrorContainer: #410002ff;
-    --outline: #a08c87ff;
-    --outlineVariant: #53433fff;
-    --scrim: #000000ff;
-    --surfaceBright: #423731ff;
-    --surfaceDim: #1a110dff;
-    --surfaceContainer: #251a16ff;
-    --surfaceContainerHigh: #302420ff;
-    --surfaceContainerHighest: #3b2e2aff;
-    --surfaceContainerLow: #1a110dff;
-    --surfaceContainerLowest: #0f0c0aff;
+
+    --primary: #ff914d;
+    --onPrimary: #481a00;
+    --primaryContainer: #692600;
+    --onPrimaryContainer: #ffdbcc;
+    --secondary: #ffcf40;
+    --onSecondary: #412d00;
+    --secondaryContainer: #5d4200;
+    --tertiary: #eec193;
+    --onTertiary: #462a0b;
+    --tertiaryContainer: #60401f;
+    --background: #120d0a;
+    --onBackground: #ede0db;
+    --surface: #120d0a;
+    --surfaceContainer: #1f1612;
+    --surfaceContainerHigh: #2a201a;
+    --surfaceVariant: #5e4d48;
+    --onSurfaceVariant: #d7c1be;
+    --onSurface: #ede0db;
+    --outline: #a08c87;
+    --outlineVariant: #53433f;
+    --error: #ba1a1a;
+    --brand-gradient: linear-gradient(135deg, #ff914d 0%, #ffcf40 100%);
 }
 
 [data-theme="light"] {
-    /* Light Theme */
+    --primary: #a04010;
     --onPrimary: #ffffff;
-    --primaryContainer: #ffdbd1;
-    --onPrimaryContainer: #3e2d16;
-    --inversePrimary: #b7410e;
+    --primaryContainer: #ffdbcc;
+    --onPrimaryContainer: #351000;
     --secondary: #77574e;
     --onSecondary: #ffffff;
     --secondaryContainer: #ffdbd1;
-    --onSecondaryContainer: #2c150f;
-    --tertiary: #6b5d2e;
+    --tertiary: #685f12;
     --onTertiary: #ffffff;
-    --tertiaryContainer: #f5e1a6;
-    --onTertiaryContainer: #231b00;
-    --background: #fff8f6;
-    --onBackground: #231917;
-    --surface: #fff8f6;
-    --tonalSurface: #fceae5;
-    --onSurface: #231917;
-    --surfaceVariant: #f5ded8;
+    --tertiaryContainer: #f1e48e;
+    --background: #f5eeec;
+    --onBackground: #231a18;
+    --surface: #f5eeec;
+    --surfaceContainer: #ffffff;
+    --surfaceContainerHigh: #fbf5f4;
+    --surfaceVariant: #4a3832;
     --onSurfaceVariant: #53433f;
-    --surfaceTint: #b7410e;
-    --inverseSurface: #392e2b;
-    --inverseOnSurface: #ffede8;
-    --error: #ba1a1a;
-    --onError: #ffffff;
-    --errorContainer: #ffdad6;
-    --onErrorContainer: #410002;
+    --onSurface: #231a18;
     --outline: #85736e;
     --outlineVariant: #d8c2bc;
-    --scrim: #000000;
-    --surfaceBright: #fff8f6;
-    --surfaceDim: #e8d6d2;
-    --surfaceContainer: #fceae5;
-    --surfaceContainerHigh: #f7e4df;
-    --surfaceContainerHighest: #f1ded9;
-    --surfaceContainerLow: #fff1ed;
-    --surfaceContainerLowest: #ffffff;
+    --error: #ba1a1a;
+    --brand-gradient: linear-gradient(135deg, #a04010 0%, #d48256 100%);
+}
+
+:root {
+    background-color: var(--surface);
+    color: var(--onSurface);
 }
 
 .text-gradient {
-    background: var(--image-rust-gradient);
+    background: var(--image-brand-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
-.bg-gradient-primary {
-    background: var(--image-rust-gradient);
-}
-
-:root {
-    background-color: var(--color-background, #171209);
-    color: var(--color-on-background, #ece0d1);
-}
-
-/* Bottom Navigation Styles - Handled in HTML via utility classes */
-
-/* View Transitions */
 .view-section {
     @apply transition-opacity duration-200 ease-in-out;
 }
 
 .view-section.hidden {
     @apply hidden opacity-0;
-}
-
-@keyframes barrel-roll {
-    0% {
-        transform: rotateY(0deg);
-    }
-
-    100% {
-        transform: rotateY(360deg);
-    }
-}
-
-.animate-barrel-roll {
-    animation: barrel-roll 0.2s linear infinite;
 }
