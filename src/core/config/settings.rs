@@ -58,11 +58,6 @@ impl Settings {
 
         toml::from_str(&content).context("Failed to parse settings.toml")
     }
-
-    #[allow(dead_code)]
-    pub fn get_fas_mode(&self, mode: &str) -> Option<&FasMode> {
-        self.modes.get(mode)
-    }
 }
 
 fn default_log_level() -> String {

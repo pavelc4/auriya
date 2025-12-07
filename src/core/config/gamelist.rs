@@ -31,7 +31,6 @@ impl GameList {
 
         toml::from_str(&content).context("Failed to parse gamelist.toml")
     }
-    #[allow(dead_code)]
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let path = path.as_ref();
 
@@ -50,7 +49,6 @@ impl GameList {
         self.game.iter().find(|g| g.package == package)
     }
 
-    #[allow(dead_code)]
     pub fn add(&mut self, profile: GameProfile) -> Result<()> {
         if self.find(&profile.package).is_some() {
             anyhow::bail!("Game {} already exists", profile.package);
@@ -60,7 +58,6 @@ impl GameList {
         Ok(())
     }
 
-    #[allow(dead_code)]
     pub fn remove(&mut self, package: &str) -> Result<()> {
         let initial_len = self.game.len();
         self.game.retain(|g| g.package != package);
@@ -72,7 +69,6 @@ impl GameList {
         Ok(())
     }
 
-    #[allow(dead_code)]
     pub fn update(
         &mut self,
         package: &str,
