@@ -147,10 +147,8 @@ impl Daemon {
 
         let fas_clone_for_get = self.fas_controller.clone();
         let get_fps = Arc::new(move || -> u32 {
-            if let Some(fas) = &fas_clone_for_get {
-                if let Ok(guard) = fas.lock() {
-                    return guard.get_target_fps();
-                }
+            if let Some(fas) = &fas_clone_for_get &&  let Ok(guard) = fas.lock() {
+                return guard.get_target_fps();
             }
             60 // Default if not available
         });
