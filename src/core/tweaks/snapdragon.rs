@@ -5,8 +5,7 @@ use tracing::info;
 
 pub fn apply_performance() -> Result<()> {
     if let Ok(entries) = fs::read_dir("/sys/class/devfreq") {
-        for entry in entries {
-            if let Ok(entry) = entry {
+        for entry in entries.flatten() {
                 let path = entry.path();
                 let name = path.file_name().unwrap_or_default().to_string_lossy();
 
@@ -30,7 +29,6 @@ pub fn apply_performance() -> Result<()> {
                         }
                     }
                 }
-            }
         }
     }
 
@@ -55,10 +53,9 @@ pub fn apply_performance() -> Result<()> {
 
 pub fn apply_normal() -> Result<()> {
     if let Ok(entries) = fs::read_dir("/sys/class/devfreq") {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                let name = path.file_name().unwrap_or_default().to_string_lossy();
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = path.file_name().unwrap_or_default().to_string_lossy();
 
                 if name.contains("cpu-lat")
                     || name.contains("cpu-bw")
@@ -81,7 +78,6 @@ pub fn apply_normal() -> Result<()> {
                         }
                     }
                 }
-            }
         }
     }
 
