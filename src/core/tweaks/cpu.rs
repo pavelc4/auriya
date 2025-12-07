@@ -127,13 +127,7 @@ pub fn get_affinity_mask_for_profile(profile: &str) -> u64 {
         Ok(cores) => {
             let (little, big, prime) = classify_cores(&cores);
             match profile {
-                "performance" => {
-                    if prime != 0 {
-                        prime
-                    } else {
-                        big | prime
-                    }
-                }
+                "performance" => big | prime,
                 "balance" => big,
                 "powersave" => little,
                 _ => big | prime,
@@ -192,14 +186,4 @@ pub fn set_process_priority(pid: i32) -> Result<()> {
 
     info!("Process priority set for PID {}", pid);
     Ok(())
-}
-
-pub fn fix_mediatek_ppm() {
-    let ppm_path = "/proc/ppm/enabled";
-    if Path::new(ppm_path).exists() {
-        let _ = fs::write(ppm_path, "0");
-        std::thread::sleep(std::time::Duration::from_secs(1));
-        let _ = fs::write(ppm_path, "1");
-        info!("Applied MediaTek PPM fix");
-    }
 }

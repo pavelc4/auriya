@@ -1,4 +1,4 @@
-use crate::core::tweaks::{cpu, gpu, memory};
+use crate::core::tweaks::{cpu, gpu, memory, mtk, snapdragon, soc, system};
 use anyhow::{Context, Result};
 use std::process::Command;
 
@@ -52,7 +52,26 @@ pub fn apply_performance_with_config(
 
     cpu::enable_boost()?;
     cpu::online_all_cores()?;
+    let soc_type = soc::detect_soc();
+    tracing::info!(target: "auriya::profile", "Detected SoC: {}", soc_type);
+
+    match soc_type {
+        soc::SocType::MediaTek => {
+            let _ = mtk::apply_performance();
+        }
+        soc::SocType::Snapdragon => {
+            let _ = snapdragon::apply_performance();
+        }
+        _ => {
+            tracing::debug!(target: "auriya::profile", "No specific performance tweaks for SoC: {}", soc_type);
+        }
+    }
+
     gpu::set_performance_mode()?;
+
+    if let Err(e) = system::apply_general_tweaks() {
+        tracing::warn!(target: "auriya::profile", "Failed to apply general system tweaks: {}", e);
+    }
 
     memory::drop_caches()?;
     memory::adjust_for_gaming()?;
@@ -94,6 +113,17 @@ pub fn apply_balance(governor: &str) -> Result<()> {
     }
 
     cpu::disable_boost()?;
+
+    let soc_type = soc::detect_soc();
+    match soc_type {
+        soc::SocType::MediaTek => {
+            let _ = mtk::apply_normal();
+        }
+        soc::SocType::Snapdragon => {
+            let _ = snapdragon::apply_normal();
+        }
+        _ => {}
+    }
     gpu::set_balanced_mode()?;
     memory::restore_balanced()?;
 

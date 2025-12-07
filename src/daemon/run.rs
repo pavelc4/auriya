@@ -1,5 +1,5 @@
 use crate::core::profile::ProfileMode;
-use crate::core::tweaks::{battery, cpu};
+use crate::core::tweaks::{battery, mtk};
 use crate::daemon::state::{CurrentState, LastState};
 use anyhow::Result;
 use notify::{EventKind, RecursiveMode, Watcher};
@@ -283,7 +283,7 @@ impl Daemon {
 
     pub async fn tick(&mut self) {
         debug!(target: "auriya::daemon", "Tick");
-        cpu::fix_mediatek_ppm();
+        mtk::fix_mediatek_ppm();
 
         let gamelist = match self.shared_gamelist.read() {
             Ok(g) => g.clone(),
