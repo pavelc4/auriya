@@ -32,8 +32,8 @@ pub fn apply_performance() -> Result<()> {
 
     for component in ["DDR", "LLCC", "L3"] {
         let path = Path::new("/sys/devices/system/cpu/bus_dcvs").join(component);
-        if path.exists() {
-            if let Ok(avail) = fs::read_to_string(path.join("available_frequencies")) {
+        if path.exists()
+        	&& let Ok(avail) = fs::read_to_string(path.join("available_frequencies")) {
                 if let Some(max) = avail
                     .split_whitespace()
                     .max_by_key(|x| x.parse::<u64>().unwrap_or(0))
@@ -41,7 +41,6 @@ pub fn apply_performance() -> Result<()> {
                     let _ = fs::write(path.join("hw_max_freq"), max);
                     let _ = fs::write(path.join("hw_min_freq"), max);
                 }
-            }
         }
     }
 
