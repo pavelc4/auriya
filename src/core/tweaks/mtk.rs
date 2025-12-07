@@ -15,7 +15,7 @@ pub fn fix_mediatek_ppm() {
 
 pub fn apply_performance() -> Result<()> {
     // PPM policies
-    if Path::new("/proc/ppm/policy_status").exists() {}
+    let _ = Path::new("/proc/ppm/policy_status").exists(); {}
 
     let fpsgo_path = "/sys/kernel/fpsgo/common/force_onoff";
     if Path::new(fpsgo_path).exists() {
