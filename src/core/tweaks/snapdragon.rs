@@ -80,8 +80,8 @@ pub fn apply_normal() -> Result<()> {
 
     for component in ["DDR", "LLCC", "L3"] {
         let path = Path::new("/sys/devices/system/cpu/bus_dcvs").join(component);
-        if path.exists() {
-            if let Ok(avail) = fs::read_to_string(path.join("available_frequencies")) {
+        if path.exists()
+            && let Ok(avail) = fs::read_to_string(path.join("available_frequencies")) {
                 let freqs: Vec<u64> = avail
                     .split_whitespace()
                     .filter_map(|x| x.parse().ok())
@@ -91,7 +91,6 @@ pub fn apply_normal() -> Result<()> {
                     let _ = fs::write(path.join("hw_max_freq"), max.to_string());
                     let _ = fs::write(path.join("hw_min_freq"), min.to_string());
                 }
-            }
         }
     }
 
