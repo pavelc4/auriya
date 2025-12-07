@@ -15,12 +15,11 @@ impl FrameMonitor {
     }
 
     pub fn get_frame_time(&mut self) -> Result<f32> {
-        if self.layer_name.is_none() {
-            if let Ok(Some(layer)) = SurfaceFlinger::find_layer(&self.package) {
-                tracing::info!(target: "auriya::fas", "Found SurfaceFlinger layer: {}", layer);
-                self.layer_name = Some(layer);
-            }
-        }
+        if self.layer_name.is_none()
+         && let Ok(Some(layer)) = SurfaceFlinger::find_layer(&self.package) {
+	            tracing::info!(target: "auriya::fas", "Found SurfaceFlinger layer: {}", layer);
+	            self.layer_name = Some(layer);
+	        }
 
         if let Some(layer) = &self.layer_name {
             match SurfaceFlinger::get_frame_time(layer) {
