@@ -153,14 +153,12 @@ impl Daemon {
                 }
 
                 // Update FAS fps target if needed
-                if let Some(fas) = &self.fas_controller {
-                    if let Ok(mut f) = fas.lock() {
-                        if f.get_target_fps() != new_settings.fas.target_fps {
+                if let Some(fas) = &self.fas_controller
+                    && let Ok(mut f) = fas.lock()
+                         && f.get_target_fps() != new_settings.fas.target_fps {
                             info!(target: "auriya::daemon", "Updating Global Target FPS to {}", new_settings.fas.target_fps);
                             f.set_target_fps(new_settings.fas.target_fps);
                         }
-                    }
-                }
             }
             Err(e) => {
                 error!(target: "auriya::daemon", "Failed to reload settings: {:?}", e);
