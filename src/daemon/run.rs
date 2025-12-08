@@ -135,18 +135,54 @@ impl Daemon {
         })
     }
 
+    fn reload_settings(&mut self) {
+        match crate::core::config::Settings::load(crate::core::config::settings_path()) {
+            Ok(new_settings) => {
+                info!(target: "auriya::daemon", "Settings reloaded. New default governor: {}", new_settings.cpu.default_governor);
+
+                if self.balance_governor != new_settings.cpu.default_governor {
+                    self.balance_governor = new_settings.cpu.default_governor.clone();
+
+                    if self.last.profile_mode == Some(ProfileMode::Balance) {
+                        info!(target: "auriya::daemon", "Applying new default governor immediately...");
+                        if let Err(e) = crate::core::profile::apply_balance(&self.balance_governor)
+                        {
+                            error!(target: "auriya::profile", ?e, "Failed to apply new balance governor");
+                        }
+                    }
+                }
+
+                // Update FAS fps target if needed
+                if let Some(fas) = &self.fas_controller {
+                    if let Ok(mut f) = fas.lock() {
+                        if f.get_target_fps() != new_settings.fas.target_fps {
+                            info!(target: "auriya::daemon", "Updating Global Target FPS to {}", new_settings.fas.target_fps);
+                            f.set_target_fps(new_settings.fas.target_fps);
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                error!(target: "auriya::daemon", "Failed to reload settings: {:?}", e);
+            }
+        }
+    }
+
     pub async fn init_ipc(&self, filter_handle: ReloadHandle) {
         let fas_clone_for_ipc = self.fas_controller.clone();
         let set_fps = Arc::new(move |fps: u32| {
             if let Some(fas) = &fas_clone_for_ipc
-                &&  let Ok(mut guard) = fas.lock() {
-                    guard.set_target_fps(fps);
+                && let Ok(mut guard) = fas.lock()
+            {
+                guard.set_target_fps(fps);
             }
         });
 
         let fas_clone_for_get = self.fas_controller.clone();
         let get_fps = Arc::new(move || -> u32 {
-            if let Some(fas) = &fas_clone_for_get &&  let Ok(guard) = fas.lock() {
+            if let Some(fas) = &fas_clone_for_get
+                && let Ok(guard) = fas.lock()
+            {
                 return guard.get_target_fps();
             }
             60 // Default if not available
@@ -216,20 +252,32 @@ impl Daemon {
         });
     }
 
-    pub fn init_watcher(&self) -> tokio::sync::mpsc::Receiver<()> {
-        let (watch_tx, watch_rx) = tokio::sync::mpsc::channel::<()>(10);
-        let config_path_for_watcher = Arc::new(crate::core::config::gamelist_path());
+    pub fn init_watcher(&self) -> tokio::sync::mpsc::Receiver<String> {
+        let (watch_tx, watch_rx) = tokio::sync::mpsc::channel::<String>(10);
+        let gamelist_path = Arc::new(crate::core::config::gamelist_path());
+        let settings_path = Arc::new(crate::core::config::settings_path());
         let shared_for_watcher = self.shared_gamelist.clone();
 
         std::thread::spawn(move || {
             let tx = watch_tx;
-            let path = config_path_for_watcher.clone();
+            let path = gamelist_path.clone();
 
             let mut watcher = match notify::recommended_watcher(
                 move |res: Result<notify::Event, notify::Error>| {
                     if let Ok(event) = res
                         && matches!(event.kind, EventKind::Modify(_))
                     {
+                        let path_str = event
+                            .paths
+                            .first()
+                            .map(|p| p.to_string_lossy().to_string())
+                            .unwrap_or_default();
+
+                        if path_str.contains("settings.toml") {
+                            let _ = tx.blocking_send("settings".to_string());
+                            return;
+                        }
+
                         info!(target: "auriya::daemon", "Gamelist file changed, reloading...");
                         let max_retries = 3;
                         let mut retry_count = 0;
@@ -260,7 +308,7 @@ impl Daemon {
                                 }
                             }
                         }
-                        let _ = tx.blocking_send(());
+                        let _ = tx.blocking_send("gamelist".to_string());
                     }
                 },
             ) {
@@ -271,12 +319,16 @@ impl Daemon {
                 }
             };
 
-            if let Err(e) = watcher.watch(&config_path_for_watcher, RecursiveMode::NonRecursive) {
+            if let Err(e) = watcher.watch(&gamelist_path, RecursiveMode::NonRecursive) {
                 error!(target: "auriya::daemon", "Failed to watch gamelist file: {}", e);
                 return;
             }
+            if let Err(e) = watcher.watch(&settings_path, RecursiveMode::NonRecursive) {
+                error!(target: "auriya::daemon", "Failed to watch settings file: {}", e);
+                return;
+            }
 
-            info!(target: "auriya::daemon", "Gamelist file watcher started");
+            info!(target: "auriya::daemon", "Config file watchers started");
             loop {
                 std::thread::sleep(std::time::Duration::from_secs(3600));
             }
@@ -587,8 +639,12 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
             _ = tick_interval.tick() => {
                 daemon.tick().await;
             }
-            Some(_) = watch_rx.recv() => {
-                debug!(target: "auriya::daemon", "Gamelist reload notification received");
+            Some(msg) = watch_rx.recv() => {
+                if msg == "settings" {
+                     daemon.reload_settings();
+                } else {
+                     debug!(target: "auriya::daemon", "Gamelist reload notification received");
+                }
             }
             _ = signal::ctrl_c() => {
                 info!(target: "auriya::daemon", "Received Ctrl-C, shutting down...");
