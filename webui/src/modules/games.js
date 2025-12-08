@@ -123,8 +123,8 @@ export function renderGameList(webui) {
             : 'bg-surface-container-highest/30 border-outline/5 hover:bg-surface-container-highest/50'
 
         const iconClass = isEnabled
-            ? 'bg-surface-variant text-on-surface-variant shadow-md'
-            : 'bg-surface-container text-on-surface-variant/70'
+            ? 'bg-[var(--primary)] text-[var(--on-primary)] shadow-md'
+            : 'bg-surface-variant/10 text-on-surface-variant/70'
 
         const iconName = isEnabled ? 'sports_esports' : 'android'
         const statusText = isEnabled ? 'Optimized' : 'Tap to optimize'
@@ -142,7 +142,7 @@ export function renderGameList(webui) {
                 <div class="min-w-0 flex-grow">
                     <div class="flex items-center gap-2 mb-0.5">
                         <p class="text-base font-semibold truncate text-on-surface">${pkg}</p>
-                        ${isEnabled ? `<span class="border border-[#dea584]/30 bg-[#dea584]/10 text-[#dea584] rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm">Active</span>` : ''}
+                        ${isEnabled ? `<span class="border border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm">Active</span>` : ''}
                     </div>
                     <div class="flex items-center gap-2 text-xs">
                         <span class="${statusColor} font-medium">${statusText}</span>
