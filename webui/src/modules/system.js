@@ -82,28 +82,13 @@ export async function loadSystemInfo() {
     const sdk = await runCommand(`/system/bin/getprop ro.build.version.sdk`)
     setText('android-sdk', (typeof sdk === 'string' && sdk) ? sdk : "Unknown")
 
-    // Root Method
-    let rootMethod = "Unknown"
-    const ksuCheck = await runCommand('ls /data/adb/ksu/bin/ksu || echo null')
-    const apatchCheck = await runCommand('ls /data/adb/ap/bin/ap || echo null')
-    const magiskCheck = await runCommand('/system/bin/magisk -v || echo null')
-
-    if (ksuCheck !== "null" && !ksuCheck.error) {
-        rootMethod = "KernelSU"
-    } else if (apatchCheck !== "null" && !apatchCheck.error) {
-        rootMethod = "APatch"
-    } else if (magiskCheck !== "null" && !magiskCheck.error) {
-        // Extract version if needed, or just say Magisk
-        rootMethod = `Magisk ${magiskCheck}`
-    }
-    setText('root-method', rootMethod)
+    // Arch (in card)
+    setText('device-arch', archStr)
 
     // Battery
     const battery = await runCommand(`/system/bin/cat /sys/class/power_supply/battery/capacity`)
     setText('battery-level', (typeof battery === 'string' && battery) ? `${battery}%` : "Unknown")
 
-    // Thermal
-    // Try to find a valid thermal zone
     let temp = "Unknown"
     for (let i = 0; i < 10; i++) {
         const t = await runCommand(`/system/bin/cat /sys/class/thermal/thermal_zone${i}/temp`)
