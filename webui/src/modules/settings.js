@@ -31,6 +31,13 @@ export async function loadSettings(webui) {
             opt.textContent = gov
             govSelect.appendChild(opt)
         })
+
+        govSelect.onchange = async (e) => {
+            const gov = e.target.value
+            webui.state.defaultGov = gov
+            await setGlobalGovernor(gov)
+            await saveSettings(webui)
+        }
     }
 
     const gameGovSelect = document.getElementById('game-cpu-gov-select')
@@ -93,7 +100,7 @@ export async function loadSettings(webui) {
         fpsSelect.onchange = async (e) => {
             const newFps = e.target.value
             webui.state.targetFps = newFps
-            await runCommand(`echo "SET_FPS ${newFps}" | nc -U /dev/socket/auriya.sock`)
+            // await runCommand(`echo "SET_FPS ${newFps}" | nc -U /dev/socket/auriya.sock`)
             await saveSettings(webui)
         }
     }
@@ -140,6 +147,19 @@ export async function saveSettings(webui) {
         await runCommand(`echo '${newContent}' > ${configPath}/settings.toml`)
     } catch (e) {
         console.error("Save Error", e)
+    }
+}
+
+export async function setGlobalGovernor(gov) {
+    try {
+        await runCommand(`/system/bin/sh -c 'echo ${gov} > /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'`)
+
+        // Also update standard linux path just in case
+        await runCommand(`/system/bin/sh -c 'echo ${gov} > /sys/devices/system/cpu/cpufreq/policy*/scaling_governor'`)
+
+        import('kernelsu').then(ksu => ksu.toast(`Governor set to ${gov}`))
+    } catch (e) {
+        console.error("Failed to set governor", e)
     }
 }
 

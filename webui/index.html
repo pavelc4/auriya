@@ -477,6 +477,23 @@
         <div id="view-settings" class="view-section hidden space-y-4">
             <div class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface">
                 <h2 class="text-lg font-semibold mb-4">Performance</h2>
+                <div class="flex items-center justify-between p-2 mb-2">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded">memory</span>
+                        </div>
+                        <div>
+                            <p class="font-medium">CPU Governor</p>
+                            <p class="text-xs opacity-70">Global scaling governor</p>
+                        </div>
+                    </div>
+                    <select id="cpu-gov-select"
+                        class="select select-bordered bg-surface-container-high w-32 focus:border-[var(--primary)] text-sm">
+                        <option value="schedutil">schedutil</option>
+                    </select>
+                </div>
+
                 <div class="flex items-center justify-between p-2">
                     <div class="flex items-center gap-3">
                         <div
