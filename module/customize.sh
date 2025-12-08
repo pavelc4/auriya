@@ -81,9 +81,15 @@ chmod 0755 "$LOG_DIR"
 
 if [ "$KSU" = "true" ] || [ "$APATCH" = "true" ]; then
     for dir in /data/adb/ksu/bin /data/adb/ap/bin; do
-        [ -d "$dir" ] && ln -sf "$MODPATH/system/bin/auriya" "$dir/auriya"
+        if [ -d "$dir" ]; then
+            ln -sf "$MODPATH/system/bin/auriya" "$dir/auriya"
+            ln -sf "$MODPATH/system/bin/auriya-ctl" "$dir/auriya-ctl"
+        fi
     done
 fi
+
+set_perm "$MODPATH/system/bin/auriya" 0 0 0755
+set_perm "$MODPATH/system/bin/auriya-ctl" 0 0 0755
 
 ui_print "- Installation complete"
 ui_print ""
