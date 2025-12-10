@@ -36,44 +36,6 @@ pub async fn reset_refresh_rate() -> Result<()> {
     Ok(())
 }
 
-pub async fn get_supported_refresh_rates() -> Result<Vec<u32>> {
-    use std::collections::HashSet;
-
-    let output = Command::new("dumpsys").arg("display").output().await?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let mut rates = HashSet::new();
-
-    for part in stdout.split("fps=") {
-        if part.len() == stdout.len() {
-            continue;
-        }
-
-        let end = part
-            .find(|c: char| !c.is_numeric() && c != '.')
-            .unwrap_or(part.len());
-        let num_str = &part[..end];
-
-        if let Ok(fps) = num_str.parse::<f32>() {
-            let rate = fps.round() as u32;
-            if rate >= 45 && rate <= 240 {
-                rates.insert(rate);
-            }
-        }
-    }
-
-    let mut result: Vec<u32> = rates.into_iter().collect();
-    result.sort();
-
-    if result.is_empty() {
-        debug!(target: "auriya::display", "No rates found from dumpsys, using defaults");
-        return Ok(vec![60, 90, 120]);
-    }
-
-    debug!(target: "auriya::display", "Detected refresh rates: {:?}", result);
-    Ok(result)
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DisplayMode {
     pub id: u32,
