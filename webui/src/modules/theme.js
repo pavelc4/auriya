@@ -1,27 +1,37 @@
 export function setupTheme() {
-    const themeToggle = document.getElementById('theme-toggle')
+    const themeBtn = document.getElementById('theme-btn')
     const savedTheme = localStorage.getItem('theme') || 'dark'
+    const icon = themeBtn ? themeBtn.querySelector('.material-symbols-rounded') : null
+
+    const updateIcon = (isDark) => {
+        if (icon) {
+            icon.textContent = isDark ? 'light_mode' : 'dark_mode'
+        }
+    }
 
     // Apply saved theme
     if (savedTheme === 'light') {
         document.documentElement.setAttribute('data-theme', 'light')
-        if (themeToggle) themeToggle.checked = false
+        updateIcon(false)
     } else {
         document.documentElement.removeAttribute('data-theme')
-        if (themeToggle) themeToggle.checked = true
+        updateIcon(true)
     }
 
     // Handle toggle
-    if (themeToggle) {
-        themeToggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                // Dark Mode
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme')
+            if (currentTheme === 'light') {
+                // Switch to Dark
                 document.documentElement.removeAttribute('data-theme')
                 localStorage.setItem('theme', 'dark')
+                updateIcon(true)
             } else {
-                // Light Mode
+                // Switch to Light
                 document.documentElement.setAttribute('data-theme', 'light')
                 localStorage.setItem('theme', 'light')
+                updateIcon(false)
             }
         })
     }
