@@ -101,6 +101,7 @@ pub struct Daemon {
     fas_controller: Option<Arc<Mutex<crate::daemon::fas::FasController>>>,
     balance_governor: String,
     supported_modes: Vec<crate::core::display::DisplayMode>,
+    refresh_rate_map: std::collections::HashMap<String, u32>,
 }
 
 impl Daemon {
@@ -137,6 +138,7 @@ impl Daemon {
             fas_controller,
             balance_governor,
             supported_modes,
+            refresh_rate_map: std::collections::HashMap::new(),
         })
     }
 
@@ -512,6 +514,18 @@ impl Daemon {
                         info!(target: "auriya::daemon", "Foreground {} PID={}", pkg, pid);
                         bump_log(&mut self.last);
                     }
+                    if self.last.pkg.as_deref() != Some(pkg.as_str()) {
+                        if let Some(last_pkg) = &self.last.pkg {
+                            if let Some(original_rate) = self.refresh_rate_map.remove(last_pkg) {
+                                info!(target: "auriya::display", "Restoring refresh rate for {}: {}Hz", last_pkg, original_rate);
+                                if let Err(e) =
+                                    crate::core::display::set_refresh_rate(original_rate).await
+                                {
+                                    error!(target: "auriya::display", ?e, "Failed to restore refresh rate");
+                                }
+                            }
+                        }
+                    }
 
                     let game_cfg = gamelist.find(&pkg);
                     let governor = game_cfg
@@ -547,6 +561,18 @@ impl Daemon {
                     }
 
                     if let Some(rr) = game_cfg.and_then(|c| c.refresh_rate) {
+                        if !self.refresh_rate_map.contains_key(&pkg) {
+                            match crate::core::display::get_refresh_rate().await {
+                                Ok(current) => {
+                                    self.refresh_rate_map.insert(pkg.clone(), current);
+                                    debug!(target: "auriya::display", "Saved current rate for {}: {}Hz", pkg, current);
+                                }
+                                Err(e) => {
+                                    warn!(target: "auriya::display", "Failed to read current refresh rate: {}", e)
+                                }
+                            }
+                        }
+
                         let is_supported = self.supported_modes.iter().any(|m| {
                             (m.fps - rr as f32).abs() < 0.1 // Tolerance for float comparison
                         });
@@ -556,25 +582,29 @@ impl Daemon {
                                 error!(target: "auriya::display", ?e, "Failed to set refresh rate");
                             }
                         } else {
-                            // If cached modes is empty, we might be failing to parse, so maybe allow it?
-                            // Or better, just warn and strictly enforce if we have data.
                             if self.supported_modes.is_empty() {
-                                // Fallback: try applying anyway if we have no data (better safe than sorry?)
-                                // Or safer: don't apply. Let's stick to safe: don't apply if not confirmed.
                                 warn!(target: "auriya::display", "No supported modes cached, skipping refresh rate {}Hz for {}", rr, pkg);
                             } else {
                                 warn!(target: "auriya::display", "Refresh rate {}Hz not supported by device, skipping for {}", rr, pkg);
                             }
                         }
                     } else if self.last.pkg.as_deref() != Some(pkg.as_str()) {
-                        // Reset if no specific rate is set, but only if we switched apps
-                        let _ = crate::core::display::reset_refresh_rate().await;
                     }
 
                     self.last.pkg = Some(pkg);
                     self.last.pid = Some(pid);
+                    Ok(())
                 }
                 None => {
+                    if self.last.pkg.as_deref() != Some(pkg.as_str()) {
+                        if let Some(last_pkg) = &self.last.pkg {
+                            if let Some(original_rate) = self.refresh_rate_map.remove(last_pkg) {
+                                info!(target: "auriya::display", "Restoring refresh rate for {} (PID lost): {}Hz", last_pkg, original_rate);
+                                let _ = crate::core::display::set_refresh_rate(original_rate).await;
+                            }
+                        }
+                    }
+
                     if self.last.profile_mode != Some(ProfileMode::Balance) {
                         if let Err(e) = profile::apply_balance(&self.balance_governor) {
                             error!(target: "auriya::profile", ?e, "Failed to apply BALANCE");
@@ -591,10 +621,19 @@ impl Daemon {
                     }
                     self.last.pkg = Some(pkg);
                     self.last.pid = None;
-                    let _ = crate::core::display::reset_refresh_rate().await;
+                    Ok(())
                 }
             }
         } else {
+            if self.last.pkg.as_deref() != Some(pkg.as_str()) {
+                if let Some(last_pkg) = &self.last.pkg {
+                    if let Some(original_rate) = self.refresh_rate_map.remove(last_pkg) {
+                        info!(target: "auriya::display", "Restoring refresh rate for {} (Exited Game): {}Hz", last_pkg, original_rate);
+                        let _ = crate::core::display::set_refresh_rate(original_rate).await;
+                    }
+                }
+            }
+
             if self.last.profile_mode != Some(ProfileMode::Balance) {
                 if let Err(e) = profile::apply_balance(&self.balance_governor) {
                     error!(target: "auriya::profile", ?e, "Failed to apply BALANCE");
@@ -611,9 +650,8 @@ impl Daemon {
             }
             self.last.pkg = Some(pkg);
             self.last.pid = None;
-            let _ = crate::core::display::reset_refresh_rate().await;
+            Ok(())
         }
-        Ok(())
     }
 
     fn run_fas_tick(
