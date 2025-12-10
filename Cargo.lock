@@ -42,6 +42,7 @@ dependencies = [
  "anyhow",
  "log",
  "notify",
+ "regex",
  "serde",
  "serde_json",
  "tokio",

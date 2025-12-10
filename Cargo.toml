@@ -31,3 +31,4 @@ tracing-subscriber = { version = "0.3.20", default-features = false, features = 
 ] }
 log = "0.4.28"
 android_logger = "0.15.1"
+regex = "1.12.2"
