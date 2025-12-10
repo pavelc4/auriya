@@ -121,6 +121,23 @@ export async function loadSettings(webui) {
     } catch (e) {
         console.warn("Failed to get status for debug mode", e)
     }
+
+    // Load Supported Refresh Rates
+    try {
+        const ratesRes = await runCommand(`echo "GET_SUPPORTED_RATES" | nc -U /dev/socket/auriya.sock`)
+        if (ratesRes && !ratesRes.error && !ratesRes.startsWith('ERR')) {
+            try {
+                const rates = JSON.parse(ratesRes)
+                if (Array.isArray(rates)) {
+                    webui.state.supportedRefreshRates = rates
+                }
+            } catch (e) {
+                console.warn("Failed to parse refresh rates", e)
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to get supported rates", e)
+    }
 }
 
 export async function saveSettings(webui) {

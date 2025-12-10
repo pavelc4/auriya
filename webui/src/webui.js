@@ -19,7 +19,8 @@ export class WebUI {
             activeGames: [],
             searchQuery: '',
             showSystemApps: false,
-            targetFps: '60'
+            targetFps: '60',
+            supportedRefreshRates: []
         }
     }
 

@@ -168,9 +168,24 @@ export async function openGameSettings(webui, pkg) {
         const enableToggle = document.getElementById('modal-enable-toggle')
         const govSelect = document.getElementById('modal-gov-select')
         const fpsSelect = document.getElementById('modal-fps-select')
+        const refreshSelect = document.getElementById('modal-refresh-select')
         const dndToggle = document.getElementById('modal-dnd-toggle')
         const saveBtn = document.getElementById('modal-save-btn')
         const modal = document.getElementById('game-settings-modal')
+
+        // Populate refresh rates
+        let rates = [60, 90, 120] // Fallback
+        if (webui.state.supportedRefreshRates && webui.state.supportedRefreshRates.length > 0) {
+            rates = webui.state.supportedRefreshRates
+        }
+
+        refreshSelect.innerHTML = '<option value="">Default (System)</option>'
+        rates.forEach(r => {
+            const opt = document.createElement('option')
+            opt.value = r
+            opt.textContent = `${r} Hz`
+            refreshSelect.appendChild(opt)
+        })
 
         loadCpuGovernors(webui, govSelect)
 
@@ -178,23 +193,28 @@ export async function openGameSettings(webui, pkg) {
             enableToggle.checked = true
             govSelect.value = activeProfile.cpu_governor || 'performance'
             fpsSelect.value = activeProfile.target_fps || ''
+            refreshSelect.value = activeProfile.refresh_rate || ''
             dndToggle.checked = activeProfile.enable_dnd || false
             govSelect.disabled = false
             fpsSelect.disabled = false
+            refreshSelect.disabled = false
             dndToggle.disabled = false
         } else {
             enableToggle.checked = false
             govSelect.value = 'performance'
             fpsSelect.value = ''
+            refreshSelect.value = ''
             dndToggle.checked = false
             govSelect.disabled = true
             fpsSelect.disabled = true
+            refreshSelect.disabled = true
             dndToggle.disabled = true
         }
 
         enableToggle.onchange = (e) => {
             govSelect.disabled = !e.target.checked
             fpsSelect.disabled = !e.target.checked
+            refreshSelect.disabled = !e.target.checked
             dndToggle.disabled = !e.target.checked
         }
 
@@ -202,9 +222,10 @@ export async function openGameSettings(webui, pkg) {
             const isEnabled = enableToggle.checked
             const gov = govSelect.value
             const fps = fpsSelect.value
+            const rate = refreshSelect.value
             const dnd = dndToggle.checked
 
-            await saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps)
+            await saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps, rate)
             modal.close()
         }
 
@@ -215,7 +236,7 @@ export async function openGameSettings(webui, pkg) {
     }
 }
 
-export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps) {
+export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps, rate) {
     const socketPath = '/dev/socket/auriya.sock'
 
     try {
@@ -231,6 +252,9 @@ export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps) {
             let updateCmd = `UPDATE_GAME ${pkg} gov=${gov} dnd=${dnd}`
             if (fps) {
                 updateCmd += ` fps=${fps}`
+            }
+            if (rate) {
+                updateCmd += ` rate=${rate}`
             }
 
             const res = await runCommand(`echo "${updateCmd}" | nc -U ${socketPath}`)

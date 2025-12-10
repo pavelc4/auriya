@@ -143,4 +143,18 @@ export async function loadSystemInfo() {
             icon.classList.remove('opacity-0')
         }
     }
+    if (window.webui) {
+        const socketPath = '/dev/socket/auriya.sock'
+        const output = await runCommand(`echo "GET_SUPPORTED_RATES" | nc -U ${socketPath}`)
+        if (output && !output.error && !output.startsWith('ERR')) {
+            try {
+                const rates = JSON.parse(output)
+                if (Array.isArray(rates)) {
+                    window.webui.state.supportedRefreshRates = rates
+                }
+            } catch (e) {
+                console.warn("Failed to parse supported rates", e)
+            }
+        }
+    }
 }
