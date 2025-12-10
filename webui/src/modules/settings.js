@@ -127,7 +127,11 @@ export async function loadSettings(webui) {
         const ratesRes = await runCommand(`echo "GET_SUPPORTED_RATES" | nc -U /dev/socket/auriya.sock`)
         if (ratesRes && !ratesRes.error && !ratesRes.startsWith('ERR')) {
             try {
-                const rates = JSON.parse(ratesRes)
+                // Remove the IPC handshake line "OK AURIYA IPC"
+                const cleanJson = ratesRes.split('\n')
+                    .filter(line => !line.startsWith('OK AURIYA'))
+                    .join('')
+                const rates = JSON.parse(cleanJson)
                 if (Array.isArray(rates)) {
                     webui.state.supportedRefreshRates = rates
                 }
