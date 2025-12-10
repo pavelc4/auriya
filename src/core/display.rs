@@ -20,6 +20,20 @@ pub async fn set_refresh_rate(hz: u32) -> Result<()> {
     Ok(())
 }
 
+pub async fn get_refresh_rate() -> Result<u32> {
+    let output = Command::new("settings")
+        .args(["get", "system", "min_refresh_rate"])
+        .output()
+        .await?;
+
+    let out_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if let Ok(val) = out_str.parse::<u32>() {
+        Ok(val)
+    } else {
+        Ok(0)
+    }
+}
+
 pub async fn reset_refresh_rate() -> Result<()> {
     debug!(target: "auriya::display", "Resetting refresh rate to auto");
 
