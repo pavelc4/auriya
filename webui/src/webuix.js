@@ -1,11 +1,13 @@
-import { exec, toast } from 'kernelsu-alt';
+import { exec } from 'kernelsu-alt';
 import { WXClass, WXEventHandler } from 'webuix';
+import ferrisIcon from './public/ferris_happy.svg';
+import ferrisSleepIcon from './public/ferris_sleep.svg';
 
 const MODULE_PATH = '/data/adb/modules/auriya';
 
-
 // Initialize Global Event Handler (Standard WebUI X pattern)
 window.wx = new WXEventHandler();
+// ... existing code ...
 
 class AuriyaWX extends WXClass {
     constructor() {
@@ -97,9 +99,41 @@ class AuriyaWX extends WXClass {
 }
 
 export const wx = new AuriyaWX();
+function showCustomToast(message) {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-2 pointer-events-none w-full max-w-sm px-4';
+        document.body.appendChild(container);
+    }
+
+    const isError = /error|failed|gagal/i.test(message);
+    const iconSrc = isError ? ferrisSleepIcon : ferrisIcon;
+
+    const toast = document.createElement('div');
+    toast.className = 'flex items-center gap-3 bg-surface-container-high/90 backdrop-blur-md border border-outline/10 shadow-xl text-on-surface p-3 pr-5 rounded-full transform transition-all duration-300 translate-y-10 opacity-0 scale-95';
+
+    toast.innerHTML = `
+        <div class="shrink-0 w-8 h-8 flex items-center justify-center">
+            <img src="${iconSrc}" class="w-full h-full object-contain" alt="Ferris">
+        </div>
+        <span class="font-medium text-sm line-clamp-2">${message}</span>
+    `;
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-10', 'opacity-0', 'scale-95');
+    });
+
+    setTimeout(() => {
+        toast.classList.add('translate-y-4', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
 
 export const runCommand = wx.runCommand.bind(wx);
-export const showToast = wx.showToast.bind(wx);
+export const showToast = showCustomToast;
 export const fileExists = wx.fileExists.bind(wx);
 export const readFile = wx.readFile.bind(wx);
 export const writeFile = wx.writeFile.bind(wx);
