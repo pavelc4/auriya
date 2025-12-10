@@ -176,10 +176,11 @@ export async function saveSettings(webui) {
 
 export async function setGlobalGovernor(gov) {
     try {
-        await runCommand(`/system/bin/sh -c 'echo ${gov} > /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'`)
+        // Use a loop to correctly handle wildcard expansion for multiple CPUS
+        await runCommand(`/system/bin/sh -c 'for path in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo ${gov} > "$path"; done'`)
 
-        // Also update standard linux path just in case
-        await runCommand(`/system/bin/sh -c 'echo ${gov} > /sys/devices/system/cpu/cpufreq/policy*/scaling_governor'`)
+        // Also update standard linux path just in case (policy*)
+        await runCommand(`/system/bin/sh -c 'for path in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do echo ${gov} > "$path"; done'`)
 
         import('kernelsu').then(ksu => ksu.toast(`Governor set to ${gov}`))
     } catch (e) {
