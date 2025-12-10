@@ -579,13 +579,11 @@ impl Daemon {
                             if let Err(e) = crate::core::display::set_refresh_rate(rr).await {
                                 error!(target: "auriya::display", ?e, "Failed to set refresh rate");
                             }
-                        } else {
-                            if self.supported_modes.is_empty() {
+                        } else if self.supported_modes.is_empty() {
                                 warn!(target: "auriya::display", "No supported modes cached, skipping refresh rate {}Hz for {}", rr, pkg);
                             } else {
                                 warn!(target: "auriya::display", "Refresh rate {}Hz not supported by device, skipping for {}", rr, pkg);
                             }
-                        }
                     } else if self.last.pkg.as_deref() != Some(pkg.as_str()) {
                     }
 
