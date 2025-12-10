@@ -44,9 +44,16 @@ pub enum Command {
     RemoveGame(String),
     ListPackages,
     GetGameList,
-    UpdateGame(String, Option<String>, Option<bool>, Option<u32>),
+    UpdateGame(
+        String,
+        Option<String>,
+        Option<bool>,
+        Option<u32>,
+        Option<u32>,
+    ),
     SetFps(u32),
     GetFps,
+    GetSupportedRates,
 }
 
 impl FromStr for Command {
@@ -79,6 +86,7 @@ impl FromStr for Command {
             },
 
             ["GET_FPS"] | ["GETFPS"] => Ok(Command::GetFps),
+            ["GET_SUPPORTED_RATES"] | ["GETRATES"] => Ok(Command::GetSupportedRates),
 
             ["INJECT", pkg] => Ok(Command::Inject(pkg.to_string())),
             ["CLEAR_INJECT"] | ["CLEARINJECT"] => Ok(Command::ClearInject),
@@ -96,7 +104,7 @@ impl FromStr for Command {
                 let mut governor = None;
                 let mut dnd = None;
                 let mut target_fps = None;
-
+                let mut refresh_rate = None;
                 for arg in rest {
                     if let Some(gov) = arg.strip_prefix("gov=") {
                         governor = Some(gov.to_string());
@@ -104,6 +112,8 @@ impl FromStr for Command {
                         dnd = Some(dnd_val.parse::<bool>().unwrap_or(true));
                     } else if let Some(fps_val) = arg.strip_prefix("fps=") {
                         target_fps = fps_val.parse::<u32>().ok();
+                    } else if let Some(rate_val) = arg.strip_prefix("rate=") {
+                        refresh_rate = rate_val.parse::<u32>().ok();
                     }
                 }
 
@@ -112,6 +122,7 @@ impl FromStr for Command {
                     governor,
                     dnd,
                     target_fps,
+                    refresh_rate,
                 ))
             }
 
@@ -274,6 +285,7 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     cpu_governor: "performance".to_string(),
                     enable_dnd: true,
                     target_fps: None,
+                    refresh_rate: None,
                 };
                 match gl.add(profile) {
                     Ok(_) => {
@@ -328,9 +340,9 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     Err(e) => format!("ERR GET_GAMELIST {:?}\n", e),
                 }
             }
-            Ok(Command::UpdateGame(pkg, gov, dnd, target_fps)) => {
+            Ok(Command::UpdateGame(pkg, gov, dnd, target_fps, refresh_rate)) => {
                 let mut gl = h.shared_config.write().unwrap();
-                match gl.update(&pkg, gov, dnd, target_fps) {
+                match gl.update(&pkg, gov, dnd, target_fps, refresh_rate) {
                     Ok(_) => {
                         if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
                             format!("ERR SAVE_GAMELIST {:?}\n", e)
@@ -348,6 +360,15 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
             Ok(Command::GetFps) => {
                 let fps = (h.get_fps)();
                 format!("FPS={}\n", fps)
+            }
+            Ok(Command::GetSupportedRates) => {
+                match crate::core::display::get_supported_refresh_rates().await {
+                    Ok(rates) => match serde_json::to_string(&rates) {
+                        Ok(json) => format!("{}\n", json),
+                        Err(e) => format!("ERR JSON {:?}\n", e),
+                    },
+                    Err(e) => format!("ERR GET_RATES {:?}\n", e),
+                }
             }
             Err(e) => format!("ERR {}\n", e),
         };

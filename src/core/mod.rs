@@ -1,4 +1,5 @@
 pub mod config;
+pub mod display;
 pub mod dumpsys;
 pub mod fas;
 pub mod frame;

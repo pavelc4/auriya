@@ -155,10 +155,11 @@ impl Daemon {
                 // Update FAS fps target if needed
                 if let Some(fas) = &self.fas_controller
                     && let Ok(mut f) = fas.lock()
-                         && f.get_target_fps() != new_settings.fas.target_fps {
-                            info!(target: "auriya::daemon", "Updating Global Target FPS to {}", new_settings.fas.target_fps);
-                            f.set_target_fps(new_settings.fas.target_fps);
-                        }
+                    && f.get_target_fps() != new_settings.fas.target_fps
+                {
+                    info!(target: "auriya::daemon", "Updating Global Target FPS to {}", new_settings.fas.target_fps);
+                    f.set_target_fps(new_settings.fas.target_fps);
+                }
             }
             Err(e) => {
                 error!(target: "auriya::daemon", "Failed to reload settings: {:?}", e);
@@ -522,6 +523,15 @@ impl Daemon {
                         }
                     }
 
+                    if let Some(rr) = game_cfg.and_then(|c| c.refresh_rate) {
+                        if let Err(e) = crate::core::display::set_refresh_rate(rr).await {
+                            error!(target: "auriya::display", ?e, "Failed to set refresh rate");
+                        }
+                    } else if self.last.pkg.as_deref() != Some(pkg.as_str()) {
+                        // Reset if no specific rate is set, but only if we switched apps
+                        let _ = crate::core::display::reset_refresh_rate().await;
+                    }
+
                     self.last.pkg = Some(pkg);
                     self.last.pid = Some(pid);
                 }
@@ -542,6 +552,7 @@ impl Daemon {
                     }
                     self.last.pkg = Some(pkg);
                     self.last.pid = None;
+                    let _ = crate::core::display::reset_refresh_rate().await;
                 }
             }
         } else {
