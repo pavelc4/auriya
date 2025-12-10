@@ -620,12 +620,11 @@ impl Daemon {
             }
         } else {
             if self.last.pkg.as_deref() != Some(pkg.as_str())
-                &&  let Some(last_pkg) = &self.last.pkg {
-                    if let Some(original_rate) = self.refresh_rate_map.remove(last_pkg) {
+                &&  let Some(last_pkg) = &self.last.pkg
+                    &&  let Some(original_rate) = self.refresh_rate_map.remove(last_pkg) {
                         info!(target: "auriya::display", "Restoring refresh rate for {} (Exited Game): {}Hz", last_pkg, original_rate);
                         let _ = crate::core::display::set_refresh_rate(original_rate).await;
                     }
-                }
 
             if self.last.profile_mode != Some(ProfileMode::Balance) {
                 if let Err(e) = profile::apply_balance(&self.balance_governor) {
