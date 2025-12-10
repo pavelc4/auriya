@@ -46,7 +46,7 @@ impl Default for DaemonConfig {
         let gamelist =
             crate::core::config::GameList::load(crate::core::config::gamelist_path()).unwrap();
         Self {
-            poll_interval: Duration::from_secs(2),
+            poll_interval: Duration::from_secs(1),
             settings,
             gamelist,
             log_debounce_ms: 2000,
@@ -100,10 +100,14 @@ pub struct Daemon {
 
     fas_controller: Option<Arc<Mutex<crate::daemon::fas::FasController>>>,
     balance_governor: String,
+    supported_modes: Vec<crate::core::display::DisplayMode>,
 }
 
 impl Daemon {
-    pub fn new(cfg: DaemonConfig) -> Result<Self> {
+    pub fn new(
+        cfg: DaemonConfig,
+        supported_modes: Vec<crate::core::display::DisplayMode>,
+    ) -> Result<Self> {
         let shared_settings = Arc::new(RwLock::new(cfg.settings.clone()));
         let shared_gamelist = Arc::new(RwLock::new(cfg.gamelist.clone()));
         let shared_current = Arc::new(RwLock::new(CurrentState::default()));
@@ -132,6 +136,7 @@ impl Daemon {
             error_debounce_ms: 30_000,
             fas_controller,
             balance_governor,
+            supported_modes,
         })
     }
 
@@ -240,6 +245,7 @@ impl Daemon {
             current_state: current_state.clone(),
             balance_governor: cfg.settings.cpu.default_governor.clone(),
             current_log_level,
+            supported_modes: Arc::new(self.supported_modes.clone()),
         };
 
         tokio::spawn(async move {
@@ -450,6 +456,7 @@ impl Daemon {
                         }
                         self.last.pkg = None;
                         self.last.pid = None;
+                        let _ = crate::core::display::reset_refresh_rate().await;
                     }
                     return Ok(());
                 }
@@ -524,8 +531,24 @@ impl Daemon {
                     }
 
                     if let Some(rr) = game_cfg.and_then(|c| c.refresh_rate) {
-                        if let Err(e) = crate::core::display::set_refresh_rate(rr).await {
-                            error!(target: "auriya::display", ?e, "Failed to set refresh rate");
+                        let is_supported = self.supported_modes.iter().any(|m| {
+                            (m.fps - rr as f32).abs() < 0.1 // Tolerance for float comparison
+                        });
+
+                        if is_supported {
+                            if let Err(e) = crate::core::display::set_refresh_rate(rr).await {
+                                error!(target: "auriya::display", ?e, "Failed to set refresh rate");
+                            }
+                        } else {
+                            // If cached modes is empty, we might be failing to parse, so maybe allow it?
+                            // Or better, just warn and strictly enforce if we have data.
+                            if self.supported_modes.is_empty() {
+                                // Fallback: try applying anyway if we have no data (better safe than sorry?)
+                                // Or safer: don't apply. Let's stick to safe: don't apply if not confirmed.
+                                warn!(target: "auriya::display", "No supported modes cached, skipping refresh rate {}Hz for {}", rr, pkg);
+                            } else {
+                                warn!(target: "auriya::display", "Refresh rate {}Hz not supported by device, skipping for {}", rr, pkg);
+                            }
                         }
                     } else if self.last.pkg.as_deref() != Some(pkg.as_str()) {
                         // Reset if no specific rate is set, but only if we switched apps
@@ -572,6 +595,7 @@ impl Daemon {
             }
             self.last.pkg = Some(pkg);
             self.last.pid = None;
+            let _ = crate::core::display::reset_refresh_rate().await;
         }
         Ok(())
     }
@@ -630,7 +654,19 @@ pub async fn run_with_config_and_logger(cfg: &DaemonConfig, reload: ReloadHandle
 pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) -> Result<()> {
     info!(target: "auriya::daemon", "Starting Auriya daemon...");
 
-    let mut daemon = Daemon::new(cfg.clone())?;
+    // Fetch supported modes on startup (async)
+    let supported_modes = match crate::core::display::get_app_supported_modes().await {
+        Ok(modes) => {
+            info!(target: "auriya::daemon", "Cached {} supported display modes", modes.len());
+            modes
+        }
+        Err(e) => {
+            error!(target: "auriya::daemon", "Failed to cache supported modes: {}", e);
+            Vec::new()
+        }
+    };
+
+    let mut daemon = Daemon::new(cfg.clone(), supported_modes)?;
 
     daemon.init_ipc(filter_handle).await;
 

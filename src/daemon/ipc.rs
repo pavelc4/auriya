@@ -142,6 +142,7 @@ pub struct IpcHandles {
     pub current_state: Arc<RwLock<CurrentState>>,
     pub balance_governor: String,
     pub current_log_level: Arc<RwLock<LogLevelCmd>>,
+    pub supported_modes: Arc<Vec<crate::core::display::DisplayMode>>,
 }
 
 const HELP: &str = "CMDS:
@@ -180,6 +181,7 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
             current_state: h.current_state.clone(),
             balance_governor: h.balance_governor.clone(),
             current_log_level: h.current_log_level.clone(),
+            supported_modes: h.supported_modes.clone(),
         };
         tokio::spawn(async move {
             if let Err(e) = handle_client(stream, hc).await {
@@ -362,12 +364,20 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 format!("FPS={}\n", fps)
             }
             Ok(Command::GetSupportedRates) => {
-                match crate::core::display::get_supported_refresh_rates().await {
-                    Ok(rates) => match serde_json::to_string(&rates) {
-                        Ok(json) => format!("{}\n", json),
-                        Err(e) => format!("ERR JSON {:?}\n", e),
-                    },
-                    Err(e) => format!("ERR GET_RATES {:?}\n", e),
+                use std::collections::HashSet;
+                // Extract unique FPS values from supported modes
+                let mut rates: Vec<u32> = h
+                    .supported_modes
+                    .iter()
+                    .map(|m| m.fps.round() as u32)
+                    .collect::<HashSet<_>>() // Dedup
+                    .into_iter()
+                    .collect();
+                rates.sort();
+
+                match serde_json::to_string(&rates) {
+                    Ok(json) => format!("{}\n", json),
+                    Err(e) => format!("ERR JSON {:?}\n", e),
                 }
             }
             Err(e) => format!("ERR {}\n", e),

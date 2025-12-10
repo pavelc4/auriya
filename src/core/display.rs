@@ -6,24 +6,17 @@ use tokio::process::Command;
 use tracing::debug;
 
 pub async fn set_refresh_rate(hz: u32) -> Result<()> {
-    match hz {
-        60 | 90 | 120 => {
-            debug!(target: "auriya::display", "Setting refresh rate to {}Hz", hz);
+    debug!(target: "auriya::display", "Setting refresh rate to {}Hz", hz);
 
-            let _ = Command::new("settings")
-                .args(["put", "system", "min_refresh_rate", &hz.to_string()])
-                .status()
-                .await?;
+    let _ = Command::new("settings")
+        .args(["put", "system", "min_refresh_rate", &hz.to_string()])
+        .status()
+        .await?;
 
-            let _ = Command::new("settings")
-                .args(["put", "system", "peak_refresh_rate", &hz.to_string()])
-                .status()
-                .await?;
-        }
-        _ => {
-            debug!(target: "auriya::display", "Ignoring unsupported refresh rate: {}Hz", hz);
-        }
-    }
+    let _ = Command::new("settings")
+        .args(["put", "system", "peak_refresh_rate", &hz.to_string()])
+        .status()
+        .await?;
     Ok(())
 }
 
@@ -32,6 +25,11 @@ pub async fn reset_refresh_rate() -> Result<()> {
 
     let _ = Command::new("settings")
         .args(["put", "system", "min_refresh_rate", "0"])
+        .status()
+        .await?;
+
+    let _ = Command::new("settings")
+        .args(["put", "system", "peak_refresh_rate", "0"])
         .status()
         .await?;
 
