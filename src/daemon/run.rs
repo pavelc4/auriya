@@ -514,17 +514,15 @@ impl Daemon {
                         info!(target: "auriya::daemon", "Foreground {} PID={}", pkg, pid);
                         bump_log(&mut self.last);
                     }
-                    if self.last.pkg.as_deref() != Some(pkg.as_str()) {
-                        if let Some(last_pkg) = &self.last.pkg {
-                            if let Some(original_rate) = self.refresh_rate_map.remove(last_pkg) {
-                                info!(target: "auriya::display", "Restoring refresh rate for {}: {}Hz", last_pkg, original_rate);
-                                if let Err(e) =
-                                    crate::core::display::set_refresh_rate(original_rate).await
-                                {
-                                    error!(target: "auriya::display", ?e, "Failed to restore refresh rate");
-                                }
-                            }
-                        }
+                    if self.last.pkg.as_deref() != Some(pkg.as_str())
+                      && let Some(last_pkg) = &self.last.pkg
+                         && let Some(original_rate) = self.refresh_rate_map.remove(last_pkg) {
+	                         info!(target: "auriya::display", "Restoring refresh rate for {}: {}Hz", last_pkg, original_rate);
+	                         if let Err(e) =
+	                             crate::core::display::set_refresh_rate(original_rate).await
+	                         {
+	                             error!(target: "auriya::display", ?e, "Failed to restore refresh rate");
+	                         }
                     }
 
                     let game_cfg = gamelist.find(&pkg);
