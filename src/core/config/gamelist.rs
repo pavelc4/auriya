@@ -17,6 +17,8 @@ pub struct GameProfile {
     pub target_fps: Option<u32>,
     #[serde(default)]
     pub refresh_rate: Option<u32>,
+    #[serde(default)]
+    pub mode: Option<String>,
 }
 
 impl GameList {
@@ -78,6 +80,7 @@ impl GameList {
         dnd: Option<bool>,
         target_fps: Option<u32>,
         refresh_rate: Option<u32>,
+        mode: Option<String>,
     ) -> Result<()> {
         if let Some(profile) = self.game.iter_mut().find(|g| g.package == package) {
             if let Some(gov) = governor {
@@ -91,6 +94,9 @@ impl GameList {
             }
             if refresh_rate.is_some() {
                 profile.refresh_rate = refresh_rate;
+            }
+            if let Some(m) = mode {
+                profile.mode = Some(m);
             }
             Ok(())
         } else {

@@ -315,13 +315,27 @@
             <div class="modal-box bg-surface-container text-on-surface">
                 <h3 class="font-bold text-lg mb-4" id="modal-pkg-name">Package Name</h3>
                 <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="font-medium">Enable Optimization</p>
-                            <p class="text-xs opacity-70">Apply performance profile</p>
-                        </div>
-                        <input type="checkbox" id="modal-enable-toggle" class="toggle toggle-primary" />
+                    <div class="form-control mb-4">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            <span class="label-text font-medium text-base text-on-surface">Do Not Disturb (DND)</span>
+                            <input type="checkbox" id="modal-dnd-toggle" class="toggle toggle-primary" />
+                        </label>
                     </div>
+
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span
+                                class="label-text text-on-surface-variant text-xs font-bold uppercase tracking-wide">Profile
+                                Mode</span>
+                        </label>
+                        <select id="modal-mode-select"
+                            class="select select-bordered w-full bg-surface-container-high text-on-surface">
+                            <option value="performance">Performance</option>
+                            <option value="balance">Balance</option>
+                            <option value="powersave">Powersave</option>
+                        </select>
+                    </div>
+
                     <div class="form-control w-full">
                         <label class="label"><span class="label-text text-on-surface">CPU Governor</span></label>
                         <select id="modal-gov-select"

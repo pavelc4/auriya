@@ -518,15 +518,31 @@ impl Daemon {
                         .map(|c| &c.cpu_governor[..])
                         .unwrap_or("performance");
                     let enable_dnd = game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
+                    let target_mode = game_cfg
+                        .and_then(|c| c.mode.as_deref())
+                        .map(|m| match m.to_lowercase().as_str() {
+                            "powersave" => ProfileMode::Powersave,
+                            "balance" => ProfileMode::Balance,
+                            _ => ProfileMode::Performance,
+                        })
+                        .unwrap_or(ProfileMode::Performance);
 
-                    if self.last.profile_mode != Some(ProfileMode::Performance) {
-                        if let Err(e) =
-                            profile::apply_performance_with_config(governor, enable_dnd, Some(pid))
-                        {
-                            error!(target: "auriya::profile", ?e, "Failed to apply PERFORMANCE");
+                    if self.last.profile_mode != Some(target_mode) {
+                        let res = match target_mode {
+                            ProfileMode::Performance => profile::apply_performance_with_config(
+                                governor,
+                                enable_dnd,
+                                Some(pid),
+                            ),
+                            ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
+                            ProfileMode::Powersave => profile::apply_powersave(),
+                        };
+
+                        if let Err(e) = res {
+                            error!(target: "auriya::profile", ?e, "Failed to apply {:?}", target_mode);
                         } else {
-                            info!(target: "auriya::daemon", "Applied PERFORMANCE for {} (governor: {}, dnd: {})", pkg, governor, enable_dnd);
-                            self.last.profile_mode = Some(ProfileMode::Performance);
+                            info!(target: "auriya::daemon", "Applied {:?} for {} (governor: {}, dnd: {})", target_mode, pkg, governor, enable_dnd);
+                            self.last.profile_mode = Some(target_mode);
                         }
                     }
 

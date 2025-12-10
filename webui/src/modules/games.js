@@ -170,6 +170,7 @@ export async function openGameSettings(webui, pkg) {
         const fpsSelect = document.getElementById('modal-fps-select')
         const refreshSelect = document.getElementById('modal-refresh-select')
         const dndToggle = document.getElementById('modal-dnd-toggle')
+        const modeSelect = document.getElementById('modal-mode-select') // New element
         const saveBtn = document.getElementById('modal-save-btn')
         const modal = document.getElementById('game-settings-modal')
 
@@ -195,20 +196,30 @@ export async function openGameSettings(webui, pkg) {
             fpsSelect.value = activeProfile.target_fps || ''
             refreshSelect.value = activeProfile.refresh_rate || ''
             dndToggle.checked = activeProfile.enable_dnd || false
+
+            // Set mode, default to performance if not present (legacy compat)
+            if (modeSelect) {
+                modeSelect.value = activeProfile.mode || 'performance'
+            }
+
             govSelect.disabled = false
             fpsSelect.disabled = false
             refreshSelect.disabled = false
             dndToggle.disabled = false
+            if (modeSelect) modeSelect.disabled = false
         } else {
             enableToggle.checked = false
             govSelect.value = 'performance'
             fpsSelect.value = ''
             refreshSelect.value = ''
             dndToggle.checked = false
+            if (modeSelect) modeSelect.value = 'performance'
+
             govSelect.disabled = true
             fpsSelect.disabled = true
             refreshSelect.disabled = true
             dndToggle.disabled = true
+            if (modeSelect) modeSelect.disabled = true
         }
 
         enableToggle.onchange = (e) => {
@@ -216,6 +227,7 @@ export async function openGameSettings(webui, pkg) {
             fpsSelect.disabled = !e.target.checked
             refreshSelect.disabled = !e.target.checked
             dndToggle.disabled = !e.target.checked
+            if (modeSelect) modeSelect.disabled = !e.target.checked
         }
 
         saveBtn.onclick = async () => {
@@ -224,8 +236,9 @@ export async function openGameSettings(webui, pkg) {
             const fps = fpsSelect.value
             const rate = refreshSelect.value
             const dnd = dndToggle.checked
+            const mode = modeSelect ? modeSelect.value : 'performance'
 
-            await saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps, rate)
+            await saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps, rate, mode)
             modal.close()
         }
 
@@ -236,7 +249,7 @@ export async function openGameSettings(webui, pkg) {
     }
 }
 
-export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps, rate) {
+export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps, rate, mode) {
     const socketPath = '/dev/socket/auriya.sock'
 
     try {
@@ -249,7 +262,7 @@ export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps, rat
 
             }
 
-            let updateCmd = `UPDATE_GAME ${pkg} gov=${gov} dnd=${dnd}`
+            let updateCmd = `UPDATE_GAME ${pkg} gov=${gov} dnd=${dnd} mode=${mode}`
             if (fps) {
                 updateCmd += ` fps=${fps}`
             }

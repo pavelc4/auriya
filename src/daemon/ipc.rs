@@ -50,6 +50,7 @@ pub enum Command {
         Option<bool>,
         Option<u32>,
         Option<u32>,
+        Option<String>,
     ),
     SetFps(u32),
     GetFps,
@@ -105,6 +106,8 @@ impl FromStr for Command {
                 let mut dnd = None;
                 let mut target_fps = None;
                 let mut refresh_rate = None;
+                let mut mode = None;
+
                 for arg in rest {
                     if let Some(gov) = arg.strip_prefix("gov=") {
                         governor = Some(gov.to_string());
@@ -114,6 +117,8 @@ impl FromStr for Command {
                         target_fps = fps_val.parse::<u32>().ok();
                     } else if let Some(rate_val) = arg.strip_prefix("rate=") {
                         refresh_rate = rate_val.parse::<u32>().ok();
+                    } else if let Some(mode_val) = arg.strip_prefix("mode=") {
+                        mode = Some(mode_val.to_string());
                     }
                 }
 
@@ -123,6 +128,7 @@ impl FromStr for Command {
                     dnd,
                     target_fps,
                     refresh_rate,
+                    mode,
                 ))
             }
 
@@ -288,6 +294,7 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     enable_dnd: true,
                     target_fps: None,
                     refresh_rate: None,
+                    mode: Some("performance".to_string()),
                 };
                 match gl.add(profile) {
                     Ok(_) => {
@@ -342,9 +349,9 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     Err(e) => format!("ERR GET_GAMELIST {:?}\n", e),
                 }
             }
-            Ok(Command::UpdateGame(pkg, gov, dnd, target_fps, refresh_rate)) => {
+            Ok(Command::UpdateGame(pkg, gov, dnd, target_fps, refresh_rate, mode)) => {
                 let mut gl = h.shared_config.write().unwrap();
-                match gl.update(&pkg, gov, dnd, target_fps, refresh_rate) {
+                match gl.update(&pkg, gov, dnd, target_fps, refresh_rate, mode) {
                     Ok(_) => {
                         if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
                             format!("ERR SAVE_GAMELIST {:?}\n", e)
