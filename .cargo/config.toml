@@ -3,36 +3,27 @@ ar = "/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-a
 linker = "/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
 
 rustflags = [
-    "-C", "target-cpu=generic",
-    "-C", "target-feature=+neon,+crc",
-    "-C", "link-arg=-fuse-ld=lld",
-    "-C", "link-arg=-Wl,--icf=all",
-    "-C", "link-arg=-Wl,-O3",
-    "-C", "link-arg=-Wl,--gc-sections",
-    "-C", "link-arg=-Wl,--strip-all",
-    "-C", "link-arg=-Wl,--as-needed",
-    "-C", "embed-bitcode=yes",
-    "-C", "llvm-args=-enable-machine-outliner",
+    "-C",
+    "target-cpu=generic",
+    "-C",
+    "target-feature=+neon,+crc",
+    "-C",
+    "link-arg=-fuse-ld=lld",
+    "-C",
+    "link-arg=-Wl,--icf=all",
+    "-C",
+    "link-arg=-Wl,-O3",
+    "-C",
+    "link-arg=-Wl,--gc-sections",
+    "-C",
+    "link-arg=-Wl,--strip-all",
+    "-C",
+    "link-arg=-Wl,--as-needed",
+    "-C",
+    "embed-bitcode=yes",
+    "-C",
+    "llvm-args=-enable-machine-outliner",
 ]
 
 [build]
 target = "aarch64-linux-android"
-
-[profile.release]
-opt-level = "z"
-lto = "fat"
-codegen-units = 1
-strip = "symbols"
-debug = false
-panic = "abort"
-overflow-checks = false
-debug-assertions = false
-incremental = false
-rpath = false
-
-[profile.release.build-override]
-opt-level = 0
-
-[profile.release.package."*"]
-opt-level = "z"
-strip = "symbols"

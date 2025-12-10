@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use regex::Regex;
+
 use serde::{Deserialize, Serialize};
 
 use tokio::process::Command;
@@ -96,22 +96,44 @@ fn parse_app_supported_modes(input: &str) -> Result<Vec<DisplayMode>> {
     }
 
     let modes_str = &rest[..end_idx];
-
-    let re = Regex::new(r"id=(\d+), width=(\d+), height=(\d+), fps=([\d\.]+)")?;
     let mut modes = Vec::new();
 
-    for caps in re.captures_iter(modes_str) {
-        let id = caps[1].parse()?;
-        let width = caps[2].parse()?;
-        let height = caps[3].parse()?;
-        let fps = caps[4].parse()?;
+    let mut start = 0;
+    let mut in_brace = false;
+    for (i, c) in modes_str.char_indices() {
+        if c == '{' && !in_brace {
+            start = i + 1;
+            in_brace = true;
+        } else if c == '}' && in_brace {
+            let chunk = &modes_str[start..i];
+            in_brace = false;
 
-        modes.push(DisplayMode {
-            id,
-            width,
-            height,
-            fps,
-        });
+            let mut id = 0;
+            let mut width = 0;
+            let mut height = 0;
+            let mut fps = 0.0;
+
+            for part in chunk.split(", ") {
+                let kv: Vec<&str> = part.split('=').collect();
+                if kv.len() == 2 {
+                    match kv[0] {
+                        "id" => id = kv[1].parse().unwrap_or_default(),
+                        "width" => width = kv[1].parse().unwrap_or_default(),
+                        "height" => height = kv[1].parse().unwrap_or_default(),
+                        "fps" => fps = kv[1].parse().unwrap_or_default(),
+                        _ => {}
+                    }
+                }
+            }
+            if id != 0 {
+                modes.push(DisplayMode {
+                    id,
+                    width,
+                    height,
+                    fps,
+                });
+            }
+        }
     }
 
     Ok(modes)

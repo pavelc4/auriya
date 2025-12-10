@@ -3,6 +3,13 @@ name = "auriya"
 version = "1.0.0"
 edition = "2024"
 
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
 [dependencies]
 anyhow = "1.0.100"
 notify = "8.2.0"
@@ -31,4 +38,3 @@ tracing-subscriber = { version = "0.3.20", default-features = false, features = 
 ] }
 log = "0.4.28"
 android_logger = "0.15.1"
-regex = "1.12.2"
