@@ -9,8 +9,9 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "kernelsu": "^2.1.1",
-        "smol-toml": "^1.5.2"
+        "kernelsu-alt": "^2.1.2",
+        "smol-toml": "^1.5.2",
+        "webuix": "^0.0.18"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

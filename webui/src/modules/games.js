@@ -1,4 +1,4 @@
-import { toast } from 'kernelsu'
+import { showToast } from '../webuix.js'
 import { runCommand } from './utils.js'
 import { loadCpuGovernors } from './settings.js'
 
@@ -123,7 +123,7 @@ export function renderGameList(webui) {
             : 'bg-surface-container-highest/30 border-outline/5 hover:bg-surface-container-highest/50'
 
         const iconClass = isEnabled
-            ? 'bg-[var(--primary)] text-[var(--on-primary)] shadow-md'
+            ? 'bg-[var(--primary)] text-[var(--onPrimary)] shadow-md'
             : 'bg-surface-variant/10 text-on-surface-variant/70'
 
         const iconName = isEnabled ? 'sports_esports' : 'android'
@@ -278,7 +278,7 @@ export async function openGameSettings(webui, pkg) {
 
     } catch (e) {
         console.error("openGameSettings failed", e)
-        toast(`Error opening settings: ${e.message}`)
+        showToast(`Error opening settings: ${e.message}`)
     }
 }
 
@@ -306,11 +306,11 @@ export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps, rat
             const res = await runCommand(`echo "${updateCmd}" | nc -U ${socketPath}`)
 
 
-            toast(`Saved settings for ${pkg}`)
+            showToast(`Saved settings for ${pkg}`)
         } else {
 
             await runCommand(`echo "REMOVE_GAME ${pkg}" | nc -U ${socketPath}`)
-            toast(`Removed ${pkg} from optimization`)
+            showToast(`Removed ${pkg} from optimization`)
         }
 
 
@@ -319,6 +319,6 @@ export async function saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps, rat
         await loadActiveGames(webui)
     } catch (e) {
         console.error("Save failed", e)
-        toast(`Save failed: ${e.message}`)
+        showToast(`Save failed: ${e.message}`)
     }
 }

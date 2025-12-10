@@ -182,7 +182,7 @@ export async function setGlobalGovernor(gov) {
         // Also update standard linux path just in case (policy*)
         await runCommand(`/system/bin/sh -c 'for path in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do echo ${gov} > "$path"; done'`)
 
-        import('kernelsu').then(ksu => ksu.toast(`Governor set to ${gov}`))
+        import('../webuix.js').then(wx => wx.showToast(`Governor set to ${gov}`))
     } catch (e) {
         console.error("Failed to set governor", e)
     }
@@ -259,12 +259,12 @@ export async function exportLogs() {
         const zipRes = await runCommand(`tar -czf /sdcard/Download/AuriyaLogs.tar.gz -C /sdcard/Download AuriyaLogs`)
 
         if (zipRes && !zipRes.error) {
-            import('kernelsu').then(ksu => ksu.toast(`Logs exported to /sdcard/Download/AuriyaLogs.tar.gz`))
+            import('../webuix.js').then(wx => wx.showToast(`Logs exported to /sdcard/Download/AuriyaLogs.tar.gz`))
         } else {
-            import('kernelsu').then(ksu => ksu.toast(`Logs exported to ${logDir}`))
+            import('../webuix.js').then(wx => wx.showToast(`Logs exported to ${logDir}`))
         }
     } catch (e) {
         console.error("Log export failed", e)
-        import('kernelsu').then(ksu => ksu.toast(`Export failed: ${e.message}`))
+        import('../webuix.js').then(wx => wx.showToast(`Export failed: ${e.message}`))
     }
 }

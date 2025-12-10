@@ -1,6 +1,6 @@
 import { setupTheme } from './modules/theme.js'
 import { setupNavigation } from './modules/navigation.js'
-import { setupEasterEgg } from './modules/easterEgg.js'
+
 import { loadSystemInfo } from './modules/system.js'
 import { loadSettings, saveSettings, setupSettings } from './modules/settings.js'
 import { loadPackages, loadActiveGames, renderGameList, openGameSettings, saveGameSettings, setupGames } from './modules/games.js'
@@ -27,7 +27,7 @@ export class WebUI {
 	async init() {
 		setupTheme()
 		setupNavigation(this)
-		setupEasterEgg()
+
 		setupGames(this)
 		setupSettings(this)
 		this.setupEventListeners()
@@ -42,7 +42,7 @@ export class WebUI {
 	}
 
 	setupEventListeners() {
-		// --- 1. Donate Button (ID: donate-btn) ---
+
 		const donateBtn = document.getElementById('donate-btn')
 		if (donateBtn) {
 			donateBtn.addEventListener('click', (e) => {
@@ -51,8 +51,6 @@ export class WebUI {
 			})
 		}
 
-		// --- 2. GitHub Button (Star on GitHub) ---
-		// Selector mencari link yang mengandung URL github repo
 		const githubBtn = document.querySelector('a[href*="github.com/Pavelc4/Auriya"]')
 		if (githubBtn) {
 			githubBtn.addEventListener('click', (e) => {
@@ -61,8 +59,6 @@ export class WebUI {
 			})
 		}
 
-		// --- 3. Telegram Channel (Follow For Update) ---
-		// Selector mencari link yang mengandung t.me/pvlcply
 		const telegramBtn = document.querySelector('a[href*="t.me/pvlcply"]')
 		if (telegramBtn) {
 			telegramBtn.addEventListener('click', (e) => {
@@ -71,8 +67,6 @@ export class WebUI {
 			})
 		}
 
-		// --- 4. Join Community Button (Discussion) ---
-		// Selector mencari link group diskusi
 		const joinBtn = document.querySelector('a[href*="t.me/XtraManagerSoftware"]')
 		if (joinBtn) {
 			joinBtn.addEventListener('click', (e) => {
@@ -81,7 +75,6 @@ export class WebUI {
 			})
 		}
 
-		// --- 5. Contributors Link ---
 		const contribLink = document.querySelector('a[href*="github.com/pavelc4/auriya/graphs/contributors"]')
 		if (contribLink) {
 			contribLink.addEventListener('click', (e) => {
@@ -90,7 +83,7 @@ export class WebUI {
 			})
 		}
 
-		// --- 6. Creator Profile Link ---
+
 		const creatorLink = document.querySelector('a[href="https://github.com/pavelc4"]')
 		if (creatorLink) {
 			creatorLink.addEventListener('click', (e) => {
