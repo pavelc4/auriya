@@ -163,24 +163,53 @@ export async function openGameSettings(webui, pkg) {
     try {
         const activeProfile = webui.state.activeGames.find(g => g.package === pkg)
 
-        document.getElementById('modal-pkg-name').textContent = pkg
+        // View Switching
+        const settingsView = document.getElementById('view-game-settings')
+        const gamesView = document.getElementById('view-games')
 
-        const enableToggle = document.getElementById('modal-enable-toggle')
-        const govSelect = document.getElementById('modal-gov-select')
-        const fpsSelect = document.getElementById('modal-fps-select')
-        const refreshSelect = document.getElementById('modal-refresh-select')
-        const dndToggle = document.getElementById('modal-dnd-toggle')
-        const modeSelect = document.getElementById('modal-mode-select') // New element
-        const saveBtn = document.getElementById('modal-save-btn')
-        const modal = document.getElementById('game-settings-modal')
+        // Hide bottom nav when in settings
+        const nav = document.querySelector('.fixed.bottom-4')
+        if (nav) nav.classList.add('hidden')
 
-        // Populate refresh rates
-        let rates = [60, 90, 120] // Fallback
+        gamesView.classList.add('hidden')
+        settingsView.classList.remove('hidden')
+
+        // Element Refs
+        document.getElementById('settings-pkg-name').textContent = pkg
+
+        const backBtn = document.getElementById('settings-back-btn')
+        const enableToggle = document.getElementById('settings-enable-toggle')
+        const govSelect = document.getElementById('settings-gov-select')
+        const fpsSelect = document.getElementById('settings-fps-select')
+        const refreshSelect = document.getElementById('settings-refresh-select')
+        const dndToggle = document.getElementById('settings-dnd-toggle')
+        const saveBtn = document.getElementById('settings-save-btn')
+
+        // Mode Radio Buttons
+        const setMode = (mode) => {
+            const radio = document.querySelector(`input[name="mode"][value="${mode}"]`)
+            if (radio) radio.checked = true
+        }
+
+        const getMode = () => {
+            const radio = document.querySelector('input[name="mode"]:checked')
+            return radio ? radio.value : 'performance'
+        }
+
+        // Back Button Logic
+        backBtn.onclick = () => {
+            settingsView.classList.add('hidden')
+            gamesView.classList.remove('hidden')
+            if (nav) nav.classList.remove('hidden')
+        }
+
+        // Populate Refresh Rates
+        let rates = [60, 90, 120]
         if (webui.state.supportedRefreshRates && webui.state.supportedRefreshRates.length > 0) {
             rates = webui.state.supportedRefreshRates
         }
 
-        refreshSelect.innerHTML = '<option value="">Default (System)</option>'
+        refreshSelect.innerHTML = '<option value="">Default</option>'
         rates.forEach(r => {
             const opt = document.createElement('option')
             opt.value = r
@@ -190,45 +219,48 @@ export async function openGameSettings(webui, pkg) {
 
         loadCpuGovernors(webui, govSelect)
 
+        // Set State
         if (activeProfile) {
             enableToggle.checked = true
             govSelect.value = activeProfile.cpu_governor || 'performance'
             fpsSelect.value = activeProfile.target_fps || ''
             refreshSelect.value = activeProfile.refresh_rate || ''
             dndToggle.checked = activeProfile.enable_dnd || false
-
-            // Set mode, default to performance if not present (legacy compat)
-            if (modeSelect) {
-                modeSelect.value = activeProfile.mode || 'performance'
-            }
+            setMode(activeProfile.mode || 'performance')
 
             govSelect.disabled = false
             fpsSelect.disabled = false
             refreshSelect.disabled = false
             dndToggle.disabled = false
-            if (modeSelect) modeSelect.disabled = false
+            // Radios handled via CSS/Group disabling if needed, strictly speaking logic is cleaner if inputs are disabled.
+            // But for now, we just rely on enableToggle logic below.
         } else {
             enableToggle.checked = false
             govSelect.value = 'performance'
             fpsSelect.value = ''
             refreshSelect.value = ''
             dndToggle.checked = false
-            if (modeSelect) modeSelect.value = 'performance'
+            setMode('performance')
 
             govSelect.disabled = true
             fpsSelect.disabled = true
             refreshSelect.disabled = true
             dndToggle.disabled = true
-            if (modeSelect) modeSelect.disabled = true
         }
 
+        // Toggle Logic
         enableToggle.onchange = (e) => {
-            govSelect.disabled = !e.target.checked
-            fpsSelect.disabled = !e.target.checked
-            refreshSelect.disabled = !e.target.checked
-            dndToggle.disabled = !e.target.checked
-            if (modeSelect) modeSelect.disabled = !e.target.checked
+            const disabled = !e.target.checked
+            govSelect.disabled = disabled
+            fpsSelect.disabled = disabled
+            refreshSelect.disabled = disabled
+            dndToggle.disabled = disabled
+            // Disable radio inputs too
+            document.querySelectorAll('input[name="mode"]').forEach(r => r.disabled = disabled)
         }
+
+        // Initialize radio state
+        document.querySelectorAll('input[name="mode"]').forEach(r => r.disabled = !enableToggle.checked)
 
         saveBtn.onclick = async () => {
             const isEnabled = enableToggle.checked
@@ -236,13 +268,14 @@ export async function openGameSettings(webui, pkg) {
             const fps = fpsSelect.value
             const rate = refreshSelect.value
             const dnd = dndToggle.checked
-            const mode = modeSelect ? modeSelect.value : 'performance'
+            const mode = getMode()
 
             await saveGameSettings(webui, pkg, isEnabled, gov, dnd, fps, rate, mode)
-            modal.close()
+
+            // Return to list after save
+            backBtn.click()
         }
 
-        modal.showModal()
     } catch (e) {
         console.error("openGameSettings failed", e)
         toast(`Error opening settings: ${e.message}`)

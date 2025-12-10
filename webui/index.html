@@ -311,86 +311,127 @@
             </div>
         </div>
 
-        <dialog id="game-settings-modal" class="modal modal-bottom sm:modal-middle">
-            <div class="modal-box bg-surface-container text-on-surface">
-                <h3 class="font-bold text-lg mb-4" id="modal-pkg-name">Package Name</h3>
-                <div class="space-y-4">
-                    <div class="form-control mb-4">
-                        <label class="label cursor-pointer justify-start gap-4">
-                            <span class="label-text font-medium text-base text-on-surface">Enable Optimization</span>
-                            <input type="checkbox" id="modal-enable-toggle" class="toggle toggle-primary" />
+        <div id="view-game-settings" class="view-section hidden space-y-6 pb-20">
+            <div class="flex items-center gap-4 pt-2">
+                <button id="settings-back-btn"
+                    class="btn btn-circle btn-ghost bg-surface-container-high text-on-surface hover:bg-surface-variant/20">
+                    <span class="material-symbols-rounded">arrow_back</span>
+                </button>
+                <div class="flex flex-col">
+                    <h2 class="text-xl font-bold leading-tight" id="settings-pkg-name">Package Name</h2>
+                    <span class="text-xs opacity-60">Game Configuration</span>
+                </div>
+            </div>
+
+            <div class="bg-surface-container p-6 rounded-[32px] card_border text-on-surface space-y-5">
+                <!-- Main Toggles -->
+                <div class="flex items-center justify-between p-2">
+                    <div>
+                        <p class="font-bold text-lg">Optimization</p>
+                        <p class="text-xs opacity-60">Enable Auriya for this app</p>
+                    </div>
+                    <input type="checkbox" id="settings-enable-toggle" class="toggle  toggle-lg" />
+                </div>
+
+                <div class="divider my-0 opacity-10"></div>
+
+                <div class="flex items-center justify-between p-2">
+                    <div>
+                        <p class="font-bold text-lg">Do Not Disturb</p>
+                        <p class="text-xs opacity-60">Block notifications while playing</p>
+                    </div>
+                    <input type="checkbox" id="settings-dnd-toggle" class="toggle " />
+                </div>
+
+                <div class="divider my-0 opacity-10"></div>
+
+                <!-- Mode Selection -->
+                <div class="space-y-3 pt-2">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-rounded text-[var(--primary)]">tune</span>
+                        <span class="font-bold">Performance Mode</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="mode" value="powersave" class="peer sr-only" id="mode-powersave">
+                            <div
+                                class="p-3 rounded-2xl bg-surface-container-high border-2 border-transparent peer-checked:border-[var(--primary)] peer-checked:bg-[var(--primary)]/10 text-center transition-all">
+                                <span class="material-symbols-rounded block mb-1">battery_saver</span>
+                                <span class="text-xs font-bold">Save</span>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="mode" value="balance" class="peer sr-only" id="mode-balance">
+                            <div
+                                class="p-3 rounded-2xl bg-surface-container-high border-2 border-transparent peer-checked:border-[var(--primary)] peer-checked:bg-[var(--primary)]/10 text-center transition-all">
+                                <span class="material-symbols-rounded block mb-1">balance</span>
+                                <span class="text-xs font-bold">Balance</span>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="mode" value="performance" class="peer sr-only"
+                                id="mode-performance">
+                            <div
+                                class="p-3 rounded-2xl bg-surface-container-high border-2 border-transparent peer-checked:border-[var(--primary)] peer-checked:bg-[var(--primary)]/10 text-center transition-all">
+                                <span class="material-symbols-rounded block mb-1">rocket_launch</span>
+                                <span class="text-xs font-bold">Perf</span>
+                            </div>
                         </label>
                     </div>
+                </div>
+            </div>
 
-                    <div class="form-control mb-4">
-                        <label class="label cursor-pointer justify-start gap-4">
-                            <span class="label-text font-medium text-base text-on-surface">Do Not Disturb (DND)</span>
-                            <input type="checkbox" id="modal-dnd-toggle" class="toggle toggle-primary" />
-                        </label>
-                    </div>
+            <!-- Advanced Settings -->
+            <div class="bg-surface-container p-6 rounded-[32px] card_border text-on-surface space-y-4">
+                <h3 class="font-bold opacity-80 px-2">Advanced Config</h3>
 
-                    <div class="form-control mb-4">
-                        <label class="label">
-                            <span
-                                class="label-text text-on-surface-variant text-xs font-bold uppercase tracking-wide">Profile
-                                Mode</span>
-                        </label>
-                        <select id="modal-mode-select"
-                            class="select select-bordered w-full bg-surface-container-high text-on-surface">
-                            <option value="performance">Performance</option>
-                            <option value="balance">Balance</option>
-                            <option value="powersave">Powersave</option>
-                        </select>
-                    </div>
-
+                <div class="grid gap-4">
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text text-on-surface">CPU Governor</span></label>
-                        <select id="modal-gov-select"
-                            class="select select-bordered w-full bg-surface-container-high focus:border-[var(--primary)]">
+                        <label class="label"><span class="label-text text-on-surface font-medium">CPU
+                                Governor</span></label>
+                        <select id="settings-gov-select"
+                            class="select select-bordered w-full bg-surface-container-high focus:border-[var(--primary)] h-12 rounded-2xl">
                             <option value="performance">performance</option>
-                            <option value="schedutil" selected>schedutil</option>
+                            <option value="schedutil">schedutil</option>
                             <option value="powersave">powersave</option>
                             <option value="interactive">interactive</option>
                         </select>
                     </div>
-                    <div class="form-control w-full">
-                        <label class="label"><span class="label-text text-on-surface">Target FPS</span></label>
-                        <select id="modal-fps-select"
-                            class="select select-bordered w-full bg-surface-container-high focus:border-[var(--primary)]">
-                            <option value="">Default (Global)</option>
-                            <option value="30">30 FPS</option>
-                            <option value="45">45 FPS</option>
-                            <option value="60">60 FPS</option>
-                            <option value="90">90 FPS</option>
-                            <option value="120">120 FPS</option>
-                        </select>
-                    </div>
-                    <div class="form-control w-full">
-                        <label class="label"><span class="label-text text-on-surface">Refresh Rate</span></label>
-                        <select id="modal-refresh-select"
-                            class="select select-bordered w-full bg-surface-container-high focus:border-[var(--primary)]">
-                            <option value="">Default (System)</option>
-                        </select>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="font-medium">Do Not Disturb</p>
-                            <p class="text-xs opacity-70">Silence notifications</p>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text text-on-surface font-medium">Target
+                                    FPS</span></label>
+                            <select id="settings-fps-select"
+                                class="select select-bordered w-full bg-surface-container-high focus:border-[var(--primary)] h-12 rounded-2xl">
+                                <option value="">Default</option>
+                                <option value="30">30</option>
+                                <option value="45">45</option>
+                                <option value="60">60</option>
+                                <option value="90">90</option>
+                                <option value="120">120</option>
+                            </select>
                         </div>
-                        <input type="checkbox" id="modal-dnd-toggle" class="checkbox checkbox-primary" />
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text text-on-surface font-medium">Refresh
+                                    Rate</span></label>
+                            <select id="settings-refresh-select"
+                                class="select select-bordered w-full bg-surface-container-high focus:border-[var(--primary)] h-12 rounded-2xl">
+                                <option value="">Default</option>
+                            </select>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-action">
-                    <form method="dialog">
-                        <button class="btn btn-ghost">Cancel</button>
-                    </form>
-                    <button id="modal-save-btn" class="btn btn-primary text-on-primary">Save</button>
                 </div>
             </div>
-            <form method="dialog" class="modal-backdrop">
-                <button>close</button>
-            </form>
-        </dialog>
+
+            <!-- Save Button (Refined) -->
+            <div class="pt-2 flex justify-end">
+                <button id="settings-save-btn"
+                    class="btn bg-surface-container-high text-on-surface hover:bg-surface-variant border-none rounded-2xl min-h-0 h-12 px-8 text-base font-bold shadow-sm">
+                    Save
+                </button>
+            </div>
+        </div>
 
         <div id="view-about" class="view-section hidden space-y-4">
 

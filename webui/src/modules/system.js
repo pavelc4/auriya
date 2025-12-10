@@ -148,9 +148,13 @@ export async function loadSystemInfo() {
         const output = await runCommand(`echo "GET_SUPPORTED_RATES" | nc -U ${socketPath}`)
         if (output && !output.error && !output.startsWith('ERR')) {
             try {
-                const rates = JSON.parse(output)
-                if (Array.isArray(rates)) {
-                    window.webui.state.supportedRefreshRates = rates
+                const jsonStart = output.indexOf('[')
+                if (jsonStart !== -1) {
+                    const cleanJson = output.substring(jsonStart)
+                    const rates = JSON.parse(cleanJson)
+                    if (Array.isArray(rates)) {
+                        window.webui.state.supportedRefreshRates = rates
+                    }
                 }
             } catch (e) {
                 console.warn("Failed to parse supported rates", e)
