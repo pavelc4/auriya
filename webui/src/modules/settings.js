@@ -127,16 +127,19 @@ export async function loadSettings(webui) {
         const ratesRes = await runCommand(`echo "GET_SUPPORTED_RATES" | nc -U /dev/socket/auriya.sock`)
         if (ratesRes && !ratesRes.error && !ratesRes.startsWith('ERR')) {
             try {
-                // Remove the IPC handshake line "OK AURIYA IPC"
-                const cleanJson = ratesRes.split('\n')
-                    .filter(line => !line.startsWith('OK AURIYA'))
-                    .join('')
-                const rates = JSON.parse(cleanJson)
-                if (Array.isArray(rates)) {
-                    webui.state.supportedRefreshRates = rates
+                // Find the start of the JSON array
+                const jsonStart = ratesRes.indexOf('[')
+                if (jsonStart !== -1) {
+                    const cleanJson = ratesRes.substring(jsonStart)
+                    const rates = JSON.parse(cleanJson)
+                    if (Array.isArray(rates)) {
+                        webui.state.supportedRefreshRates = rates
+                    }
+                } else {
+                    console.warn("No JSON array found in response:", ratesRes)
                 }
             } catch (e) {
-                console.warn("Failed to parse refresh rates", e)
+                console.warn("Failed to parse refresh rates. Raw:", ratesRes, "Error:", e)
             }
         }
     } catch (e) {
