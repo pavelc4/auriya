@@ -17,8 +17,8 @@
     import { onMount } from "svelte";
     import { writable } from "svelte/store";
     import { fade, fly } from "svelte/transition";
-    import ferrisHappy from "../assets/ferris_happy.svg";
-    import ferrisSleep from "../assets/ferris_sleep.svg";
+    import ferrisHappy from "../../assets/ferris_happy.svg";
+    import ferrisSleep from "../../assets/ferris_sleep.svg";
 
     export const toasts = writable([]);
 

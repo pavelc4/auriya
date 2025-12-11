@@ -1,5 +1,11 @@
 <script>
     import { openExternalLink } from "../lib/api";
+    import Icon from "../components/ui/Icon.svelte";
+    import ferrisSleep from "../assets/ferris_sleep.svg";
+
+    function handleImageError(e) {
+        e.target.src = ferrisSleep;
+    }
 
     const dependencies = [
         "tokio",
@@ -25,7 +31,7 @@
             on:click={() => openExternalLink("https://t.me/pvlcply")}
             class="btn bg-[var(--primary)] text-on-primary w-full rounded-full hover:bg-[var(--primary)]/90 border-none h-12 text-base font-medium normal-case gap-2"
         >
-            <span class="material-symbols-rounded">local_cafe</span>
+            <Icon name="local_cafe" />
             Buy me a coffee
         </button>
     </div>
@@ -38,9 +44,7 @@
                 <div
                     class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0"
                 >
-                    <span class="material-symbols-rounded text-[20px]"
-                        >lightbulb</span
-                    >
+                    <Icon name="lightbulb" className="text-[20px]" />
                 </div>
                 <h2 class="text-lg font-semibold">The Philosophy</h2>
             </div>
@@ -59,9 +63,7 @@
                 <div
                     class="w-10 h-10 rounded-xl bg-[var(--primary)]/20 text-[var(--primary)] flex items-center justify-center shrink-0"
                 >
-                    <span class="material-symbols-rounded text-[20px]"
-                        >code</span
-                    >
+                    <Icon name="code" className="text-[20px]" />
                 </div>
                 <h2 class="text-lg font-semibold">Why Rust?</h2>
             </div>
@@ -80,7 +82,7 @@
             <div
                 class="w-10 h-10 rounded-xl bg-[var(--secondary)]/20 text-[var(--secondary)] flex items-center justify-center shrink-0"
             >
-                <span class="material-symbols-rounded text-[20px]">group</span>
+                <Icon name="group" className="text-[20px]" />
             </div>
             <h2 class="text-lg font-semibold">Contributors</h2>
         </div>
@@ -92,6 +94,7 @@
             >
                 <img
                     src="https://github.com/pavelc4.png"
+                    on:error={handleImageError}
                     class="w-10 h-10 rounded-full bg-surface-variant shrink-0"
                     alt="pavelc4"
                 />
@@ -108,8 +111,7 @@
                     )}
                 class="flex w-full items-center justify-center gap-2 p-3 rounded-2xl hover:bg-surface-variant/10 transition-colors text-sm opacity-70 hover:opacity-100"
             >
-                <span class="material-symbols-rounded text-lg">open_in_new</span
-                >
+                <Icon name="open_in_new" className="text-lg" />
                 View all contributors on GitHub
             </button>
         </div>
@@ -122,9 +124,7 @@
             <div
                 class="w-10 h-10 rounded-xl bg-surface-variant/20 flex items-center justify-center shrink-0 text-on-surface"
             >
-                <span class="material-symbols-rounded text-[20px]"
-                    >extension</span
-                >
+                <Icon name="extension" className="text-[20px]" />
             </div>
             <div>
                 <h2 class="text-lg font-semibold">Open Source Foundation</h2>
@@ -153,9 +153,7 @@
                 <div
                     class="w-10 h-10 rounded-xl bg-[var(--tertiary)]/20 text-[var(--tertiary)] flex items-center justify-center shrink-0"
                 >
-                    <span class="material-symbols-rounded text-[20px]"
-                        >forum</span
-                    >
+                    <Icon name="forum" className="text-[20px]" />
                 </div>
                 <h2 class="text-lg font-semibold">Join Community</h2>
             </div>
@@ -179,9 +177,7 @@
                 <div
                     class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0"
                 >
-                    <span class="material-symbols-rounded text-[20px]"
-                        >policy</span
-                    >
+                    <Icon name="policy" className="text-[20px]" />
                 </div>
                 <h2 class="text-lg font-semibold">License</h2>
             </div>
@@ -192,9 +188,7 @@
             <div
                 class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-variant/20 border border-white/5 text-xs font-medium text-on-surface-variant"
             >
-                <span class="material-symbols-rounded text-[14px]"
-                    >copyright</span
-                >
+                <Icon name="copyright" className="text-[14px]" />
                 <span>2025 pavelc4</span>
             </div>
         </div>

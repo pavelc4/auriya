@@ -2,11 +2,12 @@
     import { onMount } from "svelte";
     import { view, systemInfo, supportedRefreshRates } from "./lib/stores";
     import { runCommand, showToast } from "./lib/api";
-    import Dashboard from "./components/Dashboard.svelte";
-    import Games from "./components/Games.svelte";
-    import Settings from "./components/Settings.svelte";
-    import About from "./components/About.svelte";
-    import Toast from "./lib/Toast.svelte";
+    import Dashboard from "./views/Dashboard.svelte";
+    import Games from "./views/Games.svelte";
+    import Settings from "./views/Settings.svelte";
+    import About from "./views/About.svelte";
+    import Toast from "./components/ui/Toast.svelte";
+    import Icon from "./components/ui/Icon.svelte";
 
     const configPath = "/data/adb/.config/auriya";
     const modPath = "/data/adb/modules/auriya";
@@ -186,14 +187,13 @@
             on:click={toggleTheme}
             class="btn btn-ghost btn-circle text-on-surface-variant hover:bg-surface-variant/20 transition-transform active:scale-95"
         >
-            <span
-                class="material-symbols-rounded text-2xl transition-all duration-300 {currentTheme ===
+            <Icon
+                name={currentTheme === "light" ? "light_mode" : "dark_mode"}
+                className="text-2xl transition-all duration-300 {currentTheme ===
                 'light'
                     ? 'rotate-0'
                     : '-rotate-90'}"
-            >
-                {currentTheme === "light" ? "light_mode" : "dark_mode"}
-            </span>
+            />
         </button>
     </div>
 
@@ -214,12 +214,13 @@
         <div
             class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant/30 flex items-center justify-center"
         >
-            <span
-                class="material-symbols-rounded group-[.active]:text-[var(--primary)] {$view ===
+            <Icon
+                name="dashboard"
+                className="group-[.active]:text-[var(--primary)] text-[24px] {$view ===
                 'dashboard'
                     ? 'icon-filled'
-                    : ''}">dashboard</span
-            >
+                    : ''}"
+            />
         </div>
         <span class="btm-nav-label text-xs font-medium mt-1">Home</span>
     </button>
@@ -233,12 +234,13 @@
         <div
             class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant/30 flex items-center justify-center"
         >
-            <span
-                class="material-symbols-rounded group-[.active]:text-[var(--primary)] {$view ===
+            <Icon
+                name="sports_esports"
+                className="group-[.active]:text-[var(--primary)] text-[24px] {$view ===
                 'games'
                     ? 'icon-filled'
-                    : ''}">sports_esports</span
-            >
+                    : ''}"
+            />
         </div>
         <span class="btm-nav-label text-xs font-medium mt-1">Games</span>
     </button>
@@ -252,12 +254,13 @@
         <div
             class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant/30 flex items-center justify-center"
         >
-            <span
-                class="material-symbols-rounded group-[.active]:text-[var(--primary)] {$view ===
+            <Icon
+                name="info"
+                className="group-[.active]:text-[var(--primary)] text-[24px] {$view ===
                 'about'
                     ? 'icon-filled'
-                    : ''}">info</span
-            >
+                    : ''}"
+            />
         </div>
         <span class="btm-nav-label text-xs font-medium mt-1">About</span>
     </button>
@@ -271,12 +274,13 @@
         <div
             class="indicator-container p-1 px-5 rounded-full transition-colors duration-300 group-[.active]:bg-surface-variant/30 flex items-center justify-center"
         >
-            <span
-                class="material-symbols-rounded group-[.active]:text-[var(--primary)] {$view ===
+            <Icon
+                name="settings"
+                className="group-[.active]:text-[var(--primary)] text-[24px] {$view ===
                 'settings'
                     ? 'icon-filled'
-                    : ''}">settings</span
-            >
+                    : ''}"
+            />
         </div>
         <span class="btm-nav-label text-xs font-medium mt-1">Settings</span>
     </button>

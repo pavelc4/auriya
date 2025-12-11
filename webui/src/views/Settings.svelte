@@ -1,10 +1,13 @@
 <script>
     import { onMount } from "svelte";
+    import { systemInfo, supportedRefreshRates } from "../lib/stores";
     import { parse, stringify } from "smol-toml";
     import { runCommand, showToast } from "../lib/api";
+    import Icon from "../components/ui/Icon.svelte";
+    import Select from "../components/ui/Select.svelte";
 
     let gov = "schedutil";
-    let fps = "60";
+    let fps = 60;
     let debugMode = false;
 
     let availableGovernors = ["schedutil", "performance"];
@@ -136,44 +139,42 @@
                 <div
                     class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0"
                 >
-                    <span class="material-symbols-rounded">memory</span>
+                    <Icon name="memory" />
                 </div>
                 <div>
                     <p class="font-medium">CPU Governor</p>
                     <p class="text-xs opacity-70">Global scaling governor</p>
                 </div>
             </div>
-            <select
-                bind:value={gov}
-                on:change={onGovChange}
-                class="select bg-surface-container-high w-32 h-10 min-h-0 rounded-xl text-sm px-3"
-            >
-                {#each availableGovernors as g}
-                    <option value={g}>{g}</option>
-                {/each}
-            </select>
+            <div class="w-36">
+                <Select
+                    bind:value={gov}
+                    options={availableGovernors}
+                    on:change={onGovChange}
+                    placeholder="Governor"
+                />
+            </div>
         </div>
         <div class="flex items-center justify-between p-2">
             <div class="flex items-center gap-3">
                 <div
                     class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0"
                 >
-                    <span class="material-symbols-rounded">speed</span>
+                    <Icon name="speed" />
                 </div>
                 <div>
                     <p class="font-medium">Target FPS</p>
                     <p class="text-xs opacity-70">Global frame rate target</p>
                 </div>
             </div>
-            <select
-                bind:value={fps}
-                on:change={onFpsChange}
-                class="select bg-surface-container-high w-24 h-10 min-h-0 rounded-xl px-3"
-            >
-                {#each availableFps as f}
-                    <option value={f}>{f}</option>
-                {/each}
-            </select>
+            <div class="w-36">
+                <Select
+                    bind:value={fps}
+                    options={availableFps}
+                    on:change={onFpsChange}
+                    placeholder="FPS"
+                />
+            </div>
         </div>
     </div>
 
@@ -186,7 +187,7 @@
                 <div
                     class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0"
                 >
-                    <span class="material-symbols-rounded">language</span>
+                    <Icon name="language" />
                 </div>
                 <div>
                     <p class="font-medium">English</p>
@@ -215,23 +216,21 @@
                 <div
                     class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0"
                 >
-                    <span class="material-symbols-rounded">bug_report</span>
+                    <Icon name="bug_report" />
                 </div>
                 <div>
                     <p class="font-medium">Export Logs</p>
                     <p class="text-xs opacity-70">Save kernel & daemon logs</p>
                 </div>
             </div>
-            <span class="material-symbols-rounded text-on-surface-variant"
-                >chevron_right</span
-            >
+            <Icon name="chevron_right" className="text-on-surface-variant" />
         </div>
         <div class="flex items-center justify-between p-2 mt-2">
             <div class="flex items-center gap-3">
                 <div
                     class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0"
                 >
-                    <span class="material-symbols-rounded">terminal</span>
+                    <Icon name="terminal" />
                 </div>
                 <div>
                     <p class="font-medium">Debug Mode</p>

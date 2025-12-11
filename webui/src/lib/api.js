@@ -1,6 +1,6 @@
 import { exec } from 'kernelsu-alt';
 import { WXClass, WXEventHandler } from 'webuix';
-import { addToast } from './Toast.svelte';
+import { addToast } from '../components/ui/Toast.svelte';
 
 const MODULE_PATH = '/data/adb/modules/auriya';
 

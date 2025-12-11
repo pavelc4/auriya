@@ -2,6 +2,8 @@
     import { onMount, createEventDispatcher } from "svelte";
     import { activeGames, supportedRefreshRates } from "../lib/stores";
     import { runCommand, showToast } from "../lib/api";
+    import Icon from "../components/ui/Icon.svelte";
+    import Select from "../components/ui/Select.svelte";
 
     export let pkg;
     export let onBack;
@@ -12,13 +14,33 @@
     let gov = "performance";
     let fps = "";
     let rate = "";
-
+    let globalGov = "";
+    let globalFps = "";
     let managers = ["performance", "schedutil", "powersave", "interactive"];
     let availableRates = [60, 90, 120];
+
+    async function getGlobalDefaults() {
+        try {
+            const content = await runCommand(
+                `cat /data/adb/modules/auriya/settings.toml`,
+            );
+            if (content && !content.error) {
+                // Minimal parse
+                const govMatch = content.match(
+                    /default_governor\s*=\s*['"]?([^'"\s]+)['"]?/,
+                );
+                if (govMatch) globalGov = govMatch[1];
+
+                const fpsMatch = content.match(/target_fps\s*=\s*(\d+)/);
+                if (fpsMatch) globalFps = fpsMatch[1];
+            }
+        } catch (e) {}
+    }
 
     const dispatch = createEventDispatcher();
 
     onMount(async () => {
+        await getGlobalDefaults();
         const govOutput = await runCommand(
             "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors",
         );
@@ -89,7 +111,7 @@
             on:click={onBack}
             class="btn btn-circle btn-ghost bg-surface-container-high text-on-surface hover:bg-surface-variant/20"
         >
-            <span class="material-symbols-rounded">arrow_back</span>
+            <Icon name="arrow_back" />
         </button>
         <div class="flex flex-col">
             <h2 class="text-xl font-bold leading-tight">{pkg}</h2>
@@ -132,40 +154,20 @@
 
         <div class="space-y-3 pt-2">
             <div class="flex items-center gap-2 mb-2">
-                <span class="material-symbols-rounded text-[var(--primary)]"
-                    >tune</span
-                >
+                <Icon name="tune" className="text-[var(--primary)]" />
                 <span class="font-bold">Profile</span>
             </div>
-            <div class="grid grid-cols-3 gap-3">
-                {#each ["powersave", "balance", "performance"] as m}
-                    <label class="cursor-pointer group">
-                        <input
-                            type="radio"
-                            group={mode}
-                            value={m}
-                            disabled={!isEnabled}
-                            class="peer sr-only"
-                        />
-                        <div
-                            class="h-24 flex flex-col items-center justify-center p-2 rounded-[24px] bg-surface-container-high text-on-surface-variant peer-checked:bg-[var(--primary)] peer-checked:text-[var(--onPrimary)] text-center transition-all duration-300 shadow-sm peer-checked:shadow-md"
-                        >
-                            <span
-                                class="material-symbols-rounded block mb-1 text-[28px]"
-                            >
-                                {m === "powersave"
-                                    ? "battery_saver"
-                                    : m === "balance"
-                                      ? "balance"
-                                      : "rocket_launch"}
-                            </span>
-                            <span
-                                class="text-xs font-bold capitalize tracking-wide"
-                                >{m}</span
-                            >
-                        </div>
-                    </label>
-                {/each}
+            <div class="w-full">
+                <Select
+                    bind:value={mode}
+                    disabled={!isEnabled}
+                    placeholder="Select Profile"
+                    options={[
+                        { value: "powersave", label: "Powersave" },
+                        { value: "balance", label: "Balance" },
+                        { value: "performance", label: "Performance" },
+                    ]}
+                />
             </div>
         </div>
     </div>
@@ -181,16 +183,14 @@
                         >CPU Governor</span
                     ></label
                 >
-                <select
-                    id="game-gov"
+                <Select
                     bind:value={gov}
                     disabled={!isEnabled}
-                    class="select w-full bg-surface-container-high h-12 rounded-2xl"
-                >
-                    {#each managers as m}
-                        <option value={m}>{m}</option>
-                    {/each}
-                </select>
+                    options={managers.map((m) => ({
+                        value: m,
+                        label: m + (m === globalGov ? " (Default)" : ""),
+                    }))}
+                />
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="form-control w-full">
@@ -199,17 +199,25 @@
                             >Target FPS</span
                         ></label
                     >
-                    <select
-                        id="game-fps"
-                        bind:value={fps}
-                        disabled={!isEnabled}
-                        class="select w-full bg-surface-container-high h-12 rounded-2xl"
-                    >
-                        <option value="">Default</option>
-                        {#each [30, 45, 60, 90, 120] as f}
-                            <option value={f}>{f}</option>
-                        {/each}
-                    </select>
+                    <div class="w-full">
+                        <Select
+                            bind:value={fps}
+                            disabled={!isEnabled}
+                            placeholder="FPS"
+                            options={[
+                                {
+                                    value: "",
+                                    label:
+                                        "Default " +
+                                        (globalFps ? `(${globalFps} FPS)` : ""),
+                                },
+                                ...[30, 45, 60, 90, 120].map((f) => ({
+                                    value: f,
+                                    label: f.toString(),
+                                })),
+                            ]}
+                        />
+                    </div>
                 </div>
                 <div class="form-control w-full">
                     <label class="label" for="settings-refresh-select"
@@ -217,17 +225,20 @@
                             >Refresh Rate</span
                         ></label
                     >
-                    <select
-                        id="settings-refresh-select"
-                        bind:value={rate}
-                        disabled={!isEnabled}
-                        class="select w-full bg-surface-container-high h-12 rounded-2xl"
-                    >
-                        <option value="">Default</option>
-                        {#each availableRates as r}
-                            <option value={r}>{r} Hz</option>
-                        {/each}
-                    </select>
+                    <div class="w-full">
+                        <Select
+                            bind:value={rate}
+                            disabled={!isEnabled}
+                            placeholder="Hz"
+                            options={[
+                                { value: "", label: "Default" },
+                                ...availableRates.map((r) => ({
+                                    value: r,
+                                    label: r + " Hz",
+                                })),
+                            ]}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

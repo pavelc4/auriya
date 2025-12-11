@@ -3,6 +3,7 @@
     import { openExternalLink } from "../lib/api";
     import ferrisHappy from "../assets/ferris_happy.svg";
     import ferrisSleep from "../assets/ferris_sleep.svg";
+    import Icon from "../components/ui/Icon.svelte";
 
     $: isDaemonRunning =
         $systemInfo.pid !== "Service not running" && $systemInfo.pid !== "null";
@@ -47,6 +48,10 @@
             : tempVal >= 40
               ? "bg-[var(--primary)]/10"
               : "bg-[var(--tertiary)]/10";
+
+    function handleImageError(e) {
+        e.target.src = ferrisSleep;
+    }
 </script>
 
 <div class="view-section space-y-6">
@@ -99,7 +104,7 @@
                     <div
                         class="w-10 h-10 rounded-full bg-[var(--primary)]/20 text-[var(--primary)] flex items-center justify-center"
                     >
-                        <span class="material-symbols-rounded">bolt</span>
+                        <Icon name="bolt" className="text-[24px]" />
                     </div>
                     <div>
                         <p class="text-xs opacity-60 font-medium">Profile</p>
@@ -115,9 +120,7 @@
                         <div
                             class="w-10 h-10 rounded-full bg-[var(--secondary)]/20 text-[var(--secondary)] flex items-center justify-center"
                         >
-                            <span class="material-symbols-rounded text-[20px]"
-                                >memory</span
-                            >
+                            <Icon name="memory" className="text-[20px]" />
                         </div>
                         <span
                             class="text-[10px] font-bold uppercase tracking-wider opacity-60 bg-[var(--secondary)]/10 text-[var(--secondary)] px-2 py-1 rounded-full"
@@ -140,9 +143,7 @@
                         <div
                             class="w-10 h-10 rounded-full bg-[var(--tertiary)]/20 text-[var(--tertiary)] flex items-center justify-center"
                         >
-                            <span class="material-symbols-rounded text-[20px]"
-                                >battery_full</span
-                            >
+                            <Icon name="battery_full" className="text-[20px]" />
                         </div>
                         <span
                             class="text-[8px] font-bold uppercase tracking-wider opacity-60 bg-[var(--tertiary)]/10 text-[var(--tertiary)] px-2 py-1 rounded-full"
@@ -163,9 +164,7 @@
                         <div
                             class="w-10 h-10 rounded-full {tempIconBgClass} {tempTextClass} flex items-center justify-center"
                         >
-                            <span class="material-symbols-rounded text-[20px]"
-                                >thermostat</span
-                            >
+                            <Icon name="thermostat" className="text-[20px]" />
                         </div>
                         <span
                             class="text-[8px] font-bold uppercase tracking-wide opacity-60 {tempBadgeBgClass} {tempTextClass} px-1 py-[1px] rounded-full"
@@ -191,11 +190,9 @@
                     class="bg-surface-container-high p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-32"
                 >
                     <div
-                        class="w-10 h-10 rounded-full bg-surface-variant/20 flex items-center justify-center text-on-surface-variant"
+                        class="w-10 h-10 rounded-xl bg-surface-variant/20 flex items-center justify-center text-on-surface-variant"
                     >
-                        <span class="material-symbols-rounded text-[20px]"
-                            >developer_board</span
-                        >
+                        <Icon name="developer_board" className="text-[24px]" />
                     </div>
                     <div>
                         <p class="text-xs opacity-60 font-medium">Chipset</p>
@@ -208,11 +205,9 @@
                     class="bg-surface-container-high p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-32"
                 >
                     <div
-                        class="w-10 h-10 rounded-full bg-surface-variant/20 flex items-center justify-center text-on-surface-variant"
+                        class="w-10 h-10 rounded-xl bg-surface-variant/20 flex items-center justify-center text-on-surface-variant"
                     >
-                        <span class="material-symbols-rounded text-[20px]"
-                            >memory</span
-                        >
+                        <Icon name="memory" className="text-[24px]" />
                     </div>
                     <div>
                         <p class="text-xs opacity-60 font-medium">
@@ -227,11 +222,9 @@
                     class="bg-surface-container-high p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-32"
                 >
                     <div
-                        class="w-10 h-10 rounded-full bg-surface-variant/20 flex items-center justify-center text-on-surface-variant"
+                        class="w-10 h-10 rounded-xl bg-surface-variant/20 flex items-center justify-center text-on-surface-variant"
                     >
-                        <span class="material-symbols-rounded text-[20px]"
-                            >smartphone</span
-                        >
+                        <Icon name="smartphone" className="text-[24px]" />
                     </div>
                     <div>
                         <p class="text-xs opacity-60 font-medium">Codename</p>
@@ -244,11 +237,9 @@
                     class="bg-surface-container-high p-5 rounded-[24px] text-on-surface flex flex-col justify-between h-32"
                 >
                     <div
-                        class="w-10 h-10 rounded-full bg-surface-variant/20 flex items-center justify-center text-on-surface-variant"
+                        class="w-10 h-10 rounded-xl bg-surface-variant/20 flex items-center justify-center text-on-surface-variant"
                     >
-                        <span class="material-symbols-rounded text-[20px]"
-                            >android</span
-                        >
+                        <Icon name="android" className="text-[24px]" />
                     </div>
                     <div>
                         <p class="text-xs opacity-60 font-medium">
@@ -299,6 +290,7 @@
                             >
                                 <img
                                     src="https://github.com/Pavelc4.png"
+                                    on:error={handleImageError}
                                     alt="Pavelc4"
                                     class="w-full h-full object-cover"
                                 />
@@ -327,10 +319,10 @@
                             <h4 class="text-lg font-bold leading-none">
                                 Pavelc4
                             </h4>
-                            <span
-                                class="material-symbols-rounded text-[var(--primary)] text-[18px]"
-                                >verified</span
-                            >
+                            <Icon
+                                name="verified"
+                                className="text-[var(--primary)] text-[18px]"
+                            />
                         </div>
                         <p class="text-xs opacity-50 font-mono mt-1">
                             @pavelc4
@@ -344,9 +336,10 @@
                         <div
                             class="w-10 h-10 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center"
                         >
-                            <span class="material-symbols-rounded text-[24px]"
-                                >deployed_code</span
-                            >
+                            <Icon
+                                name="deployed_code"
+                                className="text-[24px]"
+                            />
                         </div>
                         <div class="flex flex-col items-end">
                             <span
@@ -401,6 +394,7 @@
                         >
                             <img
                                 src="https://github.com/fluidicon.png"
+                                on:error={handleImageError}
                                 class="w-4 h-4 opacity-70 grayscale"
                                 alt="GitHub"
                             />

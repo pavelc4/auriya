@@ -8,6 +8,7 @@
         gamePage,
     } from "../lib/stores";
     import GameSettings from "./GameSettings.svelte";
+    import Icon from "../components/ui/Icon.svelte";
     import { runCommand } from "../lib/api";
 
     let showSystemApps = false;
@@ -79,7 +80,7 @@
                 <button
                     class="btn btn-ghost btn-circle btn-sm w-10 h-10 min-h-0 text-on-surface-variant"
                 >
-                    <span class="material-symbols-rounded">search</span>
+                    <Icon name="search" />
                 </button>
                 <input
                     type="text"
@@ -92,9 +93,7 @@
                         on:click={() => searchQuery.set("")}
                         class="btn btn-ghost btn-circle btn-sm w-10 h-10 min-h-0 text-on-surface-variant hover:text-on-surface"
                     >
-                        <span class="material-symbols-rounded text-xl"
-                            >close</span
-                        >
+                        <Icon name="close" className="text-xl" />
                     </button>
                 {/if}
                 <div
@@ -109,11 +108,12 @@
                         ? "Filter: User Apps"
                         : "Filter: System Apps"}
                 >
-                    <span class="material-symbols-rounded text-xl"
-                        >{showSystemApps
+                    <Icon
+                        name={showSystemApps
                             ? "filter_list_off"
-                            : "filter_list"}</span
-                    >
+                            : "filter_list"}
+                        className="text-xl"
+                    />
                 </button>
                 <div class="w-2"></div>
             </div>
@@ -139,9 +139,7 @@
                         <div
                             class="w-16 h-16 rounded-2xl bg-surface-variant/30 text-on-surface-variant flex items-center justify-center mx-auto mb-4"
                         >
-                            <span class="material-symbols-rounded text-[32px]"
-                                >search_off</span
-                            >
+                            <Icon name="search_off" className="text-[32px]" />
                         </div>
                         <h3 class="text-xl font-semibold text-on-surface mb-2">
                             No packages found
@@ -196,12 +194,12 @@
                                         ? 'bg-[var(--primary)] text-[var(--onPrimary)] shadow-md'
                                         : 'bg-surface-variant/10 text-on-surface-variant/70'}"
                                 >
-                                    <span
-                                        class="material-symbols-rounded text-[24px]"
-                                        >{isEnabled
+                                    <Icon
+                                        name={isEnabled
                                             ? "sports_esports"
-                                            : "android"}</span
-                                    >
+                                            : "android"}
+                                        className="text-[24px]"
+                                    />
                                 </div>
 
                                 <div class="min-w-0 flex-grow">
@@ -243,9 +241,7 @@
                                 <div
                                     class="w-10 h-10 rounded-full bg-surface-variant/20 flex items-center justify-center text-on-surface opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0"
                                 >
-                                    <span class="material-symbols-rounded"
-                                        >edit</span
-                                    >
+                                    <Icon name="edit" />
                                 </div>
                             </div>
                         </div>

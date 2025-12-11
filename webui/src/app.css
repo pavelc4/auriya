@@ -55,6 +55,7 @@
   --outline: #9f8c85;
 
   --brand-gradient: linear-gradient(135deg, #ffb784 0%, #e6c0a0 100%);
+
   background-color: var(--surface);
   color: var(--onSurface);
 }
@@ -106,6 +107,41 @@ body {
   color: var(--onPrimaryContainer);
 }
 
+.btn {
+  border: none;
+  box-shadow: none;
+}
+
+.select {
+  border: none;
+  background-color: var(--surfaceContainerHigh);
+}
+
+.toggle {
+  border: none;
+  cursor: pointer;
+  background-color: var(--surfaceVariant);
+  --tglbg: var(--outline);
+  --handleoffset: 0.25rem;
+  transition: background-color 0.3s ease, --tglbg 0.3s ease, transform 0.3s ease;
+}
+
+.toggle:checked {
+  border: none;
+  background-color: var(--primary);
+  --tglbg: #ffffff;
+}
+
+.toggle:hover {
+  opacity: 0.9;
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--surface-container);
+}
+
 .text-gradient {
   background: var(--image-brand-gradient);
   -webkit-background-clip: text;
@@ -119,7 +155,10 @@ body {
   box-shadow: none !important;
 }
 
-/* Animations */
+.icon-filled {
+  font-variation-settings: 'FILL' 1;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -134,33 +173,4 @@ body {
 
 .animate-fade-in {
   animation: fade-in 0.3s cubic-bezier(0.2, 0.0, 0, 1.0) forwards;
-}
-
-.icon-filled {
-  font-variation-settings: 'FILL' 1;
-}
-
-.btn {
-  border: none;
-  box-shadow: none;
-}
-
-.select {
-  border: none;
-  background-color: var(--surfaceContainerHigh);
-}
-
-.toggle {
-  border: 2px solid var(--outline);
-  background-color: transparent;
-  --tglbg: var(--on-surface);
-  --handleoffset: 0.35rem;
-  transition: all 0.2s ease-in-out;
-}
-
-.toggle:checked {
-  border: 2px solid var(--primary);
-  background-color: var(--primary);
-  --tglbg: var(--on-primary);
-  --handleoffset: 0.15rem;
 }
