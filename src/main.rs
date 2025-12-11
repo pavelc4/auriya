@@ -30,8 +30,8 @@ async fn main() -> Result<()> {
     );
 
     let cfg = daemon::run::DaemonConfig {
-        poll_interval: std::time::Duration::from_secs(10),
-        log_debounce_ms: 2000,
+        poll_interval: std::time::Duration::from_secs(5),
+        log_debounce_ms: 5000,
         settings,
         gamelist,
     };
