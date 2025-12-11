@@ -11,9 +11,21 @@ export async function loadSystemInfo() {
         if (el) el.textContent = text
     }
 
-    // Module Version & Status
-    const version = await runCommand(`/system/bin/grep "^version=" ${modPath}/module.prop | /system/bin/cut -d= -f2`)
-    const versionStr = (typeof version === 'string' && version) ? version : "Unknown"
+    const cmd = `
+        grep "^version=" ${modPath}/module.prop | cut -d= -f2; echo "|||";
+        grep "^versionCode=" ${modPath}/module.prop | cut -d= -f2; echo "|||";
+        getprop ro.product.cpu.abi; echo "|||";
+        stat -c %Y ${modPath}/module.prop
+    `
+
+    let output = await runCommand(cmd)
+    if (typeof output !== 'string' || output.error) {
+        console.warn("Batch loadSystemInfo failed, falling back or showing unknown", output);
+        output = "";
+    }
+
+    const parts = output.split('|||').map(s => s.trim())
+    const versionStr = parts[0] || "Unknown"
     setText('module-version', versionStr)
 
     // Status Logic
@@ -29,15 +41,12 @@ export async function loadSystemInfo() {
         }
     }
 
-    // Commit Hash (Try to get from versionCode or just placeholder)
-    // Often versionCode in module.prop is used for commit count or hash
-    const versionCode = await runCommand(`/system/bin/grep "^versionCode=" ${modPath}/module.prop | /system/bin/cut -d= -f2`)
-    setText('module-commit', (typeof versionCode === 'string' && versionCode) ? versionCode : "Unknown")
+    const codeStr = parts[1] || "Unknown"
+    setText('module-commit', codeStr)
 
-    // Arch
-    const arch = await runCommand(`/system/bin/getprop ro.product.cpu.abi`)
+    const arch = parts[2]
     let archStr = "Unknown"
-    if (typeof arch === 'string') {
+    if (arch) {
         if (arch.includes('arm64')) archStr = 'v8a'
         else if (arch.includes('armeabi')) archStr = 'v7a'
         else if (arch.includes('x86_64')) archStr = 'x64'
@@ -45,10 +54,10 @@ export async function loadSystemInfo() {
         else archStr = arch
     }
     setText('module-arch', archStr)
+    setText('device-arch', archStr)
 
-    // Last Update Time
-    const modTime = await runCommand(`/system/bin/stat -c %Y ${modPath}/module.prop`)
-    if (modTime && !modTime.error && !isNaN(modTime)) {
+    const modTime = parts[3]
+    if (modTime && !isNaN(modTime)) {
         const now = Math.floor(Date.now() / 1000)
         const diff = now - parseInt(modTime)
         let timeStr = "Just now"
@@ -61,69 +70,57 @@ export async function loadSystemInfo() {
         setText('module-update-time', timeStr)
     }
 
-    // Profile
-    const profileCode = await runCommand(`/system/bin/cat ${configPath}/current_profile`)
+    const batchCmd = `
+        cat ${configPath}/current_profile; echo "|||";
+        uname -r; echo "|||";
+        getprop ro.board.platform; echo "|||";
+        getprop ro.product.device; echo "|||";
+        getprop ro.build.version.sdk; echo "|||";
+        cat /sys/class/power_supply/battery/capacity; echo "|||";
+        cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | head -n 5; echo "|||"; 
+        PID=$(pidof auriya || echo "null"); echo $PID; echo "|||";
+        if [ "$PID" != "null" ]; then grep VmRSS /proc/$PID/status | awk '{print $2}'; else echo "-"; fi
+    `
+
+    let batchOutput = await runCommand(batchCmd)
+    if (typeof batchOutput !== 'string' || batchOutput.error) {
+        console.warn("Mega-Batch command failed", batchOutput)
+        batchOutput = ""
+    }
+
+    const bParts = batchOutput.split('|||').map(s => s.trim())
+
+
+    const profileCode = bParts[0]
     const profiles = { "0": "Init", "1": "Performance", "2": "Balance", "3": "Powersave" }
-    setText('current-profile', (typeof profileCode === 'string' && profiles[profileCode]) ? profiles[profileCode] : "Unknown")
+    setText('current-profile', (profiles[profileCode]) ? profiles[profileCode] : "Unknown")
+    setText('kernel-version', bParts[1] || "Unknown")
+    setText('chipset-name', bParts[2] || "Unknown")
+    setText('device-codename', bParts[3] || "Unknown")
+    setText('android-sdk', bParts[4] || "Unknown")
+    const batt = bParts[5]
+    setText('battery-level', (batt && !isNaN(batt)) ? `${batt}%` : "Unknown")
 
-    // Kernel
-    const kernel = await runCommand(`/system/bin/uname -r`)
-    setText('kernel-version', (typeof kernel === 'string' && kernel) ? kernel : "Unknown")
-
-    // Chipset
-    const chipset = await runCommand(`/system/bin/getprop ro.board.platform`)
-    setText('chipset-name', (typeof chipset === 'string' && chipset) ? chipset : "Unknown")
-
-    // Codename
-    const codename = await runCommand(`/system/bin/getprop ro.product.device`)
-    setText('device-codename', (typeof codename === 'string' && codename) ? codename : "Unknown")
-
-    // SDK
-    const sdk = await runCommand(`/system/bin/getprop ro.build.version.sdk`)
-    setText('android-sdk', (typeof sdk === 'string' && sdk) ? sdk : "Unknown")
-
-    // Arch (in card)
-    setText('device-arch', archStr)
-
-    // Battery
-    const battery = await runCommand(`/system/bin/cat /sys/class/power_supply/battery/capacity`)
-    setText('battery-level', (typeof battery === 'string' && battery) ? `${battery}%` : "Unknown")
-
-    let temp = "Unknown"
-    for (let i = 0; i < 10; i++) {
-        const t = await runCommand(`/system/bin/cat /sys/class/thermal/thermal_zone${i}/temp`)
-        if (typeof t === 'string' && !t.error && t.length > 0) {
-            const val = parseInt(t)
-            if (!isNaN(val) && val > 1000) {
-                temp = `${Math.round(val / 1000)}°C`
-                break
-            }
+    const temps = bParts[6] ? bParts[6].split('\n') : []
+    let finalTemp = "Unknown"
+    for (const t of temps) {
+        const val = parseInt(t)
+        if (!isNaN(val) && val > 1000) {
+            finalTemp = `${Math.round(val / 1000)}°C`
+            break
         }
     }
-    setText('thermal-temp', temp)
+    setText('thermal-temp', finalTemp)
 
-    // Uptime
-    const uptimeStr = await runCommand(`cat /proc/uptime | awk '{print $1}'`)
-    if (uptimeStr && !uptimeStr.error) {
-        const uptimeSeconds = parseInt(uptimeStr)
-        const hours = Math.floor(uptimeSeconds / 3600)
-        const minutes = Math.floor((uptimeSeconds % 3600) / 60)
-        setText('system-uptime', `${hours}h ${minutes}m`)
-    } else {
-        setText('system-uptime', "Unknown")
-    }
-
-    // Daemon Status
-    const pid = await runCommand('/system/bin/toybox pidof auriya || echo null')
+    const pid = bParts[7]
+    const rss = bParts[8]
     const icon = document.getElementById('daemon-status-icon')
 
     if (pid !== "null" && pid.length > 0) {
         setText('daemon-status', "Working ✨")
         setText('daemon-pid', `PID: ${pid}`)
 
-        // Daemon RAM
-        const rss = await runCommand(`grep VmRSS /proc/${pid}/status | awk '{print $2}'`)
-        if (rss && !rss.error) {
+        if (rss && rss !== "-") {
             const mb = (parseInt(rss) / 1024).toFixed(1)
             setText('daemon-ram', `${mb} MB`)
         } else {

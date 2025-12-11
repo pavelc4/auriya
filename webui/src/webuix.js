@@ -112,7 +112,7 @@ function showCustomToast(message) {
     const iconSrc = isError ? ferrisSleepIcon : ferrisIcon;
 
     const toast = document.createElement('div');
-    toast.className = 'flex items-center gap-3 bg-surface-container-high/90 backdrop-blur-md border border-outline/10 shadow-xl text-on-surface p-3 pr-5 rounded-full transform transition-all duration-300 translate-y-10 opacity-0 scale-95';
+    toast.className = 'flex items-center gap-3 bg-surface-container-high border border-outline/10 shadow-xl text-on-surface p-3 pr-5 rounded-full transform transition-all duration-300 translate-y-10 opacity-0 scale-95';
 
     toast.innerHTML = `
         <div class="shrink-0 w-8 h-8 flex items-center justify-center">

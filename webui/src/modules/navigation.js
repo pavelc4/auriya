@@ -31,11 +31,23 @@ export function setupNavigation(webui) {
         })
     })
 
+    const debounce = (func, wait) => {
+        let timeout
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout)
+                func(...args)
+            }
+            clearTimeout(timeout)
+            timeout = setTimeout(later, wait)
+        }
+    }
+
     const searchInput = document.getElementById('game-search')
     if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
+        searchInput.addEventListener('input', debounce((e) => {
             webui.state.searchQuery = e.target.value.toLowerCase()
             webui.renderGameList()
-        })
+        }, 300))
     }
 }

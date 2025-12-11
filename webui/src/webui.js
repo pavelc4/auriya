@@ -33,9 +33,11 @@ export class WebUI {
 		this.setupEventListeners()
 
 		try {
-			await loadSystemInfo()
-			await loadSettings(this)
-			loadActiveGames(this)
+			await Promise.all([
+				loadSystemInfo(),
+				loadSettings(this),
+				loadActiveGames(this)
+			])
 		} catch (e) {
 			console.error("Init data load failed", e)
 		}

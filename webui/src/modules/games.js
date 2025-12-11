@@ -114,7 +114,17 @@ export function renderGameList(webui) {
         return a.localeCompare(b)
     })
 
-    listContainer.innerHTML = filtered.map(pkg => {
+    if (typeof webui.state.gamePage === 'undefined') webui.state.gamePage = 1
+    const ITEMS_PER_PAGE = 20
+    if (listContainer.innerHTML === '') webui.state.gamePage = 1
+
+    const start = 0
+    const end = webui.state.gamePage * ITEMS_PER_PAGE
+    const pagedItems = filtered.slice(start, end)
+
+    const fragment = document.createDocumentFragment()
+
+    pagedItems.forEach(pkg => {
         const activeProfile = webui.state.activeGames.find(g => g.package === pkg)
         const isEnabled = !!activeProfile
 
@@ -130,7 +140,7 @@ export function renderGameList(webui) {
         const statusText = isEnabled ? 'Optimized' : 'Tap to optimize'
         const statusColor = isEnabled ? 'text-on-surface-variant' : 'text-on-surface-variant opacity-60'
 
-        return `
+        const cardHtml = `
         <div class="relative group overflow-hidden p-4 mb-3 rounded-[24px] border transition-all duration-300 cursor-pointer ${cardClass}"
             onclick="window.webui.openGameSettings('${pkg}')">
             
@@ -155,8 +165,30 @@ export function renderGameList(webui) {
                 </div>
             </div>
         </div>
-    `
-    }).join('')
+        `
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = cardHtml.trim()
+        fragment.appendChild(tempDiv.firstChild)
+    })
+
+    listContainer.innerHTML = ''
+    listContainer.appendChild(fragment)
+
+    // Load More Button
+    if (filtered.length > end) {
+        const btnContainer = document.createElement('div')
+        btnContainer.className = 'flex justify-center py-4'
+        btnContainer.innerHTML = `
+            <button id="load-more-games" class="px-6 py-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium text-sm">
+                Load More (${filtered.length - end} remaining)
+            </button>
+        `
+        btnContainer.querySelector('button').onclick = () => {
+            webui.state.gamePage++
+            webui.renderGameList()
+        }
+        listContainer.appendChild(btnContainer)
+    }
 }
 
 export async function openGameSettings(webui, pkg) {

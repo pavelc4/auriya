@@ -19,9 +19,24 @@ export function setupSettings(webui) {
 }
 
 export async function loadSettings(webui) {
-    // Governors
-    const govOutput = await runCommand('/system/bin/cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors')
-    const govs = (typeof govOutput === 'string' && govOutput) ? govOutput.split(/\s+/).filter(g => g) : []
+    // Batch Command: Get Available Governors AND Settings File
+    const cmd = `
+        cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors; echo "|||";
+        cat ${configPath}/settings.toml
+    `
+
+    let output = await runCommand(cmd)
+    if (typeof output !== 'string' || output.error) {
+        console.warn("Batch loadSettings failed", output)
+        output = "|||" // proceed with empty
+    }
+
+    const parts = output.split('|||').map(s => s.trim())
+    const govOutput = parts[0]
+    const content = parts[1]
+
+    // 1. Governors
+    const govs = (govOutput && !govOutput.includes('No such file')) ? govOutput.split(/\s+/).filter(g => g) : []
     const govSelect = document.getElementById('cpu-gov-select')
     if (govSelect) {
         govSelect.innerHTML = ''
@@ -51,8 +66,8 @@ export async function loadSettings(webui) {
         })
     }
 
-    const content = await runCommand(`/system/bin/cat ${configPath}/settings.toml`)
-    if (content && !content.error) {
+    // 2. Settings Content
+    if (content) {
         try {
             const settings = parse(content)
 
