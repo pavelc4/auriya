@@ -1,12 +1,10 @@
-import './css/style.css'
-import { WebUI } from './webui.js'
+import { mount } from 'svelte'
+import './app.css'
+import 'material-symbols/rounded.css';
+import App from './App.svelte'
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const webui = new WebUI()
-    window.webui = webui
-    try {
-        await webui.init()
-    } catch (e) {
-        console.error("Failed to init WebUI:", e)
-    }
+const app = mount(App, {
+  target: document.getElementById('app'),
 })
+
+export default app
