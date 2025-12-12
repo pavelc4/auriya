@@ -32,7 +32,7 @@
                 if (govMatch) globalGov = govMatch[1];
 
                 const fpsMatch = content.match(/target_fps\s*=\s*(\d+)/);
-                if (fpsMatch) globalFps = fpsMatch[1];
+                if (fpsMatch) globalFps = parseInt(fpsMatch[1]);
             }
         } catch (e) {}
     }
@@ -52,13 +52,16 @@
             availableRates = $supportedRefreshRates;
         }
 
+        // Set default FPS from global if available
+        if (globalFps) fps = globalFps;
+
         const profile = $activeGames.find((g) => g.package === pkg);
         if (profile) {
             isEnabled = true;
             dnd = profile.enable_dnd || false;
             mode = profile.mode || "performance";
             gov = profile.cpu_governor || "performance";
-            fps = profile.target_fps || "";
+            if (profile.target_fps) fps = profile.target_fps;
             rate = profile.refresh_rate || "";
         }
     });
@@ -105,7 +108,7 @@
     }
 </script>
 
-<div class="view-section space-y-6 pb-20 fade-in">
+<div class="view-section space-y-6 pb-40 fade-in">
     <div class="flex items-center gap-4 pt-2">
         <button
             on:click={onBack}

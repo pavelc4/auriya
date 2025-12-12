@@ -65,7 +65,7 @@
             transition:slide={{ duration: 200 }}
             class="absolute z-50 w-full mt-2 bg-surface-container-high rounded-2xl shadow-xl overflow-hidden border border-surface-variant/10"
         >
-            <div class="max-h-60 overflow-y-auto py-2 options-scroll">
+            <div class="max-h-96 overflow-y-auto py-2 options-scroll">
                 {#each options as option}
                     {@const isSelected = getVal(option) === value}
                     <button
