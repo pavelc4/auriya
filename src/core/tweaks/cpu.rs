@@ -1,4 +1,3 @@
-use crate::core::cmd::run_cmd_timeout_sync;
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
@@ -155,59 +154,46 @@ pub fn get_affinity_mask_for_profile(profile: &str) -> u64 {
 pub fn set_game_affinity_dynamic(pid: i32, profile: &str) -> Result<()> {
     let mask = get_affinity_mask_for_profile(profile);
     if mask == 0xffff_ffff_ffff_ffff {
-        debug!(target: "auriya:cpu", "Skipping taskset: invalid mask (get_online_cores failed)");
+        debug!(target: "auriya:cpu", "Skipping affinity: invalid mask (get_online_cores failed)");
         return Ok(());
     }
 
     if mask == 0 {
-        debug!(target: "auriya:cpu", "Skipping taskset: mask is zero for profile={}", profile);
+        debug!(target: "auriya:cpu", "Skipping affinity: mask is zero for profile={}", profile);
         return Ok(());
     }
 
-    let mask_hex = format!("{:x}", mask);
+    let mut cpu_set: libc::cpu_set_t = unsafe { std::mem::zeroed() };
 
-    let output = run_cmd_timeout_sync("taskset", &["-p", &mask_hex, &pid.to_string()], 1000);
-
-    match output {
-        Ok(out) if out.status.success() => {
-            info!(
-                target: "auriya:cpu",
-                "Set CPU affinity pid={} mask={} profile={}",
-                pid,
-                mask_hex,
-                profile
-            );
-            Ok(())
-        }
-        Ok(out) => {
-            let now = now_ms();
-            let last = LAST_TASKSET_WARN_MS.load(Ordering::Relaxed);
-            if now.saturating_sub(last) > WARN_DEBOUNCE_MS {
-                warn!(
-                    target: "auriya:cpu",
-                    "taskset failed: {}",
-                    String::from_utf8_lossy(&out.stderr)
-                );
-                LAST_TASKSET_WARN_MS.store(now, Ordering::Relaxed);
-            } else {
-                debug!(
-                    target: "auriya:cpu",
-                    "taskset failed (suppressed): {}",
-                    String::from_utf8_lossy(&out.stderr)
-                );
-            }
-            Ok(())
-        }
-        Err(e) => {
-            let now = now_ms();
-            let last = LAST_TASKSET_WARN_MS.load(Ordering::Relaxed);
-            if now.saturating_sub(last) > WARN_DEBOUNCE_MS {
-                debug!(target: "auriya:cpu", "taskset error: {:?}", e);
-                LAST_TASKSET_WARN_MS.store(now, Ordering::Relaxed);
-            }
-            Ok(())
+    for i in 0..64 {
+        if (mask >> i) & 1 == 1 {
+            unsafe { libc::CPU_SET(i, &mut cpu_set) };
         }
     }
+
+    let result =
+        unsafe { libc::sched_setaffinity(pid, std::mem::size_of::<libc::cpu_set_t>(), &cpu_set) };
+
+    if result == 0 {
+        info!(
+            target: "auriya:cpu",
+            "Set CPU affinity pid={} mask={:x} profile={}",
+            pid, mask, profile
+        );
+    } else {
+        let now = now_ms();
+        let last = LAST_TASKSET_WARN_MS.load(Ordering::Relaxed);
+        if now.saturating_sub(last) > WARN_DEBOUNCE_MS {
+            warn!(
+                target: "auriya:cpu",
+                "sched_setaffinity failed: errno={}",
+                std::io::Error::last_os_error()
+            );
+            LAST_TASKSET_WARN_MS.store(now, Ordering::Relaxed);
+        }
+    }
+
+    Ok(())
 }
 
 pub fn online_all_cores() -> Result<()> {
@@ -221,13 +207,13 @@ pub fn online_all_cores() -> Result<()> {
 }
 
 pub fn set_process_priority(pid: i32) -> Result<()> {
-    let result = run_cmd_timeout_sync("renice", &["-n", "-20", "-p", &pid.to_string()], 1000);
+    let result = unsafe { libc::setpriority(libc::PRIO_PROCESS, pid as libc::id_t, -20) };
 
-    if let Err(e) = result {
+    if result != 0 {
         let now = now_ms();
         let last = LAST_RENICE_WARN_MS.load(Ordering::Relaxed);
         if now.saturating_sub(last) > WARN_DEBOUNCE_MS {
-            debug!(target: "auriya:cpu", "renice failed: {:?}", e);
+            debug!(target: "auriya:cpu", "setpriority failed: errno={}", std::io::Error::last_os_error());
             LAST_RENICE_WARN_MS.store(now, Ordering::Relaxed);
         }
     }
