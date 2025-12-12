@@ -1,12 +1,8 @@
 use crate::core::cmd::run_cmd_timeout_async;
 
 pub async fn get_foreground_package() -> anyhow::Result<Option<String>> {
-    let out = match run_cmd_timeout_async(
-        "/system/bin/dumpsys",
-        &["activity", "activities"],
-        2000,
-    )
-    .await
+    let out = match run_cmd_timeout_async("/system/bin/dumpsys", &["activity", "activities"], 2000)
+        .await
     {
         Ok(o) => o,
         Err(e) => {
@@ -38,7 +34,7 @@ pub async fn get_foreground_package() -> anyhow::Result<Option<String>> {
 
 fn parse_pkg_from_activity_line(s: &str) -> Option<String> {
     if let Some(u0) = s.find("u0 ") {
-        let token = s[u0 + 4..].split_whitespace().next()?;
+        let token = s[u0 + 3..].split_whitespace().next()?;
         let pkg = token.split('/').next()?;
         if pkg.contains('.') {
             return Some(pkg.to_string());

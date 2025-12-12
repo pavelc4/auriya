@@ -164,7 +164,7 @@ pub fn set_game_affinity_dynamic(pid: i32, profile: &str) -> Result<()> {
         return Ok(());
     }
 
-    let mask_hex = format!("0x{:x}", mask);
+    let mask_hex = format!("{:x}", mask);
 
     let output = run_cmd_timeout_sync("taskset", &["-p", &mask_hex, &pid.to_string()], 1000);
 
