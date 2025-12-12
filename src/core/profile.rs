@@ -1,4 +1,4 @@
-use crate::core::tweaks::{cpu, gpu, memory, mtk, snapdragon, soc, system};
+use crate::core::tweaks::{cpu, gpu, memory, mtk, sched, snapdragon, soc, storage, system};
 use anyhow::{Context, Result};
 use std::process::Command;
 
@@ -73,6 +73,14 @@ pub fn apply_performance_with_config(
         tracing::warn!(target: "auriya::profile", "Failed to apply general system tweaks: {}", e);
     }
 
+    if let Err(e) = sched::apply_performance_sched() {
+        tracing::warn!(target: "auriya::profile", "Failed to apply scheduler tweaks: {}", e);
+    }
+
+    if let Err(e) = storage::lock_storage_freq() {
+        tracing::warn!(target: "auriya::profile", "Failed to lock storage freq: {}", e);
+    }
+
     if let Err(e) = memory::drop_caches() {
         tracing::warn!(target: "auriya::profile", "Failed to drop caches: {}", e);
     }
@@ -129,6 +137,17 @@ pub fn apply_balance(governor: &str) -> Result<()> {
         _ => {}
     }
     gpu::set_balanced_mode()?;
+
+    // Restore balanced scheduler settings
+    if let Err(e) = sched::apply_balance_sched() {
+        tracing::warn!(target: "auriya::profile", "Failed to apply balanced scheduler tweaks: {}", e);
+    }
+
+    // Unlock storage frequency
+    if let Err(e) = storage::unlock_storage_freq() {
+        tracing::warn!(target: "auriya::profile", "Failed to unlock storage freq: {}", e);
+    }
+
     if let Err(e) = memory::restore_balanced() {
         tracing::warn!(target: "auriya::profile", "Failed to restore balanced memory settings: {}", e);
     }

@@ -33,23 +33,46 @@ fn disable_kernel_panic() -> Result<()> {
 fn optimize_io() -> Result<()> {
     if let Ok(entries) = fs::read_dir("/sys/block") {
         for entry in entries.flatten() {
-                let path = entry.path();
-                let queue_path = path.join("queue");
+            let path = entry.path();
+            let queue_path = path.join("queue");
 
-                if queue_path.exists() {
-                    let iostats = queue_path.join("iostats");
-                    if iostats.exists() {
-                        let _ = fs::write(iostats, "0");
-                    }
-
-                    let add_random = queue_path.join("add_random");
-                    if add_random.exists() {
-                        let _ = fs::write(add_random, "0");
-                    }
+            if queue_path.exists() {
+                let iostats = queue_path.join("iostats");
+                if iostats.exists() {
+                    let _ = fs::write(&iostats, "0");
                 }
+
+                let add_random = queue_path.join("add_random");
+                if add_random.exists() {
+                    let _ = fs::write(&add_random, "0");
+                }
+
+                let read_ahead = queue_path.join("read_ahead_kb");
+                if read_ahead.exists() {
+                    let _ = fs::write(&read_ahead, "32");
+                }
+
+                let nr_requests = queue_path.join("nr_requests");
+                if nr_requests.exists() {
+                    let _ = fs::write(&nr_requests, "32");
+                }
+            }
         }
     }
-    debug!("I/O optimized (iostats, add_random disabled)");
+
+    if let Ok(entries) = fs::read_dir("/sys/class/thermal") {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with("thermal_zone") {
+                let policy_path = entry.path().join("policy");
+                if policy_path.exists() {
+                    let _ = fs::write(&policy_path, "step_wise");
+                }
+            }
+        }
+    }
+
+    debug!("I/O optimized (iostats, add_random, read_ahead, nr_requests, thermal)");
     Ok(())
 }
 

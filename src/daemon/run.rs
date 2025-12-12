@@ -1,5 +1,5 @@
 use crate::core::profile::ProfileMode;
-use crate::core::tweaks::{battery, mtk};
+use crate::core::tweaks::mtk;
 use crate::daemon::state::{CurrentState, LastState};
 use anyhow::Result;
 use notify::{EventKind, RecursiveMode, Watcher};
@@ -363,19 +363,6 @@ impl Daemon {
             }
         };
 
-        let battery_saver = battery::is_low_power_mode_enabled().unwrap_or(false);
-        if battery_saver {
-            if self.last.profile_mode != Some(ProfileMode::Powersave) {
-                info!(target: "auriya::daemon", "Battery Saver detected! Forcing powersave mode.");
-                if let Err(e) = crate::core::profile::apply_powersave() {
-                    error!(target: "auriya::daemon", "Failed to apply powersave: {}", e);
-                }
-                self.last.profile_mode = Some(ProfileMode::Powersave);
-                update_current_profile_file(ProfileMode::Powersave);
-            }
-            return;
-        }
-
         if let Err(e) = self.process_tick_logic(&gamelist).await {
             let err_msg = e.to_string();
             let now = now_ms();
@@ -515,14 +502,14 @@ impl Daemon {
                         bump_log(&mut self.last);
                     }
                     if self.last.pkg.as_deref() != Some(pkg.as_str())
-                      && let Some(last_pkg) = &self.last.pkg
-                         && let Some(original_rate) = self.refresh_rate_map.remove(last_pkg) {
-	                         info!(target: "auriya::display", "Restoring refresh rate for {}: {}Hz", last_pkg, original_rate);
-	                         if let Err(e) =
-	                             crate::core::display::set_refresh_rate(original_rate).await
-	                         {
-	                             error!(target: "auriya::display", ?e, "Failed to restore refresh rate");
-	                         }
+                        && let Some(last_pkg) = &self.last.pkg
+                        && let Some(original_rate) = self.refresh_rate_map.remove(last_pkg)
+                    {
+                        info!(target: "auriya::display", "Restoring refresh rate for {}: {}Hz", last_pkg, original_rate);
+                        if let Err(e) = crate::core::display::set_refresh_rate(original_rate).await
+                        {
+                            error!(target: "auriya::display", ?e, "Failed to restore refresh rate");
+                        }
                     }
 
                     let game_cfg = gamelist.find(&pkg);
@@ -580,10 +567,10 @@ impl Daemon {
                                 error!(target: "auriya::display", ?e, "Failed to set refresh rate");
                             }
                         } else if self.supported_modes.is_empty() {
-                                warn!(target: "auriya::display", "No supported modes cached, skipping refresh rate {}Hz for {}", rr, pkg);
-                            } else {
-                                warn!(target: "auriya::display", "Refresh rate {}Hz not supported by device, skipping for {}", rr, pkg);
-                            }
+                            warn!(target: "auriya::display", "No supported modes cached, skipping refresh rate {}Hz for {}", rr, pkg);
+                        } else {
+                            warn!(target: "auriya::display", "Refresh rate {}Hz not supported by device, skipping for {}", rr, pkg);
+                        }
                     } else if self.last.pkg.as_deref() != Some(pkg.as_str()) {
                     }
 
@@ -594,10 +581,11 @@ impl Daemon {
                 None => {
                     if self.last.pkg.as_deref() != Some(pkg.as_str())
                         && let Some(last_pkg) = &self.last.pkg
-                            && let Some(original_rate) = self.refresh_rate_map.remove(last_pkg) {
-                                info!(target: "auriya::display", "Restoring refresh rate for {} (PID lost): {}Hz", last_pkg, original_rate);
-                                let _ = crate::core::display::set_refresh_rate(original_rate).await;
-                            }
+                        && let Some(original_rate) = self.refresh_rate_map.remove(last_pkg)
+                    {
+                        info!(target: "auriya::display", "Restoring refresh rate for {} (PID lost): {}Hz", last_pkg, original_rate);
+                        let _ = crate::core::display::set_refresh_rate(original_rate).await;
+                    }
 
                     if self.last.profile_mode != Some(ProfileMode::Balance) {
                         if let Err(e) = profile::apply_balance(&self.balance_governor) {
@@ -620,11 +608,12 @@ impl Daemon {
             }
         } else {
             if self.last.pkg.as_deref() != Some(pkg.as_str())
-                &&  let Some(last_pkg) = &self.last.pkg
-                    &&  let Some(original_rate) = self.refresh_rate_map.remove(last_pkg) {
-                        info!(target: "auriya::display", "Restoring refresh rate for {} (Exited Game): {}Hz", last_pkg, original_rate);
-                        let _ = crate::core::display::set_refresh_rate(original_rate).await;
-                    }
+                && let Some(last_pkg) = &self.last.pkg
+                && let Some(original_rate) = self.refresh_rate_map.remove(last_pkg)
+            {
+                info!(target: "auriya::display", "Restoring refresh rate for {} (Exited Game): {}Hz", last_pkg, original_rate);
+                let _ = crate::core::display::set_refresh_rate(original_rate).await;
+            }
 
             if self.last.profile_mode != Some(ProfileMode::Balance) {
                 if let Err(e) = profile::apply_balance(&self.balance_governor) {

@@ -185,6 +185,13 @@ pub fn adjust_for_gaming() -> Result<()> {
     if let Err(e) = set_swappiness(10) {
         warn!("Failed to set  swappiness: {}", e);
     }
+
+    let vfs_path = "/proc/sys/vm/vfs_cache_pressure";
+    if Path::new(vfs_path).exists() {
+        let _ = fs::write(vfs_path, "80");
+        debug!("vfs_cache_pressure set to 80 for gaming");
+    }
+
     Ok(())
 }
 
@@ -207,6 +214,13 @@ pub fn restore_balanced() -> Result<()> {
     if let Err(e) = set_swappiness(60) {
         warn!("Failed to set balanced swappiness: {}", e);
     }
+
+    let vfs_path = "/proc/sys/vm/vfs_cache_pressure";
+    if Path::new(vfs_path).exists() {
+        let _ = fs::write(vfs_path, "100");
+        debug!("vfs_cache_pressure set to 100 for balanced");
+    }
+
     Ok(())
 }
 pub fn apply_powersave_lmk() -> Result<()> {
