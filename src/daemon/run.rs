@@ -187,7 +187,9 @@ impl Daemon {
     fn rebuild_whitelist(&mut self) {
         if let Ok(gl) = self.shared_gamelist.read() {
             self.cached_whitelist = gl.game.iter().map(|g| g.package.clone()).collect();
-            info!(target: "auriya::daemon", "Whitelist cache rebuilt: {} packages", self.cached_whitelist.len());
+            self.last.pkg = None;
+            self.last.pid = None;
+            info!(target: "auriya::daemon", "Whitelist cache rebuilt: {} packages (forcing re-detect)", self.cached_whitelist.len());
         }
     }
 
@@ -738,7 +740,8 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                      daemon.reload_settings();
                 } else {
                      daemon.rebuild_whitelist();
-                     debug!(target: "auriya::daemon", "Gamelist reload notification received");
+                     debug!(target: "auriya::daemon", "Gamelist reload notification received, triggering instant tick");
+                     daemon.tick().await; // Instant profile apply
                 }
             }
             _ = signal::ctrl_c() => {
