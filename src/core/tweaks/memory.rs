@@ -248,8 +248,6 @@ pub fn apply_powersave_lmk() -> Result<()> {
 pub fn set_swappiness(value: u32) -> Result<()> {
     let path = "/proc/sys/vm/swappiness";
 
-    // Method 1: chmod trick (Magisk module technique)
-    // chmod 666 -> write -> chmod 644
     let chmod_write = std::process::Command::new("sh")
         .args([
             "-c",
@@ -262,26 +260,54 @@ pub fn set_swappiness(value: u32) -> Result<()> {
 
     if let Ok(output) = chmod_write {
         if output.status.success() {
-            debug!("Swappiness set to {} via chmod trick", value);
-            return Ok(());
+            if let Ok(current) = fs::read_to_string(path) {
+                if current.trim() == value.to_string() {
+                    debug!("Swappiness set to {} via chmod trick", value);
+                    return Ok(());
+                }
+            }
         }
     }
 
-    // Method 2: sysctl command
     let sysctl_result = std::process::Command::new("sysctl")
         .args(["-w", &format!("vm.swappiness={}", value)])
         .output();
 
     if let Ok(output) = sysctl_result {
         if output.status.success() {
-            debug!("Swappiness set to {} via sysctl", value);
+            if let Ok(current) = fs::read_to_string(path) {
+                if current.trim() == value.to_string() {
+                    debug!("Swappiness set to {} via sysctl", value);
+                    return Ok(());
+                }
+            }
+        }
+    }
+
+    if fs::write(path, value.to_string()).is_ok() {
+        if let Ok(current) = fs::read_to_string(path) {
+            if current.trim() == value.to_string() {
+                debug!("Swappiness set to {} via fs::write", value);
+                return Ok(());
+            }
+        }
+    }
+
+    let resetprop = std::process::Command::new("resetprop")
+        .args(["vm.swappiness", &value.to_string()])
+        .output();
+
+    if let Ok(output) = resetprop {
+        if output.status.success() {
+            debug!("Swappiness set to {} via resetprop", value);
             return Ok(());
         }
     }
 
-    // Method 3: Direct fs::write (fallback)
-    fs::write(path, value.to_string()).context("Failed to set swappiness")?;
-    debug!("Swappiness set to {} via fs::write", value);
+    warn!(
+        "Could not set swappiness to {} - all methods failed (ROM may block this)",
+        value
+    );
     Ok(())
 }
 
