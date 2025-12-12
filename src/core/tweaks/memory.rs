@@ -111,19 +111,57 @@ pub fn apply_lmk(config: &LmkConfig) -> Result<()> {
     let current_minfree = get_current_minfree()?;
 
     if current_minfree.as_deref() != Some(&config.minfree) {
-        fs::write(minfree_path, &config.minfree)
-            .context(format!("Failed to set LMK minfree to {}", config.minfree))?;
+        // chmod 666 -> write -> chmod 644 (Magisk module trick)
+        let shell_result = std::process::Command::new("sh")
+            .args([
+                "-c",
+                &format!(
+                    "chmod 666 {} 2>/dev/null; echo '{}' > {}; chmod 644 {} 2>/dev/null",
+                    minfree_path, config.minfree, minfree_path, minfree_path
+                ),
+            ])
+            .output();
 
-        info!(
-            "Set LMK minfree: {} -> {}",
-            current_minfree.unwrap_or_else(|| "unknown".to_string()),
-            config.minfree
-        );
+        let minfree_ok = if let Ok(output) = shell_result {
+            output.status.success()
+        } else {
+            // Fallback to fs::write
+            fs::write(minfree_path, &config.minfree).is_ok()
+        };
+
+        if minfree_ok {
+            info!(
+                "Set LMK minfree: {} -> {}",
+                current_minfree.unwrap_or_else(|| "unknown".to_string()),
+                config.minfree
+            );
+        } else {
+            warn!("Failed to set LMK minfree to {}", config.minfree);
+        }
     } else {
         debug!("LMK minfree already set");
     }
 
-    fs::write(adj_path, &config.adj).context(format!("Failed to set LMK adj to {}", config.adj))?;
+    // chmod 666 -> write -> chmod 644 for adj
+    let adj_shell = std::process::Command::new("sh")
+        .args([
+            "-c",
+            &format!(
+                "chmod 666 {} 2>/dev/null; echo '{}' > {}; chmod 644 {} 2>/dev/null",
+                adj_path, config.adj, adj_path, adj_path
+            ),
+        ])
+        .output();
+
+    let adj_ok = if let Ok(output) = adj_shell {
+        output.status.success()
+    } else {
+        fs::write(adj_path, &config.adj).is_ok()
+    };
+
+    if !adj_ok {
+        warn!("Failed to set LMK adj to {}", config.adj);
+    }
 
     Ok(())
 }
@@ -144,7 +182,9 @@ pub fn adjust_for_gaming() -> Result<()> {
         Err(e) => warn!("Failed to apply gaming LMK: {}", e),
     }
 
-    set_swappiness(10)?;
+    if let Err(e) = set_swappiness(10) {
+        warn!("Failed to set  swappiness: {}", e);
+    }
     Ok(())
 }
 
@@ -164,7 +204,9 @@ pub fn restore_balanced() -> Result<()> {
         Err(e) => warn!("Failed to apply balanced LMK: {}", e),
     }
 
-    set_swappiness(60)?;
+    if let Err(e) = set_swappiness(60) {
+        warn!("Failed to set balanced swappiness: {}", e);
+    }
     Ok(())
 }
 pub fn apply_powersave_lmk() -> Result<()> {
@@ -183,14 +225,49 @@ pub fn apply_powersave_lmk() -> Result<()> {
         Err(e) => warn!("Failed to apply powersave LMK: {}", e),
     }
 
-    set_swappiness(60)?;
+    if let Err(e) = set_swappiness(60) {
+        warn!("Failed to set powersave swappiness: {}", e);
+    }
     Ok(())
 }
 
 pub fn set_swappiness(value: u32) -> Result<()> {
     let path = "/proc/sys/vm/swappiness";
+
+    // Method 1: chmod trick (Magisk module technique)
+    // chmod 666 -> write -> chmod 644
+    let chmod_write = std::process::Command::new("sh")
+        .args([
+            "-c",
+            &format!(
+                "chmod 666 {} 2>/dev/null; echo {} > {}; chmod 644 {} 2>/dev/null",
+                path, value, path, path
+            ),
+        ])
+        .output();
+
+    if let Ok(output) = chmod_write {
+        if output.status.success() {
+            debug!("Swappiness set to {} via chmod trick", value);
+            return Ok(());
+        }
+    }
+
+    // Method 2: sysctl command
+    let sysctl_result = std::process::Command::new("sysctl")
+        .args(["-w", &format!("vm.swappiness={}", value)])
+        .output();
+
+    if let Ok(output) = sysctl_result {
+        if output.status.success() {
+            debug!("Swappiness set to {} via sysctl", value);
+            return Ok(());
+        }
+    }
+
+    // Method 3: Direct fs::write (fallback)
     fs::write(path, value.to_string()).context("Failed to set swappiness")?;
-    debug!("Swappiness set to {}", value);
+    debug!("Swappiness set to {} via fs::write", value);
     Ok(())
 }
 

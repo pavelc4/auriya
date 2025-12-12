@@ -73,8 +73,12 @@ pub fn apply_performance_with_config(
         tracing::warn!(target: "auriya::profile", "Failed to apply general system tweaks: {}", e);
     }
 
-    memory::drop_caches()?;
-    memory::adjust_for_gaming()?;
+    if let Err(e) = memory::drop_caches() {
+        tracing::warn!(target: "auriya::profile", "Failed to drop caches: {}", e);
+    }
+    if let Err(e) = memory::adjust_for_gaming() {
+        tracing::warn!(target: "auriya::profile", "Failed to apply gaming memory settings: {}", e);
+    }
 
     if let Some(game_pid) = pid {
         cpu::set_game_affinity_dynamic(game_pid, "performance")?;
@@ -125,7 +129,9 @@ pub fn apply_balance(governor: &str) -> Result<()> {
         _ => {}
     }
     gpu::set_balanced_mode()?;
-    memory::restore_balanced()?;
+    if let Err(e) = memory::restore_balanced() {
+        tracing::warn!(target: "auriya::profile", "Failed to restore balanced memory settings: {}", e);
+    }
 
     let _ = Command::new("settings")
         .args(["put", "global", "heads_up_notifications_enabled", "1"])
