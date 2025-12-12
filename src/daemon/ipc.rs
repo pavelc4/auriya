@@ -46,12 +46,13 @@ pub enum Command {
     ListPackages,
     GetGameList,
     UpdateGame(
-        String,
-        Option<String>,
-        Option<bool>,
-        Option<u32>,
-        Option<u32>,
-        Option<String>,
+        String,           // package
+        Option<String>,   // governor
+        Option<bool>,     // dnd
+        Option<u32>,      // target_fps (single)
+        Option<u32>,      // refresh_rate
+        Option<String>,   // mode
+        Option<Vec<u32>>, // fps_array (auto-detect)
     ),
     SetFps(u32),
     GetFps,
@@ -109,6 +110,7 @@ impl FromStr for Command {
                 let mut target_fps = None;
                 let mut refresh_rate = None;
                 let mut mode = None;
+                let mut fps_array = None;
 
                 for arg in rest {
                     if let Some(gov) = arg.strip_prefix("gov=") {
@@ -117,6 +119,15 @@ impl FromStr for Command {
                         dnd = Some(dnd_val.parse::<bool>().unwrap_or(true));
                     } else if let Some(fps_val) = arg.strip_prefix("fps=") {
                         target_fps = fps_val.parse::<u32>().ok();
+                    } else if let Some(arr_val) = arg.strip_prefix("fps_array=") {
+                        // Parse comma-separated FPS array: "30,60,90"
+                        let arr: Vec<u32> = arr_val
+                            .split(',')
+                            .filter_map(|s| s.trim().parse().ok())
+                            .collect();
+                        if !arr.is_empty() {
+                            fps_array = Some(arr);
+                        }
                     } else if let Some(rate_val) = arg.strip_prefix("rate=") {
                         refresh_rate = rate_val.parse::<u32>().ok();
                     } else if let Some(mode_val) = arg.strip_prefix("mode=") {
@@ -131,6 +142,7 @@ impl FromStr for Command {
                     target_fps,
                     refresh_rate,
                     mode,
+                    fps_array,
                 ))
             }
 
@@ -394,9 +406,17 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     "ERR lock poisoned\n".to_string()
                 }
             }
-            Ok(Command::UpdateGame(pkg, gov, dnd, target_fps, refresh_rate, mode)) => {
+            Ok(Command::UpdateGame(pkg, gov, dnd, target_fps, refresh_rate, mode, fps_array)) => {
                 if let Ok(mut gl) = h.shared_config.write() {
-                    match gl.update(&pkg, gov, dnd, target_fps, refresh_rate, mode) {
+                    match gl.update_with_array(
+                        &pkg,
+                        gov,
+                        dnd,
+                        target_fps,
+                        refresh_rate,
+                        mode,
+                        fps_array,
+                    ) {
                         Ok(_) => {
                             if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
                                 format!("ERR SAVE_GAMELIST {:?}\n", e)

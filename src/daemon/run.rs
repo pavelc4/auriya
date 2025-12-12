@@ -121,7 +121,7 @@ impl Daemon {
         let fas_controller = if cfg.settings.fas.enabled {
             info!(target: "auriya::daemon", "FAS enabled");
             Some(Arc::new(Mutex::new(
-                crate::daemon::fas::FasController::new(cfg.settings.fas.target_fps),
+                crate::daemon::fas::FasController::with_target_fps(60), // Default 60, per-game overrides
             )))
         } else {
             info!(target: "auriya::daemon", "FAS disabled");
@@ -168,15 +168,7 @@ impl Daemon {
                         }
                     }
                 }
-
-                // Update FAS fps target if needed
-                if let Some(fas) = &self.fas_controller
-                    && let Ok(mut f) = fas.lock()
-                    && f.get_target_fps() != new_settings.fas.target_fps
-                {
-                    info!(target: "auriya::daemon", "Updating Global Target FPS to {}", new_settings.fas.target_fps);
-                    f.set_target_fps(new_settings.fas.target_fps);
-                }
+                // Per-game FPS is handled in tick(), no global FPS anymore
             }
             Err(e) => {
                 error!(target: "auriya::daemon", "Failed to reload settings: {:?}", e);
@@ -210,7 +202,7 @@ impl Daemon {
             {
                 return guard.get_target_fps();
             }
-            60 // Default if not available
+            60
         });
 
         let shared_cfg = self.shared_gamelist.clone();
@@ -253,7 +245,7 @@ impl Daemon {
         });
 
         let current_state = self.shared_current.clone();
-        let cfg = &self.cfg; // Borrow cfg for accessing settings
+        let cfg = &self.cfg;
 
         let ipc_handles = crate::daemon::ipc::IpcHandles {
             enabled: Arc::new(AtomicBool::new(true)),
@@ -483,23 +475,14 @@ impl Daemon {
                     .unwrap_or("performance");
 
                 if let Some(cfg) = game_cfg {
-                    if let Some(fps) = cfg.target_fps {
+                    if let Some(ref fps_cfg) = cfg.target_fps {
                         if let Ok(mut f) = fas.lock() {
-                            if f.get_target_fps() != fps {
-                                f.set_target_fps(fps);
-                            }
-                        }
-                    } else {
-                        let global_fps = self.cfg.settings.fas.target_fps;
-                        if let Ok(mut f) = fas.lock() {
-                            if f.get_target_fps() != global_fps {
-                                f.set_target_fps(global_fps);
-                            }
+                            f.set_target_fps_config(fps_cfg.to_buffer_config());
                         }
                     }
                 }
 
-                match self.run_fas_tick(&fas, &pkg, governor).await {
+                match self.run_fas_tick(&fas, &pkg, governor, self.last.pid).await {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
                     Err(e) => warn!(target: "auriya::fas", "FAS tick error: {:?}", e),
                 }
@@ -574,9 +557,10 @@ impl Daemon {
                             }
                         }
 
-                        let is_supported = self.supported_modes.iter().any(|m| {
-                            (m.fps - rr as f32).abs() < 0.1 // Tolerance for float comparison
-                        });
+                        let is_supported = self
+                            .supported_modes
+                            .iter()
+                            .any(|m| (m.fps - rr as f32).abs() < 0.1);
 
                         if is_supported {
                             if let Err(e) = crate::core::display::set_refresh_rate(rr).await {
@@ -656,18 +640,18 @@ impl Daemon {
         fas: &Arc<Mutex<crate::daemon::fas::FasController>>,
         pkg: &str,
         game_governor: &str,
+        pid: Option<i32>,
     ) -> Result<bool> {
         use crate::core::{profile, scaling::ScalingAction};
 
-        let margin = 2.0;
         let thermal_thresh = 90.0;
 
         let mut fas_guard = fas
             .lock()
             .map_err(|_| anyhow::anyhow!("FAS lock poisoned"))?;
 
-        fas_guard.set_package(pkg.to_string());
-        let action = fas_guard.tick(margin, thermal_thresh).await?;
+        fas_guard.set_package(pkg.to_string(), pid);
+        let action = fas_guard.tick(thermal_thresh).await?;
 
         match action {
             ScalingAction::Boost => {
@@ -705,7 +689,6 @@ pub async fn run_with_config_and_logger(cfg: &DaemonConfig, reload: ReloadHandle
 pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) -> Result<()> {
     info!(target: "auriya::daemon", "Starting Auriya daemon...");
 
-    // Fetch supported modes on startup (async)
     let supported_modes = match crate::core::display::get_app_supported_modes().await {
         Ok(modes) => {
             info!(target: "auriya::daemon", "Cached {} supported display modes", modes.len());
@@ -741,7 +724,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                 } else {
                      daemon.rebuild_whitelist();
                      debug!(target: "auriya::daemon", "Gamelist reload notification received, triggering instant tick");
-                     daemon.tick().await; // Instant profile apply
+                     daemon.tick().await;
                 }
             }
             _ = signal::ctrl_c() => {

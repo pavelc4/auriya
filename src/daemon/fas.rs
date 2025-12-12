@@ -1,80 +1,119 @@
 use crate::core::{
-    fas::pid::PidController, frame::monitor::FrameMonitor, scaling::ScalingAction,
+    fas::buffer::{BufferState, FrameBuffer, TargetFps},
+    fas::source::FrameSource,
+    scaling::ScalingAction,
     thermal::ThermalMonitor,
 };
 use anyhow::Result;
-
+use std::time::Duration;
 pub struct FasController {
-    frame_monitor: FrameMonitor,
-    pid: PidController,
+    source: FrameSource,
+    buffer: FrameBuffer,
     thermal: ThermalMonitor,
-    target_frame_time: f32,
+    package: String,
+    pid: Option<i32>,
+    kp: f32,
 }
 
 impl FasController {
-    pub fn new(target_fps: u32) -> Self {
+    pub fn new(target_fps_config: TargetFps) -> Self {
+        let source = FrameSource::new();
+        tracing::info!(target: "auriya::fas", "FAS Controller initialized");
+
         Self {
-            frame_monitor: FrameMonitor::new("".to_string()),
-            pid: PidController::new(0.05, 0.001, 0.01), // Tunable parameters
+            source,
+            buffer: FrameBuffer::new(target_fps_config),
             thermal: ThermalMonitor::new(),
-            target_frame_time: 1000.0 / target_fps as f32,
+            package: String::new(),
+            pid: None,
+            kp: 0.05,
         }
     }
 
-    pub fn set_package(&mut self, package: String) {
-        if self.frame_monitor.package != package {
-            self.frame_monitor.update_package(package);
-            self.pid.reset();
+    pub fn with_target_fps(fps: u32) -> Self {
+        Self::new(TargetFps::Single(fps))
+    }
+
+    pub fn set_package(&mut self, package: String, pid: Option<i32>) {
+        if self.package != package {
+            tracing::info!(target: "auriya::fas", "Switching to package: {}", package);
+            self.package = package;
+            self.pid = pid;
+            self.buffer.clear();
         }
     }
 
     pub fn set_target_fps(&mut self, fps: u32) {
-        if fps > 0 {
-            self.target_frame_time = 1000.0 / fps as f32;
-            tracing::info!(target: "auriya::fas", "Target FPS set to {} ({:.2}ms)", fps, self.target_frame_time);
-            self.pid.reset();
-        }
+        tracing::info!(target: "auriya::fas", "Target FPS set to {}", fps);
+        self.buffer = FrameBuffer::new(TargetFps::Single(fps));
+    }
+
+    pub fn set_target_fps_config(&mut self, config: TargetFps) {
+        self.buffer = FrameBuffer::new(config);
     }
 
     pub fn get_target_fps(&self) -> u32 {
-        (1000.0 / self.target_frame_time).round() as u32
+        self.buffer.target_fps.unwrap_or(60)
     }
 
-    pub async fn tick(&mut self, margin: f32, thermal_thresh: f32) -> Result<ScalingAction> {
-        let frame_time = self.frame_monitor.get_frame_time().await.unwrap_or(0.0);
-        let temp = self.thermal.get_max_temp()?;
-        let throttle = temp > thermal_thresh;
+    pub async fn tick(&mut self, thermal_thresh: f32) -> Result<ScalingAction> {
+        if !self.package.is_empty() && self.pid.is_some() {
+            let _ = self.source.attach(&self.package, self.pid.unwrap()).await;
+        }
 
-        // If frame time is 0 (no data), we can't do much. Maintain.
-        if frame_time <= 0.0 {
+        let frame_time = match self.source.get_frame_time().await {
+            Ok(Some(ft)) => ft,
+            Ok(None) => {
+                let elapsed = self.buffer.time_since_last_frame();
+                if elapsed > Duration::from_millis(200) {
+                    return Ok(ScalingAction::Maintain);
+                }
+                return Ok(ScalingAction::Maintain);
+            }
+            Err(e) => {
+                tracing::debug!(target: "auriya::fas", "Frame source error: {:?}", e);
+                return Ok(ScalingAction::Maintain);
+            }
+        };
+
+        self.buffer.push(frame_time);
+
+        let temp = self.thermal.get_max_temp().unwrap_or(0.0);
+        if temp > thermal_thresh {
+            tracing::debug!(target: "auriya::fas", "Thermal throttle: {:.1}°C", temp);
+            return Ok(ScalingAction::Reduce);
+        }
+
+        if self.buffer.state != BufferState::Usable {
             return Ok(ScalingAction::Maintain);
         }
 
-        let output = self.pid.next(self.target_frame_time, frame_time);
+        let Some(target_fps) = self.buffer.target_fps else {
+            return Ok(ScalingAction::Maintain);
+        };
 
-        // Simple logic mapping PID output to ScalingAction
-        // Positive output means we are under budget (good), negative means over budget (bad)
-        // Wait, error = target - actual.
-        // If target (16ms) > actual (10ms), error is +6ms. We are fast.
-        // If target (16ms) < actual (20ms), error is -4ms. We are slow.
+        let current_fps = self.buffer.current_fps_short as f32;
+        let target_frame_time = 1000.0 / target_fps as f32;
+        let actual_frame_time = 1000.0 / current_fps.max(1.0);
 
-        let action = if throttle {
-            ScalingAction::Reduce
-        } else if output < -margin {
-            // We are too slow (frame time high), boost
+        let error = actual_frame_time - target_frame_time;
+        let control = error * self.kp;
+
+        let is_janked = current_fps < target_fps as f32 - 2.0;
+
+        tracing::debug!(
+            target: "auriya::fas",
+            "FPS={:.1} Target={} Janked={} Control={:.3}",
+            current_fps, target_fps, is_janked, control
+        );
+
+        let action = if is_janked || control > 0.5 {
             ScalingAction::Boost
-        } else if output > margin {
-            // We are too fast (frame time low), reduce
+        } else if control < -0.5 {
             ScalingAction::Reduce
         } else {
             ScalingAction::Maintain
         };
-
-        tracing::debug!(
-            target: "auriya::fas",
-            "FT={:.2}ms Target={:.2}ms PID={:.4} Temp={:.1}°C Action={:?}",
-            frame_time, self.target_frame_time, output, temp, action
-        );
 
         Ok(action)
     }

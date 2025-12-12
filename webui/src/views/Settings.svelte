@@ -7,11 +7,9 @@
     import Select from "../components/ui/Select.svelte";
 
     let gov = "schedutil";
-    let fps = 60;
     let debugMode = false;
 
     let availableGovernors = ["schedutil", "performance"];
-    const availableFps = [30, 45, 60, 90, 120];
 
     const configPath = "/data/adb/.config/auriya";
 
@@ -53,7 +51,6 @@
             try {
                 const s = parse(tomlContent);
                 if (s.cpu?.default_governor) gov = s.cpu.default_governor;
-                if (s.fas?.target_fps) fps = s.fas.target_fps;
             } catch (e) {}
         }
         if (statusOutput && statusOutput.includes("LOG_LEVEL=DEBUG")) {
@@ -73,9 +70,6 @@
 
             if (!settings.cpu) settings.cpu = {};
             settings.cpu.default_governor = gov;
-
-            if (!settings.fas) settings.fas = {};
-            settings.fas.target_fps = parseInt(fps);
 
             const newContent = stringify(settings);
             await runCommand(
@@ -120,10 +114,6 @@
 
     function onGovChange() {
         save(`Governor set to ${gov}`);
-    }
-
-    function onFpsChange() {
-        save(`Target FPS set to ${fps}`);
     }
 
     async function restartDaemon() {
@@ -175,27 +165,6 @@
                     options={availableGovernors}
                     on:change={onGovChange}
                     placeholder="Governor"
-                />
-            </div>
-        </div>
-        <div class="flex items-center justify-between p-2">
-            <div class="flex items-center gap-3">
-                <div
-                    class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0"
-                >
-                    <Icon name="speed" />
-                </div>
-                <div>
-                    <p class="font-medium">Target FPS</p>
-                    <p class="text-xs opacity-70">Global frame rate target</p>
-                </div>
-            </div>
-            <div class="w-36">
-                <Select
-                    bind:value={fps}
-                    options={availableFps}
-                    on:change={onFpsChange}
-                    placeholder="FPS"
                 />
             </div>
         </div>

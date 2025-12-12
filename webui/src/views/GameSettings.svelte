@@ -15,7 +15,6 @@
     let fps = "";
     let rate = "";
     let globalGov = "";
-    let globalFps = "";
     let managers = ["performance", "schedutil", "powersave", "interactive"];
     let availableRates = [60, 90, 120];
 
@@ -30,9 +29,6 @@
                     /default_governor\s*=\s*['"]?([^'"\s]+)['"]?/,
                 );
                 if (govMatch) globalGov = govMatch[1];
-
-                const fpsMatch = content.match(/target_fps\s*=\s*(\d+)/);
-                if (fpsMatch) globalFps = parseInt(fpsMatch[1]);
             }
         } catch (e) {}
     }
@@ -51,9 +47,6 @@
         if ($supportedRefreshRates.length > 0) {
             availableRates = $supportedRefreshRates;
         }
-
-        // Set default FPS from global if available
-        if (globalFps) fps = globalFps;
 
         const profile = $activeGames.find((g) => g.package === pkg);
         if (profile) {
@@ -78,7 +71,18 @@
                 }
 
                 let updateCmd = `UPDATE_GAME ${pkg} gov=${gov} dnd=${dnd} mode=${mode}`;
-                if (fps) updateCmd += ` fps=${fps}`;
+
+                if (fps) {
+                    if (fps === "auto_60") {
+                        updateCmd += ` fps_array=30,60`;
+                    } else if (fps === "auto_90") {
+                        updateCmd += ` fps_array=30,60,90`;
+                    } else if (fps === "auto_120") {
+                        updateCmd += ` fps_array=30,60,90,120`;
+                    } else {
+                        updateCmd += ` fps=${fps}`;
+                    }
+                }
                 if (rate) updateCmd += ` rate=${rate}`;
 
                 await runCommand(`echo "${updateCmd}" | nc -U ${socketPath}`);
@@ -208,16 +212,10 @@
                             disabled={!isEnabled}
                             placeholder="FPS"
                             options={[
-                                {
-                                    value: "",
-                                    label:
-                                        "Default " +
-                                        (globalFps ? `(${globalFps} FPS)` : ""),
-                                },
-                                ...[30, 45, 60, 90, 120].map((f) => ({
-                                    value: f,
-                                    label: f.toString(),
-                                })),
+                                { value: "", label: "Default" },
+                                { value: "auto_60", label: "Auto (max 60)" },
+                                { value: "auto_90", label: "Auto (max 90)" },
+                                { value: "auto_120", label: "Auto (max 120)" },
                             ]}
                         />
                     </div>
