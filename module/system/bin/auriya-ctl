@@ -28,27 +28,30 @@ print_section() {
 if [ "$1" = "restart" ] || [ "$1" = "-r" ]; then
     print_header
     echo "- Restarting daemon..."
-    pkill -9 auriya 2>/dev/null
-    sleep 1
+    RESTART_SCRIPT="/data/local/tmp/auriya_restart_$$.sh"
+    cat > "$RESTART_SCRIPT" << 'SCRIPT_END'
+#!/system/bin/sh
+sleep 1
+pkill -9 auriya 2>/dev/null
+sleep 1
+LOG_FILE="/data/adb/auriya/daemon.log"
+[ -f "$LOG_FILE" ] && > "$LOG_FILE"
+MODPATH="/data/adb/modules/auriya"
+if [ -f "$MODPATH/service.sh" ]; then
+    sh "$MODPATH/service.sh" > /dev/null 2>&1 &
+fi
+rm -f "$0"
     
-    if [ -f "$LOG_FILE" ]; then
-        echo "- Clearing log file..."
-        > "$LOG_FILE"
-    fi
-    
-    if [ -f "$MODPATH/service.sh" ]; then
-        sh "$MODPATH/service.sh" > /dev/null 2>&1 &
-        sleep 3
-        if pgrep -f auriya > /dev/null 2>&1; then
-            PID=$(pgrep auriya | head -1)
-            echo "  Started (PID: $PID)"
-            [ -e "$SOCKET" ] && echo "  IPC ready"
-        else
-            echo "  ! Failed to start"
-        fi
+    chmod 755 "$RESTART_SCRIPT"
+    # Execute script in completely new session using setsid or double-fork
+    if command -v setsid >/dev/null 2>&1; then
+        setsid sh -c "$RESTART_SCRIPT" </dev/null >/dev/null 2>&1 &
     else
-        echo "  ! service.sh not found"
+        # Double-fork daemonize pattern
+        (cd / && sh -c "$RESTART_SCRIPT" </dev/null >/dev/null 2>&1 &) &
     fi
+    
+    echo "  Restart initiated"
     echo ""
     exit 0
 fi

@@ -130,7 +130,20 @@
         showToast("Restarting daemon...");
         try {
             await runCommand(`echo "RESTART" | nc -U /dev/socket/auriya.sock`);
-            showToast("Daemon restarting, please wait...");
+
+            for (let i = 1; i <= 5; i++) {
+                await new Promise((r) => setTimeout(r, 2000));
+                try {
+                    const res = await runCommand(
+                        `echo "PING" | nc -U /dev/socket/auriya.sock`,
+                    );
+                    if (res && res.includes("PONG")) {
+                        showToast("Daemon restarted successfully!");
+                        return;
+                    }
+                } catch (e) {}
+            }
+            showToast("Daemon restart failed");
         } catch (e) {
             showToast("Failed to restart daemon");
         }

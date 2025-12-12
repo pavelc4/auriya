@@ -11,11 +11,14 @@ SOCK="/dev/socket/auriya.sock"
 
 mkdir -p "$MODULE_CONFIG" "$LOGDIR"
 chmod 0755 "$MODULE_CONFIG" "$LOGDIR"
-until [ "$(getprop sys.boot_completed)" = "1" ]; do
-    sleep 2
-done
 
-sleep 5
+if [ "$(getprop sys.boot_completed)" != "1" ]; then
+    until [ "$(getprop sys.boot_completed)" = "1" ]; do
+        sleep 2
+    done
+    sleep 5
+fi
+
 chmod 0755 "$AURIYA_BIN"
 
 if [ ! -f "$AURIYA_BIN" ]; then

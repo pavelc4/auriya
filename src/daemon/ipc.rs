@@ -263,12 +263,35 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 Err(e) => format!("ERR RELOAD {:?}\n", e),
             },
             Ok(Command::Restart) => {
-                info!(target: "auriya::ipc", "Restart requested via IPC");
-                let _ = std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg("sleep 1 && auriya-ctl restart")
-                    .spawn();
-                "OK RESTARTING\n".into()
+                info!(target: "auriya::ipc", "Restart requested via IPC - initiating self-restart");
+
+                let log_path = "/data/adb/auriya/daemon.log";
+                let _ = std::fs::write(log_path, "");
+
+                use std::os::unix::process::CommandExt;
+                let mut cmd = std::process::Command::new("sh");
+                cmd.arg("-c")
+                    .arg("sleep 2 && sh /data/adb/modules/auriya/service.sh")
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null());
+
+                unsafe {
+                    cmd.pre_exec(|| {
+                        libc::setsid();
+                        Ok(())
+                    });
+                }
+
+                if cmd.spawn().is_ok() {
+                    info!(target: "auriya::ipc", "Restart spawned, daemon exiting");
+                    std::thread::spawn(|| {
+                        std::thread::sleep(std::time::Duration::from_millis(500));
+                        std::process::exit(0);
+                    });
+                    return Ok(());
+                }
+                "ERR RESTART_FAILED\n".into()
             }
             Ok(Command::SetLog(lvl)) => {
                 (h.set_log_level)(lvl);
