@@ -36,9 +36,7 @@ impl PowerState {
             ps.battery_saver = true;
         }
 
-        if s.contains("mBatterySaverSticky=true")
-            || s.contains("mBatterySaverStickyEnabled=true")
-        {
+        if s.contains("mBatterySaverSticky=true") || s.contains("mBatterySaverStickyEnabled=true") {
             ps.battery_saver_sticky = true;
         }
 

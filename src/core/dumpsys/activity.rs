@@ -1,4 +1,3 @@
-// src/core/dumpsys/activity.rs (FIXED - remove unused import)
 use crate::core::cmd::run_cmd_timeout_async;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -21,30 +20,28 @@ pub async fn get_app_pid(package: &str) -> anyhow::Result<Option<i32>> {
 }
 
 async fn try_visible_activity_process() -> anyhow::Result<Option<i32>> {
-    let out = match run_cmd_timeout_async(
-        "/system/bin/dumpsys",
-        &["activity", "activities"],
-        2000,
-    )
-    .await
+    let out = match run_cmd_timeout_async("/system/bin/dumpsys", &["activity", "activities"], 2000)
+        .await
     {
         Ok(o) => o,
         Err(_) => return Ok(None),
     };
 
     let s = String::from_utf8_lossy(&out.stdout);
-    if let Some(line) = s.lines().find(|l| l.contains("VisibleActivityProcess")) &&
-        let Some(open) = line.find('{') {
-            let inner = &line[open + 1..];
-            let inner = inner.split('}').next().unwrap_or(inner);
-            for tok in inner.split_whitespace() {
-                if let Some((pid_str, _rest)) = tok.split_once(':')
-                    && let Ok(pid) = pid_str.parse::<i32>() {
-                        if pid > 0 {
-                            return Ok(Some(pid));
-                        }
-                    }
+    if let Some(line) = s.lines().find(|l| l.contains("VisibleActivityProcess"))
+        && let Some(open) = line.find('{')
+    {
+        let inner = &line[open + 1..];
+        let inner = inner.split('}').next().unwrap_or(inner);
+        for tok in inner.split_whitespace() {
+            if let Some((pid_str, _rest)) = tok.split_once(':')
+                && let Ok(pid) = pid_str.parse::<i32>()
+            {
+                if pid > 0 {
+                    return Ok(Some(pid));
+                }
             }
+        }
     }
     Ok(None)
 }
@@ -66,13 +63,7 @@ async fn try_activity_processes(package: &str) -> anyhow::Result<Option<i32>> {
 }
 
 async fn try_activity_top(package: &str) -> anyhow::Result<Option<i32>> {
-    let out = match run_cmd_timeout_async(
-        "/system/bin/dumpsys",
-        &["activity", "top"],
-        2000,
-    )
-    .await
-    {
+    let out = match run_cmd_timeout_async("/system/bin/dumpsys", &["activity", "top"], 2000).await {
         Ok(o) => o,
         Err(_) => return Ok(None),
     };
@@ -91,7 +82,6 @@ async fn ps_fallback(package: &str) -> anyhow::Result<Option<i32>> {
     let out = match run_cmd_timeout_async("/system/bin/sh", &["-c", &cmd], 1500).await {
         Ok(o) => o,
         Err(e) => {
-            // Rate-limited warning
             let now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()

@@ -1,4 +1,3 @@
-// src/core/dumpsys/surfaceflinger.rs (MODIFIED)
 use crate::core::cmd::run_cmd_timeout_async;
 use anyhow::Result;
 
@@ -6,19 +5,14 @@ pub struct SurfaceFlinger;
 
 impl SurfaceFlinger {
     pub async fn find_layer(package: &str) -> Result<Option<String>> {
-        let output = match run_cmd_timeout_async(
-            "dumpsys",
-            &["SurfaceFlinger", "--list"],
-            1500,
-        )
-        .await
-        {
-            Ok(o) => o,
-            Err(e) => {
-                tracing::debug!(target: "auriya:sf", "find_layer timeout: {:?}", e);
-                return Ok(None);
-            }
-        };
+        let output =
+            match run_cmd_timeout_async("dumpsys", &["SurfaceFlinger", "--list"], 1500).await {
+                Ok(o) => o,
+                Err(e) => {
+                    tracing::debug!(target: "auriya:sf", "find_layer timeout: {:?}", e);
+                    return Ok(None);
+                }
+            };
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let best_match = None;
@@ -51,19 +45,16 @@ impl SurfaceFlinger {
     }
 
     pub async fn get_frame_time(layer: &str) -> Result<f32> {
-        let output = match run_cmd_timeout_async(
-            "dumpsys",
-            &["SurfaceFlinger", "--latency", layer],
-            1500,
-        )
-        .await
-        {
-            Ok(o) => o,
-            Err(e) => {
-                tracing::debug!(target: "auriya:sf", "get_frame_time timeout: {:?}", e);
-                return Ok(0.0);
-            }
-        };
+        let output =
+            match run_cmd_timeout_async("dumpsys", &["SurfaceFlinger", "--latency", layer], 1500)
+                .await
+            {
+                Ok(o) => o,
+                Err(e) => {
+                    tracing::debug!(target: "auriya:sf", "get_frame_time timeout: {:?}", e);
+                    return Ok(0.0);
+                }
+            };
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let mut lines: Vec<&str> = stdout.lines().collect();
