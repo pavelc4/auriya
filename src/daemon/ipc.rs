@@ -239,10 +239,13 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     .map(|c| c.game.len())
                     .unwrap_or(0);
                 let ov = h.override_foreground.read().ok().and_then(|o| o.clone());
-                let log_level = h.current_log_level.read().unwrap();
+                let log_level = match h.current_log_level.read() {
+                    Ok(l) => format!("{:?}", *l),
+                    Err(_) => "Unknown".to_string(),
+                };
                 format!(
-                    "ENABLED={} PACKAGES={} OVERRIDE={:?} LOG_LEVEL={:?}\n",
-                    enabled, n, ov, *log_level
+                    "ENABLED={} PACKAGES={} OVERRIDE={:?} LOG_LEVEL={}\n",
+                    enabled, n, ov, log_level
                 )
             }
             Ok(Command::Enable) => {
@@ -287,37 +290,43 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
             }
             Ok(Command::AddGame(pkg)) => {
                 use crate::core::config::gamelist::GameProfile;
-                let mut gl = h.shared_config.write().unwrap();
-                let profile = GameProfile {
-                    package: pkg.clone(),
-                    cpu_governor: "performance".to_string(),
-                    enable_dnd: true,
-                    target_fps: None,
-                    refresh_rate: None,
-                    mode: Some("performance".to_string()),
-                };
-                match gl.add(profile) {
-                    Ok(_) => {
-                        if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
-                            format!("ERR SAVE_GAMELIST {:?}\n", e)
-                        } else {
-                            format!("OK ADD_GAME {}\n", pkg)
+                if let Ok(mut gl) = h.shared_config.write() {
+                    let profile = GameProfile {
+                        package: pkg.clone(),
+                        cpu_governor: "performance".to_string(),
+                        enable_dnd: true,
+                        target_fps: None,
+                        refresh_rate: None,
+                        mode: Some("performance".to_string()),
+                    };
+                    match gl.add(profile) {
+                        Ok(_) => {
+                            if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
+                                format!("ERR SAVE_GAMELIST {:?}\n", e)
+                            } else {
+                                format!("OK ADD_GAME {}\n", pkg)
+                            }
                         }
+                        Err(e) => format!("ERR ADD_GAME {:?}\n", e),
                     }
-                    Err(e) => format!("ERR ADD_GAME {:?}\n", e),
+                } else {
+                    "ERR lock poisoned\n".to_string()
                 }
             }
             Ok(Command::RemoveGame(pkg)) => {
-                let mut gl = h.shared_config.write().unwrap();
-                match gl.remove(&pkg) {
-                    Ok(_) => {
-                        if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
-                            format!("ERR SAVE_GAMELIST {:?}\n", e)
-                        } else {
-                            format!("OK REMOVE_GAME {}\n", pkg)
+                if let Ok(mut gl) = h.shared_config.write() {
+                    match gl.remove(&pkg) {
+                        Ok(_) => {
+                            if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
+                                format!("ERR SAVE_GAMELIST {:?}\n", e)
+                            } else {
+                                format!("OK REMOVE_GAME {}\n", pkg)
+                            }
                         }
+                        Err(e) => format!("ERR REMOVE_GAME {:?}\n", e),
                     }
-                    Err(e) => format!("ERR REMOVE_GAME {:?}\n", e),
+                } else {
+                    "ERR lock poisoned\n".to_string()
                 }
             }
             Ok(Command::ListPackages) => {
@@ -343,23 +352,29 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
             }
 
             Ok(Command::GetGameList) => {
-                let gl = h.shared_config.read().unwrap();
-                match serde_json::to_string(&gl.game) {
-                    Ok(json) => format!("{}\n", json),
-                    Err(e) => format!("ERR GET_GAMELIST {:?}\n", e),
+                if let Ok(gl) = h.shared_config.read() {
+                    match serde_json::to_string(&gl.game) {
+                        Ok(json) => format!("{}\n", json),
+                        Err(e) => format!("ERR GET_GAMELIST {:?}\n", e),
+                    }
+                } else {
+                    "ERR lock poisoned\n".to_string()
                 }
             }
             Ok(Command::UpdateGame(pkg, gov, dnd, target_fps, refresh_rate, mode)) => {
-                let mut gl = h.shared_config.write().unwrap();
-                match gl.update(&pkg, gov, dnd, target_fps, refresh_rate, mode) {
-                    Ok(_) => {
-                        if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
-                            format!("ERR SAVE_GAMELIST {:?}\n", e)
-                        } else {
-                            format!("OK UPDATE_GAME {}\n", pkg)
+                if let Ok(mut gl) = h.shared_config.write() {
+                    match gl.update(&pkg, gov, dnd, target_fps, refresh_rate, mode) {
+                        Ok(_) => {
+                            if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
+                                format!("ERR SAVE_GAMELIST {:?}\n", e)
+                            } else {
+                                format!("OK UPDATE_GAME {}\n", pkg)
+                            }
                         }
+                        Err(e) => format!("ERR UPDATE_GAME {:?}\n", e),
                     }
-                    Err(e) => format!("ERR UPDATE_GAME {:?}\n", e),
+                } else {
+                    "ERR lock poisoned\n".to_string()
                 }
             }
             Ok(Command::SetFps(fps)) => {
