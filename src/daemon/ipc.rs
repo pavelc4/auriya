@@ -33,6 +33,7 @@ pub enum Command {
     Enable,
     Disable,
     Reload,
+    Restart,
     SetLog(LogLevelCmd),
     Inject(String),
     ClearInject,
@@ -70,6 +71,7 @@ impl FromStr for Command {
             ["GETPID"] | ["GET_PID"] => Ok(Command::GetPid),
             ["PING"] => Ok(Command::Ping),
             ["QUIT"] => Ok(Command::Quit),
+            ["RESTART"] => Ok(Command::Restart),
             ["LIST_PACKAGES"] | ["LISTPACKAGES"] => Ok(Command::ListPackages),
             ["GET_GAMELIST"] | ["GETGAMELIST"] => Ok(Command::GetGameList),
 
@@ -260,6 +262,14 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 Ok(n) => format!("OK RELOADED {}\n", n),
                 Err(e) => format!("ERR RELOAD {:?}\n", e),
             },
+            Ok(Command::Restart) => {
+                info!(target: "auriya::ipc", "Restart requested via IPC");
+                let _ = std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg("sleep 1 && auriya-ctl restart")
+                    .spawn();
+                "OK RESTARTING\n".into()
+            }
             Ok(Command::SetLog(lvl)) => {
                 (h.set_log_level)(lvl);
                 "OK SET_LOG\n".into()

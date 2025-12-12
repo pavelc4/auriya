@@ -126,6 +126,16 @@
         save(`Target FPS set to ${fps}`);
     }
 
+    async function restartDaemon() {
+        showToast("Restarting daemon...");
+        try {
+            await runCommand(`echo "RESTART" | nc -U /dev/socket/auriya.sock`);
+            showToast("Daemon restarting, please wait...");
+        } catch (e) {
+            showToast("Failed to restart daemon");
+        }
+    }
+
     onMount(loadSettings);
 </script>
 
@@ -243,6 +253,25 @@
                 on:change={toggleDebug}
                 class="toggle"
             />
+        </div>
+        <div class="flex items-center justify-between p-2 mt-2">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0"
+                >
+                    <Icon name="restart_alt" />
+                </div>
+                <div>
+                    <p class="font-medium">Restart Daemon</p>
+                    <p class="text-xs opacity-70">Stop, clear logs & restart</p>
+                </div>
+            </div>
+            <button
+                on:click={restartDaemon}
+                class="btn btn-sm bg-surface-variant text-on-surface rounded-lg px-4"
+            >
+                Restart
+            </button>
         </div>
     </div>
 </div>

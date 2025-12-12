@@ -40,6 +40,7 @@ import IconBalance from '~icons/material-symbols/balance-rounded';
 import IconRocketLaunch from '~icons/material-symbols/rocket-launch-rounded';
 import IconCheck from '~icons/material-symbols/check-rounded';
 import IconKeyboardArrowDown from '~icons/material-symbols/keyboard-arrow-down-rounded';
+import IconRestartAlt from '~icons/material-symbols/restart-alt-rounded';
 
 export const iconMap = {
     'light_mode': IconLightMode,
@@ -83,7 +84,8 @@ export const iconMap = {
     'balance': IconBalance,
     'rocket_launch': IconRocketLaunch,
     'check': IconCheck,
-    'keyboard_arrow_down': IconKeyboardArrowDown
+    'keyboard_arrow_down': IconKeyboardArrowDown,
+    'restart_alt': IconRestartAlt
 };
 
 export default iconMap;
