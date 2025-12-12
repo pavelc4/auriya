@@ -1,3 +1,5 @@
+use crate::core::cmd::run_cmd_timeout_async;
+
 #[derive(Debug, Default, Clone)]
 pub struct PowerState {
     pub screen_awake: bool,
@@ -7,15 +9,16 @@ pub struct PowerState {
 }
 
 impl PowerState {
-    pub fn fetch() -> anyhow::Result<PowerState> {
-        use std::process::Command;
-
-        let out = Command::new("/system/bin/dumpsys")
-            .args(["power"])
-            .output()?;
+    pub async fn fetch() -> anyhow::Result<PowerState> {
+        let out = match run_cmd_timeout_async("/system/bin/dumpsys", &["power"], 1500).await {
+            Ok(o) => o,
+            Err(e) => {
+                tracing::debug!(target: "auriya:power", "dumpsys power timeout: {:?}", e);
+                return Ok(PowerState::default());
+            }
+        };
 
         let s = String::from_utf8_lossy(&out.stdout);
-
         let mut ps = PowerState::default();
 
         if s.contains("mWakefulness=Awake")
@@ -33,13 +36,15 @@ impl PowerState {
             ps.battery_saver = true;
         }
 
-        if s.contains("mBatterySaverSticky=true") || s.contains("mBatterySaverStickyEnabled=true") {
+        if s.contains("mBatterySaverSticky=true")
+            || s.contains("mBatterySaverStickyEnabled=true")
+        {
             ps.battery_saver_sticky = true;
         }
 
         if s.contains("mIsPowered=true")
             || s.contains("plugged=true")
-            || (s.contains("PlugType:") && !s.contains("PlugType: NONE"))
+            || (s.contains("Plug Type:") && !s.contains("Plug Type: NONE"))
         {
             ps.is_plugged_in = true;
         }

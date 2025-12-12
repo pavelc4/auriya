@@ -412,7 +412,7 @@ impl Daemon {
     async fn process_tick_logic(&mut self, gamelist: &crate::core::config::GameList) -> Result<()> {
         use crate::core::profile;
 
-        let power = crate::core::dumpsys::power::PowerState::fetch()?;
+        let power = crate::core::dumpsys::power::PowerState::fetch().await?;
         let power_changed = self.last.screen_awake != Some(power.screen_awake)
             || self.last.battery_saver != Some(power.battery_saver);
 
@@ -440,7 +440,7 @@ impl Daemon {
         let mut pkg_opt: Option<String> =
             self.override_foreground.read().ok().and_then(|o| o.clone());
         if pkg_opt.is_none() {
-            match crate::core::dumpsys::foreground::get_foreground_package()? {
+            match crate::core::dumpsys::foreground::get_foreground_package().await? {
                 Some(p) => pkg_opt = Some(p),
                 None => {
                     if self.last.profile_mode != Some(ProfileMode::Balance) {
@@ -491,7 +491,7 @@ impl Daemon {
                     }
                 }
 
-                match self.run_fas_tick(&fas, &pkg, governor) {
+                match self.run_fas_tick(&fas, &pkg, governor).await {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
                     Err(e) => warn!(target: "auriya::fas", "FAS tick error: {:?}", e),
                 }
@@ -506,7 +506,7 @@ impl Daemon {
             .map(|g| g.package.clone())
             .collect::<Vec<String>>();
         if allowed.iter().any(|a| a == &pkg) {
-            match crate::core::dumpsys::activity::get_app_pid(&pkg)? {
+            match crate::core::dumpsys::activity::get_app_pid(&pkg).await? {
                 Some(pid) => {
                     let changed = self.last.pkg.as_deref() != Some(pkg.as_str())
                         || self.last.pid != Some(pid);
@@ -646,7 +646,7 @@ impl Daemon {
         }
     }
 
-    fn run_fas_tick(
+    async fn run_fas_tick(
         &mut self,
         fas: &Arc<Mutex<crate::daemon::fas::FasController>>,
         pkg: &str,
@@ -662,7 +662,7 @@ impl Daemon {
             .map_err(|_| anyhow::anyhow!("FAS lock poisoned"))?;
 
         fas_guard.set_package(pkg.to_string());
-        let action = fas_guard.tick(margin, thermal_thresh)?;
+        let action = fas_guard.tick(margin, thermal_thresh).await?;
 
         match action {
             ScalingAction::Boost => {

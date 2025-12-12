@@ -1,7 +1,22 @@
+use crate::core::cmd::run_cmd_timeout_sync;
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{debug, info, warn};
+
+static LAST_TASKSET_WARN_MS: AtomicU64 = AtomicU64::new(0);
+static LAST_RENICE_WARN_MS: AtomicU64 = AtomicU64::new(0);
+const WARN_DEBOUNCE_MS: u64 = 30000;
+
+#[inline]
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_else(|_| std::time::Duration::from_secs(0))
+        .as_millis() as u64
+}
 
 pub fn enable_boost() -> Result<()> {
     let boost_paths = [
@@ -139,26 +154,57 @@ pub fn get_affinity_mask_for_profile(profile: &str) -> u64 {
 
 pub fn set_game_affinity_dynamic(pid: i32, profile: &str) -> Result<()> {
     let mask = get_affinity_mask_for_profile(profile);
+    if mask == 0xffff_ffff_ffff_ffff {
+        debug!(target: "auriya:cpu", "Skipping taskset: invalid mask (get_online_cores failed)");
+        return Ok(());
+    }
+
+    if mask == 0 {
+        debug!(target: "auriya:cpu", "Skipping taskset: mask is zero for profile={}", profile);
+        return Ok(());
+    }
+
     let mask_hex = format!("0x{:x}", mask);
 
-    let output = std::process::Command::new("taskset")
-        .args(["-p", &mask_hex, &pid.to_string()])
-        .output();
+    let output = run_cmd_timeout_sync("taskset", &["-p", &mask_hex, &pid.to_string()], 1000);
 
     match output {
         Ok(out) if out.status.success() => {
             info!(
+                target: "auriya:cpu",
                 "Set CPU affinity pid={} mask={} profile={}",
-                pid, mask_hex, profile
+                pid,
+                mask_hex,
+                profile
             );
             Ok(())
         }
         Ok(out) => {
-            warn!("taskset failed: {}", String::from_utf8_lossy(&out.stderr));
+            let now = now_ms();
+            let last = LAST_TASKSET_WARN_MS.load(Ordering::Relaxed);
+            if now.saturating_sub(last) > WARN_DEBOUNCE_MS {
+                warn!(
+                    target: "auriya:cpu",
+                    "taskset failed: {}",
+                    String::from_utf8_lossy(&out.stderr)
+                );
+                LAST_TASKSET_WARN_MS.store(now, Ordering::Relaxed);
+            } else {
+                debug!(
+                    target: "auriya:cpu",
+                    "taskset failed (suppressed): {}",
+                    String::from_utf8_lossy(&out.stderr)
+                );
+            }
             Ok(())
         }
         Err(e) => {
-            debug!("taskset error: {}", e);
+            let now = now_ms();
+            let last = LAST_TASKSET_WARN_MS.load(Ordering::Relaxed);
+            if now.saturating_sub(last) > WARN_DEBOUNCE_MS {
+                debug!(target: "auriya:cpu", "taskset error: {:?}", e);
+                LAST_TASKSET_WARN_MS.store(now, Ordering::Relaxed);
+            }
             Ok(())
         }
     }
@@ -175,15 +221,22 @@ pub fn online_all_cores() -> Result<()> {
 }
 
 pub fn set_process_priority(pid: i32) -> Result<()> {
-    let _ = std::process::Command::new("renice")
-        .args(["-n", "-20", "-p", &pid.to_string()])
-        .output();
+    let result = run_cmd_timeout_sync("renice", &["-n", "-20", "-p", &pid.to_string()], 1000);
+
+    if let Err(e) = result {
+        let now = now_ms();
+        let last = LAST_RENICE_WARN_MS.load(Ordering::Relaxed);
+        if now.saturating_sub(last) > WARN_DEBOUNCE_MS {
+            debug!(target: "auriya:cpu", "renice failed: {:?}", e);
+            LAST_RENICE_WARN_MS.store(now, Ordering::Relaxed);
+        }
+    }
 
     let oom_path = format!("/proc/{}/oom_score_adj", pid);
     if Path::new(&oom_path).exists() {
-        let _ = std::fs::write(oom_path, "-800");
+        let _ = fs::write(oom_path, "-800");
     }
 
-    info!("Process priority set for PID {}", pid);
+    info!(target: "auriya:cpu", "Process priority set for PID {}", pid);
     Ok(())
 }

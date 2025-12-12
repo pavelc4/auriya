@@ -1,34 +1,40 @@
+// src/core/dumpsys/surfaceflinger.rs (MODIFIED)
+use crate::core::cmd::run_cmd_timeout_async;
 use anyhow::Result;
-use std::process::Command;
 
 pub struct SurfaceFlinger;
 
 impl SurfaceFlinger {
-    pub fn find_layer(package: &str) -> Result<Option<String>> {
-        let output = Command::new("dumpsys")
-            .arg("SurfaceFlinger")
-            .arg("--list")
-            .output()?;
+    pub async fn find_layer(package: &str) -> Result<Option<String>> {
+        let output = match run_cmd_timeout_async(
+            "dumpsys",
+            &["SurfaceFlinger", "--list"],
+            1500,
+        )
+        .await
+        {
+            Ok(o) => o,
+            Err(e) => {
+                tracing::debug!(target: "auriya:sf", "find_layer timeout: {:?}", e);
+                return Ok(None);
+            }
+        };
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-
         let best_match = None;
 
         for line in stdout.lines() {
             let line = line.trim();
             if line.contains(package)
                 && line.contains("SurfaceView")
-                && !line.contains("Background for")
+                && !line.contains("Background")
             {
-                // Extract name from RequestedLayerState{NAME ...} if present
-                let name = if let Some(start) = line.find("RequestedLayerState{") {
-                    let rest = &line[start + 20..]; // len("RequestedLayerState{")
-                    // Find end of name: usually before " parentId=" or " z=" or just "}"
+                let name = if let Some(start) = line.find("RequestedLayerState") {
+                    let rest = &line[start + 20..]; // len("RequestedLayerState")
                     let end = rest
                         .find(" parentId=")
                         .or_else(|| rest.find(" z="))
-                        .or_else(|| rest.find("}"));
-
+                        .or_else(|| rest.find(' '));
                     if let Some(end_idx) = end {
                         &rest[..end_idx]
                     } else {
@@ -37,7 +43,6 @@ impl SurfaceFlinger {
                 } else {
                     line
                 };
-
                 return Ok(Some(name.trim().to_string()));
             }
         }
@@ -45,21 +50,28 @@ impl SurfaceFlinger {
         Ok(best_match)
     }
 
-    pub fn get_frame_time(layer: &str) -> Result<f32> {
-        let output = Command::new("dumpsys")
-            .arg("SurfaceFlinger")
-            .arg("--latency")
-            .arg(layer)
-            .output()?;
+    pub async fn get_frame_time(layer: &str) -> Result<f32> {
+        let output = match run_cmd_timeout_async(
+            "dumpsys",
+            &["SurfaceFlinger", "--latency", layer],
+            1500,
+        )
+        .await
+        {
+            Ok(o) => o,
+            Err(e) => {
+                tracing::debug!(target: "auriya:sf", "get_frame_time timeout: {:?}", e);
+                return Ok(0.0);
+            }
+        };
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-
         let mut lines: Vec<&str> = stdout.lines().collect();
 
         if lines.is_empty() {
             return Ok(0.0);
         }
-        lines.remove(0);
+        lines.remove(0); // Remove header
 
         let valid_lines: Vec<&str> = lines
             .into_iter()
@@ -70,7 +82,6 @@ impl SurfaceFlinger {
             return Ok(0.0);
         }
 
-        // Get last two frames
         let last_frame = valid_lines[valid_lines.len() - 1];
         let prev_frame = valid_lines[valid_lines.len() - 2];
 
@@ -87,12 +98,9 @@ impl SurfaceFlinger {
         if last_present > prev_present {
             let diff_ns = last_present - prev_present;
             let diff_ms = diff_ns as f32 / 1_000_000.0;
-
-            if diff_ms > 200.0 {
-                return Ok(0.0);
+            if diff_ms < 200.0 {
+                return Ok(diff_ms);
             }
-
-            return Ok(diff_ms);
         }
 
         Ok(0.0)

@@ -7,3 +7,4 @@ pub mod profile;
 pub mod scaling;
 pub mod thermal;
 pub mod tweaks;
+pub mod cmd;

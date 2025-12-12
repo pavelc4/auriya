@@ -40,8 +40,8 @@ impl FasController {
         (1000.0 / self.target_frame_time).round() as u32
     }
 
-    pub fn tick(&mut self, margin: f32, thermal_thresh: f32) -> Result<ScalingAction> {
-        let frame_time = self.frame_monitor.get_frame_time().unwrap_or(0.0);
+    pub async fn tick(&mut self, margin: f32, thermal_thresh: f32) -> Result<ScalingAction> {
+        let frame_time = self.frame_monitor.get_frame_time().await.unwrap_or(0.0);
         let temp = self.thermal.get_max_temp()?;
         let throttle = temp > thermal_thresh;
 
