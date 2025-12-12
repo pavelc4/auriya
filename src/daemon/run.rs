@@ -3,6 +3,7 @@ use crate::core::tweaks::mtk;
 use crate::daemon::state::{CurrentState, LastState};
 use anyhow::Result;
 use notify::{EventKind, RecursiveMode, Watcher};
+use std::collections::HashSet;
 use std::{
     sync::atomic::AtomicBool,
     sync::{Arc, Mutex, RwLock},
@@ -102,6 +103,7 @@ pub struct Daemon {
     balance_governor: String,
     supported_modes: Vec<crate::core::display::DisplayMode>,
     refresh_rate_map: std::collections::HashMap<String, u32>,
+    cached_whitelist: HashSet<String>,
 }
 
 impl Daemon {
@@ -126,6 +128,13 @@ impl Daemon {
             None
         };
 
+        let cached_whitelist: HashSet<String> = cfg
+            .gamelist
+            .game
+            .iter()
+            .map(|g| g.package.clone())
+            .collect();
+
         Ok(Self {
             cfg,
             _shared_settings: shared_settings,
@@ -139,6 +148,7 @@ impl Daemon {
             balance_governor,
             supported_modes,
             refresh_rate_map: std::collections::HashMap::new(),
+            cached_whitelist,
         })
     }
 
@@ -171,6 +181,13 @@ impl Daemon {
             Err(e) => {
                 error!(target: "auriya::daemon", "Failed to reload settings: {:?}", e);
             }
+        }
+    }
+
+    fn rebuild_whitelist(&mut self) {
+        if let Ok(gl) = self.shared_gamelist.read() {
+            self.cached_whitelist = gl.game.iter().map(|g| g.package.clone()).collect();
+            info!(target: "auriya::daemon", "Whitelist cache rebuilt: {} packages", self.cached_whitelist.len());
         }
     }
 
@@ -489,12 +506,7 @@ impl Daemon {
             return Ok(());
         }
 
-        let allowed = gamelist
-            .game
-            .iter()
-            .map(|g| g.package.clone())
-            .collect::<Vec<String>>();
-        if allowed.iter().any(|a| a == &pkg) {
+        if self.cached_whitelist.contains(&pkg) {
             match crate::core::dumpsys::activity::get_app_pid(&pkg).await? {
                 Some(pid) => {
                     let changed = self.last.pkg.as_deref() != Some(pkg.as_str())
@@ -725,6 +737,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                 if msg == "settings" {
                      daemon.reload_settings();
                 } else {
+                     daemon.rebuild_whitelist();
                      debug!(target: "auriya::daemon", "Gamelist reload notification received");
                 }
             }
