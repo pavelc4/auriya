@@ -495,7 +495,7 @@ impl Daemon {
         }
         let pkg = pkg_opt.unwrap();
 
-        let pid_still_valid = self.last.pid.map_or(false, |pid| {
+        let pid_still_valid = self.last.pid.is_some_and(|pid| {
             crate::core::dumpsys::activity::is_pid_valid(pid)
         });
 
@@ -509,13 +509,11 @@ impl Daemon {
                     .map(|c| &c.cpu_governor[..])
                     .unwrap_or("performance");
 
-                if let Some(cfg) = game_cfg {
-                    if let Some(ref fps_cfg) = cfg.target_fps {
-                        if let Ok(mut f) = fas.lock() {
+                if let Some(cfg) = game_cfg
+                    && let Some(ref fps_cfg) = cfg.target_fps
+                        && let Ok(mut f) = fas.lock() {
                             f.set_target_fps_config(fps_cfg.to_buffer_config());
                         }
-                    }
-                }
 
                 match self.run_fas_tick(&fas, &pkg, governor, self.last.pid).await {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),

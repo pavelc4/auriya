@@ -15,11 +15,11 @@ pub async fn get_foreground_package() -> anyhow::Result<Option<String>> {
     let mut fallback_pkg: Option<String> = None;
 
     for line in s.lines() {
-        if line.contains("ResumedActivity") {
-            if let Some(pkg) = parse_pkg_from_activity_line(line) {
+        if line.contains("ResumedActivity")
+            && let Some(pkg) = parse_pkg_from_activity_line(line) {
                 return Ok(Some(pkg));
             }
-        }
+
 
         if fallback_pkg.is_none() && line.contains("mCurrentFocus") {
             fallback_pkg = parse_pkg_from_window_line(line);

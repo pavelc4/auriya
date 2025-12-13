@@ -258,51 +258,35 @@ pub fn set_swappiness(value: u32) -> Result<()> {
         ])
         .output();
 
-    if let Ok(output) = chmod_write {
-        if output.status.success() {
-            if let Ok(current) = fs::read_to_string(path) {
-                if current.trim() == value.to_string() {
-                    debug!("Swappiness set to {} via chmod trick", value);
-                    return Ok(());
-                }
-            }
-        }
+    if let Ok(output) = chmod_write && output.status.success() && let Ok(current) = fs::read_to_string(path)
+        && current.trim() == value.to_string() {
+        debug!("Swappiness set to {} via chmod trick", value);
+        return Ok(());
     }
 
     let sysctl_result = std::process::Command::new("sysctl")
         .args(["-w", &format!("vm.swappiness={}", value)])
         .output();
 
-    if let Ok(output) = sysctl_result {
-        if output.status.success() {
-            if let Ok(current) = fs::read_to_string(path) {
-                if current.trim() == value.to_string() {
-                    debug!("Swappiness set to {} via sysctl", value);
-                    return Ok(());
-                }
-            }
-        }
+    if let Ok(output) = sysctl_result && output.status.success() && let Ok(current) = fs::read_to_string(path)
+        && current.trim() == value.to_string() {
+            debug!("Swappiness set to {} via sysctl", value);
+            return Ok(());
     }
 
-    if fs::write(path, value.to_string()).is_ok() {
-        if let Ok(current) = fs::read_to_string(path) {
-            if current.trim() == value.to_string() {
-                debug!("Swappiness set to {} via fs::write", value);
-                return Ok(());
-            }
+
+
+    if fs::write(path, value.to_string()).is_ok() && let Ok(current) = fs::read_to_string(path) && current.trim() == value.to_string() {
+            debug!("Swappiness set to {} via fs::write", value);
+            return Ok(());
         }
-    }
 
-    let resetprop = std::process::Command::new("resetprop")
-        .args(["vm.swappiness", &value.to_string()])
-        .output();
+    let resetprop = std::process::Command::new("resetprop").args(["vm.swappiness", &value.to_string()]).output();
 
-    if let Ok(output) = resetprop {
-        if output.status.success() {
+    if let Ok(output) = resetprop && output.status.success() {
             debug!("Swappiness set to {} via resetprop", value);
             return Ok(());
         }
-    }
 
     warn!(
         "Could not set swappiness to {} - all methods failed (ROM may block this)",
