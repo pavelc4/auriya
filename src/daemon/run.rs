@@ -495,7 +495,11 @@ impl Daemon {
         }
         let pkg = pkg_opt.unwrap();
 
-        if self.last.pkg.as_deref() == Some(pkg.as_str()) && self.last.pid.is_some() {
+        let pid_still_valid = self.last.pid.map_or(false, |pid| {
+            crate::core::dumpsys::activity::is_pid_valid(pid)
+        });
+
+        if self.last.pkg.as_deref() == Some(pkg.as_str()) && pid_still_valid {
             let fas_clone = self.fas_controller.clone();
             if let Some(fas) = fas_clone
                 && gamelist.game.iter().any(|a| a.package == pkg)

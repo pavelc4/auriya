@@ -6,6 +6,14 @@ use std::time::{SystemTime, UNIX_EPOCH};
 static LAST_PS_WARN_MS: AtomicU64 = AtomicU64::new(0);
 const PS_WARN_DEBOUNCE_MS: u64 = 30000; // 30s
 
+#[inline]
+pub fn is_pid_valid(pid: i32) -> bool {
+    if pid <= 0 {
+        return false;
+    }
+    std::path::Path::new(&format!("/proc/{}", pid)).exists()
+}
+
 pub async fn get_app_pid(package: &str) -> anyhow::Result<Option<i32>> {
     if let Some(pid) = try_visible_activity_process().await? {
         return Ok(Some(pid));

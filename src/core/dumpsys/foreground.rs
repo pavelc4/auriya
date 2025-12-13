@@ -12,24 +12,21 @@ pub async fn get_foreground_package() -> anyhow::Result<Option<String>> {
     };
 
     let s = String::from_utf8_lossy(&out.stdout);
+    let mut fallback_pkg: Option<String> = None;
 
     for line in s.lines() {
-        if let Some(pos) = line.find("ResumedActivity") {
-            if let Some(pkg) = parse_pkg_from_activity_line(&line[pos..]) {
+        if line.contains("ResumedActivity") {
+            if let Some(pkg) = parse_pkg_from_activity_line(line) {
                 return Ok(Some(pkg));
             }
         }
-    }
 
-    for line in s.lines() {
-        if let Some(pos) = line.find("mCurrentFocus") {
-            if let Some(pkg) = parse_pkg_from_window_line(&line[pos..]) {
-                return Ok(Some(pkg));
-            }
+        if fallback_pkg.is_none() && line.contains("mCurrentFocus") {
+            fallback_pkg = parse_pkg_from_window_line(line);
         }
     }
 
-    Ok(None)
+    Ok(fallback_pkg)
 }
 
 fn parse_pkg_from_activity_line(s: &str) -> Option<String> {
