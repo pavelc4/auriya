@@ -1,5 +1,5 @@
 use crate::core::profile::ProfileMode;
-use crate::core::tweaks::mtk;
+use crate::core::tweaks::vendor::mtk;
 use crate::daemon::state::{CurrentState, LastState};
 use anyhow::Result;
 use notify::{EventKind, RecursiveMode, Watcher};

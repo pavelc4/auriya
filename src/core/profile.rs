@@ -1,4 +1,7 @@
-use crate::core::tweaks::{cpu, gpu, memory, mtk, sched, snapdragon, soc, storage, system};
+use crate::core::tweaks::{
+    cpu, gpu, init, memory, sched, storage,
+    vendor::{detect as soc, mtk, snapdragon},
+};
 use anyhow::Result;
 use std::fs;
 use std::path::Path;
@@ -73,7 +76,7 @@ pub fn apply_performance_with_config(
 
     gpu::set_performance_mode()?;
 
-    if let Err(e) = system::apply_general_tweaks() {
+    if let Err(e) = init::apply_general_tweaks() {
         tracing::warn!(target: "auriya::profile", "Failed to apply general system tweaks: {}", e);
     }
 
