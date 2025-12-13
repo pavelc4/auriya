@@ -1,5 +1,6 @@
 use anyhow::Result;
 use std::process::Command;
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SocType {
@@ -24,7 +25,13 @@ impl std::fmt::Display for SocType {
     }
 }
 
+static SOC_CACHE: OnceLock<SocType> = OnceLock::new();
+
 pub fn detect_soc() -> SocType {
+    *SOC_CACHE.get_or_init(detect_soc_internal)
+}
+
+fn detect_soc_internal() -> SocType {
     if let Ok(platform) = get_prop("ro.board.platform") {
         let p = platform.to_lowercase();
         let platform_patterns = [

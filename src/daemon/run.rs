@@ -98,6 +98,7 @@ pub struct Daemon {
     last: LastState,
     last_error: Option<(String, u128)>,
     error_debounce_ms: u128,
+    tick_count: u64,
 
     fas_controller: Option<Arc<Mutex<crate::daemon::fas::FasController>>>,
     balance_governor: String,
@@ -149,6 +150,7 @@ impl Daemon {
             supported_modes,
             refresh_rate_map: std::collections::HashMap::new(),
             cached_whitelist,
+            tick_count: 0,
         })
     }
 
@@ -356,7 +358,8 @@ impl Daemon {
     }
 
     pub async fn tick(&mut self) {
-        debug!(target: "auriya::daemon", "Tick");
+        self.tick_count = self.tick_count.wrapping_add(1);
+        debug!(target: "auriya::daemon", "Tick #{}", self.tick_count);
         mtk::fix_mediatek_ppm();
 
         let gamelist = match self.shared_gamelist.read() {
@@ -410,7 +413,19 @@ impl Daemon {
     async fn process_tick_logic(&mut self, gamelist: &crate::core::config::GameList) -> Result<()> {
         use crate::core::profile;
 
-        let power = crate::core::dumpsys::power::PowerState::fetch().await?;
+        // Stagger power check: Every 5 ticks (5 seconds)
+        let power = if self.tick_count % 5 == 0 || self.tick_count == 1 {
+            crate::core::dumpsys::power::PowerState::fetch().await?
+        } else {
+            // Reuse last state
+            crate::core::dumpsys::power::PowerState {
+                screen_awake: self.last.screen_awake.unwrap_or(true),
+                battery_saver: self.last.battery_saver.unwrap_or(false),
+                is_plugged_in: false,
+                battery_saver_sticky: false,
+            }
+        };
+
         let power_changed = self.last.screen_awake != Some(power.screen_awake)
             || self.last.battery_saver != Some(power.battery_saver);
 
@@ -437,27 +452,43 @@ impl Daemon {
 
         let mut pkg_opt: Option<String> =
             self.override_foreground.read().ok().and_then(|o| o.clone());
+
         if pkg_opt.is_none() {
-            match crate::core::dumpsys::foreground::get_foreground_package().await? {
-                Some(p) => pkg_opt = Some(p),
-                None => {
-                    if self.last.profile_mode != Some(ProfileMode::Balance) {
-                        if let Err(e) = profile::apply_balance(&self.balance_governor) {
-                            error!(target: "auriya::profile", ?e, "Failed to apply BALANCE");
-                        } else {
-                            info!(target: "auriya::daemon", "Applied BALANCE (no foreground)");
-                            self.last.profile_mode = Some(ProfileMode::Balance);
+            // Stagger foreground check: Every 2 ticks (2 seconds)
+            // Or if we don't know who is foreground (last was None), check immediately?
+            // Let's stick to 2s to save battery.
+            let fetch_foreground = self.tick_count % 2 == 0 || self.tick_count == 1;
+
+            if fetch_foreground {
+                match crate::core::dumpsys::foreground::get_foreground_package().await? {
+                    Some(p) => pkg_opt = Some(p),
+                    None => {
+                        if self.last.profile_mode != Some(ProfileMode::Balance) {
+                            if let Err(e) = profile::apply_balance(&self.balance_governor) {
+                                error!(target: "auriya::profile", ?e, "Failed to apply BALANCE");
+                            } else {
+                                info!(target: "auriya::daemon", "Applied BALANCE (no foreground)");
+                                self.last.profile_mode = Some(ProfileMode::Balance);
+                            }
                         }
-                    }
-                    if self.last.pkg.is_some() || self.last.pid.is_some() {
-                        if should_log_change(&self.last, &self.cfg) {
-                            info!(target: "auriya::daemon", "No foreground app detected");
-                            bump_log(&mut self.last);
+                        if self.last.pkg.is_some() || self.last.pid.is_some() {
+                            if should_log_change(&self.last, &self.cfg) {
+                                info!(target: "auriya::daemon", "No foreground app detected");
+                                bump_log(&mut self.last);
+                            }
+                            self.last.pkg = None;
+                            self.last.pid = None;
+                            let _ = crate::core::display::reset_refresh_rate().await;
                         }
-                        self.last.pkg = None;
-                        self.last.pid = None;
-                        let _ = crate::core::display::reset_refresh_rate().await;
+                        return Ok(());
                     }
+                }
+            } else {
+                // Skip check, assume same as last or None
+                if let Some(last_pkg) = &self.last.pkg {
+                    pkg_opt = Some(last_pkg.clone());
+                } else {
+                    // Last was None, so we stay in None state (logic above handled balance apply)
                     return Ok(());
                 }
             }

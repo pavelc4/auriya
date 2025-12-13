@@ -1,7 +1,26 @@
 use crate::core::tweaks::{cpu, gpu, memory, mtk, sched, snapdragon, soc, storage, system};
-use anyhow::{Context, Result};
+use anyhow::Result;
+use std::fs;
+use std::path::Path;
 use std::process::Command;
 
+fn set_governor_direct(governor: &str) {
+    for i in 0..16 {
+        let path = format!("/sys/devices/system/cpu/cpu{}/cpufreq/scaling_governor", i);
+        if Path::new(&path).exists() {
+            let _ = fs::write(&path, governor);
+        }
+    }
+    for i in 0..8 {
+        let path = format!(
+            "/sys/devices/system/cpu/cpufreq/policy{}/scaling_governor",
+            i
+        );
+        if Path::new(&path).exists() {
+            let _ = fs::write(&path, governor);
+        }
+    }
+}
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum ProfileMode {
     Performance,
@@ -33,22 +52,7 @@ pub fn apply_performance_with_config(
         pid
     );
 
-    let cmd = format!(
-        "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo {} > \"$cpu\" 2>/dev/null; done",
-        governor
-    );
-    let output = Command::new("sh")
-        .args(["-c", &cmd])
-        .output()
-        .context("Failed to execute CPU governor command")?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        tracing::warn!(
-            target: "auriya::profile",
-            "CPU governor command exited with error: {}",
-            stderr
-        );
-    }
+    set_governor_direct(governor);
 
     cpu::enable_boost()?;
     cpu::online_all_cores()?;
@@ -111,18 +115,7 @@ pub fn apply_performance() -> Result<()> {
 pub fn apply_balance(governor: &str) -> Result<()> {
     tracing::info!(target: "auriya::profile", "Applying BALANCE profile (governor: {})", governor);
 
-    let cmd = format!(
-        "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo {} > \"$cpu\" 2>/dev/null; done",
-        governor
-    );
-    let output = Command::new("sh")
-        .args(["-c", &cmd])
-        .output()
-        .context("Failed to execute CPU governor command")?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        tracing::warn!(target: "auriya::profile", "CPU governor command exited with error: {}", stderr);
-    }
+    set_governor_direct(governor);
 
     cpu::disable_boost()?;
 
@@ -164,22 +157,8 @@ pub fn apply_balance(governor: &str) -> Result<()> {
 pub fn apply_powersave() -> Result<()> {
     tracing::info!(target: "auriya::profile", "Applying POWERSAVE profile");
 
-    let output = Command::new("sh")
-        .args([
-            "-c",
-            "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo powersave > \"$cpu\" 2>/dev/null; done",
-        ])
-        .output()
-        .context("Failed to execute CPU governor command")?;
+    set_governor_direct("powersave");
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        tracing::warn!(
-            target: "auriya::profile",
-            "CPU governor command exited with error: {}",
-            stderr
-        );
-    }
     if let Err(e) = memory::apply_powersave_lmk() {
         tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
     }
