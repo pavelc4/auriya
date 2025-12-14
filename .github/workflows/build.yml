@@ -89,12 +89,11 @@ jobs:
         fi
         
         COMMIT_MSG=$(git log -1 --pretty=%s)
+        CAPTION=$(printf "<b>Auriya</b> #ci_%s\n<blockquote expandable>%s</blockquote>\n\n<a href=\"%s\">Commit</a> | <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
         
-        # Simple caption without problematic characters
-        CAPTION="Auriya #ci_${RUN_NUMBER} - ${COMMIT_MSG}"
-        
-        curl -F chat_id="$CHAT_ID" \
+        # Send document with caption
+        curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendDocument" \
+          -F chat_id="$CHAT_ID" \
           -F document=@"$ZIP_PATH" \
-          -F caption="$CAPTION" \
-          "https://api.telegram.org/bot$BOT_TOKEN/sendDocument"
-
+          -F parse_mode="HTML" \
+          --form-string "caption=$CAPTION"
