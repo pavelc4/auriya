@@ -1,0 +1,58 @@
+name: Package Module
+description: Package Auriya module with ultra compression
+
+outputs:
+  zip_name:
+    description: Name of the created zip file
+    value: ${{ steps.package.outputs.zip_name }}
+  version:
+    description: Version from Cargo.toml
+    value: ${{ steps.package.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Package Module
+      id: package
+      shell: bash
+      run: |
+        set -e
+        
+        BUILD_DIR="build/release"
+        MODULE_DIR="module"
+        TARGET_BIN="target/aarch64-linux-android/release/auriya"
+        WEBUI_DIST="webui/dist"
+        
+        mkdir -p "$BUILD_DIR/module"
+        cp -r "$MODULE_DIR"/* "$BUILD_DIR/module/"
+        
+        mkdir -p "$BUILD_DIR/module/system/bin"
+        cp "$TARGET_BIN" "$BUILD_DIR/module/system/bin/"
+        
+        mkdir -p "$BUILD_DIR/module/webroot"
+        cp -r "$WEBUI_DIST"/* "$BUILD_DIR/module/webroot/"
+        
+        cp settings.toml "$BUILD_DIR/module/"
+        cp gamelist.toml "$BUILD_DIR/module/"
+        
+        # Get version from Cargo.toml (single source of truth)
+        VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        
+        # Update module.prop with version from Cargo.toml
+        sed -i "s/^version=.*/version=${VERSION}/" "$BUILD_DIR/module/module.prop"
+        
+        ZIP_NAME="auriya-v${VERSION}-${COMMIT_HASH}.zip"
+        
+        cd "$BUILD_DIR/module"
+        
+        7z a -tzip -mm=Deflate -mx=9 -mfb=258 -mpass=15 "../$ZIP_NAME" .
+        
+        cd -
+        
+        echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+        # Show size
+        ls -lh "$BUILD_DIR/$ZIP_NAME"
+        echo "Created $ZIP_NAME"

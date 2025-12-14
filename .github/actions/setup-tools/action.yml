@@ -1,0 +1,30 @@
+name: Setup Build Environment
+description: Setup all required tools for building Auriya
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Setup Android NDK
+      uses: nttld/setup-ndk@v1
+      id: setup-ndk
+      with:
+        ndk-version: r26b
+        add-to-path: true
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: aarch64-linux-android
+
+    - name: Install cargo-ndk
+      run: cargo install cargo-ndk
+      shell: bash
+
+    - name: Install Compression Tools
+      run: sudo apt-get update && sudo apt-get install -y p7zip-full
+      shell: bash

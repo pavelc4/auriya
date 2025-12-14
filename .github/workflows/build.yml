@@ -12,7 +12,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  NDK_VERSION: r26b
 
 jobs:
   build:
@@ -21,46 +20,23 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0 # Needed for git log in scripts
+        fetch-depth: 0
 
-    - name: Start Build Timer & Notification
-      if: env.CHAT_ID != '' && env.BOT_TOKEN != ''
+    - name: Start Timer
+      run: date +%s > build_start_time
+
+    - name: Notify Build Start
+      if: ${{ env.BOT_TOKEN != '' }}
       env:
-        CHAT_ID: ${{ secrets.CHAT_ID }}
         BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      run: |
-        date +%s > build_start_time
-        chmod +x .github/scripts/telegram_start.sh
-        .github/scripts/telegram_start.sh
-
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v1
+      uses: ./.github/actions/telegram-notify
       with:
-        bun-version: latest
+        bot_token: ${{ secrets.BOT_TOKEN }}
+        chat_id: ${{ secrets.CHAT_ID }}
+        type: start
 
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Setup Android NDK
-      uses: nttld/setup-ndk@v1
-      id: setup-ndk
-      with:
-        ndk-version: ${{ env.NDK_VERSION }}
-        add-to-path: true
-
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: aarch64-linux-android
-
-    - name: Install cargo-ndk
-      run: cargo install cargo-ndk
-
-    - name: Install Compression Tools
-      run: sudo apt-get update && sudo apt-get install -y p7zip-full advancecomp
+    - name: Setup Build Environment
+      uses: ./.github/actions/setup-tools
 
     - name: Build WebUI
       working-directory: ./webui
@@ -70,32 +46,28 @@ jobs:
 
     - name: Build Rust Binary
       run: |
-        # Remove hardcoded linker paths but keep rustflags
         sed -i '/ar =/d' .cargo/config.toml
         sed -i '/linker =/d' .cargo/config.toml
-        
-        # cargo-ndk handles the linker setup automatically
-        # Use --platform to avoid ambiguity with cargo's -p (package) flag
         cargo ndk -t aarch64-linux-android --platform 26 -- build --release
-        # Strip the binary
         ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip target/aarch64-linux-android/release/auriya
 
     - name: Package Module
-      run: |
-        chmod +x .github/scripts/compile_zip.sh
-        .github/scripts/compile_zip.sh
+      id: package
+      uses: ./.github/actions/package-module
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: auriya-module
         path: build/release/*.zip
+        compression-level: 0  
 
-    - name: Upload to Telegram
-      if: env.CHAT_ID != '' && env.BOT_TOKEN != ''
+    - name: Notify Build Complete
+      if: ${{ env.BOT_TOKEN != '' }}
       env:
-        CHAT_ID: ${{ secrets.CHAT_ID }}
         BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      run: |
-        chmod +x .github/scripts/telegram_bot.sh
-        .github/scripts/telegram_bot.sh
+      uses: ./.github/actions/telegram-notify
+      with:
+        bot_token: ${{ secrets.BOT_TOKEN }}
+        chat_id: ${{ secrets.CHAT_ID }}
+        type: complete

@@ -1,0 +1,68 @@
+name: Telegram Notify
+description: Send notification to Telegram
+
+inputs:
+  bot_token:
+    description: Telegram Bot Token
+    required: true
+  chat_id:
+    description: Telegram Chat ID
+    required: true
+  type:
+    description: Notification type (start or complete)
+    required: true
+    default: complete
+
+runs:
+  using: composite
+  steps:
+    - name: Send Start Notification
+      if: inputs.type == 'start'
+      shell: bash
+      env:
+        BOT_TOKEN: ${{ inputs.bot_token }}
+        CHAT_ID: ${{ inputs.chat_id }}
+      run: |
+        COMMIT_MSG=$(git log -1 --pretty=%B | head -20)
+        
+        MESSAGE="<b>Auriya</b>
+#ci_${{ github.run_number }}
+$COMMIT_MSG
+
+<a href=\"${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}\">Commit</a>
+<a href=\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Workflow run</a>"
+        
+        curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+            -d chat_id="$CHAT_ID" \
+            -d text="$MESSAGE" \
+            -d parse_mode="HTML" \
+            -d disable_web_page_preview="true"
+
+    - name: Send Complete Notification
+      if: inputs.type == 'complete'
+      shell: bash
+      env:
+        BOT_TOKEN: ${{ inputs.bot_token }}
+        CHAT_ID: ${{ inputs.chat_id }}
+      run: |
+        ZIP_FILE=$(find build/release -name "auriya-*.zip" | head -n 1)
+        
+        if [ -z "$ZIP_FILE" ]; then
+            echo "No zip file found, skipping notification"
+            exit 0
+        fi
+        
+        COMMIT_MSG=$(git log -1 --pretty=%B | head -20)
+        
+        CAPTION="<b>Auriya</b>
+#ci_${{ github.run_number }}
+$COMMIT_MSG
+
+<a href=\"${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}\">Commit</a>
+<a href=\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Workflow run</a>"
+        
+        curl -F chat_id="$CHAT_ID" \
+             -F document=@"$ZIP_FILE" \
+             -F caption="$CAPTION" \
+             -F parse_mode="HTML" \
+             "https://api.telegram.org/bot$BOT_TOKEN/sendDocument"
