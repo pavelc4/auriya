@@ -71,3 +71,4 @@ jobs:
         bot_token: ${{ secrets.BOT_TOKEN }}
         chat_id: ${{ secrets.CHAT_ID }}
         type: complete
+        zip_file: build/release/${{ steps.package.outputs.zip_name }}
