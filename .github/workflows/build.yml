@@ -29,11 +29,18 @@ jobs:
       if: ${{ env.BOT_TOKEN != '' }}
       env:
         BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      uses: ./.github/actions/telegram-notify
-      with:
-        bot_token: ${{ secrets.BOT_TOKEN }}
-        chat_id: ${{ secrets.CHAT_ID }}
-        type: start
+        CHAT_ID: ${{ secrets.CHAT_ID }}
+        RUN_NUMBER: ${{ github.run_number }}
+        COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+        WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        COMMIT_MSG=$(git log -1 --pretty=%s)
+        MESSAGE=$(printf "<b>Auriya</b>\n#ci_%s\n<blockquote expandable>%s</blockquote>\n\n<a href=\"%s\">Commit</a>\n<a href=\"%s\">Workflow run</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+        curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+          -d chat_id="$CHAT_ID" \
+          --data-urlencode "text=$MESSAGE" \
+          -d parse_mode="HTML" \
+          -d disable_web_page_preview="true"
 
     - name: Setup Build Environment
       uses: ./.github/actions/setup-tools
@@ -60,15 +67,32 @@ jobs:
       with:
         name: auriya-module
         path: build/release/*.zip
-        compression-level: 0  
+        compression-level: 0
 
     - name: Notify Build Complete
       if: ${{ env.BOT_TOKEN != '' }}
       env:
         BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      uses: ./.github/actions/telegram-notify
-      with:
-        bot_token: ${{ secrets.BOT_TOKEN }}
-        chat_id: ${{ secrets.CHAT_ID }}
-        type: complete
-        zip_file: build/release/${{ steps.package.outputs.zip_name }}
+        CHAT_ID: ${{ secrets.CHAT_ID }}
+        RUN_NUMBER: ${{ github.run_number }}
+        COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+        WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        ZIP_NAME: ${{ steps.package.outputs.zip_name }}
+      run: |
+        ZIP_PATH="build/release/$ZIP_NAME"
+        echo "Looking for: $ZIP_PATH"
+        ls -la build/release/
+        
+        if [ ! -f "$ZIP_PATH" ]; then
+          echo "File not found, skipping notification"
+          exit 0
+        fi
+        
+        COMMIT_MSG=$(git log -1 --pretty=%s)
+        CAPTION=$(printf "<b>Auriya</b> #ci_%s\n<blockquote expandable>%s</blockquote>\n\n<a href=\"%s\">Commit</a> | <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+        
+        curl -F chat_id="$CHAT_ID" \
+          -F document=@"$ZIP_PATH" \
+          -F caption="$CAPTION" \
+          -F parse_mode="HTML" \
+          "https://api.telegram.org/bot$BOT_TOKEN/sendDocument"

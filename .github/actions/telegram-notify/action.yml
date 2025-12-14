@@ -30,6 +30,14 @@ runs:
         COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
         WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
+        echo "=== DEBUG ==="
+        echo "NOTIFY_TYPE: $NOTIFY_TYPE"
+        echo "ZIP_PATH: $ZIP_PATH"
+        echo "PWD: $(pwd)"
+        echo "=== build/release contents ==="
+        ls -la build/release/ 2>/dev/null || echo "build/release/ NOT FOUND"
+        echo "==============="
+        
         COMMIT_MSG=$(git log -1 --pretty=%s)
         
         if [ "$NOTIFY_TYPE" = "start" ]; then
@@ -40,10 +48,17 @@ runs:
             -d parse_mode="HTML" \
             -d disable_web_page_preview="true"
         elif [ "$NOTIFY_TYPE" = "complete" ]; then
-          if [ -z "$ZIP_PATH" ] || [ ! -f "$ZIP_PATH" ]; then
-            echo "Zip file not found: $ZIP_PATH"
+          if [ -z "$ZIP_PATH" ]; then
+            echo "ZIP_PATH is empty"
             exit 0
           fi
+          if [ ! -f "$ZIP_PATH" ]; then
+            echo "File not found at: $ZIP_PATH"
+            echo "Trying to find any zip..."
+            ls -la build/release/*.zip 2>/dev/null || echo "No zips found"
+            exit 0
+          fi
+          echo "Uploading: $ZIP_PATH"
           CAPTION=$(printf "<b>Auriya</b> #ci_%s\n<blockquote expandable>%s</blockquote>\n\n<a href=\"%s\">Commit</a> | <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
           curl -F chat_id="$CHAT_ID" \
             -F document=@"$ZIP_PATH" \
