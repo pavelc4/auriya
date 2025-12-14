@@ -26,18 +26,18 @@ runs:
         COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
         WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
-        COMMIT_MSG=$(git log -1 --pretty=%B | head -20)
+        COMMIT_MSG=$(git log -1 --pretty=%s)
         
         MESSAGE="<b>Auriya</b>
-        #ci_${RUN_NUMBER}
-        ${COMMIT_MSG}
+#ci_${RUN_NUMBER}
+<blockquote>${COMMIT_MSG}</blockquote>
 
-        <a href=\"${COMMIT_URL}\">Commit</a>
-        <a href=\"${WORKFLOW_URL}\">Workflow run</a>"
+<a href=\"${COMMIT_URL}\">Commit</a>
+<a href=\"${WORKFLOW_URL}\">Workflow run</a>"
         
         curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
             -d chat_id="$CHAT_ID" \
-            -d text="$MESSAGE" \
+            --data-urlencode "text=$MESSAGE" \
             -d parse_mode="HTML" \
             -d disable_web_page_preview="true"
 
@@ -51,21 +51,18 @@ runs:
         COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
         WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
-        ZIP_FILE=$(find build/release -name "auriya-*.zip" | head -n 1)
+        ZIP_FILE=$(find build/release -name "auriya-*.zip" 2>/dev/null | head -n 1)
         
-        if [ -z "$ZIP_FILE" ]; then
+        if [ -z "$ZIP_FILE" ] || [ ! -f "$ZIP_FILE" ]; then
             echo "No zip file found, skipping notification"
             exit 0
         fi
         
-        COMMIT_MSG=$(git log -1 --pretty=%B | head -20)
-        
-        CAPTION="<b>Auriya</b>
-        #ci_${RUN_NUMBER}
-        ${COMMIT_MSG}
+        COMMIT_MSG=$(git log -1 --pretty=%s)
+        CAPTION="<b>Auriya</b> #ci_${RUN_NUMBER}
+<blockquote>${COMMIT_MSG}</blockquote>
 
-        <a href=\"${COMMIT_URL}\">Commit</a>
-        <a href=\"${WORKFLOW_URL}\">Workflow run</a>"
+<a href=\"${COMMIT_URL}\">Commit</a> | <a href=\"${WORKFLOW_URL}\">Workflow</a>"
         
         curl -F chat_id="$CHAT_ID" \
              -F document=@"$ZIP_FILE" \
