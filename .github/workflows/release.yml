@@ -1,0 +1,82 @@
+name: Release Auriya
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Build Environment
+      uses: ./.github/actions/setup-tools
+
+    - name: Build WebUI
+      working-directory: ./webui
+      run: |
+        bun install
+        bun run build
+
+    - name: Build Rust Binary
+      run: |
+        sed -i '/ar =/d' .cargo/config.toml
+        sed -i '/linker =/d' .cargo/config.toml
+        cargo ndk -t aarch64-linux-android --platform 26 -- build --release
+        ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip target/aarch64-linux-android/release/auriya
+
+    - name: Package Module
+      id: package
+      uses: ./.github/actions/package-module
+
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: build/release/${{ steps.package.outputs.zip_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update update.json
+      run: |
+        VERSION=${{ steps.package.outputs.version }}
+        VERSION_CODE=${{ steps.package.outputs.version_code }}
+        ZIP_NAME=${{ steps.package.outputs.zip_name }}
+        
+        cat > update.json << EOF
+        {
+          "versionCode": $VERSION_CODE,
+          "version": "$VERSION ($VERSION_CODE-$(git rev-parse --short HEAD)-release)",
+          "zipUrl": "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$ZIP_NAME",
+          "changelog": "https://raw.githubusercontent.com/${{ github.repository }}/main/CHANGELOG.md"
+        }
+        EOF
+        
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add update.json
+        git commit -m "chore: update update.json to v$VERSION" || echo "No changes"
+        git push
+
+    - name: Notify Telegram
+      if: ${{ env.BOT_TOKEN != '' }}
+      env:
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        CHAT_ID: ${{ secrets.CHAT_ID }}
+      run: |
+        VERSION=${{ steps.package.outputs.version }}
+        
+        MESSAGE="🚀 <b>Auriya v$VERSION Released!</b>
+        
+        <a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\">Download</a>"
+        
+        curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+            -d chat_id="$CHAT_ID" \
+            -d text="$MESSAGE" \
+            -d parse_mode="HTML"

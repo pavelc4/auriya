@@ -8,6 +8,9 @@ outputs:
   version:
     description: Version from Cargo.toml
     value: ${{ steps.package.outputs.version }}
+  version_code:
+    description: Version code (total commits)
+    value: ${{ steps.package.outputs.version_code }}
 
 runs:
   using: composite
@@ -35,24 +38,25 @@ runs:
         cp settings.toml "$BUILD_DIR/module/"
         cp gamelist.toml "$BUILD_DIR/module/"
         
-        # Get version from Cargo.toml (single source of truth)
+        # Get version from Cargo.toml
         VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
         COMMIT_HASH=$(git rev-parse --short HEAD)
+        VERSION_CODE=$(git rev-list --count HEAD)
         
-        # Update module.prop with version from Cargo.toml
-        sed -i "s/^version=.*/version=${VERSION}/" "$BUILD_DIR/module/module.prop"
+        # Update module.prop
+        sed -i "s/^version=.*/version=${VERSION} (${VERSION_CODE}-${COMMIT_HASH}-release)/" "$BUILD_DIR/module/module.prop"
+        sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$BUILD_DIR/module/module.prop"
         
-        ZIP_NAME="auriya-v${VERSION}-${COMMIT_HASH}.zip"
+        # Filename: auriya-1.0.1-10001-cc53e50-release.zip
+        ZIP_NAME="auriya-${VERSION}-${VERSION_CODE}-${COMMIT_HASH}-release.zip"
         
         cd "$BUILD_DIR/module"
-        
         7z a -tzip -mm=Deflate -mx=9 -mfb=258 -mpass=15 "../$ZIP_NAME" .
-        
         cd -
         
         echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
         echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
         
-        # Show size
         ls -lh "$BUILD_DIR/$ZIP_NAME"
         echo "Created $ZIP_NAME"
