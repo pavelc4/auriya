@@ -66,7 +66,7 @@
 - Extracted SoC detection to dedicated module
 - Separated Snapdragon and MediaTek tweaks into vendor modules
 - Consolidated system tweaks module
-- Enhanced GPU tweaks for Adreno and Mali
+- Enhanced GPU tweaks for Adreno 
 - Removed regex dependency (manual display mode parsing)
 - Flattened nested conditionals throughout codebase
 
@@ -74,6 +74,11 @@
 - Replaced `unwrap()` with safe lock handling
 - Removed unused legacy FAS code
 - Localized logs to English
+- Use direct struct initialization in `PowerState`
+- Replace modulo checks with `is_multiple_of()`
+- Remove redundant closures
+- Introduce `GameProfileUpdate` struct for cleaner API
+- Remove unused `is_plugged_in` and `battery_saver_sticky` fields
 
 ---
 
