@@ -413,16 +413,13 @@ impl Daemon {
     async fn process_tick_logic(&mut self, gamelist: &crate::core::config::GameList) -> Result<()> {
         use crate::core::profile;
 
-        // Stagger power check: Every 5 ticks (5 seconds)
-        let power = if self.tick_count % 5 == 0 || self.tick_count == 1 {
+        let power = if self.tick_count.is_multiple_of(5) || self.tick_count == 1 {
             crate::core::dumpsys::power::PowerState::fetch().await?
         } else {
             // Reuse last state
             crate::core::dumpsys::power::PowerState {
                 screen_awake: self.last.screen_awake.unwrap_or(true),
                 battery_saver: self.last.battery_saver.unwrap_or(false),
-                is_plugged_in: false,
-                battery_saver_sticky: false,
             }
         };
 
@@ -454,10 +451,7 @@ impl Daemon {
             self.override_foreground.read().ok().and_then(|o| o.clone());
 
         if pkg_opt.is_none() {
-            // Stagger foreground check: Every 2 ticks (2 seconds)
-            // Or if we don't know who is foreground (last was None), check immediately?
-            // Let's stick to 2s to save battery.
-            let fetch_foreground = self.tick_count % 2 == 0 || self.tick_count == 1;
+            let fetch_foreground = self.tick_count.is_multiple_of(2) || self.tick_count == 1;
 
             if fetch_foreground {
                 match crate::core::dumpsys::foreground::get_foreground_package().await? {
@@ -495,9 +489,10 @@ impl Daemon {
         }
         let pkg = pkg_opt.unwrap();
 
-        let pid_still_valid = self.last.pid.is_some_and(|pid| {
-            crate::core::dumpsys::activity::is_pid_valid(pid)
-        });
+        let pid_still_valid = self
+            .last
+            .pid
+            .is_some_and(crate::core::dumpsys::activity::is_pid_valid);
 
         if self.last.pkg.as_deref() == Some(pkg.as_str()) && pid_still_valid {
             let fas_clone = self.fas_controller.clone();
@@ -511,9 +506,10 @@ impl Daemon {
 
                 if let Some(cfg) = game_cfg
                     && let Some(ref fps_cfg) = cfg.target_fps
-                        && let Ok(mut f) = fas.lock() {
-                            f.set_target_fps_config(fps_cfg.to_buffer_config());
-                        }
+                    && let Ok(mut f) = fas.lock()
+                {
+                    f.set_target_fps_config(fps_cfg.to_buffer_config());
+                }
 
                 match self.run_fas_tick(&fas, &pkg, governor, self.last.pid).await {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
@@ -668,6 +664,7 @@ impl Daemon {
         }
     }
 
+    #[allow(clippy::await_holding_lock)]
     async fn run_fas_tick(
         &mut self,
         fas: &Arc<Mutex<crate::daemon::fas::FasController>>,
@@ -679,12 +676,14 @@ impl Daemon {
 
         let thermal_thresh = 90.0;
 
-        let mut fas_guard = fas
-            .lock()
-            .map_err(|_| anyhow::anyhow!("FAS lock poisoned"))?;
+        let action = {
+            let mut fas_guard = fas
+                .lock()
+                .map_err(|_| anyhow::anyhow!("FAS lock poisoned"))?;
 
-        fas_guard.set_package(pkg.to_string(), pid);
-        let action = fas_guard.tick(thermal_thresh).await?;
+            fas_guard.set_package(pkg.to_string(), pid);
+            fas_guard.tick(thermal_thresh).await?
+        };
 
         match action {
             ScalingAction::Boost => {

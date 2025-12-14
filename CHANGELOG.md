@@ -1,5 +1,100 @@
 # Changelog
 
+## v1.0.1 
+
+### New Features
+
+**Frame-Aware Scheduling (FAS) Lite:**
+- Implemented FAS Lite with PID controller for adaptive frame rate management
+- Added FrameMonitor for real-time frame detection via SurfaceFlinger
+- Per-game target FPS configuration with auto-detect support (60/90/120)
+- `target_fps` array support via IPC for comma-separated FPS targets
+
+**Per-Game Refresh Rate:**
+- Added per-game display refresh rate override
+- Stateful refresh rate handling with automatic restoration on game exit
+- Exposed supported refresh rates via IPC for WebUI
+
+**Per-Game Profile Mode:**
+- Configurable profile mode per game (Performance/Balance/Powersave)
+
+**Daemon Self-Restart:**
+- Implemented daemon restart via IPC with `setsid` orphan pattern
+- WebUI integration for restart functionality
+
+**Hot-Reload Settings:**
+- Settings file watcher for dynamic governor updates without restart
+
+---
+
+###  WebUI Improvements
+
+**Svelte Migration:**
+- Complete migration from vanilla JS to Svelte framework
+- Custom notification system with Ferris mascot icons
+- `unplugin-icons` for declarative icon management
+
+**UI/UX Enhancements:**
+- Redesigned home section with device architecture display
+- Overhauled game settings UI with dedicated view and enhanced controls
+- Theme toggle button with dynamic icon (previously checkbox)
+- GitHub-style pagination for game list
+- Global CPU governor selection UI
+- Debug mode toggle
+- Updated social links and footer styling
+
+---
+
+### Performance Optimizations
+
+**Daemon Loop:**
+- Replaced shell commands with libc syscalls (`taskset`/`renice`)
+- Single-pass foreground parsing with PID validation
+- Cached whitelist as `HashSet` for O(1) lookup
+- Staggered power/foreground checks to reduce system load
+- Instant profile apply on gamelist change
+
+**Memory & CPU:**
+- Added swappiness fallback chain for HyperOS
+- `chmod` fallback for HyperOS sysfs restrictions
+
+---
+
+### Refactoring
+
+**Module Reorganization:**
+- Extracted SoC detection to dedicated module
+- Separated Snapdragon and MediaTek tweaks into vendor modules
+- Consolidated system tweaks module
+- Enhanced GPU tweaks for Adreno and Mali
+- Removed regex dependency (manual display mode parsing)
+- Flattened nested conditionals throughout codebase
+
+**Code Quality:**
+- Replaced `unwrap()` with safe lock handling
+- Removed unused legacy FAS code
+- Localized logs to English
+
+---
+
+###  Bug Fixes
+
+- Fixed package truncation and taskset compatibility
+- Fixed missing "Enable Optimization" toggle in Game Settings
+- Fixed IPC JSON parsing robustness (strip handshake header)
+- Fixed wildcard paths for Global Governor shell commands
+- Removed unused `get_supported_refresh_rates` function
+
+---
+
+###  Build & CI
+
+- Initial GitHub Actions build workflow
+- Cargo-ndk with explicit `--platform` flag
+- Centralized release profile configuration
+
+---
+
 ## v1.0.0 (Initial Release)
 
 **New Features:**

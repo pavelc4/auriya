@@ -150,32 +150,23 @@ impl GameList {
         Ok(())
     }
 
-    pub fn update_with_array(
-        &mut self,
-        package: &str,
-        governor: Option<String>,
-        dnd: Option<bool>,
-        target_fps: Option<u32>,
-        refresh_rate: Option<u32>,
-        mode: Option<String>,
-        fps_array: Option<Vec<u32>>,
-    ) -> Result<()> {
+    pub fn update(&mut self, package: &str, upd: GameProfileUpdate) -> Result<()> {
         if let Some(profile) = self.game.iter_mut().find(|g| g.package == package) {
-            if let Some(gov) = governor {
+            if let Some(gov) = upd.governor {
                 profile.cpu_governor = gov;
             }
-            if let Some(d) = dnd {
+            if let Some(d) = upd.dnd {
                 profile.enable_dnd = d;
             }
-            if let Some(arr) = fps_array {
+            if let Some(arr) = upd.fps_array {
                 profile.target_fps = Some(TargetFpsConfig::Array(arr));
-            } else if let Some(fps) = target_fps {
+            } else if let Some(fps) = upd.target_fps {
                 profile.target_fps = Some(TargetFpsConfig::Single(fps));
             }
-            if refresh_rate.is_some() {
-                profile.refresh_rate = refresh_rate;
+            if upd.refresh_rate.is_some() {
+                profile.refresh_rate = upd.refresh_rate;
             }
-            if let Some(m) = mode {
+            if let Some(m) = upd.mode {
                 profile.mode = Some(m);
             }
             Ok(())
@@ -183,4 +174,14 @@ impl GameList {
             anyhow::bail!("Game {} not found", package)
         }
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct GameProfileUpdate {
+    pub governor: Option<String>,
+    pub dnd: Option<bool>,
+    pub target_fps: Option<u32>,
+    pub refresh_rate: Option<u32>,
+    pub mode: Option<String>,
+    pub fps_array: Option<Vec<u32>>,
 }

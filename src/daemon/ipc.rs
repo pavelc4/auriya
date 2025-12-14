@@ -407,16 +407,17 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 }
             }
             Ok(Command::UpdateGame(pkg, gov, dnd, target_fps, refresh_rate, mode, fps_array)) => {
+                use crate::core::config::gamelist::GameProfileUpdate;
                 if let Ok(mut gl) = h.shared_config.write() {
-                    match gl.update_with_array(
-                        &pkg,
-                        gov,
+                    let upd = GameProfileUpdate {
+                        governor: gov,
                         dnd,
                         target_fps,
                         refresh_rate,
                         mode,
                         fps_array,
-                    ) {
+                    };
+                    match gl.update(&pkg, upd) {
                         Ok(_) => {
                             if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
                                 format!("ERR SAVE_GAMELIST {:?}\n", e)
