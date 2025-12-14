@@ -22,15 +22,18 @@ runs:
       env:
         BOT_TOKEN: ${{ inputs.bot_token }}
         CHAT_ID: ${{ inputs.chat_id }}
+        RUN_NUMBER: ${{ github.run_number }}
+        COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+        WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
         COMMIT_MSG=$(git log -1 --pretty=%B | head -20)
         
         MESSAGE="<b>Auriya</b>
-#ci_${{ github.run_number }}
-$COMMIT_MSG
+        #ci_${RUN_NUMBER}
+        ${COMMIT_MSG}
 
-<a href=\"${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}\">Commit</a>
-<a href=\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Workflow run</a>"
+        <a href=\"${COMMIT_URL}\">Commit</a>
+        <a href=\"${WORKFLOW_URL}\">Workflow run</a>"
         
         curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
             -d chat_id="$CHAT_ID" \
@@ -44,6 +47,9 @@ $COMMIT_MSG
       env:
         BOT_TOKEN: ${{ inputs.bot_token }}
         CHAT_ID: ${{ inputs.chat_id }}
+        RUN_NUMBER: ${{ github.run_number }}
+        COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+        WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
         ZIP_FILE=$(find build/release -name "auriya-*.zip" | head -n 1)
         
@@ -55,11 +61,11 @@ $COMMIT_MSG
         COMMIT_MSG=$(git log -1 --pretty=%B | head -20)
         
         CAPTION="<b>Auriya</b>
-#ci_${{ github.run_number }}
-$COMMIT_MSG
+        #ci_${RUN_NUMBER}
+        ${COMMIT_MSG}
 
-<a href=\"${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}\">Commit</a>
-<a href=\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\">Workflow run</a>"
+        <a href=\"${COMMIT_URL}\">Commit</a>
+        <a href=\"${WORKFLOW_URL}\">Workflow run</a>"
         
         curl -F chat_id="$CHAT_ID" \
              -F document=@"$ZIP_FILE" \
