@@ -26,6 +26,7 @@ jobs:
       run: date +%s > build_start_time
 
     - name: Notify Build Start
+      id: notify_start
       if: ${{ env.BOT_TOKEN != '' }}
       env:
         BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
@@ -36,11 +37,15 @@ jobs:
       run: |
         COMMIT_MSG=$(git log -1 --pretty=%s)
         MESSAGE=$(printf "<b>Auriya</b>\n#ci_%s\n<blockquote expandable>%s</blockquote>\n\n<a href=\"%s\">Commit</a>\n<a href=\"%s\">Workflow run</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
-        curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+        RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
           -d chat_id="$CHAT_ID" \
           --data-urlencode "text=$MESSAGE" \
           -d parse_mode="HTML" \
-          -d disable_web_page_preview="true"
+          -d disable_web_page_preview="true")
+        
+        # Save message_id for later deletion
+        MESSAGE_ID=$(echo "$RESPONSE" | grep -o '"message_id":[0-9]*' | cut -d: -f2)
+        echo "message_id=$MESSAGE_ID" >> $GITHUB_OUTPUT
 
     - name: Setup Build Environment
       uses: ./.github/actions/setup-tools
@@ -78,10 +83,9 @@ jobs:
         COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
         WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         ZIP_NAME: ${{ steps.package.outputs.zip_name }}
+        START_MESSAGE_ID: ${{ steps.notify_start.outputs.message_id }}
       run: |
         ZIP_PATH="build/release/$ZIP_NAME"
-        echo "Looking for: $ZIP_PATH"
-        ls -la build/release/
         
         if [ ! -f "$ZIP_PATH" ]; then
           echo "File not found, skipping notification"
@@ -97,3 +101,10 @@ jobs:
           -F document=@"$ZIP_PATH" \
           -F parse_mode="HTML" \
           --form-string "caption=$CAPTION"
+        
+        # Delete start message if exists
+        if [ -n "$START_MESSAGE_ID" ]; then
+          curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/deleteMessage" \
+            -d chat_id="$CHAT_ID" \
+            -d message_id="$START_MESSAGE_ID"
+        fi
