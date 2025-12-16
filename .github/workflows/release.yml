@@ -1,8 +1,9 @@
 name: Release Auriya
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -49,13 +50,14 @@ jobs:
         VERSION=${{ steps.package.outputs.version }}
         VERSION_CODE=${{ steps.package.outputs.version_code }}
         ZIP_NAME=${{ steps.package.outputs.zip_name }}
+        TAG=${{ github.ref_name }}
         
         cat > update.json << EOF
         {
-          "versionCode": $VERSION_CODE,
-          "version": "$VERSION ($VERSION_CODE-$(git rev-parse --short HEAD)-release)",
-          "zipUrl": "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$ZIP_NAME",
-          "changelog": "https://raw.githubusercontent.com/${{ github.repository }}/main/CHANGELOG.md"
+            "version": "$VERSION",
+            "versionCode": $VERSION_CODE,
+            "zipUrl": "https://github.com/${{ github.repository }}/releases/download/$TAG/$ZIP_NAME",
+            "changelog": "https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md"
         }
         EOF
         
@@ -63,7 +65,7 @@ jobs:
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git add update.json
         git commit -m "chore: update update.json to v$VERSION" || echo "No changes"
-        git push
+        git push origin HEAD:main
 
     - name: Notify Telegram
       if: ${{ env.BOT_TOKEN != '' }}

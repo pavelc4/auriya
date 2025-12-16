@@ -3,11 +3,6 @@ permissions:
   contents: read
 
 on:
-  push:
-    branches: ["main"]
-    paths-ignore:
-      - '**.md'
-      - '.gitignore'
   workflow_dispatch:
 
 env:
