@@ -16,6 +16,14 @@
         ? "BETA"
         : "STABLE";
 
+    $: versionParts = $systemInfo.version.match(/^([\d.]+)\s*\((.+)\)$/) || [
+        $systemInfo.version,
+        $systemInfo.version,
+        "",
+    ];
+    $: mainVersion = versionParts[1];
+    $: buildInfo = versionParts[2];
+
     $: tempVal = parseInt($systemInfo.temp) || 0;
     $: tempColorVar =
         tempVal >= 45
@@ -358,11 +366,14 @@
                         >
                             Release
                         </p>
-                        <div class="flex items-baseline gap-1">
-                            <span class="text-2xl font-bold tracking-tighter"
-                                >{$systemInfo.version}</span
-                            >
-                        </div>
+                        <span class="text-2xl font-bold tracking-tighter"
+                            >{mainVersion}</span
+                        >
+                        {#if buildInfo}
+                            <p class="text-[10px] opacity-50 font-mono mt-0.5">
+                                {buildInfo}
+                            </p>
+                        {/if}
                         <p class="text-[10px] opacity-40 mt-1">
                             {$systemInfo.updateTime}
                         </p>
