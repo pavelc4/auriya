@@ -1,7 +1,6 @@
 use crate::core::config::gamelist::GameList;
 use crate::daemon::state::CurrentState;
 use anyhow::Result;
-use log::{error, info};
 use std::os::unix::fs::PermissionsExt;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
@@ -11,6 +10,7 @@ use std::{
 };
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
+use tracing::{error, info};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogLevelCmd {
