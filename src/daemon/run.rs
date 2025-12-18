@@ -13,6 +13,10 @@ use tokio::{signal, time};
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::EnvFilter;
 
+const INGAME_INTERVAL_MS: u64 = 500;
+const NORMAL_INTERVAL_MS: u64 = 5000;
+const SCREEN_OFF_INTERVAL_MS: u64 = 15000;
+
 fn update_current_profile_file(mode: ProfileMode) {
     let val = match mode {
         ProfileMode::Performance => "1",
@@ -34,7 +38,6 @@ fn update_current_profile_file(mode: ProfileMode) {
 
 #[derive(Debug, Clone)]
 pub struct DaemonConfig {
-    pub poll_interval: Duration,
     pub settings: crate::core::config::Settings,
     pub gamelist: crate::core::config::GameList,
     pub log_debounce_ms: u128,
@@ -47,7 +50,6 @@ impl Default for DaemonConfig {
         let gamelist =
             crate::core::config::GameList::load(crate::core::config::gamelist_path()).unwrap();
         Self {
-            poll_interval: Duration::from_secs(1),
             settings,
             gamelist,
             log_debounce_ms: 2000,
@@ -152,6 +154,20 @@ impl Daemon {
             cached_whitelist,
             tick_count: 0,
         })
+    }
+    #[inline]
+    pub fn is_in_game_session(&self) -> bool {
+        self.last
+            .pkg
+            .as_ref()
+            .map(|pkg| self.cached_whitelist.contains(pkg))
+            .unwrap_or(false)
+            && self.last.pid.is_some()
+    }
+
+    #[inline]
+    pub fn is_suspended(&self) -> bool {
+        !self.last.screen_awake.unwrap_or(true) || self.last.battery_saver.unwrap_or(false)
     }
 
     fn reload_settings(&mut self) {
@@ -741,13 +757,21 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
 
     let mut watch_rx = daemon.init_watcher();
 
-    info!(target: "auriya::daemon", "Tick loop started (interval: {:?})", cfg.poll_interval);
-    let mut tick_interval = time::interval(cfg.poll_interval);
-    tick_interval.tick().await;
+    info!(target: "auriya::daemon", "Tick loop started (adaptive: {}ms idle, {}ms gaming)", NORMAL_INTERVAL_MS, INGAME_INTERVAL_MS);
+
+    daemon.tick().await;
 
     loop {
+        let sleep_ms = if daemon.is_suspended() {
+            SCREEN_OFF_INTERVAL_MS
+        } else if daemon.is_in_game_session() {
+            INGAME_INTERVAL_MS
+        } else {
+            NORMAL_INTERVAL_MS
+        };
+
         tokio::select! {
-            _ = tick_interval.tick() => {
+            _ = time::sleep(Duration::from_millis(sleep_ms)) => {
                 daemon.tick().await;
             }
             Some(msg) = watch_rx.recv() => {
