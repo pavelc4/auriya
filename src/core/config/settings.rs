@@ -5,6 +5,7 @@ use std::path::Path;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Settings {
+    #[serde(default)]
     pub daemon: DaemonConfig,
     pub cpu: CpuConfig,
     pub dnd: DndConfig,
@@ -12,13 +13,16 @@ pub struct Settings {
     pub modes: HashMap<String, FasMode>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct DaemonConfig {
     #[serde(default = "default_log_level")]
     pub log_level: String,
 
     #[serde(default = "default_check_interval")]
     pub check_interval_ms: u64,
+
+    #[serde(default = "default_mode")]
+    pub default_mode: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -47,7 +51,6 @@ pub struct FasMode {
 }
 
 impl Settings {
-    /// Load settings from TOML file
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
 
@@ -68,4 +71,8 @@ fn default_check_interval() -> u64 {
 
 fn default_poll_interval() -> u64 {
     100
+}
+
+fn default_mode() -> String {
+    "balance".to_string()
 }

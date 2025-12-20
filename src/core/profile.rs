@@ -42,6 +42,18 @@ impl std::fmt::Display for ProfileMode {
     }
 }
 
+impl std::str::FromStr for ProfileMode {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "performance" => Ok(ProfileMode::Performance),
+            "balance" => Ok(ProfileMode::Balance),
+            "powersave" => Ok(ProfileMode::Powersave),
+            _ => Err(()),
+        }
+    }
+}
+
 pub fn apply_performance_with_config(
     governor: &str,
     enable_dnd: bool,

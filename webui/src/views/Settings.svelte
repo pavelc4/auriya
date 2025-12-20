@@ -7,9 +7,11 @@
     import Select from "../components/ui/Select.svelte";
 
     let gov = "schedutil";
+    let globalPreset = "balance";
     let debugMode = false;
 
     let availableGovernors = ["schedutil", "performance"];
+    let availablePresets = ["balance", "performance", "powersave"];
 
     const configPath = "/data/adb/.config/auriya";
 
@@ -51,6 +53,8 @@
             try {
                 const s = parse(tomlContent);
                 if (s.cpu?.default_governor) gov = s.cpu.default_governor;
+                if (s.daemon?.default_mode)
+                    globalPreset = s.daemon.default_mode;
             } catch (e) {}
         }
         if (statusOutput && statusOutput.includes("LOG_LEVEL=DEBUG")) {
@@ -70,6 +74,9 @@
 
             if (!settings.cpu) settings.cpu = {};
             settings.cpu.default_governor = gov;
+
+            if (!settings.daemon) settings.daemon = {};
+            settings.daemon.default_mode = globalPreset;
 
             const newContent = stringify(settings);
             await runCommand(
@@ -165,6 +172,27 @@
                     options={availableGovernors}
                     on:change={onGovChange}
                     placeholder="Governor"
+                />
+            </div>
+        </div>
+        <div class="flex items-center justify-between p-2">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-surface-variant text-white flex items-center justify-center shrink-0"
+                >
+                    <Icon name="tune" />
+                </div>
+                <div>
+                    <p class="font-medium">Global Preset</p>
+                    <p class="text-xs opacity-70">Default profile when idle</p>
+                </div>
+            </div>
+            <div class="w-36">
+                <Select
+                    bind:value={globalPreset}
+                    options={availablePresets}
+                    on:change={() => save(`Preset set to ${globalPreset}`)}
+                    placeholder="Preset"
                 />
             </div>
         </div>

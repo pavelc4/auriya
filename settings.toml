@@ -1,6 +1,7 @@
 [daemon]
 log_level = "info"
 check_interval_ms = 2000
+default_mode = "balance"
 
 [cpu]
 default_governor = "schedutil"

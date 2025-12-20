@@ -44,7 +44,7 @@ impl Daemon {
             cur.pid = self.last.pid;
             cur.screen_awake = self.last.screen_awake.unwrap_or(false);
             cur.battery_saver = self.last.battery_saver.unwrap_or(false);
-            cur.profile = self.last.profile_mode.unwrap_or(ProfileMode::Balance);
+            cur.profile = self.last.profile_mode.unwrap_or(self.default_mode);
 
             if let Some(mode) = self.last.profile_mode {
                 update_current_profile_file(mode);
@@ -251,12 +251,18 @@ impl Daemon {
             let _ = crate::core::display::set_refresh_rate(original_rate).await;
         }
 
-        if self.last.profile_mode != Some(ProfileMode::Balance) {
-            if let Err(e) = profile::apply_balance(&self.balance_governor) {
-                error!(target: "auriya::profile", ?e, "Failed to apply BALANCE");
+        if self.last.profile_mode != Some(self.default_mode) {
+            let res = match self.default_mode {
+                ProfileMode::Performance => profile::apply_performance(),
+                ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
+                ProfileMode::Powersave => profile::apply_powersave(),
+            };
+
+            if let Err(e) = res {
+                error!(target: "auriya::profile", ?e, "Failed to apply {:?}", self.default_mode);
             } else {
-                info!(target: "auriya::daemon", "Applied BALANCE ({})", reason);
-                self.last.profile_mode = Some(ProfileMode::Balance);
+                info!(target: "auriya::daemon", "Applied {:?} ({})", self.default_mode, reason);
+                self.last.profile_mode = Some(self.default_mode);
             }
         }
 
@@ -275,12 +281,18 @@ impl Daemon {
     async fn handle_no_foreground(&mut self) {
         use crate::core::profile;
 
-        if self.last.profile_mode != Some(ProfileMode::Balance) {
-            if let Err(e) = profile::apply_balance(&self.balance_governor) {
-                error!(target: "auriya::profile", ?e, "Failed to apply BALANCE");
+        if self.last.profile_mode != Some(self.default_mode) {
+            let res = match self.default_mode {
+                ProfileMode::Performance => profile::apply_performance(),
+                ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
+                ProfileMode::Powersave => profile::apply_powersave(),
+            };
+
+            if let Err(e) = res {
+                error!(target: "auriya::profile", ?e, "Failed to apply {:?}", self.default_mode);
             } else {
-                info!(target: "auriya::daemon", "Applied BALANCE (no foreground)");
-                self.last.profile_mode = Some(ProfileMode::Balance);
+                info!(target: "auriya::daemon", "Applied {:?} (no foreground)", self.default_mode);
+                self.last.profile_mode = Some(self.default_mode);
             }
         }
 
@@ -328,12 +340,21 @@ impl Daemon {
                 Ok(true)
             }
             ScalingAction::Reduce => {
-                if self.last.profile_mode != Some(ProfileMode::Balance) {
-                    info!(target: "auriya::fas", "FAS decision: REDUCE → applying BALANCE");
-                    profile::apply_balance(&self.balance_governor)?;
-                    self.last.profile_mode = Some(ProfileMode::Balance);
+                if self.last.profile_mode != Some(self.default_mode) {
+                    let res = match self.default_mode {
+                        ProfileMode::Performance => profile::apply_performance(),
+                        ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
+                        ProfileMode::Powersave => profile::apply_powersave(),
+                    };
+
+                    if let Err(e) = res {
+                        error!(target: "auriya::fas", ?e, "FAS decision: REDUCE → failed to apply {:?}", self.default_mode);
+                    } else {
+                        info!(target: "auriya::fas", "FAS decision: REDUCE → applying {:?}", self.default_mode);
+                        self.last.profile_mode = Some(self.default_mode);
+                    }
                 } else {
-                    debug!(target: "auriya::fas", "FAS decision: REDUCE → already BALANCE, skip");
+                    debug!(target: "auriya::fas", "FAS decision: REDUCE → already {:?}, skip", self.default_mode);
                 }
                 Ok(true)
             }

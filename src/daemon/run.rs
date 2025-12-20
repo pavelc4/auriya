@@ -83,6 +83,7 @@ pub struct Daemon {
 
     pub(crate) fas_controller: Option<Arc<tokio::sync::Mutex<crate::daemon::fas::FasController>>>,
     pub(crate) balance_governor: String,
+    pub(crate) default_mode: ProfileMode,
     pub(crate) supported_modes: Vec<crate::core::display::DisplayMode>,
     pub(crate) refresh_rate_map: std::collections::HashMap<String, u32>,
     pub(crate) cached_whitelist: HashSet<String>,
@@ -99,6 +100,13 @@ impl Daemon {
         let override_foreground = Arc::new(RwLock::new(None));
 
         let balance_governor = cfg.settings.cpu.default_governor.clone();
+        let default_mode = cfg
+            .settings
+            .daemon
+            .default_mode
+            .parse::<ProfileMode>()
+            .unwrap_or(ProfileMode::Balance);
+        info!(target: "auriya::daemon", "Default mode: {:?}", default_mode);
 
         let fas_controller = if cfg.settings.fas.enabled {
             info!(target: "auriya::daemon", "FAS enabled");
@@ -128,6 +136,7 @@ impl Daemon {
             error_debounce_ms: 30_000,
             fas_controller,
             balance_governor,
+            default_mode,
             supported_modes,
             refresh_rate_map: std::collections::HashMap::new(),
             cached_whitelist,
@@ -152,10 +161,9 @@ impl Daemon {
     fn reload_settings(&mut self) {
         match crate::core::config::Settings::load(crate::core::config::settings_path()) {
             Ok(new_settings) => {
-                info!(target: "auriya::daemon", "Settings reloaded. New default governor: {}", new_settings.cpu.default_governor);
-
                 if self.balance_governor != new_settings.cpu.default_governor {
                     self.balance_governor = new_settings.cpu.default_governor.clone();
+                    info!(target: "auriya::daemon", "Settings reloaded. New default governor: {}", self.balance_governor);
 
                     if self.last.profile_mode == Some(ProfileMode::Balance) {
                         info!(target: "auriya::daemon", "Applying new default governor immediately...");
@@ -164,6 +172,17 @@ impl Daemon {
                             error!(target: "auriya::profile", ?e, "Failed to apply new balance governor");
                         }
                     }
+                }
+
+                let new_default_mode = new_settings
+                    .daemon
+                    .default_mode
+                    .parse::<ProfileMode>()
+                    .unwrap_or(ProfileMode::Balance);
+
+                if self.default_mode != new_default_mode {
+                    info!(target: "auriya::daemon", "Settings reloaded. New default mode: {:?} → {:?}", self.default_mode, new_default_mode);
+                    self.default_mode = new_default_mode;
                 }
             }
             Err(e) => {
@@ -263,7 +282,6 @@ impl Daemon {
             }
         });
     }
-    // Tick methods are in tick.rs
 }
 
 pub async fn run_with_config_and_logger(cfg: &DaemonConfig, reload: ReloadHandle) -> Result<()> {
