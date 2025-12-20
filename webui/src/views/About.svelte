@@ -1,4 +1,5 @@
 <script>
+    import { _ } from "svelte-i18n";
     import { openExternalLink } from "../lib/api";
     import Icon from "../components/ui/Icon.svelte";
     import ferrisSleep from "../assets/ferris_sleep.svg";
@@ -21,18 +22,16 @@
     <div
         class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface"
     >
-        <h2 class="text-lg font-semibold mb-2">Support</h2>
+        <h2 class="text-lg font-semibold mb-2">{$_("about.support")}</h2>
         <p class="mb-6 opacity-80 text-sm leading-relaxed">
-            Auriya is a free, open-source passion project. If you enjoy the
-            performance boost, consider fueling the next update with a cup of
-            coffee.
+            {$_("about.supportDesc")}
         </p>
         <button
             on:click={() => openExternalLink("https://t.me/pvlcply")}
             class="btn bg-[var(--primary)] text-on-primary w-full rounded-full hover:bg-[var(--primary)]/90 border-none h-12 text-base font-medium normal-case gap-2"
         >
             <Icon name="local_cafe" />
-            Buy me a coffee
+            {$_("about.buyMeCoffee")}
         </button>
     </div>
 
@@ -46,13 +45,10 @@
                 >
                     <Icon name="lightbulb" className="text-[20px]" />
                 </div>
-                <h2 class="text-lg font-semibold">The Philosophy</h2>
+                <h2 class="text-lg font-semibold">{$_("about.philosophy")}</h2>
             </div>
             <p class="text-sm opacity-80 leading-relaxed flex-grow">
-                Auriya redefines system optimization by fusing a
-                high-performance <b>Rust daemon</b> with a reactive
-                <b>Svelte WebUI</b>. It runs as an intelligent background
-                service that dynamically manages resources for peak efficiency.
+                {$_("about.philosophyDescSimple")}
             </p>
         </div>
 
@@ -65,12 +61,10 @@
                 >
                     <Icon name="code" className="text-[20px]" />
                 </div>
-                <h2 class="text-lg font-semibold">Why Rust?</h2>
+                <h2 class="text-lg font-semibold">{$_("about.whyRust")}</h2>
             </div>
             <p class="text-sm opacity-80 leading-relaxed flex-grow">
-                We chose <b>Rust</b> for its speed and stability. The daemon works
-                efficiently in the background to smartly tune system parameters,
-                delivering maximum performance with a minimal memory footprint.
+                {$_("about.whyRustDescSimple")}
             </p>
         </div>
     </div>
@@ -84,7 +78,7 @@
             >
                 <Icon name="group" className="text-[20px]" />
             </div>
-            <h2 class="text-lg font-semibold">Contributors</h2>
+            <h2 class="text-lg font-semibold">{$_("about.contributors")}</h2>
         </div>
 
         <div class="space-y-3">
@@ -100,7 +94,7 @@
                 />
                 <div>
                     <p class="text-sm font-medium">pavelc4</p>
-                    <p class="text-xs opacity-60">Creator & Lead Developer</p>
+                    <p class="text-xs opacity-60">{$_("about.creatorLead")}</p>
                 </div>
             </button>
 
@@ -112,7 +106,7 @@
                 class="flex w-full items-center justify-center gap-2 p-3 rounded-2xl hover:bg-surface-variant/10 transition-colors text-sm opacity-70 hover:opacity-100"
             >
                 <Icon name="open_in_new" className="text-lg" />
-                View all contributors on GitHub
+                {$_("about.viewAllContributors")}
             </button>
         </div>
     </div>
@@ -127,9 +121,11 @@
                 <Icon name="extension" className="text-[20px]" />
             </div>
             <div>
-                <h2 class="text-lg font-semibold">Open Source Foundation</h2>
+                <h2 class="text-lg font-semibold">
+                    {$_("about.openSourceFoundation")}
+                </h2>
                 <p class="text-xs opacity-60">
-                    Standing on the shoulders of giants.
+                    {$_("about.shouldersOfGiants")}
                 </p>
             </div>
         </div>
@@ -155,18 +151,19 @@
                 >
                     <Icon name="forum" className="text-[20px]" />
                 </div>
-                <h2 class="text-lg font-semibold">Join Community</h2>
+                <h2 class="text-lg font-semibold">
+                    {$_("about.joinCommunity")}
+                </h2>
             </div>
             <p class="text-sm opacity-80 mb-4">
-                Join our Telegram group to discuss features, report bugs, or
-                just hang out.
+                {$_("about.joinCommunityDesc")}
             </p>
             <button
                 on:click={() =>
                     openExternalLink("https://t.me/paveldiscussion")}
                 class="btn btn-sm bg-[var(--tertiary)]/20 hover:bg-[var(--tertiary)]/30 text-[var(--tertiary)] border-none rounded-full px-4 w-full"
             >
-                Join Discussion
+                {$_("about.joinDiscussion")}
             </button>
         </div>
 
@@ -179,10 +176,10 @@
                 >
                     <Icon name="policy" className="text-[20px]" />
                 </div>
-                <h2 class="text-lg font-semibold">License</h2>
+                <h2 class="text-lg font-semibold">{$_("about.license")}</h2>
             </div>
             <p class="text-sm opacity-80 mb-5">
-                Auriya is free software licensed under the <b>MIT License</b>.
+                {$_("about.licenseDescSimple")}
             </p>
 
             <div

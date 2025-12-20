@@ -1,9 +1,10 @@
 import { mount } from 'svelte'
+import { localeReady } from './lib/local'
 import './app.css'
 import App from './App.svelte'
 
-const app = mount(App, {
-  target: document.getElementById('app'),
+localeReady.then(() => {
+  mount(App, {
+    target: document.getElementById('app'),
+  })
 })
-
-export default app

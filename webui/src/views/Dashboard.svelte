@@ -1,5 +1,6 @@
 <script>
     import { systemInfo } from "../lib/stores";
+    import { _ } from "svelte-i18n";
     import { openExternalLink } from "../lib/api";
     import ferrisHappy from "../assets/ferris_happy.svg";
     import ferrisSleep from "../assets/ferris_sleep.svg";
@@ -73,11 +74,11 @@
                     <p
                         class="text-sm font-medium opacity-60 uppercase tracking-wider"
                     >
-                        Daemon Status
+                        {$_("dashboard.daemonStatus")}
                     </p>
                 </div>
                 <h2 class="text-2xl font-bold mb-2">
-                    {$systemInfo.daemonStatus}
+                    {$_("dashboard." + $systemInfo.daemonStatus)}
                 </h2>
                 <div class="flex flex-wrap gap-2">
                     <div
@@ -87,7 +88,11 @@
                             class="w-2 h-2 rounded-full bg-[var(--tertiary)] animate-pulse"
                         ></span>
                         <p class="text-[10px] font-mono opacity-80">
-                            PID: {$systemInfo.pid}
+                            PID: {$systemInfo.pid === "Service not running" ||
+                            !$systemInfo.pid ||
+                            $systemInfo.pid === "null"
+                                ? $_("dashboard.serviceNotRunning")
+                                : $systemInfo.pid}
                         </p>
                     </div>
                 </div>
@@ -103,7 +108,9 @@
     </div>
 
     <div>
-        <h3 class="text-lg font-bold mb-3 px-2">Live Metrics</h3>
+        <h3 class="text-lg font-bold mb-3 px-2">
+            {$_("dashboard.liveMetrics")}
+        </h3>
         <div class="bg-surface-container p-5 rounded-[32px] card_border">
             <div class="grid grid-cols-2 gap-3">
                 <div
@@ -115,7 +122,9 @@
                         <Icon name="bolt" className="text-[24px]" />
                     </div>
                     <div>
-                        <p class="text-xs opacity-60 font-medium">Profile</p>
+                        <p class="text-xs opacity-60 font-medium">
+                            {$_("dashboard.profile")}
+                        </p>
                         <p class="text-lg font-bold truncate">
                             {$systemInfo.profile}
                         </p>
@@ -137,7 +146,7 @@
                     </div>
                     <div>
                         <p class="text-xs opacity-60 font-medium">
-                            Daemon Usage
+                            {$_("dashboard.daemonUsage")}
                         </p>
                         <p class="text-lg font-bold truncate">
                             {$systemInfo.ram}
@@ -159,7 +168,9 @@
                         >
                     </div>
                     <div>
-                        <p class="text-xs opacity-60 font-medium">Battery</p>
+                        <p class="text-xs opacity-60 font-medium">
+                            {$_("dashboard.battery")}
+                        </p>
                         <p class="text-xl font-bold truncate">
                             {$systemInfo.battery}
                         </p>
@@ -180,7 +191,9 @@
                         >
                     </div>
                     <div>
-                        <p class="text-xs opacity-60 font-medium">Thermal</p>
+                        <p class="text-xs opacity-60 font-medium">
+                            {$_("dashboard.thermal")}
+                        </p>
                         <p class="text-xl font-bold truncate">
                             {$systemInfo.temp}
                         </p>
@@ -191,7 +204,9 @@
     </div>
 
     <div>
-        <h3 class="text-lg font-bold mb-3 px-2">Device Details</h3>
+        <h3 class="text-lg font-bold mb-3 px-2">
+            {$_("dashboard.deviceDetails")}
+        </h3>
         <div class="bg-surface-container p-5 rounded-[32px] card_border">
             <div class="grid grid-cols-2 gap-3">
                 <div
@@ -203,7 +218,9 @@
                         <Icon name="developer_board" className="text-[24px]" />
                     </div>
                     <div>
-                        <p class="text-xs opacity-60 font-medium">Chipset</p>
+                        <p class="text-xs opacity-60 font-medium">
+                            {$_("dashboard.chipset")}
+                        </p>
                         <p class="text-lg font-bold truncate">
                             {$systemInfo.chipset}
                         </p>
@@ -219,7 +236,7 @@
                     </div>
                     <div>
                         <p class="text-xs opacity-60 font-medium">
-                            Architecture
+                            {$_("dashboard.architecture")}
                         </p>
                         <p class="text-lg font-bold truncate">
                             {$systemInfo.deviceArch}
@@ -235,7 +252,9 @@
                         <Icon name="smartphone" className="text-[24px]" />
                     </div>
                     <div>
-                        <p class="text-xs opacity-60 font-medium">Codename</p>
+                        <p class="text-xs opacity-60 font-medium">
+                            {$_("dashboard.codename")}
+                        </p>
                         <p class="text-lg font-bold truncate">
                             {$systemInfo.codename}
                         </p>
@@ -251,7 +270,7 @@
                     </div>
                     <div>
                         <p class="text-xs opacity-60 font-medium">
-                            Android SDK
+                            {$_("dashboard.androidSdk")}
                         </p>
                         <p class="text-lg font-bold truncate">
                             {$systemInfo.sdk}
@@ -263,7 +282,7 @@
                 >
                     <div class="flex items-center mb-1">
                         <p class="text-xl opacity-90 font-bold">
-                            Kernel Version
+                            {$_("dashboard.kernelVersion")}
                         </p>
                     </div>
                     <p
@@ -277,7 +296,9 @@
     </div>
 
     <div>
-        <h3 class="text-lg font-bold mb-3 px-2">Module Info</h3>
+        <h3 class="text-lg font-bold mb-3 px-2">
+            {$_("dashboard.moduleInfo")}
+        </h3>
 
         <div class="bg-surface-container p-5 rounded-[32px] card_border">
             <div class="grid grid-cols-2 gap-4">
@@ -321,7 +342,7 @@
                         <p
                             class="text-[10px] text-on-surface-variant font-medium uppercase tracking-widest mb-1"
                         >
-                            Maintainer
+                            {$_("dashboard.maintainer")}
                         </p>
                         <div class="flex items-center gap-1">
                             <h4 class="text-lg font-bold leading-none">
@@ -364,7 +385,7 @@
                         <p
                             class="text-[10px] text-on-surface-variant font-medium uppercase tracking-widest mb-0.5"
                         >
-                            Release
+                            {$_("dashboard.release")}
                         </p>
                         <span class="text-2xl font-bold tracking-tighter"
                             >{mainVersion}</span
@@ -384,14 +405,9 @@
                 >
                     <div class="mb-4">
                         <p class="text-sm opacity-80 leading-snug font-normal">
-                            A fully <span
-                                class="text-[var(--tertiary)] font-bold"
-                                >free</span
-                            >
-                            and open-source hobby project. Built with
-                            <span class="text-[var(--primary)] font-bold"
-                                >Rust</span
-                            > for performance.
+                            {@html $_("dashboard.descriptionHtml", {
+                                default: `A fully <span class="text-[var(--tertiary)] font-bold">free</span> and open-source hobby project. Built with <span class="text-[var(--primary)] font-bold">Rust</span> for performance.`,
+                            })}
                         </p>
                     </div>
 
@@ -426,7 +442,7 @@
                                     d="M120,0C53.7,0,0,53.7,0,120s53.7,120,120,120s120-53.7,120-120S186.3,0,120,0z M175.9,79.4l-20.5,96.8 c-1.5,6.7-5.5,8.3-11.1,5.2l-30.7-22.6l-14.8,14.3c-1.6,1.6-3,3-6.1,3l2.2-31.2l56.8-51.3c2.5-2.2-0.5-3.4-3.9-1.2l-70.2,44.1 L46,122.5c-6.6-2.1-6.7-6.6,1.4-9.7l120-46.3C173.6,64.5,178.1,68.7,175.9,79.4z"
                                 />
                             </svg>
-                            Updates
+                            {$_("dashboard.updates")}
                         </button>
                     </div>
                 </div>

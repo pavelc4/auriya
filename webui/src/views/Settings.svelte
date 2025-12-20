@@ -1,5 +1,7 @@
 <script>
     import { onMount } from "svelte";
+    import { _ } from "svelte-i18n";
+    import { locale, setLocale, languages } from "../lib/local";
     import { systemInfo, supportedRefreshRates } from "../lib/stores";
     import { parse, stringify } from "smol-toml";
     import { runCommand, showToast } from "../lib/api";
@@ -153,7 +155,7 @@
     <div
         class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface"
     >
-        <h2 class="text-lg font-semibold mb-4">Performance</h2>
+        <h2 class="text-lg font-semibold mb-4">{$_("settings.performance")}</h2>
         <div class="flex items-center justify-between p-2 mb-2">
             <div class="flex items-center gap-3">
                 <div
@@ -162,8 +164,10 @@
                     <Icon name="memory" />
                 </div>
                 <div>
-                    <p class="font-medium">CPU Governor</p>
-                    <p class="text-xs opacity-70">Global scaling governor</p>
+                    <p class="font-medium">{$_("settings.cpuGovernor")}</p>
+                    <p class="text-xs opacity-70">
+                        {$_("settings.globalScaling")}
+                    </p>
                 </div>
             </div>
             <div class="w-36">
@@ -183,8 +187,10 @@
                     <Icon name="tune" />
                 </div>
                 <div>
-                    <p class="font-medium">Global Preset</p>
-                    <p class="text-xs opacity-70">Default profile when idle</p>
+                    <p class="font-medium">{$_("settings.globalPreset")}</p>
+                    <p class="text-xs opacity-70">
+                        {$_("settings.defaultProfile")}
+                    </p>
                 </div>
             </div>
             <div class="w-36">
@@ -201,7 +207,7 @@
     <div
         class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface"
     >
-        <h2 class="text-lg font-semibold mb-4">Language</h2>
+        <h2 class="text-lg font-semibold mb-4">{$_("settings.language")}</h2>
         <div class="flex items-center justify-between p-2">
             <div class="flex items-center gap-3">
                 <div
@@ -210,21 +216,33 @@
                     <Icon name="language" />
                 </div>
                 <div>
-                    <p class="font-medium">English</p>
-                    <p class="text-xs opacity-70">Application language</p>
+                    <p class="font-medium">
+                        {languages.find((l) => l.code === $locale)?.name ||
+                            "English"}
+                    </p>
+                    <p class="text-xs opacity-70">
+                        {$_("settings.appLanguage")}
+                    </p>
                 </div>
             </div>
-            <span
-                class="text-xs font-bold px-3 py-1 rounded-full bg-surface-variant/20 text-on-surface-variant"
-                >EN</span
-            >
+            <div class="w-36">
+                <Select
+                    value={$locale}
+                    options={languages.map((l) => ({
+                        value: l.code,
+                        label: l.name,
+                    }))}
+                    on:change={(e) => setLocale(e.detail.value)}
+                    placeholder="Language"
+                />
+            </div>
         </div>
     </div>
 
     <div
         class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface"
     >
-        <h2 class="text-lg font-semibold mb-4">System</h2>
+        <h2 class="text-lg font-semibold mb-4">{$_("settings.system")}</h2>
         <div
             class="flex items-center justify-between p-2 cursor-pointer hover:bg-surface-variant/10 rounded-xl transition-colors"
             on:click={exportLogs}
@@ -239,8 +257,10 @@
                     <Icon name="bug_report" />
                 </div>
                 <div>
-                    <p class="font-medium">Export Logs</p>
-                    <p class="text-xs opacity-70">Save kernel & daemon logs</p>
+                    <p class="font-medium">{$_("settings.exportLogs")}</p>
+                    <p class="text-xs opacity-70">
+                        {$_("settings.exportLogsDesc")}
+                    </p>
                 </div>
             </div>
             <Icon name="chevron_right" className="text-on-surface-variant" />
@@ -253,8 +273,10 @@
                     <Icon name="terminal" />
                 </div>
                 <div>
-                    <p class="font-medium">Debug Mode</p>
-                    <p class="text-xs opacity-70">Enable verbose logging</p>
+                    <p class="font-medium">{$_("settings.debugMode")}</p>
+                    <p class="text-xs opacity-70">
+                        {$_("settings.debugModeDesc")}
+                    </p>
                 </div>
             </div>
             <input
@@ -272,15 +294,17 @@
                     <Icon name="restart_alt" />
                 </div>
                 <div>
-                    <p class="font-medium">Restart Daemon</p>
-                    <p class="text-xs opacity-70">Stop, clear logs & restart</p>
+                    <p class="font-medium">{$_("settings.restartDaemon")}</p>
+                    <p class="text-xs opacity-70">
+                        {$_("settings.restartDaemonDesc")}
+                    </p>
                 </div>
             </div>
             <button
                 on:click={restartDaemon}
                 class="btn btn-sm bg-surface-variant text-on-surface rounded-lg px-4"
             >
-                Restart
+                {$_("settings.restart")}
             </button>
         </div>
     </div>

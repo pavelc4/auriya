@@ -1,5 +1,6 @@
 <script>
     import { onMount } from "svelte";
+    import { _ } from "svelte-i18n";
     import { view, systemInfo, supportedRefreshRates } from "./lib/stores";
     import { runCommand, showToast } from "./lib/api";
     import Dashboard from "./views/Dashboard.svelte";
@@ -110,11 +111,11 @@
 
             const pid = parts[7];
             const rss = parts[8];
-            let daemonStatus = "Stopped 💤";
+            let daemonStatus = "stopped";
             let ram = "-";
 
             if (pid !== "null" && pid.length > 0) {
-                daemonStatus = "Working ✨";
+                daemonStatus = "working";
                 if (rss && rss !== "-") {
                     ram = `${(parseInt(rss) / 1024).toFixed(1)} MB`;
                 }
@@ -222,7 +223,9 @@
                     : ''}"
             />
         </div>
-        <span class="btm-nav-label text-xs font-medium mt-1">Home</span>
+        <span class="btm-nav-label text-xs font-medium mt-1"
+            >{$_("nav.home")}</span
+        >
     </button>
 
     <button
@@ -242,7 +245,9 @@
                     : ''}"
             />
         </div>
-        <span class="btm-nav-label text-xs font-medium mt-1">Games</span>
+        <span class="btm-nav-label text-xs font-medium mt-1"
+            >{$_("nav.games")}</span
+        >
     </button>
 
     <button
@@ -262,7 +267,9 @@
                     : ''}"
             />
         </div>
-        <span class="btm-nav-label text-xs font-medium mt-1">About</span>
+        <span class="btm-nav-label text-xs font-medium mt-1"
+            >{$_("nav.about")}</span
+        >
     </button>
 
     <button
@@ -282,6 +289,8 @@
                     : ''}"
             />
         </div>
-        <span class="btm-nav-label text-xs font-medium mt-1">Settings</span>
+        <span class="btm-nav-label text-xs font-medium mt-1"
+            >{$_("nav.settings")}</span
+        >
     </button>
 </div>
