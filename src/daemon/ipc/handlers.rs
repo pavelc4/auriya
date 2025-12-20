@@ -1,169 +1,10 @@
-use crate::core::config::gamelist::GameList;
-use crate::daemon::state::CurrentState;
+use super::commands::{Command, ProfileMode};
+use super::server::IpcHandles;
 use anyhow::Result;
-use std::os::unix::fs::PermissionsExt;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::{
-    path::Path,
-    str::FromStr,
-    sync::{Arc, RwLock},
-};
+use std::sync::atomic::Ordering;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::net::{UnixListener, UnixStream};
+use tokio::net::UnixStream;
 use tracing::{error, info};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LogLevelCmd {
-    Debug,
-    Info,
-    Warn,
-    Error,
-}
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ProfileMode {
-    Performance,
-    Balance,
-    Powersave,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Command {
-    Help,
-    Status,
-    Enable,
-    Disable,
-    Reload,
-    Restart,
-    SetLog(LogLevelCmd),
-    Inject(String),
-    ClearInject,
-    GetPid,
-    Ping,
-    Quit,
-    SetProfile(ProfileMode),
-    AddGame(String),
-    RemoveGame(String),
-    ListPackages,
-    GetGameList,
-    UpdateGame(
-        String,           // package
-        Option<String>,   // governor
-        Option<bool>,     // dnd
-        Option<u32>,      // target_fps (single)
-        Option<u32>,      // refresh_rate
-        Option<String>,   // mode
-        Option<Vec<u32>>, // fps_array (auto-detect)
-    ),
-    SetFps(u32),
-    GetFps,
-    GetSupportedRates,
-}
-
-impl FromStr for Command {
-    type Err = &'static str;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<&str> = s.split_whitespace().collect();
-        match parts.as_slice() {
-            ["HELP"] | ["?"] => Ok(Command::Help),
-            ["STATUS"] => Ok(Command::Status),
-            ["ENABLE"] => Ok(Command::Enable),
-            ["DISABLE"] => Ok(Command::Disable),
-            ["RELOAD"] => Ok(Command::Reload),
-            ["GETPID"] | ["GET_PID"] => Ok(Command::GetPid),
-            ["PING"] => Ok(Command::Ping),
-            ["QUIT"] => Ok(Command::Quit),
-            ["RESTART"] => Ok(Command::Restart),
-            ["LIST_PACKAGES"] | ["LISTPACKAGES"] => Ok(Command::ListPackages),
-            ["GET_GAMELIST"] | ["GETGAMELIST"] => Ok(Command::GetGameList),
-
-            ["SETLOG", level] | ["SET_LOG", level] => match level.to_uppercase().as_str() {
-                "DEBUG" => Ok(Command::SetLog(LogLevelCmd::Debug)),
-                "INFO" => Ok(Command::SetLog(LogLevelCmd::Info)),
-                "WARN" => Ok(Command::SetLog(LogLevelCmd::Warn)),
-                "ERROR" => Ok(Command::SetLog(LogLevelCmd::Error)),
-                _ => Err("usage: SETLOG <DEBUG|INFO|WARN|ERROR>"),
-            },
-
-            ["SET_FPS", fps] | ["SETFPS", fps] => match fps.parse::<u32>() {
-                Ok(val) => Ok(Command::SetFps(val)),
-                Err(_) => Err("usage: SET_FPS <number>"),
-            },
-
-            ["GET_FPS"] | ["GETFPS"] => Ok(Command::GetFps),
-            ["GET_SUPPORTED_RATES"] | ["GETRATES"] => Ok(Command::GetSupportedRates),
-
-            ["INJECT", pkg] => Ok(Command::Inject(pkg.to_string())),
-            ["CLEAR_INJECT"] | ["CLEARINJECT"] => Ok(Command::ClearInject),
-
-            ["SET_PROFILE", mode] | ["SETPROFILE", mode] => match mode.to_uppercase().as_str() {
-                "PERFORMANCE" => Ok(Command::SetProfile(ProfileMode::Performance)),
-                "BALANCE" => Ok(Command::SetProfile(ProfileMode::Balance)),
-                "POWERSAVE" => Ok(Command::SetProfile(ProfileMode::Powersave)),
-                _ => Err("usage: SETPROFILE <PERFORMANCE|BALANCE|POWERSAVE>"),
-            },
-
-            ["ADD_GAME", pkg] | ["ADDGAME", pkg] => Ok(Command::AddGame(pkg.to_string())),
-            ["REMOVE_GAME", pkg] | ["REMOVEGAME", pkg] => Ok(Command::RemoveGame(pkg.to_string())),
-            ["UPDATE_GAME", pkg, rest @ ..] | ["UPDATEGAME", pkg, rest @ ..] => {
-                let mut governor = None;
-                let mut dnd = None;
-                let mut target_fps = None;
-                let mut refresh_rate = None;
-                let mut mode = None;
-                let mut fps_array = None;
-
-                for arg in rest {
-                    if let Some(gov) = arg.strip_prefix("gov=") {
-                        governor = Some(gov.to_string());
-                    } else if let Some(dnd_val) = arg.strip_prefix("dnd=") {
-                        dnd = Some(dnd_val.parse::<bool>().unwrap_or(true));
-                    } else if let Some(fps_val) = arg.strip_prefix("fps=") {
-                        target_fps = fps_val.parse::<u32>().ok();
-                    } else if let Some(arr_val) = arg.strip_prefix("fps_array=") {
-                        // Parse comma-separated FPS array: "30,60,90"
-                        let arr: Vec<u32> = arr_val
-                            .split(',')
-                            .filter_map(|s| s.trim().parse().ok())
-                            .collect();
-                        if !arr.is_empty() {
-                            fps_array = Some(arr);
-                        }
-                    } else if let Some(rate_val) = arg.strip_prefix("rate=") {
-                        refresh_rate = rate_val.parse::<u32>().ok();
-                    } else if let Some(mode_val) = arg.strip_prefix("mode=") {
-                        mode = Some(mode_val.to_string());
-                    }
-                }
-
-                Ok(Command::UpdateGame(
-                    pkg.to_string(),
-                    governor,
-                    dnd,
-                    target_fps,
-                    refresh_rate,
-                    mode,
-                    fps_array,
-                ))
-            }
-
-            _ => Err("unknown command (try HELP)"),
-        }
-    }
-}
-
-pub struct IpcHandles {
-    pub enabled: Arc<AtomicBool>,
-    pub shared_config: Arc<RwLock<GameList>>,
-    pub override_foreground: Arc<RwLock<Option<String>>>,
-    pub reload_fn: Arc<dyn Fn() -> anyhow::Result<usize> + Send + Sync>,
-    pub set_log_level: Arc<dyn Fn(LogLevelCmd) + Send + Sync>,
-    pub set_fps: Arc<dyn Fn(u32) + Send + Sync>,
-    pub get_fps: Arc<dyn Fn() -> u32 + Send + Sync>,
-    pub current_state: Arc<RwLock<CurrentState>>,
-    pub balance_governor: String,
-    pub current_log_level: Arc<RwLock<LogLevelCmd>>,
-    pub supported_modes: Arc<Vec<crate::core::display::DisplayMode>>,
-}
 
 const HELP: &str = "CMDS:
         - HELP | ?
@@ -181,37 +22,8 @@ const HELP: &str = "CMDS:
         - REMOVE_GAME <pkg>
  ";
 
-pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
-    let path_ref = path.as_ref();
-    let _ = std::fs::remove_file(path_ref);
-    let listener = UnixListener::bind(path_ref)?;
-    let _ = std::fs::set_permissions(path_ref, std::fs::Permissions::from_mode(0o666));
-    tracing::info!(target: "auriya::daemon", "IPC listening at {:?}", path_ref);
-
-    loop {
-        let (stream, _) = listener.accept().await?;
-        let hc = IpcHandles {
-            enabled: h.enabled.clone(),
-            shared_config: h.shared_config.clone(),
-            override_foreground: h.override_foreground.clone(),
-            reload_fn: h.reload_fn.clone(),
-            set_log_level: h.set_log_level.clone(),
-            set_fps: h.set_fps.clone(),
-            get_fps: h.get_fps.clone(),
-            current_state: h.current_state.clone(),
-            balance_governor: h.balance_governor.clone(),
-            current_log_level: h.current_log_level.clone(),
-            supported_modes: h.supported_modes.clone(),
-        };
-        tokio::spawn(async move {
-            if let Err(e) = handle_client(stream, hc).await {
-                tracing::warn!(target: "auriya::daemon", "client error: {:?}", e);
-            }
-        });
-    }
-}
-
-async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
+/// Handle a single IPC client connection.
+pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
     let (r, mut w) = stream.into_split();
     let mut reader = BufReader::new(r);
     let mut line = String::new();
@@ -386,7 +198,6 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     Ok(output) => {
                         let stdout = String::from_utf8_lossy(&output.stdout);
                         info!(target: "auriya::ipc", "ListPackages success, len: {}", stdout.len());
-                        // Return raw output, client will parse
                         format!("{}\n", stdout)
                     }
                     Err(e) => {
@@ -441,12 +252,11 @@ async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
             }
             Ok(Command::GetSupportedRates) => {
                 use std::collections::HashSet;
-                // Extract unique FPS values from supported modes
                 let mut rates: Vec<u32> = h
                     .supported_modes
                     .iter()
                     .map(|m| m.fps.round() as u32)
-                    .collect::<HashSet<_>>() // Dedup
+                    .collect::<HashSet<_>>()
                     .into_iter()
                     .collect();
                 rates.sort();

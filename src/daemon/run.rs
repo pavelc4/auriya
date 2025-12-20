@@ -36,26 +36,7 @@ fn update_current_profile_file(mode: ProfileMode) {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct DaemonConfig {
-    pub settings: crate::core::config::Settings,
-    pub gamelist: crate::core::config::GameList,
-    pub log_debounce_ms: u128,
-}
-
-impl Default for DaemonConfig {
-    fn default() -> Self {
-        let settings =
-            crate::core::config::Settings::load(crate::core::config::settings_path()).unwrap();
-        let gamelist =
-            crate::core::config::GameList::load(crate::core::config::gamelist_path()).unwrap();
-        Self {
-            settings,
-            gamelist,
-            log_debounce_ms: 2000,
-        }
-    }
-}
+pub use crate::daemon::config::DaemonConfig;
 
 #[inline]
 fn now_ms() -> u128 {
