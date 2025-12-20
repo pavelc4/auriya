@@ -6,7 +6,7 @@ use notify::{EventKind, RecursiveMode, Watcher};
 use std::collections::HashSet;
 use std::{
     sync::atomic::AtomicBool,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, RwLock},
     time::Duration,
 };
 use tokio::{signal, time};
@@ -102,7 +102,7 @@ pub struct Daemon {
     error_debounce_ms: u128,
     tick_count: u64,
 
-    fas_controller: Option<Arc<Mutex<crate::daemon::fas::FasController>>>,
+    fas_controller: Option<Arc<tokio::sync::Mutex<crate::daemon::fas::FasController>>>,
     balance_governor: String,
     supported_modes: Vec<crate::core::display::DisplayMode>,
     refresh_rate_map: std::collections::HashMap<String, u32>,
@@ -123,7 +123,7 @@ impl Daemon {
 
         let fas_controller = if cfg.settings.fas.enabled {
             info!(target: "auriya::daemon", "FAS enabled");
-            Some(Arc::new(Mutex::new(
+            Some(Arc::new(tokio::sync::Mutex::new(
                 crate::daemon::fas::FasController::with_target_fps(60), // Default 60, per-game overrides
             )))
         } else {
@@ -206,18 +206,16 @@ impl Daemon {
     pub async fn init_ipc(&self, filter_handle: ReloadHandle) {
         let fas_clone_for_ipc = self.fas_controller.clone();
         let set_fps = Arc::new(move |fps: u32| {
-            if let Some(fas) = &fas_clone_for_ipc
-                && let Ok(mut guard) = fas.lock()
-            {
+            if let Some(fas) = &fas_clone_for_ipc {
+                let mut guard = fas.blocking_lock();
                 guard.set_target_fps(fps);
             }
         });
 
         let fas_clone_for_get = self.fas_controller.clone();
         let get_fps = Arc::new(move || -> u32 {
-            if let Some(fas) = &fas_clone_for_get
-                && let Ok(guard) = fas.lock()
-            {
+            if let Some(fas) = &fas_clone_for_get {
+                let guard = fas.blocking_lock();
                 return guard.get_target_fps();
             }
             60
@@ -522,8 +520,8 @@ impl Daemon {
 
                 if let Some(cfg) = game_cfg
                     && let Some(ref fps_cfg) = cfg.target_fps
-                    && let Ok(mut f) = fas.lock()
                 {
+                    let mut f = fas.lock().await;
                     f.set_target_fps_config(fps_cfg.to_buffer_config());
                 }
 
@@ -680,10 +678,9 @@ impl Daemon {
         }
     }
 
-    #[allow(clippy::await_holding_lock)]
     async fn run_fas_tick(
         &mut self,
-        fas: &Arc<Mutex<crate::daemon::fas::FasController>>,
+        fas: &Arc<tokio::sync::Mutex<crate::daemon::fas::FasController>>,
         pkg: &str,
         game_governor: &str,
         pid: Option<i32>,
@@ -693,9 +690,7 @@ impl Daemon {
         let thermal_thresh = 90.0;
 
         let action = {
-            let mut fas_guard = fas
-                .lock()
-                .map_err(|_| anyhow::anyhow!("FAS lock poisoned"))?;
+            let mut fas_guard = fas.lock().await;
 
             fas_guard.set_package(pkg.to_string(), pid);
             fas_guard.tick(thermal_thresh).await?
