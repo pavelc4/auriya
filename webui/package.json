@@ -25,6 +25,7 @@
     "kernelsu-alt": "^2.1.2",
     "material-symbols": "^0.40.2",
     "smol-toml": "^1.5.2",
+    "svelte-i18n": "^4.0.1",
     "webuix": "^0.0.18"
   }
 }

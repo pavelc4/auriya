@@ -21,8 +21,8 @@ export const systemInfo = writable({
     sdk: '...',
     battery: '...',
     temp: '...',
-    daemonStatus: 'Stopped 💤',
-    pid: 'Service not running',
+    daemonStatus: 'stopped',
+    pid: null,
     ram: '-'
 });
 

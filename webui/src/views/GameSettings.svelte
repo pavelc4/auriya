@@ -1,5 +1,6 @@
 <script>
     import { onMount, createEventDispatcher } from "svelte";
+    import { _ } from "svelte-i18n";
     import { activeGames, supportedRefreshRates } from "../lib/stores";
     import { runCommand, showToast } from "../lib/api";
     import Icon from "../components/ui/Icon.svelte";
@@ -139,7 +140,9 @@
         </button>
         <div class="flex flex-col">
             <h2 class="text-xl font-bold leading-tight">{pkg}</h2>
-            <span class="text-xs opacity-60">Game Configuration</span>
+            <span class="text-xs opacity-60"
+                >{$_("gameSettings.gameConfiguration")}</span
+            >
         </div>
     </div>
     <div
@@ -147,8 +150,12 @@
     >
         <div class="flex items-center justify-between p-2">
             <div>
-                <p class="font-bold text-lg">Optimization</p>
-                <p class="text-xs opacity-60">Enable Auriya for this app</p>
+                <p class="font-bold text-lg">
+                    {$_("gameSettings.optimization")}
+                </p>
+                <p class="text-xs opacity-60">
+                    {$_("gameSettings.enableForApp")}
+                </p>
             </div>
             <input
                 type="checkbox"
@@ -161,9 +168,9 @@
 
         <div class="flex items-center justify-between p-2">
             <div>
-                <p class="font-bold text-lg">Do Not Disturb</p>
+                <p class="font-bold text-lg">{$_("gameSettings.dnd")}</p>
                 <p class="text-xs opacity-60">
-                    Block notifications while playing
+                    {$_("gameSettings.dndDesc")}
                 </p>
             </div>
             <input
@@ -179,17 +186,23 @@
         <div class="space-y-3 pt-2">
             <div class="flex items-center gap-2 mb-2">
                 <Icon name="tune" className="text-[var(--primary)]" />
-                <span class="font-bold">Profile</span>
+                <span class="font-bold">{$_("gameSettings.profile")}</span>
             </div>
             <div class="w-full">
                 <Select
                     bind:value={mode}
                     disabled={!isEnabled}
-                    placeholder="Select Profile"
+                    placeholder={$_("gameSettings.selectProfile")}
                     options={[
-                        { value: "powersave", label: "Powersave" },
-                        { value: "balance", label: "Balance" },
-                        { value: "performance", label: "Performance" },
+                        {
+                            value: "powersave",
+                            label: $_("gameSettings.powersave"),
+                        },
+                        { value: "balance", label: $_("gameSettings.balance") },
+                        {
+                            value: "performance",
+                            label: $_("gameSettings.performance"),
+                        },
                     ]}
                 />
             </div>
@@ -199,12 +212,14 @@
     <div
         class="bg-surface-container p-6 rounded-[32px] card_border text-on-surface space-y-4"
     >
-        <h3 class="font-bold opacity-80 px-2">Advanced Config</h3>
+        <h3 class="font-bold opacity-80 px-2">
+            {$_("gameSettings.advancedConfig")}
+        </h3>
         <div class="grid gap-4">
             <div class="form-control w-full">
                 <label class="label" for="game-gov"
                     ><span class="label-text text-on-surface font-medium"
-                        >CPU Governor</span
+                        >{$_("gameSettings.cpuGovernor")}</span
                     ></label
                 >
                 <Select
@@ -212,7 +227,11 @@
                     disabled={!isEnabled}
                     options={managers.map((m) => ({
                         value: m,
-                        label: m + (m === globalGov ? " (Default)" : ""),
+                        label:
+                            m +
+                            (m === globalGov
+                                ? ` (${$_("gameSettings.default")})`
+                                : ""),
                     }))}
                 />
             </div>
@@ -220,7 +239,7 @@
                 <div class="form-control w-full">
                     <label class="label" for="game-fps"
                         ><span class="label-text text-on-surface font-medium"
-                            >Target FPS</span
+                            >{$_("gameSettings.targetFps")}</span
                         ></label
                     >
                     <div class="w-full">
@@ -229,7 +248,10 @@
                             disabled={!isEnabled}
                             placeholder="FPS"
                             options={[
-                                { value: "", label: "Default" },
+                                {
+                                    value: "",
+                                    label: $_("gameSettings.default"),
+                                },
                                 { value: "auto_60", label: "Auto (max 60)" },
                                 { value: "auto_90", label: "Auto (max 90)" },
                                 { value: "auto_120", label: "Auto (max 120)" },
@@ -240,7 +262,7 @@
                 <div class="form-control w-full">
                     <label class="label" for="settings-refresh-select"
                         ><span class="label-text text-on-surface font-medium"
-                            >Refresh Rate</span
+                            >{$_("gameSettings.refreshRate")}</span
                         ></label
                     >
                     <div class="w-full">
@@ -249,7 +271,10 @@
                             disabled={!isEnabled}
                             placeholder="Hz"
                             options={[
-                                { value: "", label: "Default" },
+                                {
+                                    value: "",
+                                    label: $_("gameSettings.default"),
+                                },
                                 ...availableRates.map((r) => ({
                                     value: r,
                                     label: r + " Hz",
@@ -268,7 +293,7 @@
             on:click={save}
             class="btn bg-surface-container-high text-on-surface hover:bg-surface-variant border-none rounded-2xl min-h-0 h-12 px-8 text-base font-bold"
         >
-            Save
+            {$_("gameSettings.save")}
         </button>
     </div>
 </div>

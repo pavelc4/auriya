@@ -1,5 +1,6 @@
 <script>
     import { onMount } from "svelte";
+    import { _ } from "svelte-i18n";
     import {
         packages,
         activeGames,
@@ -84,7 +85,7 @@
                 </button>
                 <input
                     type="text"
-                    placeholder="Search packages..."
+                    placeholder={$_("games.searchPlaceholder")}
                     bind:value={$searchQuery}
                     class="bg-transparent border-none text-on-surface placeholder:text-on-surface-variant/70 flex-grow h-full px-2 focus:outline-none text-base font-normal"
                 />
@@ -127,7 +128,7 @@
                     <span
                         class="loading loading-spinner loading-lg text-[var(--primary)] mb-4"
                     ></span>
-                    <p>Loading packages...</p>
+                    <p>{$_("games.loading")}</p>
                 </div>
             {:else if slicedGames.length === 0}
                 <div
@@ -142,29 +143,29 @@
                             <Icon name="search_off" className="text-[32px]" />
                         </div>
                         <h3 class="text-xl font-semibold text-on-surface mb-2">
-                            No packages found
+                            {$_("games.noPackages")}
                         </h3>
                         <p
                             class="text-sm text-on-surface-variant opacity-80 mb-6"
                         >
-                            We couldn't find any apps matching your search. Try
-                            adjusting the filters.
+                            {$_("games.noPackagesDesc")}
                         </p>
                         {#if $searchQuery}
                             <button
                                 on:click={() => searchQuery.set("")}
                                 class="btn bg-surface-variant/20 hover:bg-surface-variant/30 text-on-surface rounded-full px-6 normal-case border-none h-10 min-h-0"
                             >
-                                Clear Search
+                                {$_("games.clearSearch")}
                             </button>
                         {:else}
                             <button
                                 on:click={toggleFilter}
                                 class="btn bg-[var(--primary)] text-on-primary hover:opacity-90 rounded-full px-6 normal-case border-none h-10 min-h-0"
                             >
-                                Show {showSystemApps
-                                    ? "User Apps"
-                                    : "System Apps"}
+                                {$_("common.show")}
+                                {showSystemApps
+                                    ? $_("games.showUserApps")
+                                    : $_("games.showSystemApps")}
                             </button>
                         {/if}
                     </div>
@@ -212,7 +213,7 @@
                                         {#if isEnabled}
                                             <span
                                                 class="bg-[var(--primary)]/10 text-[var(--primary)] rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm"
-                                                >Active</span
+                                                >{$_("games.active")}</span
                                             >
                                         {/if}
                                     </div>
@@ -224,8 +225,10 @@
                                                 ? 'text-on-surface-variant'
                                                 : 'text-on-surface-variant opacity-60'}"
                                             >{isEnabled
-                                                ? "Optimized"
-                                                : "Tap to optimize"}</span
+                                                ? $_("games.optimized")
+                                                : $_(
+                                                      "games.tapToOptimize",
+                                                  )}</span
                                         >
                                         {#if isEnabled}
                                             <span
@@ -253,7 +256,9 @@
                                 on:click={() => gamePage.update((n) => n + 1)}
                                 class="px-6 py-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium text-sm"
                             >
-                                Load More ({remaining} remaining)
+                                {$_("games.loadMore", {
+                                    values: { remaining },
+                                })}
                             </button>
                         </div>
                     {/if}
