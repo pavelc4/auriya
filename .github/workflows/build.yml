@@ -63,7 +63,7 @@ jobs:
       uses: ./.github/actions/package-module
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: auriya-module
         path: build/release/*.zip
