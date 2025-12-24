@@ -1,5 +1,91 @@
 # Changelog
 
+## v1.0.2
+
+### New Features
+
+**Configurable Default Mode:**
+- Added `default_mode` field to `settings.toml` for global profile preset
+- Supports Balance/Performance/Powersave as default when no game is running
+- Auto-reload default mode when `settings.toml` changes
+- Global Preset dropdown in WebUI Settings
+- Handles missing `[daemon]` section with serde defaults
+
+**Internationalization (i18n):**
+- Full i18n support for WebUI with English and Indonesian translations
+- Localized all UI strings, dashboard messages, and settings
+- Dynamic language switching without restart
+
+**Adaptive Polling:**
+- Implemented adaptive polling mechanism for reduced CPU overhead
+- CPU usage reduced from 0.3% to 0.1% (67% reduction) during idle
+- Removed fixed `poll_interval` from `DaemonConfig`
+
+---
+
+### WebUI Improvements
+
+- Fixed per-game settings persistence and display
+- Fixed `target_fps` display using `Array.isArray()` for serde plain JSON
+- Added reactive statement to update UI when store changes
+- Backend now serializes target_fps as plain number/array
+
+---
+
+### Refactoring
+
+**Module Reorganization:**
+- Split `run.rs` into `tick.rs`, `watcher.rs`, and `config.rs` modules
+  - `run.rs`: 770 → 330 lines
+  - New: `tick.rs` (342 lines), `watcher.rs` (91 lines), `config.rs` (22 lines)
+- Split `ipc.rs` into `ipc/commands.rs`, `ipc/handlers.rs`, `ipc/server.rs`
+- Merged duplicate balance handling into `apply_balance_and_clear()`
+
+**Code Quality:**
+- Migrated `FasController` from `std::sync::Mutex` to `tokio::sync::Mutex` for async-aware locking
+- Removed unused `log`/`android_logger` dependencies, use `tracing` only
+- Simplified conditionals throughout codebase
+
+---
+
+### Bug Fixes
+
+**Backend (`tick.rs`):**
+- Use global governor fallback instead of hardcoded 'performance'
+- Balance mode now respects per-game `cpu_governor` setting
+- Clone governor string to avoid borrow checker conflict
+
+**Frontend (`GameSettings.svelte`):**
+- Fix `target_fps` display for serde plain JSON serialization
+- Backend serializes as plain number/array instead of enum `{ Single, Array }`
+
+---
+
+### CI/CD & Dependencies
+
+**Dependabot Auto-Updates:**
+- Added Dependabot configuration for automated dependency updates
+- Bumped `kernelsu-alt` from 2.1.2 to 3.0.0
+- Bumped `serde_json` from 1.0.145 to 1.0.147
+- Bumped `toml` from 0.9.8 to 0.9.10+spec-1.1.0
+- Bumped `tracing` from 0.1.43 to 0.1.44
+- Bumped `actions/checkout` from 4 to 6
+- Bumped `actions/upload-artifact` from 4 to 6
+- Bumped `softprops/action-gh-release` from 1 to 2
+
+**GitHub Actions:**
+- Use raw GitHub URL for changelog in `update.json` generation
+- Switch changelog URL from rendered webpage to raw content
+
+---
+
+### Documentation
+
+- Updated README.md with project details and features
+- Added supported root managers, resources, and license information
+
+---
+
 ## v1.0.1 
 
 ### New Features
