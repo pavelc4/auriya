@@ -52,12 +52,24 @@ jobs:
         ZIP_NAME=${{ steps.package.outputs.zip_name }}
         TAG=${{ github.ref_name }}
         
+        # Extract latest changelog and convert to plain text
+        CHANGELOG=$(awk '/^## v/{if(p)exit;p=1;next} p' CHANGELOG.md | \
+          sed 's/^### //' | \
+          sed 's/\*\*//g' | \
+          sed 's/^- /● /' | \
+          sed 's/^  - /  ● /' | \
+          sed 's/`//g' | \
+          sed 's/^---$//' | \
+          sed '/^$/d' | \
+          head -20 | \
+          jq -Rs .)
+        
         cat > update.json << EOF
         {
             "version": "$VERSION",
             "versionCode": $VERSION_CODE,
             "zipUrl": "https://github.com/${{ github.repository }}/releases/download/$TAG/$ZIP_NAME",
-            "changelog": "https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md"
+            "changelog": "https://raw.githubusercontent.com/${{ github.repository }}/main/CHANGELOG.md"
         }
         EOF
         

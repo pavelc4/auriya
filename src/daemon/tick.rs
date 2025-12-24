@@ -122,8 +122,8 @@ impl Daemon {
             {
                 let game_cfg = gamelist.find(&pkg);
                 let governor = game_cfg
-                    .map(|c| &c.cpu_governor[..])
-                    .unwrap_or("performance");
+                    .map(|c| c.cpu_governor.clone())
+                    .unwrap_or_else(|| self.balance_governor.clone());
 
                 if let Some(cfg) = game_cfg
                     && let Some(ref fps_cfg) = cfg.target_fps
@@ -132,7 +132,10 @@ impl Daemon {
                     f.set_target_fps_config(fps_cfg.to_buffer_config());
                 }
 
-                match self.run_fas_tick(&fas, &pkg, governor, self.last.pid).await {
+                match self
+                    .run_fas_tick(&fas, &pkg, &governor, self.last.pid)
+                    .await
+                {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
                     Err(e) => warn!(target: "auriya::fas", "FAS tick error: {:?}", e),
                 }
@@ -175,7 +178,7 @@ impl Daemon {
                 let game_cfg = gamelist.find(pkg);
                 let governor = game_cfg
                     .map(|c| &c.cpu_governor[..])
-                    .unwrap_or("performance");
+                    .unwrap_or(&self.balance_governor);
                 let enable_dnd = game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
                 let target_mode = game_cfg
                     .and_then(|c| c.mode.as_deref())
@@ -191,7 +194,12 @@ impl Daemon {
                         ProfileMode::Performance => {
                             profile::apply_performance_with_config(governor, enable_dnd, Some(pid))
                         }
-                        ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
+                        ProfileMode::Balance => profile::apply_balance(
+                            game_cfg
+                                .filter(|c| !c.cpu_governor.is_empty())
+                                .map(|c| &c.cpu_governor[..])
+                                .unwrap_or(&self.balance_governor),
+                        ),
                         ProfileMode::Powersave => profile::apply_powersave(),
                     };
 

@@ -48,17 +48,34 @@
         if ($supportedRefreshRates.length > 0) {
             availableRates = $supportedRefreshRates;
         }
+    });
 
+    $: {
         const profile = $activeGames.find((g) => g.package === pkg);
         if (profile) {
             isEnabled = true;
             dnd = profile.enable_dnd || false;
             mode = profile.mode || "performance";
             gov = profile.cpu_governor || "performance";
-            if (profile.target_fps) fps = profile.target_fps;
+
+            // Convert backend format to UI format
+            // Backend serializes: Single(60) → 60, Array([30,60,90]) → [30,60,90]
+            if (profile.target_fps) {
+                if (Array.isArray(profile.target_fps)) {
+                    const max = Math.max(...profile.target_fps);
+                    if (max === 60) fps = "auto_60";
+                    else if (max === 90) fps = "auto_90";
+                    else if (max === 120) fps = "auto_120";
+                    else fps = "";
+                } else {
+                    fps = profile.target_fps.toString();
+                }
+            } else {
+                fps = "";
+            }
             rate = profile.refresh_rate || "";
         }
-    });
+    }
 
     async function save() {
         const socketPath = "/dev/socket/auriya.sock";
