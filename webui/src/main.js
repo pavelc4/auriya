@@ -4,7 +4,7 @@ import './app.css'
 import App from './App.svelte'
 
 localeReady.then(() => {
-  mount(App, {
-    target: document.getElementById('app'),
-  })
+	mount(App, {
+		target: document.getElementById('app'),
+	})
 })
