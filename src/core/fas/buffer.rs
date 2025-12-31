@@ -112,11 +112,14 @@ impl FrameBuffer {
     }
 
     fn try_become_usable(&mut self) {
-        if self.state == BufferState::Unusable && let Some(since) = self.unusable_since
-            && since.elapsed() >= Duration::from_secs(1) && self.frametimes.len() >= 60 {
-                self.state = BufferState::Usable;
-                self.unusable_since = None;
-            }
+        if self.state == BufferState::Unusable
+            && let Some(since) = self.unusable_since
+            && since.elapsed() >= Duration::from_secs(1)
+            && self.frametimes.len() >= 60
+        {
+            self.state = BufferState::Usable;
+            self.unusable_since = None;
+        }
     }
 
     fn detect_target_fps(&mut self) {

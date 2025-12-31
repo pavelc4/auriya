@@ -1,6 +1,6 @@
 [target.aarch64-linux-android]
 ar = "/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ar"
-linker = "/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
+linker = "/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang"
 
 rustflags = [
     "-C",
@@ -23,6 +23,8 @@ rustflags = [
     "embed-bitcode=yes",
     "-C",
     "llvm-args=-enable-machine-outliner",
+    "-C",
+    "llvm-args=-pgo-warn-missing-function",
 ]
 
 [build]

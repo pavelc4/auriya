@@ -37,11 +37,13 @@ pub fn lock_storage_freq() -> Result<()> {
             let name = entry.file_name().to_string_lossy().to_string();
             let path = entry.path();
 
-            if (name.contains("ufshc") || name.starts_with("mmc")) && let Some(max) = get_devfreq_max_freq(&path) {
-                    let _ = fs::write(path.join("min_freq"), &max);
-                    let _ = fs::write(path.join("max_freq"), &max);
-                    debug!("Storage {} locked to {} Hz", name, max);
-                    locked += 1;
+            if (name.contains("ufshc") || name.starts_with("mmc"))
+                && let Some(max) = get_devfreq_max_freq(&path)
+            {
+                let _ = fs::write(path.join("min_freq"), &max);
+                let _ = fs::write(path.join("max_freq"), &max);
+                debug!("Storage {} locked to {} Hz", name, max);
+                locked += 1;
             }
         }
     }
@@ -60,12 +62,15 @@ pub fn unlock_storage_freq() -> Result<()> {
             let name = entry.file_name().to_string_lossy().to_string();
             let path = entry.path();
 
-            if (name.contains("ufshc") || name.starts_with("mmc")) && let (Some(min), Some(max)) = (get_devfreq_min_freq(&path), get_devfreq_max_freq(&path)) {
-                	let _ = fs::write(path.join("min_freq"), &min);
-                    let _ = fs::write(path.join("max_freq"), &max);
-                    debug!("Storage {} unlocked (min={}, max={})", name, min, max);
+            if (name.contains("ufshc") || name.starts_with("mmc"))
+                && let (Some(min), Some(max)) =
+                    (get_devfreq_min_freq(&path), get_devfreq_max_freq(&path))
+            {
+                let _ = fs::write(path.join("min_freq"), &min);
+                let _ = fs::write(path.join("max_freq"), &max);
+                debug!("Storage {} unlocked (min={}, max={})", name, min, max);
 
-                    unlocked += 1;
+                unlocked += 1;
             }
         }
     }

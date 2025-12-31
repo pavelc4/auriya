@@ -29,9 +29,11 @@ impl FrameSource {
     }
 
     pub async fn get_frame_time(&mut self) -> Result<Option<Duration>> {
-        if self.layer_name.is_none() && !self.package.is_empty()
-            && let Ok(Some(layer)) = SurfaceFlinger::find_layer(&self.package).await {
-                self.layer_name = Some(layer);
+        if self.layer_name.is_none()
+            && !self.package.is_empty()
+            && let Ok(Some(layer)) = SurfaceFlinger::find_layer(&self.package).await
+        {
+            self.layer_name = Some(layer);
         }
 
         let Some(layer) = &self.layer_name else {

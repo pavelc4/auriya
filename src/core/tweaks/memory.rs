@@ -258,8 +258,11 @@ pub fn set_swappiness(value: u32) -> Result<()> {
         ])
         .output();
 
-    if let Ok(output) = chmod_write && output.status.success() && let Ok(current) = fs::read_to_string(path)
-        && current.trim() == value.to_string() {
+    if let Ok(output) = chmod_write
+        && output.status.success()
+        && let Ok(current) = fs::read_to_string(path)
+        && current.trim() == value.to_string()
+    {
         debug!("Swappiness set to {} via chmod trick", value);
         return Ok(());
     }
@@ -268,25 +271,33 @@ pub fn set_swappiness(value: u32) -> Result<()> {
         .args(["-w", &format!("vm.swappiness={}", value)])
         .output();
 
-    if let Ok(output) = sysctl_result && output.status.success() && let Ok(current) = fs::read_to_string(path)
-        && current.trim() == value.to_string() {
-            debug!("Swappiness set to {} via sysctl", value);
-            return Ok(());
+    if let Ok(output) = sysctl_result
+        && output.status.success()
+        && let Ok(current) = fs::read_to_string(path)
+        && current.trim() == value.to_string()
+    {
+        debug!("Swappiness set to {} via sysctl", value);
+        return Ok(());
     }
 
+    if fs::write(path, value.to_string()).is_ok()
+        && let Ok(current) = fs::read_to_string(path)
+        && current.trim() == value.to_string()
+    {
+        debug!("Swappiness set to {} via fs::write", value);
+        return Ok(());
+    }
 
+    let resetprop = std::process::Command::new("resetprop")
+        .args(["vm.swappiness", &value.to_string()])
+        .output();
 
-    if fs::write(path, value.to_string()).is_ok() && let Ok(current) = fs::read_to_string(path) && current.trim() == value.to_string() {
-            debug!("Swappiness set to {} via fs::write", value);
-            return Ok(());
-        }
-
-    let resetprop = std::process::Command::new("resetprop").args(["vm.swappiness", &value.to_string()]).output();
-
-    if let Ok(output) = resetprop && output.status.success() {
-            debug!("Swappiness set to {} via resetprop", value);
-            return Ok(());
-        }
+    if let Ok(output) = resetprop
+        && output.status.success()
+    {
+        debug!("Swappiness set to {} via resetprop", value);
+        return Ok(());
+    }
 
     warn!(
         "Could not set swappiness to {} - all methods failed (ROM may block this)",
