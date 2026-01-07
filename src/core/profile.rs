@@ -1,29 +1,9 @@
 use crate::core::tweaks::{
-    cpu, gpu, init, memory, sched, storage,
+    cpu, gpu, init, memory, paths, sched, storage,
     vendor::{detect as soc, mtk, snapdragon},
 };
 use anyhow::Result;
-use std::fs;
-use std::path::Path;
 use std::process::Command;
-
-fn set_governor_direct(governor: &str) {
-    for i in 0..16 {
-        let path = format!("/sys/devices/system/cpu/cpu{}/cpufreq/scaling_governor", i);
-        if Path::new(&path).exists() {
-            let _ = fs::write(&path, governor);
-        }
-    }
-    for i in 0..8 {
-        let path = format!(
-            "/sys/devices/system/cpu/cpufreq/policy{}/scaling_governor",
-            i
-        );
-        if Path::new(&path).exists() {
-            let _ = fs::write(&path, governor);
-        }
-    }
-}
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum ProfileMode {
     Performance,
@@ -67,10 +47,10 @@ pub fn apply_performance_with_config(
         pid
     );
 
-    set_governor_direct(governor);
+    paths::set_governor_cached(governor);
 
     cpu::enable_boost()?;
-    cpu::online_all_cores()?;
+    paths::online_all_cores_cached();
     let soc_type = soc::detect_soc();
     tracing::info!(target: "auriya::profile", "Detected SoC: {}", soc_type);
 
@@ -130,7 +110,7 @@ pub fn apply_performance() -> Result<()> {
 pub fn apply_balance(governor: &str) -> Result<()> {
     tracing::info!(target: "auriya::profile", "Applying BALANCE profile (governor: {})", governor);
 
-    set_governor_direct(governor);
+    paths::set_governor_cached(governor);
 
     cpu::disable_boost()?;
 
@@ -172,7 +152,7 @@ pub fn apply_balance(governor: &str) -> Result<()> {
 pub fn apply_powersave() -> Result<()> {
     tracing::info!(target: "auriya::profile", "Applying POWERSAVE profile");
 
-    set_governor_direct("powersave");
+    paths::set_governor_cached("powersave");
 
     if let Err(e) = memory::apply_powersave_lmk() {
         tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);

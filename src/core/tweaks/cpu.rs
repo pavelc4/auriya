@@ -196,16 +196,6 @@ pub fn set_game_affinity_dynamic(pid: i32, profile: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn online_all_cores() -> Result<()> {
-    for i in 0..8 {
-        let path = format!("/sys/devices/system/cpu/cpu{}/online", i);
-        if Path::new(&path).exists() && i > 0 {
-            let _ = fs::write(&path, "1");
-        }
-    }
-    Ok(())
-}
-
 pub fn set_process_priority(pid: i32) -> Result<()> {
     let result = unsafe { libc::setpriority(libc::PRIO_PROCESS, pid as libc::id_t, -20) };
 
