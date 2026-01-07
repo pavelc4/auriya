@@ -8,7 +8,7 @@ Android daemon for frame-aware scheduling and per-application configuration.
 - [Key Features](#key-features)
 - [Use Cases](#use-cases)
 - [Architecture](#architecture)
-- [Installation](#installation)
+- [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Usage](#usage)
 - [License](#license)
