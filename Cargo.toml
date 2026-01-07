@@ -16,7 +16,7 @@ notify = "8.2.0"
 toml = "0.9.10"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.147"
-tokio = { version = "1.48.0", default-features = false, features = ["rt","net","sync","time","macros","io-util","signal","process",] }
+tokio = { version = "1.49.0", default-features = false, features = ["rt","net","sync","time","macros","io-util","signal","process",] }
 tracing = { version = "0.1.44", default-features = false, features = ["std","attributes",]}
 tracing-subscriber = { version = "0.3.20", default-features = false, features = ["fmt","ansi","env-filter","smallvec",]}
-libc = "0.2.178"
+libc = "0.2.179"

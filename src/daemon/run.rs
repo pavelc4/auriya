@@ -13,7 +13,7 @@ use tracing_subscriber::EnvFilter;
 
 const INGAME_INTERVAL_MS: u64 = 500;
 const NORMAL_INTERVAL_MS: u64 = 5000;
-const SCREEN_OFF_INTERVAL_MS: u64 = 15000;
+const SCREEN_OFF_INTERVAL_MS: u64 = 10000;
 
 pub(crate) fn update_current_profile_file(mode: ProfileMode) {
     let val = match mode {
