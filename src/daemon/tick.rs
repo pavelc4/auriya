@@ -55,7 +55,11 @@ impl Daemon {
     async fn process_tick_logic(&mut self, gamelist: &crate::core::config::GameList) -> Result<()> {
         use crate::core::profile;
 
-        let power = if self.tick_count.is_multiple_of(5) || self.tick_count == 1 {
+        let was_screen_off = !self.last.screen_awake.unwrap_or(true);
+        let should_fetch_power =
+            was_screen_off || self.tick_count.is_multiple_of(5) || self.tick_count == 1;
+
+        let power = if should_fetch_power {
             crate::core::dumpsys::power::PowerState::fetch().await?
         } else {
             crate::core::dumpsys::power::PowerState {
