@@ -2,17 +2,6 @@
 
 Android daemon for frame-aware scheduling and per-application configuration.
 
-## Table of Contents
-
-- [Purpose](#purpose)
-- [Key Features](#key-features)
-- [Use Cases](#use-cases)
-- [Architecture](#architecture)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [License](#license)
-
 ## Purpose
 
 Auriya monitors foreground applications and applies CPU/GPU settings based on a configurable game whitelist. The daemon switches between profiles when games are detected or when screen state changes.
