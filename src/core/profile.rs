@@ -1,29 +1,24 @@
 use crate::core::tweaks::{
-    cpu, gpu, init, memory, sched, storage,
+    cpu, gpu, init, memory, paths, sched, storage,
     vendor::{detect as soc, mtk, snapdragon},
 };
 use anyhow::Result;
-use std::fs;
-use std::path::Path;
 use std::process::Command;
-
-fn set_governor_direct(governor: &str) {
-    for i in 0..16 {
-        let path = format!("/sys/devices/system/cpu/cpu{}/cpufreq/scaling_governor", i);
-        if Path::new(&path).exists() {
-            let _ = fs::write(&path, governor);
-        }
-    }
-    for i in 0..8 {
-        let path = format!(
-            "/sys/devices/system/cpu/cpufreq/policy{}/scaling_governor",
-            i
-        );
-        if Path::new(&path).exists() {
-            let _ = fs::write(&path, governor);
-        }
+#[inline]
+fn warn_on_err<E: std::fmt::Display>(result: Result<(), E>, context: &str) {
+    if let Err(e) = result {
+        tracing::warn!(target: "auriya::profile", "Failed to {}: {}", context, e);
     }
 }
+
+#[inline]
+fn set_notifications(enabled: bool) {
+    let val = if enabled { "1" } else { "0" };
+    let _ = Command::new("settings")
+        .args(["put", "global", "heads_up_notifications_enabled", val])
+        .output();
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum ProfileMode {
     Performance,
@@ -67,10 +62,9 @@ pub fn apply_performance_with_config(
         pid
     );
 
-    set_governor_direct(governor);
-
+    paths::set_governor_cached(governor);
     cpu::enable_boost()?;
-    cpu::online_all_cores()?;
+    paths::online_all_cores_cached();
     let soc_type = soc::detect_soc();
     tracing::info!(target: "auriya::profile", "Detected SoC: {}", soc_type);
 
@@ -81,31 +75,16 @@ pub fn apply_performance_with_config(
         soc::SocType::Snapdragon => {
             let _ = snapdragon::apply_performance();
         }
-        _ => {
-            tracing::debug!(target: "auriya::profile", "No specific performance tweaks for SoC: {}", soc_type);
-        }
+        _ => tracing::debug!(target: "auriya::profile", "No vendor tweaks for: {}", soc_type),
     }
 
     gpu::set_performance_mode()?;
 
-    if let Err(e) = init::apply_general_tweaks() {
-        tracing::warn!(target: "auriya::profile", "Failed to apply general system tweaks: {}", e);
-    }
-
-    if let Err(e) = sched::apply_performance_sched() {
-        tracing::warn!(target: "auriya::profile", "Failed to apply scheduler tweaks: {}", e);
-    }
-
-    if let Err(e) = storage::lock_storage_freq() {
-        tracing::warn!(target: "auriya::profile", "Failed to lock storage freq: {}", e);
-    }
-
-    if let Err(e) = memory::drop_caches() {
-        tracing::warn!(target: "auriya::profile", "Failed to drop caches: {}", e);
-    }
-    if let Err(e) = memory::adjust_for_gaming() {
-        tracing::warn!(target: "auriya::profile", "Failed to apply gaming memory settings: {}", e);
-    }
+    warn_on_err(init::apply_general_tweaks(), "apply general tweaks");
+    warn_on_err(sched::apply_performance_sched(), "apply scheduler tweaks");
+    warn_on_err(storage::lock_storage_freq(), "lock storage freq");
+    warn_on_err(memory::drop_caches(), "drop caches");
+    warn_on_err(memory::adjust_for_gaming(), "apply gaming memory settings");
 
     if let Some(game_pid) = pid {
         cpu::set_game_affinity_dynamic(game_pid, "performance")?;
@@ -113,10 +92,7 @@ pub fn apply_performance_with_config(
     }
 
     if enable_dnd {
-        let _ = Command::new("settings")
-            .args(["put", "global", "heads_up_notifications_enabled", "0"])
-            .output();
-
+        set_notifications(false);
         tracing::info!(target: "auriya::profile", "Gaming mode: notifications silenced");
     }
 
@@ -130,8 +106,7 @@ pub fn apply_performance() -> Result<()> {
 pub fn apply_balance(governor: &str) -> Result<()> {
     tracing::info!(target: "auriya::profile", "Applying BALANCE profile (governor: {})", governor);
 
-    set_governor_direct(governor);
-
+    paths::set_governor_cached(governor);
     cpu::disable_boost()?;
 
     let soc_type = soc::detect_soc();
@@ -146,24 +121,11 @@ pub fn apply_balance(governor: &str) -> Result<()> {
     }
     gpu::set_balanced_mode()?;
 
-    // Restore balanced scheduler settings
-    if let Err(e) = sched::apply_balance_sched() {
-        tracing::warn!(target: "auriya::profile", "Failed to apply balanced scheduler tweaks: {}", e);
-    }
+    warn_on_err(sched::apply_balance_sched(), "apply balanced scheduler");
+    warn_on_err(storage::unlock_storage_freq(), "unlock storage freq");
+    warn_on_err(memory::restore_balanced(), "restore balanced memory");
 
-    // Unlock storage frequency
-    if let Err(e) = storage::unlock_storage_freq() {
-        tracing::warn!(target: "auriya::profile", "Failed to unlock storage freq: {}", e);
-    }
-
-    if let Err(e) = memory::restore_balanced() {
-        tracing::warn!(target: "auriya::profile", "Failed to restore balanced memory settings: {}", e);
-    }
-
-    let _ = Command::new("settings")
-        .args(["put", "global", "heads_up_notifications_enabled", "1"])
-        .output();
-
+    set_notifications(true);
     tracing::info!(target: "auriya::profile", "Normal mode: notifications restored");
 
     Ok(())
@@ -172,15 +134,9 @@ pub fn apply_balance(governor: &str) -> Result<()> {
 pub fn apply_powersave() -> Result<()> {
     tracing::info!(target: "auriya::profile", "Applying POWERSAVE profile");
 
-    set_governor_direct("powersave");
-
-    if let Err(e) = memory::apply_powersave_lmk() {
-        tracing::warn!(target: "auriya::profile", "Failed to apply LMK: {}", e);
-    }
-
-    let _ = Command::new("settings")
-        .args(["put", "global", "heads_up_notifications_enabled", "1"])
-        .output();
+    paths::set_governor_cached("powersave");
+    warn_on_err(memory::apply_powersave_lmk(), "apply LMK");
+    set_notifications(true);
 
     Ok(())
 }

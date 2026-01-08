@@ -18,13 +18,13 @@ fn now_ms() -> u64 {
 }
 
 pub fn enable_boost() -> Result<()> {
-    let boost_paths = [
+    const BOOST_PATHS: &[&str] = &[
         "/sys/module/cpu_boost/parameters/input_boost_enabled",
         "/sys/module/cpu_boost/parameters/sched_boost_on_input",
     ];
 
     let mut found = false;
-    for path in &boost_paths {
+    for path in BOOST_PATHS {
         if Path::new(path).exists() {
             fs::write(path, "1").context(format!("Failed to enable boost at {}", path))?;
             debug!("CPU boost enabled at {}", path);
@@ -40,12 +40,12 @@ pub fn enable_boost() -> Result<()> {
 }
 
 pub fn disable_boost() -> Result<()> {
-    let boost_paths = [
+    const BOOST_PATHS: &[&str] = &[
         "/sys/module/cpu_boost/parameters/input_boost_enabled",
         "/sys/module/cpu_boost/parameters/sched_boost_on_input",
     ];
 
-    for path in &boost_paths {
+    for path in BOOST_PATHS {
         if Path::new(path).exists() {
             let _ = fs::write(path, "0");
         }
@@ -193,16 +193,6 @@ pub fn set_game_affinity_dynamic(pid: i32, profile: &str) -> Result<()> {
         }
     }
 
-    Ok(())
-}
-
-pub fn online_all_cores() -> Result<()> {
-    for i in 0..8 {
-        let path = format!("/sys/devices/system/cpu/cpu{}/online", i);
-        if Path::new(&path).exists() && i > 0 {
-            let _ = fs::write(&path, "1");
-        }
-    }
     Ok(())
 }
 
