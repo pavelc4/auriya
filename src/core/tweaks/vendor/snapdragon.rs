@@ -1,7 +1,73 @@
 use anyhow::Result;
-use std::fs;
-use std::path::Path;
-use tracing::info;
+use std::{fs, path::Path};
+use tracing::{debug, info, warn};
+
+use crate::core::tweaks::paths::snapdragon_paths;
+
+mod perf {
+    pub const GPU_PWRLEVEL: &str = "0";
+    pub const GPU_IDLE_TIMER: &str = "10000";
+    pub const MEMLAT_SAMPLE_MS: &str = "4";
+}
+
+fn apply_gpu_performance() {
+    let Some(kgsl) = &snapdragon_paths().kgsl else {
+        debug!("kgsl path not found, skipping GPU tweaks");
+        return;
+    };
+
+    if fs::write(kgsl.join("min_pwrlevel"), perf::GPU_PWRLEVEL).is_err() {
+        warn!("Failed to set GPU min_pwrlevel");
+    }
+    if fs::write(kgsl.join("max_pwrlevel"), perf::GPU_PWRLEVEL).is_err() {
+        warn!("Failed to set GPU max_pwrlevel");
+    }
+
+    let _ = fs::write(kgsl.join("idle_timer"), perf::GPU_IDLE_TIMER);
+
+    debug!("Applied GPU performance tweaks");
+}
+
+fn apply_gpu_normal() {
+    let paths = snapdragon_paths();
+    let Some(kgsl) = &paths.kgsl else {
+        return;
+    };
+
+    if let Some(ref val) = paths.orig_min_pwrlevel {
+        let _ = fs::write(kgsl.join("min_pwrlevel"), val);
+    }
+    if let Some(ref val) = paths.orig_max_pwrlevel {
+        let _ = fs::write(kgsl.join("max_pwrlevel"), val);
+    }
+    if let Some(ref val) = paths.orig_idle_timer {
+        let _ = fs::write(kgsl.join("idle_timer"), val);
+    }
+
+    debug!("Restored GPU original settings");
+}
+
+fn apply_memlat_performance() {
+    let Some(memlat) = &snapdragon_paths().memlat_settings else {
+        return;
+    };
+
+    let _ = fs::write(memlat.join("sample_ms"), perf::MEMLAT_SAMPLE_MS);
+    debug!("Applied memlat performance tweaks");
+}
+
+fn apply_memlat_normal() {
+    let paths = snapdragon_paths();
+    let Some(memlat) = &paths.memlat_settings else {
+        return;
+    };
+
+    if let Some(ref val) = paths.orig_memlat_sample_ms {
+        let _ = fs::write(memlat.join("sample_ms"), val);
+    }
+
+    debug!("Restored memlat original settings");
+}
 
 pub fn apply_performance() -> Result<()> {
     if let Ok(entries) = fs::read_dir("/sys/class/devfreq") {
@@ -40,6 +106,8 @@ pub fn apply_performance() -> Result<()> {
             let _ = fs::write(path.join("hw_min_freq"), max);
         }
     }
+    apply_gpu_performance();
+    apply_memlat_performance();
 
     info!("Applied Snapdragon performance tweaks");
     Ok(())
@@ -90,6 +158,8 @@ pub fn apply_normal() -> Result<()> {
             }
         }
     }
+    apply_gpu_normal();
+    apply_memlat_normal();
 
     info!("Restored Snapdragon normal tweaks");
     Ok(())
