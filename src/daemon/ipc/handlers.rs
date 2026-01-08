@@ -251,15 +251,14 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 format!("FPS={}\n", fps)
             }
             Ok(Command::GetSupportedRates) => {
-                use std::collections::HashSet;
-                let mut rates: Vec<u32> = h
+                use std::collections::BTreeSet;
+                let rates: Vec<u32> = h
                     .supported_modes
                     .iter()
                     .map(|m| m.fps.round() as u32)
-                    .collect::<HashSet<_>>()
+                    .collect::<BTreeSet<_>>()
                     .into_iter()
                     .collect();
-                rates.sort();
 
                 match serde_json::to_string(&rates) {
                     Ok(json) => format!("{}\n", json),
