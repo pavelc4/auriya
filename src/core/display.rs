@@ -26,12 +26,10 @@ pub async fn get_refresh_rate() -> Result<u32> {
         .output()
         .await?;
 
-    let out_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if let Ok(val) = out_str.parse::<u32>() {
-        Ok(val)
-    } else {
-        Ok(0)
-    }
+    Ok(String::from_utf8_lossy(&output.stdout)
+        .trim()
+        .parse()
+        .unwrap_or(0))
 }
 
 pub async fn reset_refresh_rate() -> Result<()> {
@@ -114,13 +112,12 @@ fn parse_app_supported_modes(input: &str) -> Result<Vec<DisplayMode>> {
             let mut fps = 0.0;
 
             for part in chunk.split(", ") {
-                let kv: Vec<&str> = part.split('=').collect();
-                if kv.len() == 2 {
-                    match kv[0] {
-                        "id" => id = kv[1].parse().unwrap_or_default(),
-                        "width" => width = kv[1].parse().unwrap_or_default(),
-                        "height" => height = kv[1].parse().unwrap_or_default(),
-                        "fps" => fps = kv[1].parse().unwrap_or_default(),
+                if let Some((key, val)) = part.split_once('=') {
+                    match key {
+                        "id" => id = val.parse().unwrap_or_default(),
+                        "width" => width = val.parse().unwrap_or_default(),
+                        "height" => height = val.parse().unwrap_or_default(),
+                        "fps" => fps = val.parse().unwrap_or_default(),
                         _ => {}
                     }
                 }
