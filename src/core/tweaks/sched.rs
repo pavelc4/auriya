@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::fs;
 use std::path::Path;
-use tracing::{debug, info};
+use tracing::debug;
 
 pub fn apply_performance_sched() -> Result<()> {
     let stune_base = "/dev/stune/top-app";
@@ -34,7 +34,7 @@ pub fn apply_performance_sched() -> Result<()> {
         let _ = fs::write(split_lock, "0");
     }
 
-    info!("Performance scheduler tweaks applied");
+    debug!("Performance scheduler tweaks applied");
     Ok(())
 }
 
@@ -59,6 +59,6 @@ pub fn apply_balance_sched() -> Result<()> {
         let _ = fs::write(split_lock, "1");
     }
 
-    info!("Balanced scheduler tweaks applied");
+    debug!("Balanced scheduler tweaks applied");
     Ok(())
 }

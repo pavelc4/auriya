@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::fs;
 use std::path::Path;
-use tracing::{debug, info};
+use tracing::debug;
 
 fn get_devfreq_max_freq(path: &Path) -> Option<String> {
     let avail_path = path.join("available_frequencies");
@@ -49,7 +49,7 @@ pub fn lock_storage_freq() -> Result<()> {
     }
 
     if locked > 0 {
-        info!("Storage frequency locked ({} devices)", locked);
+        debug!("Storage frequency locked ({} devices)", locked);
     }
     Ok(())
 }
@@ -76,7 +76,7 @@ pub fn unlock_storage_freq() -> Result<()> {
     }
 
     if unlocked > 0 {
-        info!("Storage frequency unlocked ({} devices)", unlocked);
+        debug!("Storage frequency unlocked ({} devices)", unlocked);
     }
     Ok(())
 }

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::fs;
 use std::path::Path;
-use tracing::info;
+use tracing::debug;
 
 pub fn fix_mediatek_ppm() {
     let ppm_path = "/proc/ppm/enabled";
@@ -9,7 +9,7 @@ pub fn fix_mediatek_ppm() {
         let _ = fs::write(ppm_path, "0");
         std::thread::sleep(std::time::Duration::from_secs(1));
         let _ = fs::write(ppm_path, "1");
-        info!("Applied MediaTek PPM fix");
+        debug!("Applied MediaTek PPM fix");
     }
 }
 
@@ -51,7 +51,7 @@ pub fn apply_performance() -> Result<()> {
     // Eara Thermal
     let _ = fs::write("/sys/kernel/eara_thermal/enable", "0");
 
-    info!("Applied MediaTek performance tweaks");
+    debug!("Applied MediaTek performance tweaks");
     Ok(())
 }
 
@@ -90,6 +90,6 @@ pub fn apply_normal() -> Result<()> {
     // Eara Thermal
     let _ = fs::write("/sys/kernel/eara_thermal/enable", "1");
 
-    info!("Restored MediaTek normal tweaks");
+    debug!("Restored MediaTek normal tweaks");
     Ok(())
 }

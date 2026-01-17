@@ -87,7 +87,7 @@ impl Daemon {
         }
 
         if power_changed {
-            info!(target: "auriya::daemon", "Screen ON & saver OFF");
+            debug!(target: "auriya::daemon", "Screen ON & saver OFF");
             self.last.screen_awake = Some(power.screen_awake);
             self.last.battery_saver = Some(power.battery_saver);
         }
@@ -173,7 +173,7 @@ impl Daemon {
                     && let Some(last_pkg) = &self.last.pkg
                     && let Some(original_rate) = self.refresh_rate_map.remove(last_pkg)
                 {
-                    info!(target: "auriya::display", "Restoring refresh rate for {}: {}Hz", last_pkg, original_rate);
+                    debug!(target: "auriya::display", "Restoring refresh rate for {}: {}Hz", last_pkg, original_rate);
                     if let Err(e) = crate::core::display::set_refresh_rate(original_rate).await {
                         error!(target: "auriya::display", ?e, "Failed to restore refresh rate");
                     }
@@ -259,7 +259,7 @@ impl Daemon {
             && let Some(last_pkg) = &self.last.pkg
             && let Some(original_rate) = self.refresh_rate_map.remove(last_pkg)
         {
-            info!(target: "auriya::display", "Restoring refresh rate for {}: {}Hz ({})", last_pkg, original_rate, reason);
+            debug!(target: "auriya::display", "Restoring refresh rate for {}: {}Hz ({})", last_pkg, original_rate, reason);
             let _ = crate::core::display::set_refresh_rate(original_rate).await;
         }
 
