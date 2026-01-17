@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 #[derive(Debug, Clone)]
 pub struct LmkConfig {
@@ -36,11 +36,11 @@ pub fn should_apply_lmk(total_ram_mb: u64) -> bool {
             true
         }
         8193..=12288 => {
-            info!("High RAM device ({}MB), LMK: BORDERLINE", total_ram_mb);
+            debug!("High RAM device ({}MB), LMK: BORDERLINE", total_ram_mb);
             false
         }
         _ => {
-            info!(
+            debug!(
                 "Very high RAM device ({}MB), LMK: NO (LMKD sufficient)",
                 total_ram_mb
             );
@@ -71,7 +71,7 @@ pub fn calculate_lmk_for_ram(total_ram_mb: u64, profile: &str) -> LmkConfig {
         foreground, visible, secondary, hidden, content, empty
     );
 
-    info!(
+    debug!(
         "Calculated {} LMK for {}MB RAM (total_pages: {})",
         profile, total_ram_mb, total_pages
     );
@@ -130,7 +130,7 @@ pub fn apply_lmk(config: &LmkConfig) -> Result<()> {
         };
 
         if minfree_ok {
-            info!(
+            debug!(
                 "Set LMK minfree: {} -> {}",
                 current_minfree.unwrap_or_else(|| "unknown".to_string()),
                 config.minfree
@@ -170,15 +170,15 @@ pub fn adjust_for_gaming() -> Result<()> {
     let total_ram = get_total_ram_mb().unwrap_or(4096);
 
     if !should_apply_lmk(total_ram) {
-        info!("Skipping LMK for {}MB RAM", total_ram);
+        debug!("Skipping LMK for {}MB RAM", total_ram);
         return Ok(());
     }
 
-    info!("Applying gaming LMK profile for {}MB RAM", total_ram);
+    debug!("Applying gaming LMK profile for {}MB RAM", total_ram);
     let config = calculate_lmk_for_ram(total_ram, "gaming");
 
     match apply_lmk(&config) {
-        Ok(_) => info!("Gaming LMK applied successfully"),
+        Ok(_) => debug!("Gaming LMK applied successfully"),
         Err(e) => warn!("Failed to apply gaming LMK: {}", e),
     }
 
@@ -203,11 +203,11 @@ pub fn restore_balanced() -> Result<()> {
         return Ok(());
     }
 
-    info!("Applying balanced LMK profile for {}MB RAM", total_ram);
+    debug!("Applying balanced LMK profile for {}MB RAM", total_ram);
     let config = calculate_lmk_for_ram(total_ram, "balanced");
 
     match apply_lmk(&config) {
-        Ok(_) => info!("Balanced LMK applied successfully"),
+        Ok(_) => debug!("Balanced LMK applied successfully"),
         Err(e) => warn!("Failed to apply balanced LMK: {}", e),
     }
 
@@ -231,11 +231,11 @@ pub fn apply_powersave_lmk() -> Result<()> {
         return Ok(());
     }
 
-    info!("Applying powersave LMK profile for {}MB RAM", total_ram);
+    debug!("Applying powersave LMK profile for {}MB RAM", total_ram);
     let config = calculate_lmk_for_ram(total_ram, "powersave");
 
     match apply_lmk(&config) {
-        Ok(_) => info!("Powersave LMK applied successfully"),
+        Ok(_) => debug!("Powersave LMK applied successfully"),
         Err(e) => warn!("Failed to apply powersave LMK: {}", e),
     }
 
@@ -308,6 +308,6 @@ pub fn set_swappiness(value: u32) -> Result<()> {
 
 pub fn drop_caches() -> Result<()> {
     fs::write("/proc/sys/vm/drop_caches", "3").context("Failed to drop caches")?;
-    info!("Kernel caches and buffers dropped");
+    debug!("Kernel caches and buffers dropped");
     Ok(())
 }

@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GpuVendor {
@@ -32,7 +32,7 @@ pub fn set_performance_mode() -> Result<()> {
         }
     }
 
-    info!("GPU performance mode enabled");
+    debug!("GPU performance mode enabled");
     Ok(())
 }
 
@@ -93,6 +93,6 @@ pub fn set_balanced_mode() -> Result<()> {
         }
     }
 
-    info!("GPU set to balanced mode");
+    debug!("GPU set to balanced mode");
     Ok(())
 }

@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::{fs, path::Path};
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 use crate::core::tweaks::paths::snapdragon_paths;
 
@@ -109,7 +109,7 @@ pub fn apply_performance() -> Result<()> {
     apply_gpu_performance();
     apply_memlat_performance();
 
-    info!("Applied Snapdragon performance tweaks");
+    debug!("Applied Snapdragon performance tweaks");
     Ok(())
 }
 
@@ -161,6 +161,6 @@ pub fn apply_normal() -> Result<()> {
     apply_gpu_normal();
     apply_memlat_normal();
 
-    info!("Restored Snapdragon normal tweaks");
+    debug!("Restored Snapdragon normal tweaks");
     Ok(())
 }

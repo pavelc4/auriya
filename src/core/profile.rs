@@ -4,6 +4,7 @@ use crate::core::tweaks::{
 };
 use anyhow::Result;
 use std::process::Command;
+use tracing::debug;
 #[inline]
 fn warn_on_err<E: std::fmt::Display>(result: Result<(), E>, context: &str) {
     if let Err(e) = result {
@@ -54,7 +55,7 @@ pub fn apply_performance_with_config(
     enable_dnd: bool,
     pid: Option<i32>,
 ) -> Result<()> {
-    tracing::info!(
+    debug!(
         target: "auriya::profile",
         "Applying PERFORMANCE profile (governor: {}, suppress_notifs: {}, pid: {:?})",
         governor,
@@ -66,7 +67,7 @@ pub fn apply_performance_with_config(
     cpu::enable_boost()?;
     paths::online_all_cores_cached();
     let soc_type = soc::detect_soc();
-    tracing::info!(target: "auriya::profile", "Detected SoC: {}", soc_type);
+    debug!(target: "auriya::profile", "Detected SoC: {}", soc_type);
 
     match soc_type {
         soc::SocType::MediaTek => {
@@ -93,7 +94,7 @@ pub fn apply_performance_with_config(
 
     if enable_dnd {
         set_notifications(false);
-        tracing::info!(target: "auriya::profile", "Gaming mode: notifications silenced");
+        debug!(target: "auriya::profile", "Gaming mode: notifications silenced");
     }
 
     Ok(())
@@ -104,7 +105,7 @@ pub fn apply_performance() -> Result<()> {
 }
 
 pub fn apply_balance(governor: &str) -> Result<()> {
-    tracing::info!(target: "auriya::profile", "Applying BALANCE profile (governor: {})", governor);
+    debug!(target: "auriya::profile", "Applying BALANCE profile (governor: {})", governor);
 
     paths::set_governor_cached(governor);
     cpu::disable_boost()?;
@@ -126,13 +127,13 @@ pub fn apply_balance(governor: &str) -> Result<()> {
     warn_on_err(memory::restore_balanced(), "restore balanced memory");
 
     set_notifications(true);
-    tracing::info!(target: "auriya::profile", "Normal mode: notifications restored");
+    debug!(target: "auriya::profile", "Normal mode: notifications restored");
 
     Ok(())
 }
 
 pub fn apply_powersave() -> Result<()> {
-    tracing::info!(target: "auriya::profile", "Applying POWERSAVE profile");
+    debug!(target: "auriya::profile", "Applying POWERSAVE profile");
 
     paths::set_governor_cached("powersave");
     warn_on_err(memory::apply_powersave_lmk(), "apply LMK");
