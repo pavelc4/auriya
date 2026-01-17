@@ -18,7 +18,7 @@ pub struct FasController {
 impl FasController {
     pub fn new(target_fps_config: TargetFps) -> Self {
         let source = FrameSource::new();
-        tracing::info!(target: "auriya::fas", "FAS Controller initialized");
+        tracing::debug!(target: "auriya::fas", "FAS Controller initialized");
 
         Self {
             source,
@@ -36,7 +36,7 @@ impl FasController {
 
     pub fn set_package(&mut self, package: String, pid: Option<i32>) {
         if self.package != package {
-            tracing::info!(target: "auriya::fas", "Switching to package: {}", package);
+            tracing::debug!(target: "auriya::fas", "Switching to package: {}", package);
             self.package = package;
             self.pid = pid;
             self.buffer.clear();
@@ -44,7 +44,7 @@ impl FasController {
     }
 
     pub fn set_target_fps(&mut self, fps: u32) {
-        tracing::info!(target: "auriya::fas", "Target FPS set to {}", fps);
+        tracing::debug!(target: "auriya::fas", "Target FPS set to {}", fps);
         self.buffer = FrameBuffer::new(TargetFps::Single(fps));
     }
 

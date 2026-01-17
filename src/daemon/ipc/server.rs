@@ -28,7 +28,7 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
     let _ = std::fs::remove_file(path_ref);
     let listener = UnixListener::bind(path_ref)?;
     let _ = std::fs::set_permissions(path_ref, std::fs::Permissions::from_mode(0o666));
-    tracing::info!(target: "auriya::daemon", "IPC listening at {:?}", path_ref);
+    tracing::debug!(target: "auriya::daemon", "IPC listening at {:?}", path_ref);
 
     loop {
         let (stream, _) = listener.accept().await?;

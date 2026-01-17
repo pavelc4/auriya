@@ -5,7 +5,7 @@ use crate::daemon::run::{
 };
 use anyhow::Result;
 use std::sync::Arc;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, warn};
 
 impl Daemon {
     pub async fn tick(&mut self) {
@@ -77,7 +77,7 @@ impl Daemon {
                 if let Err(e) = profile::apply_powersave() {
                     error!(target: "auriya::profile", ?e, "Failed to apply POWERSAVE");
                 } else {
-                    info!(target: "auriya::daemon", "Applied POWERSAVE (screen: {}, saver: {})", power.screen_awake, power.battery_saver);
+                    debug!(target: "auriya::daemon", "Applied POWERSAVE (screen: {}, saver: {})", power.screen_awake, power.battery_saver);
                     self.last.profile_mode = Some(target);
                 }
             }
@@ -166,7 +166,7 @@ impl Daemon {
             Some(pid) => {
                 let changed = self.last.pkg.as_deref() != Some(pkg) || self.last.pid != Some(pid);
                 if changed && should_log_change(&self.last, &self.cfg) {
-                    info!(target: "auriya::daemon", "Foreground {} PID={}", pkg, pid);
+                    debug!(target: "auriya::daemon", "Foreground {} PID={}", pkg, pid);
                     bump_log(&mut self.last);
                 }
                 if self.last.pkg.as_deref() != Some(pkg)
@@ -210,7 +210,7 @@ impl Daemon {
                     if let Err(e) = res {
                         error!(target: "auriya::profile", ?e, "Failed to apply {:?}", target_mode);
                     } else {
-                        info!(target: "auriya::daemon", "Applied {:?} for {} (governor: {}, dnd: {})", target_mode, pkg, governor, enable_dnd);
+                        debug!(target: "auriya::daemon", "Applied {:?} for {} (governor: {}, dnd: {})", target_mode, pkg, governor, enable_dnd);
                         self.last.profile_mode = Some(target_mode);
                     }
                 }
@@ -273,16 +273,13 @@ impl Daemon {
             if let Err(e) = res {
                 error!(target: "auriya::profile", ?e, "Failed to apply {:?}", self.default_mode);
             } else {
-                info!(target: "auriya::daemon", "Applied {:?} ({})", self.default_mode, reason);
+                debug!(target: "auriya::daemon", "Applied {:?} ({})", self.default_mode, reason);
                 self.last.profile_mode = Some(self.default_mode);
             }
         }
 
-        if (self.last.pkg.as_deref() != Some(pkg) || self.last.pid.is_some())
-            && should_log_change(&self.last, &self.cfg)
-        {
-            info!(target: "auriya::daemon", "Foreground {} ({})", pkg, reason);
-            bump_log(&mut self.last);
+        if self.last.pkg.as_deref() != Some(pkg) {
+            debug!(target: "auriya::daemon", "Foreground: {} ({})", pkg, reason);
         }
 
         self.last.pkg = Some(pkg.to_string());
@@ -303,14 +300,14 @@ impl Daemon {
             if let Err(e) = res {
                 error!(target: "auriya::profile", ?e, "Failed to apply {:?}", self.default_mode);
             } else {
-                info!(target: "auriya::daemon", "Applied {:?} (no foreground)", self.default_mode);
+                debug!(target: "auriya::daemon", "Applied {:?} (no foreground)", self.default_mode);
                 self.last.profile_mode = Some(self.default_mode);
             }
         }
 
         if self.last.pkg.is_some() || self.last.pid.is_some() {
             if should_log_change(&self.last, &self.cfg) {
-                info!(target: "auriya::daemon", "No foreground app detected");
+                debug!(target: "auriya::daemon", "No foreground app detected");
                 bump_log(&mut self.last);
             }
             self.last.pkg = None;
@@ -339,7 +336,7 @@ impl Daemon {
         match action {
             ScalingAction::Boost => {
                 if self.last.profile_mode != Some(ProfileMode::Performance) {
-                    info!(target: "auriya::fas", "FAS decision: BOOST → applying PERFORMANCE");
+                    debug!(target: "auriya::fas", "FAS decision: BOOST → applying PERFORMANCE");
                     profile::apply_performance_with_config(game_governor, true, None)?;
                     self.last.profile_mode = Some(ProfileMode::Performance);
                 } else {
@@ -362,7 +359,7 @@ impl Daemon {
                     if let Err(e) = res {
                         error!(target: "auriya::fas", ?e, "FAS decision: REDUCE → failed to apply {:?}", self.default_mode);
                     } else {
-                        info!(target: "auriya::fas", "FAS decision: REDUCE → applying {:?}", self.default_mode);
+                        debug!(target: "auriya::fas", "FAS decision: REDUCE → applying {:?}", self.default_mode);
                         self.last.profile_mode = Some(self.default_mode);
                     }
                 } else {

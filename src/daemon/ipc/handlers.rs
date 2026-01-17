@@ -4,7 +4,7 @@ use anyhow::Result;
 use std::sync::atomic::Ordering;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::UnixStream;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 const HELP: &str = "CMDS:
         - HELP | ?
@@ -108,7 +108,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 }
 
                 if cmd.spawn().is_ok() {
-                    info!(target: "auriya::ipc", "Restart spawned, daemon exiting");
+                    debug!(target: "auriya::ipc", "Restart spawned, daemon exiting");
                     std::thread::spawn(|| {
                         std::thread::sleep(std::time::Duration::from_millis(500));
                         std::process::exit(0);
@@ -188,7 +188,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
             }
             Ok(Command::ListPackages) => {
                 use tokio::process::Command as TokioCommand;
-                info!(target: "auriya::ipc", "Executing ListPackages...");
+                debug!(target: "auriya::ipc", "Executing ListPackages...");
                 match TokioCommand::new("pm")
                     .arg("list")
                     .arg("packages")
@@ -197,7 +197,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 {
                     Ok(output) => {
                         let stdout = String::from_utf8_lossy(&output.stdout);
-                        info!(target: "auriya::ipc", "ListPackages success, len: {}", stdout.len());
+                        debug!(target: "auriya::ipc", "ListPackages success, len: {}", stdout.len());
                         format!("{}\n", stdout)
                     }
                     Err(e) => {
