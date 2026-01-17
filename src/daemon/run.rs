@@ -106,15 +106,15 @@ impl Daemon {
             .default_mode
             .parse::<ProfileMode>()
             .unwrap_or(ProfileMode::Balance);
-        info!(target: "auriya::daemon", "Default mode: {:?}", default_mode);
+        debug!(target: "auriya::daemon", "Default mode: {:?}", default_mode);
 
         let fas_controller = if cfg.settings.fas.enabled {
-            info!(target: "auriya::daemon", "FAS enabled");
+            debug!(target: "auriya::daemon", "FAS enabled");
             Some(Arc::new(tokio::sync::Mutex::new(
                 crate::daemon::fas::FasController::with_target_fps(60), // Default 60, per-game overrides
             )))
         } else {
-            info!(target: "auriya::daemon", "FAS disabled");
+            debug!(target: "auriya::daemon", "FAS disabled");
             None
         };
 
@@ -163,10 +163,10 @@ impl Daemon {
             Ok(new_settings) => {
                 if self.balance_governor != new_settings.cpu.default_governor {
                     self.balance_governor = new_settings.cpu.default_governor.clone();
-                    info!(target: "auriya::daemon", "Settings reloaded. New default governor: {}", self.balance_governor);
+                    debug!(target: "auriya::daemon", "Settings reloaded. New default governor: {}", self.balance_governor);
 
                     if self.last.profile_mode == Some(ProfileMode::Balance) {
-                        info!(target: "auriya::daemon", "Applying new default governor immediately...");
+                        debug!(target: "auriya::daemon", "Applying new default governor immediately...");
                         if let Err(e) = crate::core::profile::apply_balance(&self.balance_governor)
                         {
                             error!(target: "auriya::profile", ?e, "Failed to apply new balance governor");
@@ -181,7 +181,7 @@ impl Daemon {
                     .unwrap_or(ProfileMode::Balance);
 
                 if self.default_mode != new_default_mode {
-                    info!(target: "auriya::daemon", "Settings reloaded. New default mode: {:?} → {:?}", self.default_mode, new_default_mode);
+                    debug!(target: "auriya::daemon", "Settings reloaded. New default mode: {:?} → {:?}", self.default_mode, new_default_mode);
                     self.default_mode = new_default_mode;
                 }
             }
@@ -196,7 +196,7 @@ impl Daemon {
             self.cached_whitelist = gl.game.iter().map(|g| g.package.clone()).collect();
             self.last.pkg = None;
             self.last.pid = None;
-            info!(target: "auriya::daemon", "Whitelist cache rebuilt: {} packages (forcing re-detect)", self.cached_whitelist.len());
+            debug!(target: "auriya::daemon", "Whitelist cache rebuilt: {} packages (forcing re-detect)", self.cached_whitelist.len());
         }
     }
 
@@ -250,7 +250,7 @@ impl Daemon {
                 *l = lvl;
             }
             match handle.reload(EnvFilter::new(filter_str)) {
-                Ok(_) => info!(target: "auriya::ipc", "Log level changed to {:?}", lvl),
+                Ok(_) => debug!(target: "auriya::ipc", "Log level changed to {:?}", lvl),
                 Err(e) => {
                     error!(target: "auriya::ipc", "Failed to change log level: {}", e)
                 }
@@ -275,7 +275,7 @@ impl Daemon {
         };
 
         tokio::spawn(async move {
-            info!(target: "auriya::daemon", "Starting IPC socket listener...");
+            debug!(target: "auriya::daemon", "Starting IPC socket listener...");
             match crate::daemon::ipc::start("/dev/socket/auriya.sock", ipc_handles).await {
                 Ok(_) => info!(target: "auriya::daemon", "IPC listener stopped gracefully"),
                 Err(e) => error!(target: "auriya::daemon", "IPC error: {:?}", e),
@@ -289,11 +289,9 @@ pub async fn run_with_config_and_logger(cfg: &DaemonConfig, reload: ReloadHandle
 }
 
 pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) -> Result<()> {
-    info!(target: "auriya::daemon", "Starting Auriya daemon...");
-
     let supported_modes = match crate::core::display::get_app_supported_modes().await {
         Ok(modes) => {
-            info!(target: "auriya::daemon", "Cached {} supported display modes", modes.len());
+            debug!(target: "auriya::daemon", "Cached {} supported display modes", modes.len());
             modes
         }
         Err(e) => {
@@ -307,11 +305,11 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     daemon.init_ipc(filter_handle).await;
 
     tokio::time::sleep(time::Duration::from_millis(200)).await;
-    info!(target: "auriya::daemon", "IPC socket should be ready at /dev/socket/auriya.sock");
+    debug!(target: "auriya::daemon", "IPC socket ready at /dev/socket/auriya.sock");
 
     let mut watch_rx = crate::daemon::watcher::start_config_watcher(daemon.shared_gamelist.clone());
 
-    info!(target: "auriya::daemon", "Tick loop started (adaptive: {}ms idle, {}ms gaming)", NORMAL_INTERVAL_MS, INGAME_INTERVAL_MS);
+    debug!(target: "auriya::daemon", "Tick loop started (adaptive: {}ms idle, {}ms gaming)", NORMAL_INTERVAL_MS, INGAME_INTERVAL_MS);
 
     daemon.tick().await;
 

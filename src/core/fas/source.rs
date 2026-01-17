@@ -9,7 +9,7 @@ pub struct FrameSource {
 
 impl FrameSource {
     pub fn new() -> Self {
-        tracing::info!(target: "auriya::fas", "Using dumpsys SurfaceFlinger");
+        tracing::debug!(target: "auriya::fas", "Using dumpsys SurfaceFlinger");
         Self {
             package: String::new(),
             layer_name: None,

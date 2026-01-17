@@ -2,7 +2,7 @@ use crate::core::config::{GameList, gamelist_path, settings_path};
 use notify::{EventKind, RecursiveMode, Watcher};
 use std::sync::{Arc, RwLock};
 use tokio::sync::mpsc;
-use tracing::{error, info, warn};
+use tracing::{debug, error, warn};
 
 pub fn start_config_watcher(shared_gamelist: Arc<RwLock<GameList>>) -> mpsc::Receiver<String> {
     let (watch_tx, watch_rx) = mpsc::channel::<String>(10);
@@ -30,7 +30,7 @@ pub fn start_config_watcher(shared_gamelist: Arc<RwLock<GameList>>) -> mpsc::Rec
                         return;
                     }
 
-                    info!(target: "auriya::daemon", "Gamelist file changed, reloading...");
+                    debug!(target: "auriya::daemon", "Gamelist file changed, reloading...");
                     let max_retries = 3;
                     let mut retry_count = 0;
                     let mut success = false;
@@ -41,7 +41,7 @@ pub fn start_config_watcher(shared_gamelist: Arc<RwLock<GameList>>) -> mpsc::Rec
                                 Ok(mut g) => {
                                     let count = new_cfg.game.len();
                                     *g = new_cfg;
-                                    info!(target: "auriya::daemon", "Gamelist reloaded: {} games", count);
+                                    debug!(target: "auriya::daemon", "Gamelist reloaded: {} games", count);
                                     success = true;
                                 }
                                 Err(_) => {
@@ -80,7 +80,7 @@ pub fn start_config_watcher(shared_gamelist: Arc<RwLock<GameList>>) -> mpsc::Rec
             return;
         }
 
-        info!(target: "auriya::daemon", "Config file watchers started");
+        debug!(target: "auriya::daemon", "Config file watchers started");
         loop {
             std::thread::sleep(std::time::Duration::from_secs(3600));
         }

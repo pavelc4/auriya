@@ -8,6 +8,9 @@ mod daemon;
 async fn main() -> Result<()> {
     let base_filter = EnvFilter::new("info");
     let (filter_layer, filter_handle) = reload::Layer::new(base_filter);
+    let timer = tracing_subscriber::fmt::time::UtcTime::new(
+        time::format_description::parse("[hour]:[minute]:[second]").unwrap(),
+    );
 
     tracing_subscriber::registry()
         .with(filter_layer)
@@ -15,17 +18,19 @@ async fn main() -> Result<()> {
             fmt::layer()
                 .with_ansi(false)
                 .with_target(false)
+                .with_level(false)
+                .with_timer(timer)
                 .with_writer(std::io::stderr),
         )
         .init();
 
-    tracing::info!("Auriya daemon v{} starting", env!("CARGO_PKG_VERSION"));
     let (settings, gamelist) = core::config::load_all()?;
 
     tracing::info!(
-        "Config loaded: CPU={}, FAS={}, Games={}",
+        "Auriya v{} started (CPU={}, FAS={}, games={})",
+        env!("CARGO_PKG_VERSION"),
         settings.cpu.default_governor,
-        settings.fas.enabled,
+        if settings.fas.enabled { "on" } else { "off" },
         gamelist.game.len()
     );
 
