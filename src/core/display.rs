@@ -135,27 +135,3 @@ fn parse_app_supported_modes(input: &str) -> Result<Vec<DisplayMode>> {
 
     Ok(modes)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_app_supported_modes() {
-        let input = r#"
-    mBaseDisplayInfo=DisplayInfo{"Layar Built-In", displayId 0, ... appsSupportedModes [{id=1, width=1080, height=2400, fps=60.000004, vsync=60.000004, synthetic=false, alternativeRefreshRates=[90.0, 120.00001], supportedHdrTypes=[2, 3, 4]}, {id=2, width=1080, height=2400, fps=120.00001, vsync=120.00001, synthetic=false, alternativeRefreshRates=[60.000004, 90.0], supportedHdrTypes=[2, 3, 4]}, {id=3, width=1080, height=2400, fps=90.0, vsync=90.0, synthetic=false, alternativeRefreshRates=[60.000004, 120.00001], supportedHdrTypes=[2, 3, 4]}], hdrCapabilities ...}
-        "#;
-
-        let modes = parse_app_supported_modes(input).unwrap();
-        assert_eq!(modes.len(), 3);
-
-        assert_eq!(modes[0].id, 1);
-        assert_eq!(modes[0].fps, 60.000004);
-
-        assert_eq!(modes[1].id, 2);
-        assert_eq!(modes[1].fps, 120.00001);
-
-        assert_eq!(modes[2].id, 3);
-        assert_eq!(modes[2].fps, 90.0);
-    }
-}

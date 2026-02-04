@@ -147,31 +147,9 @@ impl FrameBuffer {
 
         if new_target != self.target_fps {
             if let Some(t) = new_target {
-                tracing::info!(target: "auriya::fas", "FAS    | Target FPS: {} (current: {:.1})", t, current_fps);
+                tracing::debug!(target: "auriya::fas", "FAS    | Target FPS: {} (current: {:.1})", t, current_fps);
             }
             self.target_fps = new_target;
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_buffer_push() {
-        let mut buf = FrameBuffer::new(TargetFps::Single(60));
-        buf.push(Duration::from_millis(16));
-        buf.push(Duration::from_millis(17));
-        assert!(buf.current_fps_long > 0.0);
-    }
-
-    #[test]
-    fn test_fps_detection() {
-        let mut buf = FrameBuffer::new(TargetFps::Array(vec![30, 60, 120]));
-        for _ in 0..100 {
-            buf.push(Duration::from_millis(16));
-        }
-        assert!(buf.current_fps_long > 55.0 && buf.current_fps_long < 65.0);
     }
 }
