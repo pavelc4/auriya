@@ -2,10 +2,14 @@ use anyhow::{Context, Result};
 use std::path::Path;
 
 const FPS_SYSFS_PATHS: &[&str] = &[
-    "/sys/class/drm/card0/sde-crtc-0/measured_fps", // Snapdragon (common)
-    "/sys/class/drm/card0/sde_crtc_fps",            // Snapdragon (variant)
-    "/sys/class/graphics/fb0/measured_fps",         // Some Exynos/MTK
-    "/sys/class/graphics/fb0/fps",                  // Older devices
+    "/sys/class/drm/sde-crtc-0/measured_fps",
+    "/sys/class/drm/card0/sde-crtc-0/measured_fps",
+    "/sys/class/drm/card0/sde_crtc_fps",
+    "/sys/class/drm/card0/fbc/fps",
+    "/sys/class/graphics/fb0/measured_fps",
+    "/sys/class/graphics/fb0/fps",
+    "/sys/kernel/debug/mali/fps",
+    "/sys/class/misc/mali0/device/fps",
 ];
 
 pub fn detect_fps_path() -> Option<String> {
@@ -59,8 +63,13 @@ pub fn read_sysfs_fps(path: &str) -> Result<f32> {
 fn parse_sysfs_fps(content: &str) -> Result<f32> {
     let trimmed = content.trim();
     if trimmed.starts_with("fps:")
-        && let Some(fps_str) = trimmed.split_whitespace().nth(1) {
-            return fps_str.parse::<f32>().with_context(|| format!("Invalid FPS value: {}", fps_str));
+        && let Some(fps_str) = trimmed.split_whitespace().nth(1)
+    {
+        return fps_str
+            .parse::<f32>()
+            .with_context(|| format!("Invalid FPS value: {}", fps_str));
     }
-    trimmed.parse::<f32>().with_context(|| format!("Invalid FPS format: {}", trimmed))
+    trimmed
+        .parse::<f32>()
+        .with_context(|| format!("Invalid FPS format: {}", trimmed))
 }
