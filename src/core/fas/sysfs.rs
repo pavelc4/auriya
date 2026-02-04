@@ -19,10 +19,10 @@ pub fn detect_fps_path() -> Option<String> {
         if path_obj.exists() {
             match std::fs::read_to_string(path) {
                 Ok(content) if !content.trim().is_empty() => {
-                    tracing::info!(
-                        target: "auriya::fas","Detected sysfs FPS path: {} (content: {})",
-                        path,
-                        content.trim().chars().take(50).collect::<String>()
+                    tracing::debug!(
+                        target: "auriya::fas",
+                        "FAS    | Detected sysfs: {}",
+                        path
                     );
                     return Some(path.to_string());
                 }
@@ -45,9 +45,9 @@ pub fn detect_fps_path() -> Option<String> {
         }
     }
 
-    tracing::warn!(
+    tracing::debug!(
         target: "auriya::fas",
-        "No sysfs FPS path detected, will use dumpsys fallback"
+        "FAS    | No sysfs path found"
     );
     None
 }

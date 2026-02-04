@@ -18,13 +18,13 @@ impl FrameSource {
         if use_sysfs {
             tracing::info!(
                 target: "auriya::fas",
-                "FPS source: sysfs (fast) - path: {}",
+                "FAS    | Using sysfs (fast): {}",
                 sysfs_path.as_ref().unwrap()
             );
         } else {
             tracing::info!(
                 target: "auriya::fas",
-                "FPS source: dumpsys SurfaceFlinger (fallback)"
+                "FAS    | Using dumpsys SurfaceFlinger (fallback)"
             );
         }
 
@@ -49,32 +49,34 @@ impl FrameSource {
     }
 
     pub async fn get_frame_time(&mut self) -> Result<Option<Duration>> {
-        if self.use_sysfs && let Some(ref path) = self.sysfs_path {
-                match sysfs::read_sysfs_fps(path) {
-                    Ok(fps) if fps > 0.0 => {
-                        tracing::debug!(
-                            target: "auriya::fas",
-                            "FPS: {:.1} (source: sysfs kernel - fast path)",
-                            fps
-                        );
-                        return Ok(Some(Duration::from_secs_f32(1.0 / fps)));
-                    }
-                    Ok(fps) => {
-                        tracing::debug!(
-                            target: "auriya::fas",
-                            "sysfs returned invalid FPS: {}, trying fallback",
-                            fps
-                        );
-                    }
-                    Err(e) => {
-                        tracing::warn!(
-                            target: "auriya::fas",
-                            "sysfs read error ({}), switching to dumpsys permanently",
-                            e
-                        );
-                        self.use_sysfs = false;
-                    }
-              }
+        if self.use_sysfs
+            && let Some(ref path) = self.sysfs_path
+        {
+            match sysfs::read_sysfs_fps(path) {
+                Ok(fps) if fps > 0.0 => {
+                    tracing::debug!(
+                        target: "auriya::fas",
+                        "FPS: {:.1} (source: sysfs kernel - fast path)",
+                        fps
+                    );
+                    return Ok(Some(Duration::from_secs_f32(1.0 / fps)));
+                }
+                Ok(fps) => {
+                    tracing::debug!(
+                        target: "auriya::fas",
+                        "sysfs returned invalid FPS: {}, trying fallback",
+                        fps
+                    );
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        target: "auriya::fas",
+                        "sysfs read error ({}), switching to dumpsys permanently",
+                        e
+                    );
+                    self.use_sysfs = false;
+                }
+            }
         }
         tracing::debug!(
             target: "auriya::fas",

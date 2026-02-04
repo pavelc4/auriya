@@ -147,7 +147,7 @@ impl FrameBuffer {
 
         if new_target != self.target_fps {
             if let Some(t) = new_target {
-                tracing::info!(target: "auriya::fas", "Target FPS detected: {} (current: {:.1})", t, current_fps);
+                tracing::info!(target: "auriya::fas", "FAS    | Target FPS: {} (current: {:.1})", t, current_fps);
             }
             self.target_fps = new_target;
         }

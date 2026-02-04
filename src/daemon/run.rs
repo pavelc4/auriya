@@ -42,11 +42,10 @@ pub(crate) fn now_ms() -> u128 {
 
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .unwrap_or_else(|e| {
+        .unwrap_or_else(|_e| {
             tracing::warn!(
                 target: "auriya::daemon",
-                "System clock error: {}. Using fallback timestamp.",
-                e
+                "Daemon | System clock error (using fallback)"
             );
             Duration::from_secs(0)
         })
@@ -277,8 +276,8 @@ impl Daemon {
         tokio::spawn(async move {
             debug!(target: "auriya::daemon", "Starting IPC socket listener...");
             match crate::daemon::ipc::start("/dev/socket/auriya.sock", ipc_handles).await {
-                Ok(_) => info!(target: "auriya::daemon", "IPC listener stopped gracefully"),
-                Err(e) => error!(target: "auriya::daemon", "IPC error: {:?}", e),
+                Ok(_) => info!(target: "auriya::daemon", "IPC    | Listener stopped"),
+                Err(e) => error!(target: "auriya::daemon", "IPC    | Error: {:?}", e),
             }
         });
     }
@@ -336,11 +335,11 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                 }
             }
             _ = signal::ctrl_c() => {
-                info!(target: "auriya::daemon", "Received Ctrl-C, shutting down...");
+                info!(target: "auriya::daemon", "Daemon | Received Ctrl-C, shutting down");
                 break;
             }
         }
     }
-    info!(target: "auriya::daemon", "Daemon stopped");
+    info!(target: "auriya::daemon", "Daemon | Stopped");
     Ok(())
 }

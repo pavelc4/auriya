@@ -26,11 +26,15 @@ async fn main() -> Result<()> {
 
     let (settings, gamelist) = core::config::load_all()?;
 
+    tracing::info!("Daemon | Auriya v{} started", env!("CARGO_PKG_VERSION"));
     tracing::info!(
-        "Auriya v{} started (CPU={}, FAS={}, games={})",
-        env!("CARGO_PKG_VERSION"),
+        "Config | CPU={} • FAS={} • Games={}",
         settings.cpu.default_governor,
-        if settings.fas.enabled { "on" } else { "off" },
+        if settings.fas.enabled {
+            "enabled"
+        } else {
+            "disabled"
+        },
         gamelist.game.len()
     );
 
