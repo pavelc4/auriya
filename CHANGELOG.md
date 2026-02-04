@@ -1,5 +1,79 @@
 # Changelog
 
+## v1.0.3
+
+### Logging Overhaul
+
+**Minimal INFO Logging:**
+- INFO level now only shows startup message, restart, and shutdown events
+- All runtime logs (profile changes, foreground detection, FAS decisions) moved to DEBUG
+- Compact timestamp format: `HH:MM:SS` instead of full ISO format
+- Single consolidated startup log: `Auriya v1.0.3 started (CPU=schedutil, FAS=on, games=3)`
+- Removed log level label from output for cleaner logs
+
+**Reduced Log Verbosity:**
+- GPU, scheduler, storage, memory tweak logs → DEBUG
+- Snapdragon/MediaTek vendor tweaks → DEBUG
+- FAS controller and frame source logs → DEBUG
+- IPC internal logs → DEBUG
+- Config watcher logs → DEBUG
+
+---
+
+### New Features
+
+**Snapdragon GPU & Memlat Tweaking:**
+- Added `SnapdragonPaths` struct to cache kgsl and memlat_settings paths
+- Use `OnceLock` for lazy initialization of Snapdragon path detection
+
+**Display Improvements:**
+- Simplified display mode parsing
+- Use `BTreeSet` for auto-sorted unique refresh rates in IPC
+
+**Module Enhancement:**
+- Disable game default frame rate limiter
+
+---
+
+### Refactoring
+
+**Logging System:**
+- Added `time` crate for custom timestamp formatting
+- Enabled `time` feature in `tracing-subscriber`
+- Removed redundant startup logs (IPC, FAS, display modes, tick loop)
+
+**Profile Module:**
+- Extract helpers for cleaner code
+- Cache sysfs paths to reduce hot path allocations
+
+---
+
+### Performance
+
+- Adjust screen-off polling interval to 10s for better battery
+- Detect screen wake instantly
+
+---
+
+### Dependencies
+
+- Bump `tokio` from 1.48.0 to 1.49.0
+- Bump `libc` from 0.2.178 to 0.2.180
+- Bump `serde_json` from 1.0.148 to 1.0.149
+- Bump `toml` from 0.9.10 to 0.9.11
+- Bump `unplugin-icons` from 22.5.0 to 23.0.1 (WebUI)
+- Added `time` v0.3 crate for log timestamp formatting
+
+---
+
+### Documentation
+
+- Added initial project documentation
+- Added `docs/README.md`, `architecture.md`, `configuration.md`, `ipc-reference.md`
+- Updated README with Table of Contents removal
+
+---
+
 ## v1.0.2
 
 ### New Features
