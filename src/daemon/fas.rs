@@ -57,8 +57,8 @@ impl FasController {
     }
 
     pub async fn tick(&mut self, thermal_thresh: f32) -> Result<ScalingAction> {
-        if !self.package.is_empty() && self.pid.is_some() {
-            let _ = self.source.attach(&self.package, self.pid.unwrap()).await;
+        if let Some(pid) = self.pid.filter(|_| !self.package.is_empty()) {
+            let _ = self.source.attach(&self.package, pid).await;
         }
 
         let frame_time = match self.source.get_frame_time().await {
