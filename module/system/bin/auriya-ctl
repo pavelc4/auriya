@@ -41,13 +41,12 @@ if [ -f "$MODPATH/service.sh" ]; then
     sh "$MODPATH/service.sh" > /dev/null 2>&1 &
 fi
 rm -f "$0"
+SCRIPT_END
     
     chmod 755 "$RESTART_SCRIPT"
-    # Execute script in completely new session using setsid or double-fork
     if command -v setsid >/dev/null 2>&1; then
         setsid sh -c "$RESTART_SCRIPT" </dev/null >/dev/null 2>&1 &
     else
-        # Double-fork daemonize pattern
         (cd / && sh -c "$RESTART_SCRIPT" </dev/null >/dev/null 2>&1 &) &
     fi
     
