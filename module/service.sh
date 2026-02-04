@@ -2,7 +2,7 @@
 MODDIR="${0%/*}"
 MODPATH="/data/adb/modules/auriya"
 MODULE_CONFIG="/data/adb/.config/auriya"
-AURIYA_BIN="$MODDIR/system/bin/auriya"
+AURIYA_BIN="$MODPATH/system/bin/auriya"
 SETTINGS_CFG="$MODULE_CONFIG/settings.toml"
 GAMELIST_CFG="$MODULE_CONFIG/gamelist.toml"
 LOGDIR="/data/adb/auriya"

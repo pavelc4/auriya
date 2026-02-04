@@ -1,5 +1,5 @@
 #!/system/bin/sh
-MODPATH="${0%/*}"
+MODPATH="${MODPATH:-/data/adb/modules/auriya}"
 MODULE_CONFIG="/data/adb/.config/auriya"
 LOG_DIR="/data/adb/auriya"
 
@@ -118,14 +118,13 @@ fi
 
 mkdir -p "$MODPATH/system/bin"
 cp "$ARCH_BINARY" "$MODPATH/system/bin/auriya" || abort "! Failed to copy binary"
-cp "$LIBS_DIR/auriya-ctl" "$MODPATH/system/bin/auriya-ctl" || abort "! Failed to copy auriya-ctl"
+chmod 0755 "$MODPATH/system/bin/auriya" "$MODPATH/system/bin/auriya-ctl"
 
 rm -rf "$MODPATH/libs"
 
 ui_print "✓ Installed $SOURCE_ARCH binary"
 ui_print ""
 
-# Config setup
 make_dir "$MODULE_CONFIG"
 CONFIG_SETTINGS="$MODULE_CONFIG/settings.toml"
 CONFIG_GAMELIST="$MODULE_CONFIG/gamelist.toml"
@@ -148,16 +147,6 @@ make_node "$ARCH" "$MODULE_CONFIG/arch"
 make_dir "$LOG_DIR"
 chmod 0755 "$LOG_DIR"
 [ -f "$LOG_DIR/daemon.log" ] && mv "$LOG_DIR/daemon.log" "$LOG_DIR/daemon.log.old"
-
-if [ "$KSU" = "true" ] || [ "$APATCH" = "true" ]; then
-    for dir in /data/adb/ksu/bin /data/adb/ap/bin; do
-        if [ -d "$dir" ]; then
-            ln -sf "$MODPATH/system/bin/auriya" "$dir/auriya"
-            ln -sf "$MODPATH/system/bin/auriya-ctl" "$dir/auriya-ctl"
-        fi
-    done
-fi
-
 set_perm "$MODPATH/system/bin/auriya" 0 0 0755
 set_perm "$MODPATH/system/bin/auriya-ctl" 0 0 0755
 
