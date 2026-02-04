@@ -12,6 +12,7 @@ pub struct FasController {
     thermal: ThermalMonitor,
     package: String,
     pid: Option<i32>,
+    last_attached_pkg: String,
     kp: f32,
 }
 
@@ -26,6 +27,7 @@ impl FasController {
             thermal: ThermalMonitor::new(),
             package: String::new(),
             pid: None,
+            last_attached_pkg: String::new(),
             kp: 0.05,
         }
     }
@@ -39,6 +41,7 @@ impl FasController {
             tracing::debug!(target: "auriya::fas", "Switching to package: {}", package);
             self.package = package;
             self.pid = pid;
+            self.last_attached_pkg.clear();
             self.buffer.clear();
         }
     }
@@ -58,7 +61,12 @@ impl FasController {
 
     pub async fn tick(&mut self, thermal_thresh: f32) -> Result<ScalingAction> {
         if let Some(pid) = self.pid.filter(|_| !self.package.is_empty()) {
-            let _ = self.source.attach(&self.package, pid).await;
+            if self.last_attached_pkg != self.package {
+                tracing::debug!(target: "auriya::fas", "Attaching to package: {} (PID: {})", self.package, pid);
+                let _ = self.source.attach(&self.package, pid).await;
+                self.last_attached_pkg.clear();
+                self.last_attached_pkg.push_str(&self.package);
+            }
         }
 
         let frame_time = match self.source.get_frame_time().await {
