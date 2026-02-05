@@ -60,14 +60,13 @@ impl FasController {
     }
 
     pub async fn tick(&mut self, thermal_thresh: f32) -> Result<ScalingAction> {
-        if let Some(pid) = self.pid.filter(|_| !self.package.is_empty()) {
-            if self.last_attached_pkg != self.package {
-                tracing::debug!(target: "auriya::fas", "Attaching to package: {} (PID: {})", self.package, pid);
-                let _ = self.source.attach(&self.package, pid).await;
-                self.last_attached_pkg.clear();
-                self.last_attached_pkg.push_str(&self.package);
-            }
-        }
+	    if let Some(pid) = self.pid.filter(|_| !self.package.is_empty()) && self.last_attached_pkg != self.package{
+	        tracing::debug!(target: "auriya::fas","Attaching to package: {} (PID: {})",self.package,pid);
+	        let _ = self.source.attach(&self.package, pid).await;
+	        self.last_attached_pkg.clear();
+	        self.last_attached_pkg.push_str(&self.package);
+	    }
+
 
         let frame_time = match self.source.get_frame_time().await {
             Ok(Some(ft)) => ft,

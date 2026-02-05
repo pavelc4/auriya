@@ -3,7 +3,7 @@ name: Release Auriya
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 permissions:
@@ -14,84 +14,110 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v6
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-    - name: Setup Build Environment
-      uses: ./.github/actions/setup-tools
+      - name: Setup Build Environment
+        uses: ./.github/actions/setup-tools
 
-    - name: Build WebUI
-      working-directory: ./webui
-      run: |
-        bun install
-        bun run build
+      - name: Build WebUI
+        working-directory: ./webui
+        run: |
+          bun install
+          bun run build
 
-    - name: Build Rust Binary
-      run: |
-        sed -i '/ar =/d' .cargo/config.toml
-        sed -i '/linker =/d' .cargo/config.toml
-        cargo ndk -t aarch64-linux-android --platform 26 -- build --release
-        ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip target/aarch64-linux-android/release/auriya
+      - name: Build Rust Binary (Multi-Arch)
+        run: |
+          TARGETS=("aarch64-linux-android" "armv7-linux-androideabi" "x86_64-linux-android")
 
-    - name: Package Module
-      id: package
-      uses: ./.github/actions/package-module
+          # Patch .cargo/config.toml
+          sed -i "s|/opt/android-ndk|${ANDROID_NDK_HOME}|g" .cargo/config.toml
 
-    - name: Upload to Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: build/release/${{ steps.package.outputs.zip_name }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          for target in "${TARGETS[@]}"; do
+              echo "Building for $target..."
+              cargo ndk -t "$target" --platform 26 -- build --release
+              
+              BINARY="target/$target/release/auriya"
+              LLVM_STRIP="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+              
+              if [ -f "$LLVM_STRIP" ]; then
+                  "$LLVM_STRIP" --strip-all "$BINARY"
+              else
+                  strip --strip-all "$BINARY"
+              fi
+              sha256sum "$BINARY" > "${BINARY}.sha256"
+          done
 
-    - name: Update update.json
-      run: |
-        VERSION=${{ steps.package.outputs.version }}
-        VERSION_CODE=${{ steps.package.outputs.version_code }}
-        ZIP_NAME=${{ steps.package.outputs.zip_name }}
-        TAG=${{ github.ref_name }}
-        
-        # Extract latest changelog and convert to plain text
-        CHANGELOG=$(awk '/^## v/{if(p)exit;p=1;next} p' CHANGELOG.md | \
-          sed 's/^### //' | \
-          sed 's/\*\*//g' | \
-          sed 's/^- /● /' | \
-          sed 's/^  - /  ● /' | \
-          sed 's/`//g' | \
-          sed 's/^---$//' | \
-          sed '/^$/d' | \
-          head -20 | \
-          jq -Rs .)
-        
-        cat > update.json << EOF
-        {
-            "version": "$VERSION",
-            "versionCode": $VERSION_CODE,
-            "zipUrl": "https://github.com/${{ github.repository }}/releases/download/$TAG/$ZIP_NAME",
-            "changelog": "https://raw.githubusercontent.com/${{ github.repository }}/main/CHANGELOG.md"
-        }
-        EOF
-        
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add update.json
-        git commit -m "chore: update update.json to v$VERSION" || echo "No changes"
-        git push origin HEAD:main
+      - name: Package Module
+        id: package
+        uses: ./.github/actions/package-module
 
-    - name: Notify Telegram
-      if: ${{ env.BOT_TOKEN != '' }}
-      env:
-        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        CHAT_ID: ${{ secrets.CHAT_ID }}
-      run: |
-        VERSION=${{ steps.package.outputs.version }}
-        
-        MESSAGE="🚀 <b>Auriya v$VERSION Released!</b>
-        
-        <a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\">Download</a>"
-        
-        curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
-            -d chat_id="$CHAT_ID" \
-            -d text="$MESSAGE" \
-            -d parse_mode="HTML"
+      - name: Capture Release Info
+        id: build
+        run: |
+          ZIP_NAME="${{ steps.package.outputs.zip_name }}"
+          VERSION="${{ steps.package.outputs.version }}"
+          VERSION_CODE="${{ steps.package.outputs.version_code }}"
+
+          echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/release/${{ steps.build.outputs.zip_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update update.json
+        run: |
+          VERSION=${{ steps.build.outputs.version }}
+          VERSION_CODE=${{ steps.build.outputs.version_code }}
+          ZIP_NAME=${{ steps.build.outputs.zip_name }}
+          TAG=${{ github.ref_name }}
+
+          # Extract latest changelog and convert to plain text
+          CHANGELOG=$(awk '/^## v/{if(p)exit;p=1;next} p' CHANGELOG.md | \
+            sed 's/^### //' | \
+            sed 's/\*\*//g' | \
+            sed 's/^- /● /' | \
+            sed 's/^  - /  ● /' | \
+            sed 's/`//g' | \
+            sed 's/^---$//' | \
+            sed '/^$/d' | \
+            head -20 | \
+            jq -Rs .)
+
+          cat > update.json << EOF
+          {
+              "version": "$VERSION",
+              "versionCode": $VERSION_CODE,
+              "zipUrl": "https://github.com/${{ github.repository }}/releases/download/$TAG/$ZIP_NAME",
+              "changelog": "https://raw.githubusercontent.com/${{ github.repository }}/main/CHANGELOG.md"
+          }
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add update.json
+          git commit -m "chore: update update.json to v$VERSION" || echo "No changes"
+          git push origin HEAD:main
+
+      - name: Notify Telegram
+        if: ${{ env.BOT_TOKEN != '' }}
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          VERSION=${{ steps.build.outputs.version }}
+
+          MESSAGE="<b>Auriya v$VERSION Released!</b>
+
+          <a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\">Download</a>"
+
+          curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+              -d chat_id="$CHAT_ID" \
+              -d text="$MESSAGE" \
+              -d parse_mode="HTML"

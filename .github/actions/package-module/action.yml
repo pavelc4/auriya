@@ -20,43 +20,74 @@ runs:
       shell: bash
       run: |
         set -e
-        
+
         BUILD_DIR="build/release"
         MODULE_DIR="module"
-        TARGET_BIN="target/aarch64-linux-android/release/auriya"
-        WEBUI_DIST="webui/dist"
-        
+
         mkdir -p "$BUILD_DIR/module"
+
+        # 1. Base files
         cp -r "$MODULE_DIR"/* "$BUILD_DIR/module/"
-        
-        mkdir -p "$BUILD_DIR/module/system/bin"
-        cp "$TARGET_BIN" "$BUILD_DIR/module/system/bin/"
-        
-        mkdir -p "$BUILD_DIR/module/webroot"
-        cp -r "$WEBUI_DIST"/* "$BUILD_DIR/module/webroot/"
-        
-        cp settings.toml "$BUILD_DIR/module/"
-        cp gamelist.toml "$BUILD_DIR/module/"
-        
+        cp settings.toml "$BUILD_DIR/module/" 2>/dev/null || true
+        cp gamelist.toml "$BUILD_DIR/module/" 2>/dev/null || true
+        cp -r module/system "$BUILD_DIR/module/" 2>/dev/null || true
+
+        # 2. WebUI
+        if [ -d "webui/dist" ]; then
+            mkdir -p "$BUILD_DIR/module/webroot"
+            cp -r webui/dist/* "$BUILD_DIR/module/webroot/"
+        fi
+
+        # 3. Binaries (Collect from download path)
+        # Note: In build.yml we upload 'auriya-universal' artifact with structure:
+        # build/release/libs/<arch>/auriya
+
+        # We assume artifact download step has placed binaries effectively
+        # But this action usually runs AFTER build. So we need to ensure structure.
+
+        # For simplicity in native action, we'll assume binaries are in target/<arch>/release/auriya
+        # OR passed via inputs. But composite actions can't easily iterate inputs.
+
+        # Let's verify binaries exist in standard target locations
+        TARGETS=("aarch64-linux-android:aarch64" "armv7-linux-androideabi:arm" "x86_64-linux-android:x64")
+
+        for pair in "${TARGETS[@]}"; do
+            TARGET="${pair%%:*}"
+            ARCH="${pair##*:}"
+            BIN="target/$TARGET/release/auriya"
+            
+            if [ -f "$BIN" ]; then
+                echo "Packaging $ARCH ($TARGET)..."
+                DEST_DIR="$BUILD_DIR/module/libs/$ARCH"
+                mkdir -p "$DEST_DIR"
+                cp "$BIN" "$DEST_DIR/auriya"
+                (cd "$DEST_DIR" && sha256sum auriya > auriya.sha256)
+            else
+                echo "Warning: Binary for $ARCH not found at $BIN"
+            fi
+        done
+
         # Get version from Cargo.toml
         VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
         COMMIT_HASH=$(git rev-parse --short HEAD)
         VERSION_CODE=$(git rev-list --count HEAD)
-        
+
         # Update module.prop
         sed -i "s/^version=.*/version=${VERSION} (${VERSION_CODE}-${COMMIT_HASH}-release)/" "$BUILD_DIR/module/module.prop"
         sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$BUILD_DIR/module/module.prop"
-        
-        # Filename: auriya-1.0.1-10001-cc53e50-release.zip
+
+        # Filename
         ZIP_NAME="auriya-${VERSION}-${VERSION_CODE}-${COMMIT_HASH}-release.zip"
-        
+
+        # Clean build.sh placeholders if any
+        find "$BUILD_DIR/module" -name ".placeholder" -delete 2>/dev/null || true
+
         cd "$BUILD_DIR/module"
         7z a -tzip -mm=Deflate -mx=9 -mfb=258 -mpass=15 "../$ZIP_NAME" .
         cd -
-        
+
         echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
-        
+
         ls -lh "$BUILD_DIR/$ZIP_NAME"
-        echo "Created $ZIP_NAME"

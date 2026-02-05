@@ -13,93 +13,113 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v6
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-    - name: Start Timer
-      run: date +%s > build_start_time
+      - name: Start Timer
+        run: date +%s > build_start_time
 
-    - name: Notify Build Start
-      id: notify_start
-      if: ${{ env.BOT_TOKEN != '' }}
-      env:
-        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        CHAT_ID: ${{ secrets.CHAT_ID }}
-        RUN_NUMBER: ${{ github.run_number }}
-        COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
-        WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      run: |
-        COMMIT_MSG=$(git log -1 --pretty=%s)
-        MESSAGE=$(printf "<b>Auriya</b>\n#ci_%s\n<blockquote><code>%s</code></blockquote>\n<a href=\"%s\">Commit</a>\n<a href=\"%s\">Workflow run</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
-        RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
-          -d chat_id="$CHAT_ID" \
-          --data-urlencode "text=$MESSAGE" \
-          -d parse_mode="HTML" \
-          -d disable_web_page_preview="true")
-        
-        # Save message_id for later deletion
-        MESSAGE_ID=$(echo "$RESPONSE" | grep -o '"message_id":[0-9]*' | cut -d: -f2)
-        echo "message_id=$MESSAGE_ID" >> $GITHUB_OUTPUT
-
-    - name: Setup Build Environment
-      uses: ./.github/actions/setup-tools
-
-    - name: Build WebUI
-      working-directory: ./webui
-      run: |
-        bun install
-        bun run build
-
-    - name: Build Rust Binary
-      run: |
-        sed -i '/ar =/d' .cargo/config.toml
-        sed -i '/linker =/d' .cargo/config.toml
-        cargo ndk -t aarch64-linux-android --platform 26 -- build --release
-        ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip target/aarch64-linux-android/release/auriya
-
-    - name: Package Module
-      id: package
-      uses: ./.github/actions/package-module
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v6
-      with:
-        name: auriya-module
-        path: build/release/*.zip
-        compression-level: 0
-
-    - name: Notify Build Complete
-      if: ${{ env.BOT_TOKEN != '' }}
-      env:
-        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        CHAT_ID: ${{ secrets.CHAT_ID }}
-        RUN_NUMBER: ${{ github.run_number }}
-        COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
-        WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        ZIP_NAME: ${{ steps.package.outputs.zip_name }}
-        START_MESSAGE_ID: ${{ steps.notify_start.outputs.message_id }}
-      run: |
-        ZIP_PATH="build/release/$ZIP_NAME"
-        
-        if [ ! -f "$ZIP_PATH" ]; then
-          echo "File not found, skipping notification"
-          exit 0
-        fi
-        
-        COMMIT_MSG=$(git log -1 --pretty=%s)
-        CAPTION=$(printf "<b>Auriya</b> #ci_%s\n<blockquote><code>%s</code></blockquote>\n<a href=\"%s\">Commit</a> | <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
-        
-        # Send document with caption
-        curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendDocument" \
-          -F chat_id="$CHAT_ID" \
-          -F document=@"$ZIP_PATH" \
-          -F parse_mode="HTML" \
-          --form-string "caption=$CAPTION"
-        
-        # Delete start message if exists
-        if [ -n "$START_MESSAGE_ID" ]; then
-          curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/deleteMessage" \
+      - name: Notify Build Start
+        id: notify_start
+        if: ${{ env.BOT_TOKEN != '' }}
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          RUN_NUMBER: ${{ github.run_number }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          MESSAGE=$(printf "<b>Auriya</b>\n#ci_%s\n<blockquote><code>%s</code></blockquote>\n<a href=\"%s\">Commit</a>\n<a href=\"%s\">Workflow run</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+          RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
             -d chat_id="$CHAT_ID" \
-            -d message_id="$START_MESSAGE_ID"
-        fi
+            --data-urlencode "text=$MESSAGE" \
+            -d parse_mode="HTML" \
+            -d disable_web_page_preview="true")
+
+          # Save message_id for later deletion
+          MESSAGE_ID=$(echo "$RESPONSE" | grep -o '"message_id":[0-9]*' | cut -d: -f2)
+          echo "message_id=$MESSAGE_ID" >> $GITHUB_OUTPUT
+
+      - name: Setup Build Environment
+        uses: ./.github/actions/setup-tools
+
+      - name: Build WebUI
+        working-directory: ./webui
+        run: |
+          bun install
+          bun run build
+
+      - name: Build Rust Binary (Multi-Arch)
+        run: |
+          TARGETS=("aarch64-linux-android" "armv7-linux-androideabi" "x86_64-linux-android")
+
+          # Patch .cargo/config.toml
+          sed -i "s|/opt/android-ndk|${ANDROID_NDK_HOME}|g" .cargo/config.toml
+
+          for target in "${TARGETS[@]}"; do
+              echo "Building for $target..."
+              
+              # Build
+              cargo ndk -t "$target" --platform 26 -- build --release
+              
+              # Strip
+              BINARY="target/$target/release/auriya"
+              LLVM_STRIP="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+              
+              if [ -f "$LLVM_STRIP" ]; then
+                  "$LLVM_STRIP" --strip-all "$BINARY"
+              else
+                  strip --strip-all "$BINARY"
+              fi
+              
+              # SHA256
+              sha256sum "$BINARY" > "${BINARY}.sha256"
+          done
+
+      - name: Package Module
+        id: package
+        uses: ./.github/actions/package-module
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: auriya-universal
+          path: build/release/*.zip
+          compression-level: 0
+
+      - name: Notify Build Complete
+        if: ${{ env.BOT_TOKEN != '' }}
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          RUN_NUMBER: ${{ github.run_number }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ZIP_NAME: ${{ steps.package.outputs.zip_name }}
+          START_MESSAGE_ID: ${{ steps.notify_start.outputs.message_id }}
+        run: |
+          ZIP_PATH="build/release/$ZIP_NAME"
+
+          if [ ! -f "$ZIP_PATH" ]; then
+            echo "File not found, skipping notification"
+            exit 0
+          fi
+
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          CAPTION=$(printf "<b>Auriya</b> #ci_%s\n<blockquote><code>%s</code></blockquote>\n<a href=\"%s\">Commit</a> | <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+
+          # Send document with caption
+          curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendDocument" \
+            -F chat_id="$CHAT_ID" \
+            -F document=@"$ZIP_PATH" \
+            -F parse_mode="HTML" \
+            --form-string "caption=$CAPTION"
+
+          # Delete start message if exists
+          if [ -n "$START_MESSAGE_ID" ]; then
+            curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/deleteMessage" \
+              -d chat_id="$CHAT_ID" \
+              -d message_id="$START_MESSAGE_ID"
+          fi
