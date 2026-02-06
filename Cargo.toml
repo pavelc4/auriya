@@ -3,6 +3,18 @@ name = "auriya"
 version = "1.0.3"
 edition = "2024"
 
+[lib]
+name = "auriya"
+path = "src/lib.rs"
+
+[[bin]]
+name = "auriya"
+path = "src/main.rs"
+
+[[bin]]
+name = "auriyactl"
+path = "src/ctl.rs"
+
 [profile.release]
 opt-level = "z"
 lto = "fat"
@@ -39,3 +51,4 @@ tracing-subscriber = { version = "0.3.20", default-features = false, features = 
 ] }
 time = { version = "0.3", features = ["formatting"] }
 libc = "0.2.180"
+clap = { version = "4", features = ["derive", "color", "suggestions"] }
