@@ -1,5 +1,5 @@
 use super::{app::*, client::IpcClient, output};
-use crate::common::{SERVICE_SCRIPT, SOCKET_PATH};
+use crate::common::{SOCKET_PATH};
 use crate::{Context, Result};
 use anyhow::bail;
 
@@ -127,19 +127,14 @@ async fn handle_status(client: &IpcClient) -> Result<()> {
 fn handle_restart() -> Result<()> {
     println!("Restarting daemon...");
 
-    std::process::Command::new("pkill")
-        .arg("-9")
-        .arg("auriya")
-        .output()
-        .context("Failed to kill daemon")?;
+    let restart_cmd = "pkill -9 auriya; sleep 1; > /data/adb/auriya/daemon.log 2>/dev/null; (sh /data/adb/modules/auriya/service.sh > /dev/null 2>&1 &)";
 
-    std::thread::sleep(std::time::Duration::from_secs(1));
     std::process::Command::new("sh")
         .arg("-c")
-        .arg(format!("nohup sh {} > /dev/null 2>&1 &", SERVICE_SCRIPT))
+        .arg(restart_cmd)
         .spawn()
-        .context("Failed to start daemon")?;
+        .context("Failed to restart daemon")?;
 
-    output::print_success("Restart initiated");
+    println!("Restart initiated");
     Ok(())
 }
