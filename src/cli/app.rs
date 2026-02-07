@@ -19,7 +19,6 @@ pub enum Commands {
     Reload,
     Restart,
 
-
     SetProfile {
         #[arg(value_enum)]
         mode: ProfileMode,
@@ -49,6 +48,10 @@ pub enum Commands {
 
     GetPid,
     Ping,
+    Inject {
+        package: String,
+    },
+    ClearInject,
 }
 
 #[derive(Clone, ValueEnum)]

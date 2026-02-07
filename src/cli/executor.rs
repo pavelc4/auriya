@@ -1,6 +1,6 @@
 use super::{app::*, client::IpcClient, output};
-use crate::{Result, Context};
 use crate::common::{SERVICE_SCRIPT, SOCKET_PATH};
+use crate::{Context, Result};
 use anyhow::bail;
 
 pub async fn execute(cli: Cli) -> Result<()> {
@@ -8,9 +8,8 @@ pub async fn execute(cli: Cli) -> Result<()> {
     let client = IpcClient::with_path(socket);
 
     if !matches!(cli.command, Commands::Restart | Commands::Status) && !client.is_alive().await {
-            bail!("Daemon is not running");
+        bail!("Daemon is not running");
     }
-
 
     match cli.command {
         Commands::Status => {
@@ -97,6 +96,17 @@ pub async fn execute(cli: Cli) -> Result<()> {
             } else {
                 output::print_error("Daemon not responding");
             }
+        }
+
+        Commands::Inject { package } => {
+            let cmd = format!("INJECT {}", package);
+            let resp = client.send(&cmd).await?;
+            output::print_success(&format!("Injected: {}", resp));
+        }
+
+        Commands::ClearInject => {
+            let resp = client.send("CLEAR_INJECT").await?;
+            output::print_success(&format!("Inject cleared: {}", resp));
         }
     }
 
