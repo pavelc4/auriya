@@ -201,20 +201,34 @@ impl Daemon {
 
     pub async fn init_ipc(&self, filter_handle: ReloadHandle) {
         let fas_clone_for_ipc = self.fas_controller.clone();
-        let set_fps = Arc::new(move |fps: u32| {
-            if let Some(fas) = &fas_clone_for_ipc {
-                let mut guard = fas.blocking_lock();
-                guard.set_target_fps(fps);
-            }
+        let set_fps: Arc<
+            dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>>
+                + Send
+                + Sync,
+        > = Arc::new(move |fps: u32| {
+            let fas = fas_clone_for_ipc.clone();
+            Box::pin(async move {
+                if let Some(fas) = &fas {
+                    let mut guard = fas.lock().await;
+                    guard.set_target_fps(fps);
+                }
+            })
         });
 
         let fas_clone_for_get = self.fas_controller.clone();
-        let get_fps = Arc::new(move || -> u32 {
-            if let Some(fas) = &fas_clone_for_get {
-                let guard = fas.blocking_lock();
-                return guard.get_target_fps();
-            }
-            60
+        let get_fps: Arc<
+            dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>>
+                + Send
+                + Sync,
+        > = Arc::new(move || {
+            let fas = fas_clone_for_get.clone();
+            Box::pin(async move {
+                if let Some(fas) = &fas {
+                    let guard = fas.lock().await;
+                    return guard.get_target_fps();
+                }
+                60
+            })
         });
 
         let shared_cfg = self.shared_gamelist.clone();
