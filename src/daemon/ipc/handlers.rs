@@ -243,11 +243,11 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 }
             }
             Ok(Command::SetFps(fps)) => {
-                (h.set_fps)(fps);
+                (h.set_fps)(fps).await;
                 format!("OK SET_FPS {}\n", fps)
             }
             Ok(Command::GetFps) => {
-                let fps = (h.get_fps)();
+                let fps = (h.get_fps)().await;
                 format!("FPS={}\n", fps)
             }
             Ok(Command::GetSupportedRates) => {
