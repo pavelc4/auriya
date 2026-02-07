@@ -1,13 +1,7 @@
-use auriya::common::{SOCKET_PATH, MODULE_PATH, ProfileMode, LogLevel};
+use auriya::cli;
+use auriya::Result;
 
-fn main (){
-
-	println!("Auriya CLI - Infrastructure");
-	println!("Version: {}", env!("CARGO_PKG_VERSION"));
-
-	let profile = ProfileMode::Balance;
-    println!("Profile: {} (IPC: {})", profile, profile.to_upper_str());
-
-    let log = LogLevel::Info;
-    println!("Log level: {} (IPC: {})", log, log.to_upper_str());
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<()> {
+    cli::run().await
 }
