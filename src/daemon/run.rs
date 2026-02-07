@@ -10,7 +10,9 @@ use std::{
 use tokio::{signal, time};
 use tracing::{debug, error, info};
 use tracing_subscriber::EnvFilter;
+type AsyncFpsCallback = Arc<dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>>+ Send+ Sync,>;
 
+type AsyncGetFpsCallback = Arc<dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>>+ Send+ Sync,>;
 const INGAME_INTERVAL_MS: u64 = 500;
 const NORMAL_INTERVAL_MS: u64 = 5000;
 const SCREEN_OFF_INTERVAL_MS: u64 = 10000;
@@ -201,11 +203,7 @@ impl Daemon {
 
     pub async fn init_ipc(&self, filter_handle: ReloadHandle) {
         let fas_clone_for_ipc = self.fas_controller.clone();
-        let set_fps: Arc<
-            dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>>
-                + Send
-                + Sync,
-        > = Arc::new(move |fps: u32| {
+        let set_fps: AsyncFpsCallback = Arc::new(move |fps: u32| {
             let fas = fas_clone_for_ipc.clone();
             Box::pin(async move {
                 if let Some(fas) = &fas {
@@ -216,11 +214,7 @@ impl Daemon {
         });
 
         let fas_clone_for_get = self.fas_controller.clone();
-        let get_fps: Arc<
-            dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>>
-                + Send
-                + Sync,
-        > = Arc::new(move || {
+        let get_fps: AsyncGetFpsCallback = Arc::new(move || {
             let fas = fas_clone_for_get.clone();
             Box::pin(async move {
                 if let Some(fas) = &fas {
