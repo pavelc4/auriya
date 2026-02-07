@@ -10,6 +10,12 @@ pub struct FrameSource {
     use_sysfs: bool,
 }
 
+impl Default for FrameSource {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FrameSource {
     pub fn new() -> Self {
         let sysfs_path = sysfs::detect_fps_path();
