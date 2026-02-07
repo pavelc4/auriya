@@ -3,6 +3,12 @@ use std::fs;
 
 pub struct ThermalMonitor;
 
+impl Default for ThermalMonitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ThermalMonitor {
     pub fn new() -> Self {
         Self
