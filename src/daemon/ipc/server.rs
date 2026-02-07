@@ -9,22 +9,20 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, RwLock};
 use tokio::net::UnixListener;
 
+type AsyncFpsCallback = Arc<dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>>+ Send+ Sync,>;
+
+type AsyncGetFpsCallback = Arc<dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>>
++Send+ Sync,>;
+
 pub struct IpcHandles {
     pub enabled: Arc<AtomicBool>,
     pub shared_config: Arc<RwLock<GameList>>,
     pub override_foreground: Arc<RwLock<Option<String>>>,
     pub reload_fn: Arc<dyn Fn() -> anyhow::Result<usize> + Send + Sync>,
     pub set_log_level: Arc<dyn Fn(LogLevelCmd) + Send + Sync>,
-    pub set_fps: Arc<
-        dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>>
-            + Send
-            + Sync,
-    >,
-    pub get_fps: Arc<
-        dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>>
-            + Send
-            + Sync,
-    >,
+    pub set_fps: AsyncFpsCallback,
+    pub get_fps: AsyncGetFpsCallback,
+
     pub current_state: Arc<RwLock<CurrentState>>,
     pub balance_governor: String,
     pub current_log_level: Arc<RwLock<LogLevelCmd>>,
