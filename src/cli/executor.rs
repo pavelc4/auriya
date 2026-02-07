@@ -135,7 +135,8 @@ fn handle_restart() -> Result<()> {
 
     std::thread::sleep(std::time::Duration::from_secs(1));
     std::process::Command::new("sh")
-        .arg(SERVICE_SCRIPT)
+        .arg("-c")
+        .arg(format!("nohup sh {} > /dev/null 2>&1 &", SERVICE_SCRIPT))
         .spawn()
         .context("Failed to start daemon")?;
 
