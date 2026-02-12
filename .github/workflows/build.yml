@@ -31,7 +31,7 @@ jobs:
           WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           COMMIT_MSG=$(git log -1 --pretty=%s)
-          MESSAGE=$(printf "<b>Auriya</b>\n#ci_%s\n<blockquote><code>%s</code></blockquote>\n<a href=\"%s\">Commit</a>\n<a href=\"%s\">Workflow run</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+          MESSAGE=$(printf "<b>Auriya</b> #ci_%s\n\n<code>%s</code>\n\n<a href=\"%s\">Commit</a> • <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
           RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
             -d chat_id="$CHAT_ID" \
             --data-urlencode "text=$MESSAGE" \
@@ -62,9 +62,9 @@ jobs:
               echo "Building for $target..."
               
               # Build
-              cargo ndk -t "$target" --platform 26 -- build --release
+              cargo ndk -t "$target" --platform 26 -- build --release --bin auriya --bin auriyactl
               
-              # Strip
+              # Strip & Checksum Daemon
               BINARY="target/$target/release/auriya"
               LLVM_STRIP="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
               
@@ -73,14 +73,23 @@ jobs:
               else
                   strip --strip-all "$BINARY"
               fi
-              
-              # SHA256
               sha256sum "$BINARY" > "${BINARY}.sha256"
+
+              # Strip & Checksum CLI
+              CLI_BINARY="target/$target/release/auriyactl"
+              if [ -f "$LLVM_STRIP" ]; then
+                  "$LLVM_STRIP" --strip-all "$CLI_BINARY"
+              else
+                  strip --strip-all "$CLI_BINARY"
+              fi
+              sha256sum "$CLI_BINARY" > "${CLI_BINARY}.sha256"
           done
 
       - name: Package Module
         id: package
         uses: ./.github/actions/package-module
+        with:
+          build_type: debug
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -108,7 +117,7 @@ jobs:
           fi
 
           COMMIT_MSG=$(git log -1 --pretty=%s)
-          CAPTION=$(printf "<b>Auriya</b> #ci_%s\n<blockquote><code>%s</code></blockquote>\n<a href=\"%s\">Commit</a> | <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+          CAPTION=$(printf "<b>Auriya</b> #ci_%s\n\n<code>%s</code>\n\n<a href=\"%s\">Commit</a> • <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
 
           # Send document with caption
           curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendDocument" \
