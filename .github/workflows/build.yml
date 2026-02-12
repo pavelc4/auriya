@@ -132,3 +132,29 @@ jobs:
               -d chat_id="$CHAT_ID" \
               -d message_id="$START_MESSAGE_ID"
           fi
+
+      - name: Notify Build Failure
+        if: failure() && env.BOT_TOKEN != ''
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          RUN_NUMBER: ${{ github.run_number }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          START_MESSAGE_ID: ${{ steps.notify_start.outputs.message_id }}
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          MESSAGE=$(printf "<b>Auriya</b> #ci_%s\n\n <b>FAILURE</b>\n\n<blockquote><code>%s</code></blockquote>\n\n<a href=\"%s\">Commit</a> • <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+
+          curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+            -d chat_id="$CHAT_ID" \
+            --data-urlencode "text=$MESSAGE" \
+            -d parse_mode="HTML" \
+            -d disable_web_page_preview="true"
+
+          # Delete start message if exists
+          if [ -n "$START_MESSAGE_ID" ]; then
+            curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/deleteMessage" \
+              -d chat_id="$CHAT_ID" \
+              -d message_id="$START_MESSAGE_ID"
+          fi
