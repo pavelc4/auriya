@@ -36,22 +36,28 @@ jobs:
 
           for target in "${TARGETS[@]}"; do
               echo "Building for $target..."
-              cargo ndk -t "$target" --platform 26 -- build --release
+              cargo ndk -t "$target" --platform 26 -- build --release --bin auriya --bin auriyactl
               
               BINARY="target/$target/release/auriya"
+              CLI_BINARY="target/$target/release/auriyactl"
               LLVM_STRIP="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
               
               if [ -f "$LLVM_STRIP" ]; then
                   "$LLVM_STRIP" --strip-all "$BINARY"
+                  "$LLVM_STRIP" --strip-all "$CLI_BINARY"
               else
                   strip --strip-all "$BINARY"
+                  strip --strip-all "$CLI_BINARY"
               fi
               sha256sum "$BINARY" > "${BINARY}.sha256"
+              sha256sum "$CLI_BINARY" > "${CLI_BINARY}.sha256"
           done
 
       - name: Package Module
         id: package
         uses: ./.github/actions/package-module
+        with:
+          build_type: release
 
       - name: Capture Release Info
         id: build
@@ -115,7 +121,7 @@ jobs:
 
           MESSAGE="<b>Auriya v$VERSION Released!</b>
 
-          <a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\">Download</a>"
+          <a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\">Download</a> • <a href=\"https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md\">Changelog</a>"
 
           curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
               -d chat_id="$CHAT_ID" \

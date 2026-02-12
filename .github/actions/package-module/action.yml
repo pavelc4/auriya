@@ -1,6 +1,12 @@
 name: Package Module
 description: Package Auriya module with ultra compression
 
+inputs:
+  build_type:
+    description: "Type of build (debug or release)"
+    required: false
+    default: "debug"
+
 outputs:
   zip_name:
     description: Name of the created zip file
@@ -54,14 +60,27 @@ runs:
         for pair in "${TARGETS[@]}"; do
             TARGET="${pair%%:*}"
             ARCH="${pair##*:}"
+            
             BIN="target/$TARGET/release/auriya"
+            CLI_BIN="target/$TARGET/release/auriyactl"
             
             if [ -f "$BIN" ]; then
                 echo "Packaging $ARCH ($TARGET)..."
                 DEST_DIR="$BUILD_DIR/module/libs/$ARCH"
                 mkdir -p "$DEST_DIR"
+                
+                # Copy Daemon
                 cp "$BIN" "$DEST_DIR/auriya"
-                (cd "$DEST_DIR" && sha256sum auriya > auriya.sha256)
+                
+                # Copy CLI if exists
+                if [ -f "$CLI_BIN" ]; then
+                    cp "$CLI_BIN" "$DEST_DIR/auriyactl"
+                else
+                    echo "Warning: CLI Binary for $ARCH not found at $CLI_BIN"
+                fi
+
+                # Checksums
+                (cd "$DEST_DIR" && sha256sum * > checksums.sha256)
             else
                 echo "Warning: Binary for $ARCH not found at $BIN"
             fi
@@ -77,7 +96,8 @@ runs:
         sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$BUILD_DIR/module/module.prop"
 
         # Filename
-        ZIP_NAME="auriya-${VERSION}-${VERSION_CODE}-${COMMIT_HASH}-release.zip"
+        BUILD_TYPE="${{ inputs.build_type }}"
+        ZIP_NAME="auriya-${VERSION}-${VERSION_CODE}-${COMMIT_HASH}-${BUILD_TYPE}.zip"
 
         # Clean build.sh placeholders if any
         find "$BUILD_DIR/module" -name ".placeholder" -delete 2>/dev/null || true
