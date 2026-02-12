@@ -50,5 +50,5 @@ tracing-subscriber = { version = "0.3.20", default-features = false, features = 
     "time",
 ] }
 time = { version = "0.3", features = ["formatting"] }
-libc = "0.2.180"
+libc = "0.2.181"
 clap = { version = "4", features = ["derive", "color", "suggestions"] }
