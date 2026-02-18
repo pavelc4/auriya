@@ -1,10 +1,6 @@
 use crate::core::cmd::run_cmd_timeout_async;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
-
-// Rate-limit helper
-static LAST_PS_WARN_MS: AtomicU64 = AtomicU64::new(0);
-const PS_WARN_DEBOUNCE_MS: u64 = 30000; // 30s
+use memchr::{memchr, memmem};
+use std::fs;
 
 #[inline]
 pub fn is_pid_valid(pid: i32) -> bool {
@@ -15,49 +11,10 @@ pub fn is_pid_valid(pid: i32) -> bool {
 }
 
 pub async fn get_app_pid(package: &str) -> anyhow::Result<Option<i32>> {
-    if let Some(pid) = try_visible_activity_process().await? {
-        return Ok(Some(pid));
-    }
-    if let Some(pid) = try_activity_processes(package).await? {
-        return Ok(Some(pid));
-    }
-    if let Some(pid) = try_activity_top(package).await? {
-        return Ok(Some(pid));
-    }
-    ps_fallback(package).await
-}
-
-async fn try_visible_activity_process() -> anyhow::Result<Option<i32>> {
-    let out = match run_cmd_timeout_async("/system/bin/dumpsys", &["activity", "activities"], 2000)
-        .await
-    {
-        Ok(o) => o,
-        Err(_) => return Ok(None),
-    };
-
-    let s = String::from_utf8_lossy(&out.stdout);
-    if let Some(line) = s.lines().find(|l| l.contains("VisibleActivityProcess"))
-        && let Some(open) = line.find('{')
-    {
-        let inner = &line[open + 1..];
-        let inner = inner.split('}').next().unwrap_or(inner);
-        for tok in inner.split_whitespace() {
-            if let Some((pid_str, _rest)) = tok.split_once(':')
-                && let Ok(pid) = pid_str.parse::<i32>()
-                && pid > 0
-            {
-                return Ok(Some(pid));
-            }
-        }
-    }
-    Ok(None)
-}
-
-async fn try_activity_processes(package: &str) -> anyhow::Result<Option<i32>> {
     let out = match run_cmd_timeout_async(
         "/system/bin/dumpsys",
-        &["activity", "processes", package],
-        2000,
+        &["activity", "activities"],
+        1000,
     )
     .await
     {
@@ -65,68 +22,136 @@ async fn try_activity_processes(package: &str) -> anyhow::Result<Option<i32>> {
         Err(_) => return Ok(None),
     };
 
-    let s = String::from_utf8_lossy(&out.stdout);
-    Ok(parse_pid_from_str(&s))
+    find_pid_with_verification(&out.stdout, package)
 }
 
-async fn try_activity_top(package: &str) -> anyhow::Result<Option<i32>> {
-    let out = match run_cmd_timeout_async("/system/bin/dumpsys", &["activity", "top"], 2000).await {
-        Ok(o) => o,
-        Err(_) => return Ok(None),
-    };
+pub fn find_pid_with_verification(data: &[u8], package: &str) -> anyhow::Result<Option<i32>> {
+    let vis_finder = memmem::Finder::new(b"VisibleActivityProcess");
+    let mut pos = 0;
 
-    let s = String::from_utf8_lossy(&out.stdout);
-    for line in s.lines().filter(|l| l.contains(package)) {
-        if let Some(pid) = parse_pid_from_str(line) {
-            return Ok(Some(pid));
+    while let Some(offset) = vis_finder.find(&data[pos..]) {
+        pos += offset;
+
+        let line_start = data[..pos]
+            .iter()
+            .rposition(|&b| b == b'\n')
+            .map_or(0, |p| p + 1);
+
+        let line_end = memchr(b'\n', &data[pos..]).map_or(data.len(), |p| pos + p);
+
+        let line = &data[line_start..line_end];
+
+        if let Some(pid) = extract_pid_zerocopy(line) {
+            tracing::debug!(
+                target: "auriya:pid",
+                "Found PID {} in VisibleActivityProcess, checking for '{}'",
+                pid,
+                package
+            );
+
+            if verify_pid_package(pid, package) {
+                tracing::debug!(
+                    target: "auriya:pid",
+                    "✓ PID {} matches package '{}'",
+                    pid,
+                    package
+                );
+                return Ok(Some(pid));
+            }
         }
+        pos = line_end + 1;
     }
     Ok(None)
 }
 
-async fn ps_fallback(package: &str) -> anyhow::Result<Option<i32>> {
-    let cmd = format!("ps -A | grep -F '{}'", package);
-    let out = match run_cmd_timeout_async("/system/bin/sh", &["-c", &cmd], 1500).await {
-        Ok(o) => o,
-        Err(e) => {
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as u64;
-            let last = LAST_PS_WARN_MS.load(Ordering::Relaxed);
-            if now.saturating_sub(last) > PS_WARN_DEBOUNCE_MS {
-                tracing::warn!(target: "auriya:pid", "ps fallback failed: {:?}", e);
-                LAST_PS_WARN_MS.store(now, Ordering::Relaxed);
-            }
-            return Ok(None);
-        }
-    };
+#[inline]
+fn verify_pid_package(pid: i32, package: &str) -> bool {
+    let cmdline_path = format!("/proc/{}/cmdline", pid);
 
-    let s = String::from_utf8_lossy(&out.stdout);
-    for line in s.lines().filter(|l| l.contains(package)) {
-        for tok in line.split_whitespace() {
-            if let Ok(n) = tok.parse::<i32>()
-                && n > 0
-            {
-                return Ok(Some(n));
-            }
+    if let Ok(cmdline) = fs::read(&cmdline_path) {
+        let end = cmdline
+            .iter()
+            .position(|&b| b == b'\0' || b == b':')
+            .unwrap_or(cmdline.len());
+
+        let cmdline_pkg = &cmdline[..end];
+        let cmdline_str = String::from_utf8_lossy(cmdline_pkg);
+
+        tracing::debug!(
+            target: "auriya:pid",
+            "  PID {} cmdline: '{}'",
+            pid,
+            cmdline_str
+        );
+
+        if cmdline_pkg == package.as_bytes() {
+            return true;
+        }
+
+        if cmdline_str.contains(package) {
+            return true;
         }
     }
-    Ok(None)
+
+    false
 }
 
-fn parse_pid_from_str(s: &str) -> Option<i32> {
-    if let Some(i) = s.find("pid=") {
-        let rest = &s[i + 4..];
-        let end = rest
-            .find(|c: char| !c.is_ascii_digit())
-            .unwrap_or(rest.len());
-        if end > 0
-            && let Ok(pid) = rest[..end].parse::<i32>()
-            && pid > 0
-        {
-            return Some(pid);
+#[inline(always)]
+pub fn extract_pid_zerocopy(line: &[u8]) -> Option<i32> {
+    if let Some(brace_pos) = memchr(b'{', line) {
+        if let Some(colon_offset) = memchr(b':', &line[brace_pos..]) {
+            let pid_start = brace_pos + 1;
+            let pid_end = brace_pos + colon_offset;
+            let pid_bytes = &line[pid_start..pid_end];
+
+            if let Ok(pid) = atoi_fast(pid_bytes) {
+                return Some(pid);
+            }
         }
     }
+
+    let proc_finder = memmem::Finder::new(b"ProcessRecord{");
+    if let Some(proc_pos) = proc_finder.find(line) {
+        let after_brace = proc_pos + 14;
+
+
+        if let Some(space_offset) = memchr(b' ', &line[after_brace..]) {
+            let pid_start = after_brace + space_offset + 1;
+
+
+            if let Some(colon_offset) = memchr(b':', &line[pid_start..]) {
+                let pid_end = pid_start + colon_offset;
+                let pid_bytes = &line[pid_start..pid_end];
+
+                if let Ok(pid) = atoi_fast(pid_bytes) {
+                    return Some(pid);
+                }
+            }
+        }
+    }
+
     None
+}
+
+#[inline(always)]
+fn atoi_fast(bytes: &[u8]) -> Result<i32, ()> {
+    if bytes.is_empty() {
+        return Err(());
+    }
+
+    let mut result = 0i32;
+
+    for &byte in bytes {
+        match byte {
+            b'0'..=b'9' => {
+                result = result
+                    .saturating_mul(10)
+                    .saturating_add((byte - b'0') as i32);
+            }
+            b' ' | b'\t' => continue,
+            _ => return Err(()),
+        }
+    }
+
+    Ok(result)
 }
