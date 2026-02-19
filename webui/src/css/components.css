@@ -1,0 +1,120 @@
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-circle {
+    border-radius: 9999px;
+    padding: 0;
+    width: 3rem;
+    height: 3rem;
+    min-height: 3rem;
+    min-width: 3rem;
+}
+
+.btn-ghost {
+    background-color: transparent;
+    color: var(--onSurface);
+}
+.btn-ghost:hover {
+    background-color: rgba(var(--onSurfaceVariant), 0.1);
+}
+
+.toggle {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 52px;
+    height: 32px;
+    border-radius: 100px;
+    background-color: var(--surfaceContainerHigh);
+    border: 2px solid var(--outline);
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s cubic-bezier(0.2, 0.0, 0, 1.0), border-color 0.2s cubic-bezier(0.2, 0.0, 0, 1.0);
+    flex-shrink: 0;
+}
+
+.toggle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 7px;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--outline);
+    transition: all 0.2s cubic-bezier(0.2, 0.0, 0, 1.0);
+}
+
+
+.toggle:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.toggle:checked::after {
+    background-color: var(--onPrimary);
+    width: 24px;
+    height: 24px;
+    left: calc(100% - 24px - 4px); 
+}
+
+
+.toggle:active::after {
+    width: 28px;
+    height: 28px;
+}
+
+.toggle-lg {
+    transform: scale(1.2);
+    margin: 4px;
+}
+.divider {
+    display: flex;
+    align-items: center;
+    height: 1rem;
+    white-space: nowrap;
+}
+.divider:before,
+.divider:after {
+    content: '';
+    flex-grow: 1;
+    height: 1px;
+    width: 100%;
+    background-color: var(--outline);
+    opacity: 0.2;
+}
+
+.btn-sm {
+    height: 2rem;
+    min-height: 2rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.options-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+.options-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.options-scroll::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.3);
+    border-radius: 4px;
+}

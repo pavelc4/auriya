@@ -1,0 +1,22 @@
+@theme {
+	--color-primary: var(--primary);
+	--color-on-primary: var(--onPrimary);
+	--color-primary-container: var(--primaryContainer);
+	--color-on-primary-container: var(--onPrimaryContainer);
+	--color-secondary: var(--secondary);
+	--color-on-secondary: var(--onSecondary);
+	--color-secondary-container: var(--secondaryContainer);
+	--color-tertiary: var(--tertiary);
+	--color-on-tertiary: var(--onTertiary);
+	--color-tertiary-container: var(--tertiaryContainer);
+	--color-background: var(--background);
+	--color-on-background: var(--onBackground);
+	--color-surface: var(--surface);
+	--color-on-surface: var(--onSurface);
+	--color-surface-container: var(--surfaceContainer);
+	--color-surface-container-high: var(--surfaceContainerHigh);
+	--color-surface-variant: var(--surfaceVariant);
+	--color-on-surface-variant: var(--onSurfaceVariant);
+	--color-outline: var(--outline);
+	--image-brand-gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+}
