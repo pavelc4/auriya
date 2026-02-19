@@ -1,7 +1,7 @@
 {
 	"name": "Auriya-WebUI",
 	"private": true,
-	"version": "1.0.2",
+	"version": "1.0.4",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
@@ -13,7 +13,6 @@
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
 		"@tailwindcss/vite": "^4.1.18",
 		"autoprefixer": "^10.4.23",
-		"daisyui": "^5.5.14",
 		"postcss": "^8.5.6",
 		"svelte": "^5.46.1",
 		"tailwindcss": "^4.1.18",
