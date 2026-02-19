@@ -22,19 +22,24 @@ pub fn apply_performance_sched() -> Result<()> {
 
     let sched_lib_name = "/proc/sys/kernel/sched_lib_name";
     if Path::new(sched_lib_name).exists() {
-        let libs =
-            "libunity.so,libil2cpp.so,libmain.so,libUE4.so,libminecraftpe.so,libgodot_android.so";
+        let libs = "libunity.so,libil2cpp.so,libmain.so,libUE4.so,libminecraftpe.so,\
+        libgodot_android.so,libCocos2dxAudio.so,libcocos2djs.so,liblive2d.so,\
+        libgdx.so,libSDL2.so,libfmod.so,libBullet.so,libgamekit.so";
+
         let _ = fs::write(sched_lib_name, libs);
         let _ = fs::write("/proc/sys/kernel/sched_lib_mask_force", "255");
+
         debug!("Sched lib mask set for game libraries");
     }
 
     let split_lock = "/proc/sys/kernel/split_lock_mitigate";
+
     if Path::new(split_lock).exists() {
         let _ = fs::write(split_lock, "0");
     }
 
     debug!("Performance scheduler tweaks applied");
+
     Ok(())
 }
 

@@ -24,6 +24,8 @@ fn apply_gpu_performance() {
     }
 
     let _ = fs::write(kgsl.join("idle_timer"), perf::GPU_IDLE_TIMER);
+    let _ = fs::write(kgsl.join("bus_split"), "0");
+    let _ = fs::write(kgsl.join("force_clk_on"), "1");
 
     debug!("Applied GPU performance tweaks");
 }
@@ -44,6 +46,8 @@ fn apply_gpu_normal() {
         let _ = fs::write(kgsl.join("idle_timer"), val);
     }
 
+    let _ = fs::write(kgsl.join("bus_split"), "1");
+    let _ = fs::write(kgsl.join("force_clk_on"), "0");
     debug!("Restored GPU original settings");
 }
 
