@@ -121,25 +121,22 @@
   }
 
   async function restartDaemon() {
-    showToast("Restarting daemon...");
+    showToast($_("settings.restarting"));
     try {
-      await runCommand(`echo "RESTART" | nc -U /dev/socket/auriya.sock`);
+      const output = await runCommand(
+        "/data/adb/modules/auriya/system/bin/auriyactl restart",
+      );
 
-      for (let i = 1; i <= 5; i++) {
-        await new Promise((r) => setTimeout(r, 2000));
-        try {
-          const res = await runCommand(
-            `echo "PING" | nc -U /dev/socket/auriya.sock`,
-          );
-          if (res && res.includes("PONG")) {
-            showToast("Daemon restarted successfully!");
-            return;
-          }
-        } catch (e) {}
+      if (output && !output.error) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+        showToast($_("settings.restarted"));
+      } else {
+        showToast($_("settings.restartFailed"));
       }
-      showToast("Daemon restart failed");
     } catch (e) {
-      showToast("Failed to restart daemon");
+      showToast($_("settings.restartFailed"));
     }
   }
 
