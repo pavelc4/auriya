@@ -99,30 +99,31 @@ fn verify_pid_package(pid: i32, package: &str) -> bool {
 #[inline(always)]
 pub fn extract_pid_zerocopy(line: &[u8]) -> Option<i32> {
     if let Some(brace_pos) = memchr(b'{', line) {
-        if let Some(colon_offset) = memchr(b':', &line[brace_pos..]) {
-            let pid_start = brace_pos + 1;
-            let pid_end = brace_pos + colon_offset;
-            let pid_bytes = &line[pid_start..pid_end];
+        let after_brace = &line[brace_pos + 1..];
 
-            if let Ok(pid) = atoi_fast(pid_bytes) {
-                return Some(pid);
+        if let Some(space_offset) = memchr(b' ', after_brace) {
+            let pid_start = space_offset + 1;
+            let pid_slice = &after_brace[pid_start..];
+
+            if let Some(colon_offset) = memchr(b':', pid_slice) {
+                let pid_bytes = &pid_slice[..colon_offset];
+                if let Ok(pid) = atoi_fast(pid_bytes) {
+                    return Some(pid);
+                }
             }
         }
     }
 
     let proc_finder = memmem::Finder::new(b"ProcessRecord{");
     if let Some(proc_pos) = proc_finder.find(line) {
-        let after_brace = proc_pos + 14;
+        let after_brace = &line[proc_pos + 14..];
 
+        if let Some(space_offset) = memchr(b' ', after_brace) {
+            let pid_start = space_offset + 1;
+            let pid_slice = &after_brace[pid_start..];
 
-        if let Some(space_offset) = memchr(b' ', &line[after_brace..]) {
-            let pid_start = after_brace + space_offset + 1;
-
-
-            if let Some(colon_offset) = memchr(b':', &line[pid_start..]) {
-                let pid_end = pid_start + colon_offset;
-                let pid_bytes = &line[pid_start..pid_end];
-
+            if let Some(colon_offset) = memchr(b':', pid_slice) {
+                let pid_bytes = &pid_slice[..colon_offset];
                 if let Ok(pid) = atoi_fast(pid_bytes) {
                     return Some(pid);
                 }
