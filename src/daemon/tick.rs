@@ -1,5 +1,4 @@
 use crate::core::profile::ProfileMode;
-use crate::core::tweaks::vendor::mtk;
 use crate::daemon::run::{
     Daemon, bump_log, now_ms, should_log_change, update_current_profile_file,
 };
@@ -11,7 +10,6 @@ impl Daemon {
     pub async fn tick(&mut self) {
         self.tick_count = self.tick_count.wrapping_add(1);
         debug!(target: "auriya::daemon", "Tick #{}", self.tick_count);
-        mtk::fix_mediatek_ppm();
 
         let gamelist = match self.shared_gamelist.read() {
             Ok(g) => g.clone(),

@@ -1,4 +1,5 @@
 use crate::core::profile::ProfileMode;
+use crate::core::tweaks::vendor::{detect, mtk};
 use crate::daemon::state::{CurrentState, LastState};
 use anyhow::Result;
 use std::collections::HashSet;
@@ -10,9 +11,10 @@ use std::{
 use tokio::{signal, time};
 use tracing::{debug, error, info};
 use tracing_subscriber::EnvFilter;
-type AsyncFpsCallback = Arc<dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>>+ Send+ Sync,>;
 
-type AsyncGetFpsCallback = Arc<dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>>+ Send+ Sync,>;
+type AsyncFpsCallback = Arc<dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>> + Send + Sync>;
+type AsyncGetFpsCallback = Arc<dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>> + Send + Sync>;
+
 const INGAME_INTERVAL_MS: u64 = 500;
 const NORMAL_INTERVAL_MS: u64 = 5000;
 const SCREEN_OFF_INTERVAL_MS: u64 = 10000;
@@ -112,7 +114,7 @@ impl Daemon {
         let fas_controller = if cfg.settings.fas.enabled {
             debug!(target: "auriya::daemon", "FAS enabled");
             Some(Arc::new(tokio::sync::Mutex::new(
-                crate::daemon::fas::FasController::with_target_fps(60), // Default 60, per-game overrides
+                crate::daemon::fas::FasController::with_target_fps(60),
             )))
         } else {
             debug!(target: "auriya::daemon", "FAS disabled");
@@ -308,6 +310,16 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     };
 
     let mut daemon = Daemon::new(cfg.clone(), supported_modes)?;
+
+    if detect::is_mediatek() {
+        debug!(target: "auriya::daemon", "MTK device detected, applying PPM fix...");
+        tokio::task::spawn_blocking(|| {
+            mtk::fix_mediatek_ppm();
+        })
+        .await
+        .ok();
+        debug!(target: "auriya::daemon", "MTK PPM fix applied");
+    }
 
     daemon.init_ipc(filter_handle).await;
 
