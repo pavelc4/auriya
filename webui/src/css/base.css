@@ -1,4 +1,6 @@
-:root {
+/* Dark theme (default) */
+:root,
+[data-theme="dark"] {
 	--primary: #ffb784;
 	--onPrimary: #4f2500;
 	--primaryContainer: #703800;
@@ -29,13 +31,14 @@
 
 	background-color: var(--background);
 	color: var(--onBackground);
-    padding-top: var(--window-inset-top, 0px);
+	padding-top: var(--window-inset-top, 0px);
 	padding-bottom: var(--window-inset-bottom, 0px);
-    transition: background-color 0.3s ease, color 0.3s ease;
+	transition: background-color 0.3s ease, color 0.3s ease;
 	-webkit-tap-highlight-color: transparent;
 	min-height: 100vh;
 }
 
+/* Light theme */
 [data-theme="light"] {
 	--primary: #8f4e00;
 	--onPrimary: #ffffff;
@@ -66,12 +69,45 @@
 	--outline: #85746b;
 }
 
-body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
+/* Auto theme — follows system preference, inherits dark defaults from :root */
+
+@media (prefers-color-scheme: light) {
+	[data-theme="auto"] {
+		--primary: #8f4e00;
+		--onPrimary: #ffffff;
+		--primaryContainer: #ffdcc5;
+		--onPrimaryContainer: #2e1500;
+
+		--secondary: #77583e;
+		--onSecondary: #ffffff;
+		--secondaryContainer: #ffdbbc;
+
+		--tertiary: #655f2f;
+		--onTertiary: #ffffff;
+		--tertiaryContainer: #ebe4a7;
+
+		--error: #ba1a1a;
+		--onError: #ffffff;
+
+		--background: #fff8f5;
+		--onBackground: #221a15;
+		--surface: #fff8f5;
+		--onSurface: #221a15;
+
+		--surfaceContainer: #fceee6;
+		--surfaceContainerHigh: #f6e8df;
+		--surfaceVariant: #f4ded4;
+		--onSurfaceVariant: #52443c;
+
+		--outline: #85746b;
+	}
 }
 
+body {
+	margin: 0;
+	padding: 0;
+	width: 100%;
+}
 
 ::selection {
 	background-color: var(--primaryContainer);
