@@ -23,7 +23,7 @@ panic = "abort"
 strip = true
 
 [dependencies]
-anyhow = "1.0.100"
+anyhow = "1.0.102"
 notify = "8.2.0"
 toml = "1.0.3"
 serde = { version = "1.0.228", features = ["derive"] }
