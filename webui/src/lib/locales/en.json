@@ -89,29 +89,19 @@
         "restartSuccess": "Daemon restarted successfully!",
         "restartFailed": "Daemon restart failed"
     },
-    "about": {
+"about": {
         "support": "Support",
         "supportDesc": "Auriya is a free, open-source passion project. If you enjoy the performance boost, consider fueling the next update with a cup of coffee.",
         "buyMeCoffee": "Buy me a coffee",
-        "philosophy": "The Philosophy",
-        "philosophyDesc": "Auriya redefines system optimization by fusing a high-performance {rust} with a reactive {svelte}. It runs as an intelligent background service that dynamically manages resources for peak efficiency.",
-        "rustDaemon": "Rust daemon",
-        "svelteWebui": "Svelte WebUI",
-        "whyRust": "Why Rust?",
-        "whyRustDesc": "We chose {rust} for its speed and stability. The daemon works efficiently in the background to smartly tune system parameters, delivering maximum performance with a minimal memory footprint.",
         "contributors": "Contributors",
         "creatorLead": "Creator & Lead Developer",
         "viewAllContributors": "View all contributors on GitHub",
-        "openSourceFoundation": "Open Source Foundation",
-        "shouldersOfGiants": "Standing on the shoulders of giants.",
         "joinCommunity": "Join Community",
         "joinCommunityDesc": "Join our Telegram group to discuss features, report bugs, or just hang out.",
         "joinDiscussion": "Join Discussion",
         "license": "License",
         "licenseDesc": "Auriya is free software licensed under the {license}.",
         "mitLicense": "MIT License",
-        "philosophyDescSimple": "Auriya redefines system optimization by fusing a high-performance Rust daemon with a reactive Svelte WebUI. It runs as an intelligent background service that dynamically manages resources for peak efficiency.",
-        "whyRustDescSimple": "We chose Rust for its speed and stability. The daemon works efficiently in the background to smartly tune system parameters, delivering maximum performance with a minimal memory footprint.",
         "licenseDescSimple": "Auriya is free software licensed under the MIT License."
     },
     "common": {
