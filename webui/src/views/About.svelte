@@ -7,15 +7,6 @@
   function handleImageError(e) {
     e.target.src = ferrisSleep;
   }
-
-  const dependencies = [
-    "tokio",
-    "serde",
-    "anyhow",
-    "tracing",
-    "notify",
-    "toml",
-  ];
 </script>
 
 <div class="view-section space-y-4">
@@ -33,40 +24,6 @@
       <Icon name="local_cafe" />
       {$_("about.buyMeCoffee")}
     </button>
-  </div>
-
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <div
-      class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface h-full flex flex-col"
-    >
-      <div class="flex items-center gap-3 mb-3">
-        <div
-          class="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0"
-        >
-          <Icon name="lightbulb" className="text-[20px]" />
-        </div>
-        <h2 class="text-lg font-semibold">{$_("about.philosophy")}</h2>
-      </div>
-      <p class="text-sm opacity-80 leading-relaxed flex-grow">
-        {$_("about.philosophyDescSimple")}
-      </p>
-    </div>
-
-    <div
-      class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface h-full flex flex-col"
-    >
-      <div class="flex items-center gap-3 mb-3">
-        <div
-          class="w-10 h-10 rounded-xl bg-[var(--primary)]/20 text-[var(--primary)] flex items-center justify-center shrink-0"
-        >
-          <Icon name="code" className="text-[20px]" />
-        </div>
-        <h2 class="text-lg font-semibold">{$_("about.whyRust")}</h2>
-      </div>
-      <p class="text-sm opacity-80 leading-relaxed flex-grow">
-        {$_("about.whyRustDescSimple")}
-      </p>
-    </div>
   </div>
 
   <div
@@ -108,36 +65,6 @@
         <Icon name="open_in_new" className="text-lg" />
         {$_("about.viewAllContributors")}
       </button>
-    </div>
-  </div>
-
-  <div
-    class="bg-surface-container p-6 rounded-[28px] card_border text-on-surface"
-  >
-    <div class="flex items-center gap-3 mb-4">
-      <div
-        class="w-10 h-10 rounded-xl bg-surface-variant/20 flex items-center justify-center shrink-0 text-on-surface"
-      >
-        <Icon name="extension" className="text-[20px]" />
-      </div>
-      <div>
-        <h2 class="text-lg font-semibold">
-          {$_("about.openSourceFoundation")}
-        </h2>
-        <p class="text-xs opacity-60">
-          {$_("about.shouldersOfGiants")}
-        </p>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap gap-2 pt-1">
-      {#each dependencies as dep}
-        <div
-          class="inline-flex items-center px-3 py-1 rounded-full bg-surface-variant/10 border border-outline/10 text-xs font-mono font-medium text-on-surface-variant hover:bg-surface-variant/20 hover:text-on-surface transition-colors cursor-default"
-        >
-          {dep}
-        </div>
-      {/each}
     </div>
   </div>
 
