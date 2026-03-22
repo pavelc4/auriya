@@ -9,60 +9,83 @@ inputs:
     description: Telegram Chat ID
     required: true
   type:
-    description: Notification type (start or complete)
+    description: Notification type (start, complete, failure)
     required: true
     default: complete
   zip_file:
     description: Path to zip file (for complete notification)
     required: false
+  delete_message_id:
+    description: Message ID to delete after sending (optional)
+    required: false
+    default: ""
+  caption:
+    description: Custom caption override (optional)
+    required: false
+    default: ""
+
+outputs:
+  message_id:
+    description: Sent message ID (for later deletion)
+    value: ${{ steps.send.outputs.message_id }}
 
 runs:
   using: composite
   steps:
     - name: Send Notification
+      id: send
       shell: bash
       env:
         BOT_TOKEN: ${{ inputs.bot_token }}
         CHAT_ID: ${{ inputs.chat_id }}
         NOTIFY_TYPE: ${{ inputs.type }}
         ZIP_PATH: ${{ inputs.zip_file }}
+        DELETE_MSG_ID: ${{ inputs.delete_message_id }}
+        CUSTOM_CAPTION: ${{ inputs.caption }}
         RUN_NUMBER: ${{ github.run_number }}
         COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
         WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
-        echo "=== DEBUG ==="
-        echo "NOTIFY_TYPE: $NOTIFY_TYPE"
-        echo "ZIP_PATH: $ZIP_PATH"
-        echo "PWD: $(pwd)"
-        echo "=== build/release contents ==="
-        ls -la build/release/ 2>/dev/null || echo "build/release/ NOT FOUND"
-        echo "==============="
-        
         COMMIT_MSG=$(git log -1 --pretty=%s)
-        
+
         if [ "$NOTIFY_TYPE" = "start" ]; then
-          MESSAGE=$(printf "<b>Auriya</b>\n#ci_%s\n<blockquote expandable>%s</blockquote>\n\n<a href=\"%s\">Commit</a>\n<a href=\"%s\">Workflow run</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+          MESSAGE=$(printf "<b>Auriya</b> #ci_%s\n\n<blockquote><code>%s</code></blockquote>\n\n<a href=\"%s\">Commit</a> • <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+          RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+            -d chat_id="$CHAT_ID" \
+            --data-urlencode "text=$MESSAGE" \
+            -d parse_mode="HTML" \
+            -d disable_web_page_preview="true")
+          MESSAGE_ID=$(echo "$RESPONSE" | grep -o '"message_id":[0-9]*' | cut -d: -f2)
+          echo "message_id=$MESSAGE_ID" >> $GITHUB_OUTPUT
+
+        elif [ "$NOTIFY_TYPE" = "complete" ]; then
+          if [ -z "$ZIP_PATH" ] || [ ! -f "$ZIP_PATH" ]; then
+            echo "ZIP not found at: $ZIP_PATH, skipping"
+            exit 0
+          fi
+          if [ -n "$CUSTOM_CAPTION" ]; then
+            CAPTION="$CUSTOM_CAPTION"
+          else
+            CAPTION=$(printf "<b>Auriya</b> #ci_%s\n\n<blockquote><code>%s</code></blockquote>\n\n<a href=\"%s\">Commit</a> • <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+          fi
+          curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendDocument" \
+            -F chat_id="$CHAT_ID" \
+            -F document=@"$ZIP_PATH" \
+            -F parse_mode="HTML" \
+            --form-string "caption=$CAPTION"
+
+        elif [ "$NOTIFY_TYPE" = "failure" ]; then
+          MESSAGE=$(printf "<b>Auriya</b> #ci_%s\n\n❌ <b>FAILED</b>\n\n<blockquote><code>%s</code></blockquote>\n\n<a href=\"%s\">Commit</a> • <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
           curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
             -d chat_id="$CHAT_ID" \
             --data-urlencode "text=$MESSAGE" \
             -d parse_mode="HTML" \
             -d disable_web_page_preview="true"
-        elif [ "$NOTIFY_TYPE" = "complete" ]; then
-          if [ -z "$ZIP_PATH" ]; then
-            echo "ZIP_PATH is empty"
-            exit 0
-          fi
-          if [ ! -f "$ZIP_PATH" ]; then
-            echo "File not found at: $ZIP_PATH"
-            echo "Trying to find any zip..."
-            ls -la build/release/*.zip 2>/dev/null || echo "No zips found"
-            exit 0
-          fi
-          echo "Uploading: $ZIP_PATH"
-          CAPTION=$(printf "<b>Auriya</b> #ci_%s\n<blockquote expandable>%s</blockquote>\n\n<a href=\"%s\">Commit</a> | <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
-          curl -F chat_id="$CHAT_ID" \
-            -F document=@"$ZIP_PATH" \
-            -F caption="$CAPTION" \
-            -F parse_mode="HTML" \
-            "https://api.telegram.org/bot$BOT_TOKEN/sendDocument"
+        fi
+
+        # Delete start message if provided
+        if [ -n "$DELETE_MSG_ID" ]; then
+          curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/deleteMessage" \
+            -d chat_id="$CHAT_ID" \
+            -d message_id="$DELETE_MSG_ID"
         fi
