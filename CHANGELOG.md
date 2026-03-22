@@ -1,5 +1,84 @@
 # Changelog
 
+## v1.0.4
+
+### Bug Fixes
+
+**Daemon (`activity.rs`):**
+- Fixed PID overflow and wrong field parsing causing game detection failure
+- Fixed `VisibleActivityProcess` parsing where MLBB showed "PID not found" despite being in foreground
+- FPS now correctly reads 24–51fps with Performance profile applied
+
+**Daemon (`tweaks/scheduled.rs`, `tweaks/snapdragon.rs`):**
+- Fixed GPU `bus_split`/`force_clk_on` configuration
+- Expanded `sched_lib_name` coverage for better scheduler hints
+- Removed stale MTK tick call from Snapdragon module
+
+**Daemon (`tweaks/mtk.rs`):**
+- Fixed PPM policy dead code
+- Moved `fix_mediatek_ppm` to daemon startup sequence for earlier initialization
+
+---
+
+### Performance Optimizations
+
+**Daemon (`activity.rs`, `background.rs`, `power.rs`):**
+- Optimized `dumpsys` parsing with batched output processing
+- Reduced redundant field parsing on every poll cycle
+- Tested on Snapdragon 7+ Gen 2 (Poco F5)
+
+---
+
+### New Features
+
+**CLI (`auriyactl` Binary):**
+- Replaced shell-based `auriya-ctl` script with compiled `auriyactl` binary
+- Implemented full CLI functionality: `start`, `stop`, `restart`, `status`, `inject`, `clear-inject`
+- Added `common` module for shared CLI logic and IPC handshake handling
+- Added CLI infrastructure scaffolding
+
+**WebUI (Theme):**
+- Added system-aware `auto` theme option
+- Theme now cycles through `auto → dark → light` modes via toggle
+
+---
+
+### Refactoring
+
+**WebUI:**
+- Replaced raw socket polling for restart with `auriyactl restart` IPC call
+- Extracted CSS from Svelte components into dedicated `src/css/` files (`base.css`, `components.css`, `theme.css`, `utilities.css`)
+- Fixed UI color inconsistencies across all components
+- Simplified About page and removed stale content (–73 lines)
+
+---
+
+### Documentation
+
+- Removed outdated documentation files (`docs/README.md`, `architecture.md`, `configuration.md`, `ipc-reference.md`)
+
+---
+
+### CI/CD & Dependencies
+
+**Dependabot Auto-Updates:**
+- Bumped `anyhow` from 1.0.101 to 1.0.102
+- Bumped `clap` from 4.5.59 to 4.5.60
+- Bumped `clap` from 4.5.60 to 4.6.0
+- Bumped `libc` from 0.2.182 to 0.2.183
+- Bumped `toml` from 1.0.3 to 1.0.6
+- Bumped `toml` from 1.0.6 to 1.0.7
+- Bumped `tokio` from 1.49.0 to 1.50.0
+- Bumped `tracing-subscriber` from 0.3.22 to 0.3.23
+- Bumped `vite` from 7.3.1 to 8.0.1 *(webui)*
+- Bumped `@sveltejs/vite-plugin-svelte` from 6.2.4 to 7.0.0 *(webui)*
+- Bumped `material-symbols` from 0.40.2 to 0.42.3 *(webui)*
+
+**GitHub Actions:**
+- Bumped `actions/upload-artifact` from 6 to 7
+
+---
+
 ## v1.0.3
 
 ### Logging Overhaul
