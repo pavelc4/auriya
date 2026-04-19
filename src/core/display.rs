@@ -20,16 +20,40 @@ pub async fn set_refresh_rate(hz: u32) -> Result<()> {
     Ok(())
 }
 
-pub async fn get_refresh_rate() -> Result<u32> {
+async fn read_rate_setting(name: &str) -> Result<u32> {
     let output = Command::new("settings")
-        .args(["get", "system", "min_refresh_rate"])
+        .args(["get", "system", name])
         .output()
         .await?;
 
+    // Android stores these as floats (e.g. "60.0"), so parse via f64 then round.
     Ok(String::from_utf8_lossy(&output.stdout)
         .trim()
-        .parse()
+        .parse::<f64>()
+        .map(|f| f.round() as u32)
         .unwrap_or(0))
+}
+
+pub async fn get_display_rates() -> Result<(u32, u32)> {
+    let min = read_rate_setting("min_refresh_rate").await?;
+    let peak = read_rate_setting("peak_refresh_rate").await?;
+    Ok((min, peak))
+}
+
+pub async fn restore_display_rates(min: u32, peak: u32) -> Result<()> {
+    debug!(target: "auriya::display", "Restoring refresh rates min={}Hz peak={}Hz", min, peak);
+
+    let _ = Command::new("settings")
+        .args(["put", "system", "min_refresh_rate", &min.to_string()])
+        .status()
+        .await?;
+
+    let _ = Command::new("settings")
+        .args(["put", "system", "peak_refresh_rate", &peak.to_string()])
+        .status()
+        .await?;
+
+    Ok(())
 }
 
 pub async fn reset_refresh_rate() -> Result<()> {
