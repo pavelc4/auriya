@@ -88,7 +88,7 @@ pub struct Daemon {
     pub(crate) balance_governor: String,
     pub(crate) default_mode: ProfileMode,
     pub(crate) supported_modes: Vec<crate::core::display::DisplayMode>,
-    pub(crate) refresh_rate_map: std::collections::HashMap<String, u32>,
+    pub(crate) refresh_rate_map: std::collections::HashMap<String, (u32, u32)>,
     pub(crate) cached_whitelist: HashSet<String>,
 }
 

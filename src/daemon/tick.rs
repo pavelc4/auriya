@@ -168,12 +168,12 @@ impl Daemon {
                     bump_log(&mut self.last);
                 }
                 if self.last.pkg.as_deref() != Some(pkg)
-                    && let Some(last_pkg) = &self.last.pkg
-                    && let Some(original_rate) = self.refresh_rate_map.remove(last_pkg)
+                    && let Some(last_pkg) = &self.last.pkg.clone()
+                    && let Some((min, peak)) = self.refresh_rate_map.remove(last_pkg)
                 {
-                    debug!(target: "auriya::display", "Restoring refresh rate for {}: {}Hz", last_pkg, original_rate);
-                    if let Err(e) = crate::core::display::set_refresh_rate(original_rate).await {
-                        error!(target: "auriya::display", ?e, "Failed to restore refresh rate");
+                    debug!(target: "auriya::display", "Restoring rates for {}: min={}Hz peak={}Hz", last_pkg, min, peak);
+                    if let Err(e) = crate::core::display::restore_display_rates(min, peak).await {
+                        error!(target: "auriya::display", ?e, "Failed to restore refresh rates");
                     }
                 }
 
@@ -215,13 +215,13 @@ impl Daemon {
 
                 if let Some(rr) = game_cfg.and_then(|c| c.refresh_rate) {
                     if !self.refresh_rate_map.contains_key(pkg) {
-                        match crate::core::display::get_refresh_rate().await {
-                            Ok(current) => {
-                                self.refresh_rate_map.insert(pkg.to_string(), current);
-                                debug!(target: "auriya::display", "Saved current rate for {}: {}Hz", pkg, current);
+                        match crate::core::display::get_display_rates().await {
+                            Ok((min, peak)) => {
+                                self.refresh_rate_map.insert(pkg.to_string(), (min, peak));
+                                debug!(target: "auriya::display", "Saved rates for {}: min={}Hz peak={}Hz", pkg, min, peak);
                             }
                             Err(e) => {
-                                warn!(target: "auriya::display", "Failed to read current refresh rate: {}", e)
+                                warn!(target: "auriya::display", "Failed to read current refresh rates: {}", e)
                             }
                         }
                     }
@@ -254,11 +254,11 @@ impl Daemon {
         use crate::core::profile;
 
         if self.last.pkg.as_deref() != Some(pkg)
-            && let Some(last_pkg) = &self.last.pkg
-            && let Some(original_rate) = self.refresh_rate_map.remove(last_pkg)
+            && let Some(last_pkg) = &self.last.pkg.clone()
+            && let Some((min, peak)) = self.refresh_rate_map.remove(last_pkg)
         {
-            debug!(target: "auriya::display", "Restoring refresh rate for {}: {}Hz ({})", last_pkg, original_rate, reason);
-            let _ = crate::core::display::set_refresh_rate(original_rate).await;
+            debug!(target: "auriya::display", "Restoring rates for {}: min={}Hz peak={}Hz ({})", last_pkg, min, peak, reason);
+            let _ = crate::core::display::restore_display_rates(min, peak).await;
         }
 
         if self.last.profile_mode != Some(self.default_mode) {
@@ -308,9 +308,15 @@ impl Daemon {
                 debug!(target: "auriya::daemon", "No foreground app detected");
                 bump_log(&mut self.last);
             }
-            self.last.pkg = None;
+            if let Some(last_pkg) = self.last.pkg.take() {
+                if let Some((min, peak)) = self.refresh_rate_map.remove(&last_pkg) {
+                    debug!(target: "auriya::display", "Restoring rates for {} (no foreground): min={}Hz peak={}Hz", last_pkg, min, peak);
+                    let _ = crate::core::display::restore_display_rates(min, peak).await;
+                } else {
+                    let _ = crate::core::display::reset_refresh_rate().await;
+                }
+            }
             self.last.pid = None;
-            let _ = crate::core::display::reset_refresh_rate().await;
         }
     }
 
