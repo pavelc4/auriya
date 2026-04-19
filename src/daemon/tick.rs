@@ -168,7 +168,7 @@ impl Daemon {
                     bump_log(&mut self.last);
                 }
                 if self.last.pkg.as_deref() != Some(pkg)
-                    && let Some(last_pkg) = &self.last.pkg.clone()
+                    && let Some(last_pkg) = &self.last.pkg
                     && let Some((min, peak)) = self.refresh_rate_map.remove(last_pkg)
                 {
                     debug!(target: "auriya::display", "Restoring rates for {}: min={}Hz peak={}Hz", last_pkg, min, peak);
@@ -254,7 +254,7 @@ impl Daemon {
         use crate::core::profile;
 
         if self.last.pkg.as_deref() != Some(pkg)
-            && let Some(last_pkg) = &self.last.pkg.clone()
+            && let Some(last_pkg) = &self.last.pkg
             && let Some((min, peak)) = self.refresh_rate_map.remove(last_pkg)
         {
             debug!(target: "auriya::display", "Restoring rates for {}: min={}Hz peak={}Hz ({})", last_pkg, min, peak, reason);

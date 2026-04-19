@@ -12,8 +12,16 @@ use tokio::{signal, time};
 use tracing::{debug, error, info};
 use tracing_subscriber::EnvFilter;
 
-type AsyncFpsCallback = Arc<dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>> + Send + Sync>;
-type AsyncGetFpsCallback = Arc<dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>> + Send + Sync>;
+type AsyncFpsCallback = Arc<
+    dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>>
+        + Send
+        + Sync,
+>;
+type AsyncGetFpsCallback = Arc<
+    dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>>
+        + Send
+        + Sync,
+>;
 
 const INGAME_INTERVAL_MS: u64 = 500;
 const NORMAL_INTERVAL_MS: u64 = 5000;

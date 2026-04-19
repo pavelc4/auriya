@@ -1,6 +1,6 @@
+pub mod cli;
+pub mod common;
 pub mod core;
 pub mod daemon;
-pub mod common;
-pub mod cli;
 
-pub use anyhow::{Result, Context};
+pub use anyhow::{Context, Result};

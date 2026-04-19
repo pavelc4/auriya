@@ -2,12 +2,8 @@ use crate::core::cmd::run_cmd_timeout_async;
 use memchr::{memchr, memmem};
 
 pub async fn get_foreground_package() -> anyhow::Result<Option<String>> {
-    let out = match run_cmd_timeout_async(
-        "/system/bin/dumpsys",
-        &["activity", "activities"],
-        1000,
-    )
-    .await
+    let out = match run_cmd_timeout_async("/system/bin/dumpsys", &["activity", "activities"], 1000)
+        .await
     {
         Ok(o) => o,
         Err(e) => {

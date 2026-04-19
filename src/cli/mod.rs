@@ -3,8 +3,8 @@ mod client;
 mod executor;
 mod output;
 
-pub use app::Cli;
 use crate::Result;
+pub use app::Cli;
 
 pub async fn run() -> Result<()> {
     use clap::Parser;

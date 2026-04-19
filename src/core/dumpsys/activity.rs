@@ -11,12 +11,8 @@ pub fn is_pid_valid(pid: i32) -> bool {
 }
 
 pub async fn get_app_pid(package: &str) -> anyhow::Result<Option<i32>> {
-    let out = match run_cmd_timeout_async(
-        "/system/bin/dumpsys",
-        &["activity", "activities"],
-        1000,
-    )
-    .await
+    let out = match run_cmd_timeout_async("/system/bin/dumpsys", &["activity", "activities"], 1000)
+        .await
     {
         Ok(o) => o,
         Err(_) => return Ok(None),

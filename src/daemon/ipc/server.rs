@@ -9,10 +9,17 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, RwLock};
 use tokio::net::UnixListener;
 
-type AsyncFpsCallback = Arc<dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>>+ Send+ Sync,>;
+type AsyncFpsCallback = Arc<
+    dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>>
+        + Send
+        + Sync,
+>;
 
-type AsyncGetFpsCallback = Arc<dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>>
-+Send+ Sync,>;
+type AsyncGetFpsCallback = Arc<
+    dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>>
+        + Send
+        + Sync,
+>;
 
 pub struct IpcHandles {
     pub enabled: Arc<AtomicBool>,

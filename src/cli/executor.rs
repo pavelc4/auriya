@@ -1,5 +1,5 @@
 use super::{app::*, client::IpcClient, output};
-use crate::common::{SOCKET_PATH};
+use crate::common::SOCKET_PATH;
 use crate::{Context, Result};
 use anyhow::bail;
 

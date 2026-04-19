@@ -1,7 +1,6 @@
 pub fn print_status(response: &str) {
     println!("   	   Auriya Daemon Status     ");
 
-
     if response.is_empty() {
         println!("No response from daemon\n");
         return;
