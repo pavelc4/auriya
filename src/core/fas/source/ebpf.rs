@@ -49,19 +49,16 @@ impl EbpfHandle {
                     // A blocking variant would never return when no app is
                     // attached and we'd never check cmd_rx again, deadlocking
                     // attach calls.
-                    match probe.recv_with_deadline(Duration::from_millis(50)) {
-                        Some((_pid, frametime)) => {
-                            if frame_tx.blocking_send(frametime).is_err() {
-                                return;
-                            }
-                        }
-                        None => {
-                            // Either no app attached yet, or poll timed out
-                            // before a frame arrived. Loop back to check
-                            // commands without sleeping — the poll deadline
-                            // already throttles us.
-                        }
+                    if let Some((_pid, frametime)) =
+                        probe.recv_with_deadline(Duration::from_millis(50))
+                        && frame_tx.blocking_send(frametime).is_err()
+                    {
+                        return;
                     }
+                    // None branch: no app attached yet, or poll timed out
+                    // before a frame arrived. Loop back to check commands
+                    // without sleeping — the poll deadline already throttles
+                    // us.
                 }
             })
             .map_err(|e| anyhow!("spawn ebpf worker: {e}"))?;

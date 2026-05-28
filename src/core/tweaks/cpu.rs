@@ -111,7 +111,7 @@ pub fn classify_cores(cores: &[usize]) -> (u64, u64, u64) {
         return (0, big_mask, 0);
     }
 
-    core_freqs.sort_by(|a, b| b.1.cmp(&a.1));
+    core_freqs.sort_by_key(|c| std::cmp::Reverse(c.1));
 
     let prime_core = core_freqs[0].0;
     prime_mask |= 1 << prime_core;
