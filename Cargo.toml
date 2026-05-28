@@ -56,3 +56,19 @@ libc = "0.2.186"
 clap = { version = "4", features = ["derive", "color", "suggestions"] }
 memchr = "2.8.0"
 toru = { git = "https://github.com/pavelc4/Toru", branch = "main" }
+
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+unused_must_use = "deny"
+
+[lints.clippy]
+# Whole-group dials. Pedantic is opt-in via #[warn] on individual
+# items if we ever want to enable it locally; as a workspace-wide
+# default it produces too much style noise without catching real bugs.
+all         = { level = "deny", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+suspicious  = { level = "deny", priority = -1 }
+perf        = { level = "deny", priority = -1 }
+complexity  = { level = "deny", priority = -1 }
+style       = { level = "warn", priority = -1 }
