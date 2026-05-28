@@ -3,6 +3,8 @@ name = "auriya"
 version = "1.0.4"
 edition = "2024"
 
+[workspace]
+
 [lib]
 name = "auriya"
 path = "src/lib.rs"
