@@ -44,47 +44,34 @@ runs:
             cp -r webui/dist/* "$BUILD_DIR/module/webroot/"
         fi
 
-        # 3. Binaries (Collect from download path)
-        # Note: In build.yml we upload 'auriya-universal' artifact with structure:
-        # build/release/libs/<arch>/auriya
+        # 3. Binary (aarch64 only)
+        TARGET="aarch64-linux-android"
+        ARCH="aarch64"
 
-        # We assume artifact download step has placed binaries effectively
-        # But this action usually runs AFTER build. So we need to ensure structure.
+        BIN="target/$TARGET/release/auriya"
+        CLI_BIN="target/$TARGET/release/auriyactl"
 
-        # For simplicity in native action, we'll assume binaries are in target/<arch>/release/auriya
-        # OR passed via inputs. But composite actions can't easily iterate inputs.
+        if [ -f "$BIN" ]; then
+            echo "Packaging $ARCH ($TARGET)..."
+            DEST_DIR="$BUILD_DIR/module/libs/$ARCH"
+            mkdir -p "$DEST_DIR"
 
-        # Let's verify binaries exist in standard target locations
-        TARGETS=("aarch64-linux-android:aarch64" "armv7-linux-androideabi:arm" "x86_64-linux-android:x64")
+            # Copy Daemon
+            cp "$BIN" "$DEST_DIR/auriya"
 
-        for pair in "${TARGETS[@]}"; do
-            TARGET="${pair%%:*}"
-            ARCH="${pair##*:}"
-            
-            BIN="target/$TARGET/release/auriya"
-            CLI_BIN="target/$TARGET/release/auriyactl"
-            
-            if [ -f "$BIN" ]; then
-                echo "Packaging $ARCH ($TARGET)..."
-                DEST_DIR="$BUILD_DIR/module/libs/$ARCH"
-                mkdir -p "$DEST_DIR"
-                
-                # Copy Daemon
-                cp "$BIN" "$DEST_DIR/auriya"
-                
-                # Copy CLI if exists
-                if [ -f "$CLI_BIN" ]; then
-                    cp "$CLI_BIN" "$DEST_DIR/auriyactl"
-                else
-                    echo "Warning: CLI Binary for $ARCH not found at $CLI_BIN"
-                fi
-
-                # Checksums
-                (cd "$DEST_DIR" && sha256sum * > checksums.sha256)
+            # Copy CLI if exists
+            if [ -f "$CLI_BIN" ]; then
+                cp "$CLI_BIN" "$DEST_DIR/auriyactl"
             else
-                echo "Warning: Binary for $ARCH not found at $BIN"
+                echo "Warning: CLI Binary not found at $CLI_BIN"
             fi
-        done
+
+            # Checksums
+            (cd "$DEST_DIR" && sha256sum * > checksums.sha256)
+        else
+            echo "ERROR: Binary not found at $BIN" >&2
+            exit 1
+        fi
 
         # Get version from Cargo.toml
         VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
