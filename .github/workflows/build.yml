@@ -35,30 +35,28 @@ jobs:
           bun install
           bun run build
 
-      - name: Build Rust Binary (Multi-Arch)
+      - name: Build Rust Binary (aarch64)
         run: |
-          TARGETS=("aarch64-linux-android" "armv7-linux-androideabi" "x86_64-linux-android")
+          TARGET="aarch64-linux-android"
 
           sed -i "s|/opt/android-ndk|${ANDROID_NDK_HOME}|g" .cargo/config.toml
 
-          for target in "${TARGETS[@]}"; do
-              echo "Building for $target..."
-              cargo ndk -t "$target" --platform 26 -- build --release --bin auriya --bin auriyactl
+          echo "Building for $TARGET..."
+          cargo ndk -t "$TARGET" --platform 26 -- build --release --bin auriya --bin auriyactl
 
-              BINARY="target/$target/release/auriya"
-              CLI_BINARY="target/$target/release/auriyactl"
-              LLVM_STRIP="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
+          BINARY="target/$TARGET/release/auriya"
+          CLI_BINARY="target/$TARGET/release/auriyactl"
+          LLVM_STRIP="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
 
-              if [ -f "$LLVM_STRIP" ]; then
-                  "$LLVM_STRIP" --strip-all "$BINARY"
-                  "$LLVM_STRIP" --strip-all "$CLI_BINARY"
-              else
-                  strip --strip-all "$BINARY"
-                  strip --strip-all "$CLI_BINARY"
-              fi
-              sha256sum "$BINARY" > "${BINARY}.sha256"
-              sha256sum "$CLI_BINARY" > "${CLI_BINARY}.sha256"
-          done
+          if [ -f "$LLVM_STRIP" ]; then
+              "$LLVM_STRIP" --strip-all "$BINARY"
+              "$LLVM_STRIP" --strip-all "$CLI_BINARY"
+          else
+              strip --strip-all "$BINARY"
+              strip --strip-all "$CLI_BINARY"
+          fi
+          sha256sum "$BINARY" > "${BINARY}.sha256"
+          sha256sum "$CLI_BINARY" > "${CLI_BINARY}.sha256"
 
       - name: Package Module
         id: package
@@ -69,7 +67,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: auriya-universal
+          name: auriya-aarch64
           path: build/release/*.zip
           compression-level: 0
 

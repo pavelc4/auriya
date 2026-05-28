@@ -1,3 +1,4 @@
+import type { ComponentType } from 'svelte';
 import IconLightMode from '~icons/material-symbols/light-mode-rounded';
 import IconDarkMode from '~icons/material-symbols/dark-mode-rounded';
 import IconDashboard from '~icons/material-symbols/dashboard-rounded';
@@ -43,7 +44,7 @@ import IconKeyboardArrowDown from '~icons/material-symbols/keyboard-arrow-down-r
 import IconRestartAlt from '~icons/material-symbols/restart-alt-rounded';
 import IconAutoMode from '~icons/material-symbols/auto-mode-rounded';
 
-export const iconMap = {
+export const iconMap: Record<string, ComponentType> = {
 	'light_mode': IconLightMode,
 	'dark_mode': IconDarkMode,
 	'dashboard': IconDashboard,
