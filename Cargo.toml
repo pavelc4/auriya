@@ -53,3 +53,4 @@ time = { version = "0.3", features = ["formatting"] }
 libc = "0.2.186"
 clap = { version = "4", features = ["derive", "color", "suggestions"] }
 memchr = "2.8.0"
+toru = { git = "https://github.com/pavelc4/Toru", branch = "main" }
