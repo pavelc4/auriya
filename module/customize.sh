@@ -4,15 +4,11 @@ MODULE_CONFIG="/data/adb/.config/auriya"
 LOG_DIR="/data/adb/auriya"
 case $ARCH in
     arm64) SOURCE_ARCH="aarch64" ;;
-    arm)   SOURCE_ARCH="arm" ;;
-    x64|x86) SOURCE_ARCH="x64" ;;
     *)
         ui_print "! Unsupported architecture: $ARCH"
         ui_print ""
-        ui_print "Auriya supports:"
-        ui_print "• arm64 (aarch64) - Modern Android phones"
-        ui_print "• arm (armv7) - Older Android phones"
-        ui_print "• x64 (x86_64) - Emulators/Chromebooks"
+        ui_print "Auriya only supports arm64 (aarch64)."
+        ui_print "32-bit ARM and x86 are not supported."
         abort
         ;;
 esac
