@@ -331,10 +331,6 @@ pub fn decide_action(control_khz: f64, is_janked: bool) -> ScalingAction {
     }
 }
 
-pub const FAS_KP: f64 = KP_DEFAULT;
-pub const FAS_MARGIN_FPS: f64 = MARGIN_FPS;
-pub const FAS_JANK_DELTA_FPS: f64 = JANK_DELTA_FPS;
-
 #[cfg(test)]
 mod tests {
     use super::*;

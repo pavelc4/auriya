@@ -10,7 +10,6 @@
 //                              new app
 //   - drain_frame_times()    — drain every per-frame delta produced
 //                              since the last call, ordered oldest → newest
-//   - get_frame_time()       — back-compat helper, returns only the freshest
 
 use crate::core::dumpsys::surfaceflinger::SurfaceFlinger;
 use anyhow::Result;
@@ -114,12 +113,6 @@ impl FrameSource {
                 .into_iter()
                 .collect(),
         }
-    }
-
-    /// Back-compat shim: return the most recent delta only.
-    pub async fn get_frame_time(&mut self) -> Result<Option<Duration>> {
-        let mut frames = self.drain_frame_times().await;
-        Ok(frames.pop())
     }
 
     fn drain_ebpf(&mut self) -> Vec<Duration> {
