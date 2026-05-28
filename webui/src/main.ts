@@ -5,6 +5,6 @@ import App from './App.svelte'
 
 localeReady.then(() => {
 	mount(App, {
-		target: document.getElementById('app'),
+		target: document.getElementById('app')!,
 	})
 })
