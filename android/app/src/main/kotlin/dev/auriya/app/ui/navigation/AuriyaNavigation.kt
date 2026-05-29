@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import dev.auriya.app.data.NavMode
 import dev.auriya.app.ui.components.AuriyaBottomBar
 import dev.auriya.app.ui.components.AuriyaNavItem
@@ -84,6 +85,19 @@ fun AuriyaNavigation(
             val navMode = themePrefs?.navMode ?: NavMode.STANDARD
 
             Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = "Auriya",
+                                fontWeight = FontWeight.ExtraBold,
+                            )
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background,
+                        ),
+                    )
+                },
                 bottomBar = {
                     AuriyaBottomBar(
                         items = navItems,
