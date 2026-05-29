@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Headless Auriya companion service.
+
+  This package contains no Activity, ContentProvider, or Service
+  component. The classes.dex is meant to be loaded by app_process from
+  service.sh as documented in service.sh itself.
+
+  The manifest exists so the build system produces a valid APK; it is
+  installed to module/system/etc/auriya/service.apk and never picked up
+  by PackageManager.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application
+        android:label="Auriya Service"
+        android:hasCode="true"
+        android:allowBackup="false"
+        tools:ignore="MissingApplicationIcon" />
+</manifest>
