@@ -1,3 +1,4 @@
+pub mod cmd_writer;
 pub mod config;
 pub mod display;
 pub mod dumpsys;
