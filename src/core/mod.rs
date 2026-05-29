@@ -1,9 +1,9 @@
-pub mod cmd;
 pub mod config;
 pub mod display;
 pub mod dumpsys;
 pub mod fas;
 pub mod profile;
 pub mod scaling;
+pub mod system_status;
 pub mod thermal;
 pub mod tweaks;
