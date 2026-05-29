@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Looper
 import android.util.Log
+import dev.auriya.service.actuator.DnDActuator
+import dev.auriya.service.io.CmdReader
 import dev.auriya.service.io.StatusWriter
 import dev.auriya.service.lock.LockFile
 import dev.auriya.service.sensor.PowerSensor
@@ -69,7 +71,15 @@ object Main {
         val power = PowerSensor(context, sink)
         val zen = ZenSensor(context, sink)
 
+        val dnd = DnDActuator(context)
+        val cmdReader = CmdReader(File(ConfigPaths.CMD_FILE)) { cmd ->
+            cmd.dnd?.let { dnd.apply(it) }
+            // refresh_rate handling lands when the display actuator
+            // is implemented.
+        }
+
         Runtime.getRuntime().addShutdownHook(Thread {
+            cmdReader.stop()
             taskStack.stop()
             power.stop()
             zen.stop()
@@ -78,8 +88,9 @@ object Main {
         taskStack.start()
         power.start()
         zen.start()
+        cmdReader.start()
 
-        Log.i(TAG, "sensors started, parking main looper")
+        Log.i(TAG, "sensors + actuator started, parking main looper")
         Looper.loop()
     }
 
