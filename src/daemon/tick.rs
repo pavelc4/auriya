@@ -6,6 +6,15 @@ use anyhow::Result;
 use std::sync::Arc;
 use tracing::{debug, error, warn};
 
+/// Local view of the relevant subset of `SystemStatus`. Defined here
+/// rather than reusing a shared struct because the tick loop only ever
+/// cares about these two booleans and we want to keep the conversion
+/// from `Option<bool>` defaults colocated with the consumer.
+struct PowerSnapshot {
+    screen_awake: bool,
+    battery_saver: bool,
+}
+
 impl Daemon {
     pub async fn tick(&mut self) {
         self.tick_count = self.tick_count.wrapping_add(1);
@@ -53,17 +62,10 @@ impl Daemon {
     async fn process_tick_logic(&mut self, gamelist: &crate::core::config::GameList) -> Result<()> {
         use crate::core::profile;
 
-        let was_screen_off = !self.last.screen_awake.unwrap_or(true);
-        let should_fetch_power =
-            was_screen_off || self.tick_count.is_multiple_of(5) || self.tick_count == 1;
-
-        let power = if should_fetch_power {
-            crate::core::dumpsys::power::PowerState::fetch().await?
-        } else {
-            crate::core::dumpsys::power::PowerState {
-                screen_awake: self.last.screen_awake.unwrap_or(true),
-                battery_saver: self.last.battery_saver.unwrap_or(false),
-            }
+        let (screen_awake, battery_saver) = self.status_cache.power_state();
+        let power = PowerSnapshot {
+            screen_awake,
+            battery_saver,
         };
 
         let power_changed = self.last.screen_awake != Some(power.screen_awake)
@@ -94,20 +96,12 @@ impl Daemon {
             self.override_foreground.read().ok().and_then(|o| o.clone());
 
         if pkg_opt.is_none() {
-            let fetch_foreground = self.tick_count.is_multiple_of(2) || self.tick_count == 1;
-
-            if fetch_foreground {
-                match crate::core::dumpsys::foreground::get_foreground_package().await? {
-                    Some(p) => pkg_opt = Some(p),
-                    None => {
-                        self.handle_no_foreground().await;
-                        return Ok(());
-                    }
+            match self.status_cache.focused_package() {
+                Some(p) => pkg_opt = Some(p),
+                None => {
+                    self.handle_no_foreground().await;
+                    return Ok(());
                 }
-            } else if let Some(last_pkg) = &self.last.pkg {
-                pkg_opt = Some(last_pkg.clone());
-            } else {
-                return Ok(());
             }
         }
         let pkg = pkg_opt.unwrap();
@@ -160,7 +154,11 @@ impl Daemon {
     ) -> Result<()> {
         use crate::core::profile;
 
-        match crate::core::dumpsys::activity::get_app_pid(pkg).await? {
+        let cached_pid = self.status_cache.focused_pid().filter(|&p| {
+            crate::core::dumpsys::activity::is_pid_valid(p)
+                && crate::core::dumpsys::activity::verify_pid_package(p, pkg)
+        });
+        match cached_pid {
             Some(pid) => {
                 let changed = self.last.pkg.as_deref() != Some(pkg) || self.last.pid != Some(pid);
                 if changed && should_log_change(&self.last, &self.cfg) {
