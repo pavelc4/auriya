@@ -1,5 +1,7 @@
 package dev.auriya.app.ui.settings
 
+import android.app.NotificationManager
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -171,6 +173,11 @@ fun SettingsScreen(
                         }
                     },
                 )
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    thickness = 1.dp
+                )
+                DndAccessRow()
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     thickness = 1.dp
@@ -383,6 +390,54 @@ fun SettingRow(
             )
         }
     }
+}
+
+@Composable
+private fun DndAccessRow() {
+    val context = LocalContext.current
+    val nm = remember { context.getSystemService(NotificationManager::class.java) }
+    val isGranted = remember { nm?.isNotificationPolicyAccessGranted ?: false }
+
+    SettingRow(
+        icon = Icons.Filled.DoNotDisturbOn,
+        title = "Do Not Disturb Access",
+        subtitle = if (isGranted) "Granted — companion can set game-mode DnD"
+                   else "Required for auto DnD during gaming",
+        control = {
+            if (isGranted) {
+                Text(
+                    text = "GRANTED",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(AuriyaTokens.rounding.full))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+            } else {
+                Button(
+                    onClick = {
+                        val intent = Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    },
+                    shape = RoundedCornerShape(AuriyaTokens.rounding.full),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    ),
+                ) {
+                    Text(
+                        text = "GRANT",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    )
 }
 
 private fun saveSettingsChange(

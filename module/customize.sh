@@ -102,14 +102,14 @@ if [ -f "$DAEMON_SHA" ] || [ -f "$CHECKSUMS_FILE" ]; then
         ui_print "! sha256sum not available, skipping verification"
         DAEMON_ACTUAL_SHA=""
     fi
-    
+
     if [ -n "$DAEMON_ACTUAL_SHA" ]; then
         if [ -f "$CHECKSUMS_FILE" ]; then
             DAEMON_EXPECTED_SHA=$(grep "auriya$" "$CHECKSUMS_FILE" | cut -d' ' -f1)
         elif [ -f "$DAEMON_SHA" ]; then
             DAEMON_EXPECTED_SHA=$(cut -d' ' -f1 "$DAEMON_SHA")
         fi
-        
+
         if [ "$DAEMON_ACTUAL_SHA" = "$DAEMON_EXPECTED_SHA" ]; then
             ui_print "✓ Daemon SHA256: ${DAEMON_EXPECTED_SHA:0:16}... (verified)"
         else
@@ -126,11 +126,11 @@ if [ -f "$DAEMON_SHA" ] || [ -f "$CHECKSUMS_FILE" ]; then
             ui_print ""
             abort "Installation aborted (integrity check failed)"
         fi
-        
+
         if [ "$HAS_CLI" = true ] && [ -n "$CLI_ACTUAL_SHA" ]; then
             if [ -f "$CHECKSUMS_FILE" ]; then
                 CLI_EXPECTED_SHA=$(grep "auriyactl$" "$CHECKSUMS_FILE" | cut -d' ' -f1)
-                
+
                 if [ "$CLI_ACTUAL_SHA" = "$CLI_EXPECTED_SHA" ]; then
                     ui_print " CLI SHA256: ${CLI_EXPECTED_SHA:0:16}... (verified)"
                 else
@@ -158,7 +158,7 @@ if [ "$HAS_CLI" = true ]; then
         ui_print "! Failed to copy CLI (continuing without)"
         HAS_CLI=false
     }
-    
+
     if [ "$HAS_CLI" = true ]; then
         chmod 0755 "$MODPATH/system/bin/auriyactl"
         CLI_SIZE=$(du -h "$MODPATH/system/bin/auriyactl" | cut -f1)
@@ -234,6 +234,10 @@ make_node "$ARCH" "$MODULE_CONFIG/arch"
 make_dir "$LOG_DIR"
 chmod 0755 "$LOG_DIR"
 [ -f "$LOG_DIR/daemon.log" ] && mv "$LOG_DIR/daemon.log" "$LOG_DIR/daemon.log.old"
+[ -d "/data/adb/ksu/bin" ] && ln -sf "$MODPATH/system/bin/auriya" "/data/adb/ksu/bin/auriya"
+[ -d "/data/adb/ksu/bin" ] && [ "$HAS_CLI" = true ] && ln -sf "$MODPATH/system/bin/auriyactl" "/data/adb/ksu/bin/auriyactl"
+[ -d "/data/adb/ap/bin" ]  && ln -sf "$MODPATH/system/bin/auriya" "/data/adb/ap/bin/auriya"
+[ -d "/data/adb/ap/bin" ]  && [ "$HAS_CLI" = true ] && ln -sf "$MODPATH/system/bin/auriyactl" "/data/adb/ap/bin/auriyactl"
 
 set_perm "$MODPATH/system/bin/auriya" 0 0 0755
 set_perm "$COMPANION_APK_DST" 0 0 0644

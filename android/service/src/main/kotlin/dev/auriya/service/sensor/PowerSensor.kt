@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 
@@ -21,8 +23,10 @@ class PowerSensor(
 ) {
     private companion object {
         private const val TAG = "AuriyaPower"
+        private const val POLL_MS = 1000L
     }
 
+    private val handler = Handler(Looper.getMainLooper())
     private val powerManager: PowerManager =
         context.getSystemService(Context.POWER_SERVICE) as PowerManager
 
@@ -59,9 +63,28 @@ class PowerSensor(
         } catch (t: Throwable) {
             Log.e(TAG, "registerReceiver failed", t)
         }
+        // BroadcastReceiver delivery is not reliable in headless
+        // app_process — ACTION_SCREEN_ON/OFF may never arrive.
+        // Poll as a safety net so the daemon stops seeing stale
+        // screen_awake values within 1 second.
+        schedulePoll()
     }
 
     fun stop() {
+        handler.removeCallbacksAndMessages(null)
         runCatching { context.unregisterReceiver(receiver) }
+    }
+
+    private fun schedulePoll() {
+        handler.postDelayed(pollRunnable, POLL_MS)
+    }
+
+    private val pollRunnable = object : Runnable {
+        override fun run() {
+            val awake = powerManager.isInteractive
+            val saver = powerManager.isPowerSaveMode
+            sink.push(SensorSnapshot(screenAwake = awake, batterySaver = saver))
+            handler.postDelayed(this, POLL_MS)
+        }
     }
 }

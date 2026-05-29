@@ -120,7 +120,16 @@ pub fn apply_performance() -> Result<()> {
 }
 
 pub fn apply_balance(governor: &str) -> Result<()> {
-    debug!(target: "auriya::profile", "Applying BALANCE profile (governor: {})", governor);
+    apply_balance_with_dnd(governor, false)
+}
+
+pub fn apply_balance_with_dnd(governor: &str, enable_dnd: bool) -> Result<()> {
+    debug!(
+        target: "auriya::profile",
+        "Applying BALANCE profile (governor: {}, dnd: {})",
+        governor,
+        enable_dnd
+    );
 
     paths::set_governor_cached(governor);
     cpu::disable_boost()?;
@@ -141,17 +150,34 @@ pub fn apply_balance(governor: &str) -> Result<()> {
     warn_on_err(storage::unlock_storage_freq(), "unlock storage freq");
     warn_on_err(memory::restore_balanced(), "restore balanced memory");
 
-    request_dnd(DndFilter::All);
+    // Only clear DnD if no game session asked us to keep it on. The
+    // FAS Reduce path still calls into balance during a live session
+    // (thermal chill / load drop) and we must not yank the user's
+    // notification filter while they are still in the game.
+    if !enable_dnd {
+        request_dnd(DndFilter::All);
+    }
 
     Ok(())
 }
 
 pub fn apply_powersave() -> Result<()> {
-    debug!(target: "auriya::profile", "Applying POWERSAVE profile");
+    apply_powersave_with_dnd(false)
+}
+
+pub fn apply_powersave_with_dnd(enable_dnd: bool) -> Result<()> {
+    debug!(
+        target: "auriya::profile",
+        "Applying POWERSAVE profile (dnd: {})",
+        enable_dnd
+    );
 
     paths::set_governor_cached("powersave");
     warn_on_err(memory::apply_powersave_lmk(), "apply LMK");
-    request_dnd(DndFilter::All);
+
+    if !enable_dnd {
+        request_dnd(DndFilter::All);
+    }
 
     Ok(())
 }

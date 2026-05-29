@@ -120,6 +120,7 @@ impl Daemon {
                 let governor = game_cfg
                     .map(|c| c.cpu_governor.clone())
                     .unwrap_or_else(|| self.balance_governor.clone());
+                let enable_dnd = game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
 
                 if let Some(cfg) = game_cfg
                     && let Some(ref fps_cfg) = cfg.target_fps
@@ -129,7 +130,7 @@ impl Daemon {
                 }
 
                 match self
-                    .run_fas_tick(&fas, &pkg, &governor, self.last.pid)
+                    .run_fas_tick(&fas, &pkg, &governor, self.last.pid, enable_dnd)
                     .await
                 {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
@@ -324,6 +325,7 @@ impl Daemon {
         pkg: &str,
         game_governor: &str,
         pid: Option<i32>,
+        enable_dnd: bool,
     ) -> Result<bool> {
         use crate::core::{profile, scaling::ScalingAction};
 
@@ -339,7 +341,7 @@ impl Daemon {
             ScalingAction::Boost => {
                 if self.last.profile_mode != Some(ProfileMode::Performance) {
                     debug!(target: "auriya::fas", "FAS decision: BOOST → applying PERFORMANCE");
-                    profile::apply_performance_with_config(game_governor, true, None)?;
+                    profile::apply_performance_with_config(game_governor, enable_dnd, None)?;
                     self.last.profile_mode = Some(ProfileMode::Performance);
                 } else {
                     debug!(target: "auriya::fas", "FAS decision: BOOST → already PERFORMANCE, skip");
@@ -353,9 +355,17 @@ impl Daemon {
             ScalingAction::Reduce => {
                 if self.last.profile_mode != Some(self.default_mode) {
                     let res = match self.default_mode {
-                        ProfileMode::Performance => profile::apply_performance(),
-                        ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
-                        ProfileMode::Powersave => profile::apply_powersave(),
+                        ProfileMode::Performance => {
+                            profile::apply_performance_with_config(
+                                game_governor,
+                                enable_dnd,
+                                None,
+                            )
+                        }
+                        ProfileMode::Balance => {
+                            profile::apply_balance_with_dnd(game_governor, enable_dnd)
+                        }
+                        ProfileMode::Powersave => profile::apply_powersave_with_dnd(enable_dnd),
                     };
 
                     if let Err(e) = res {

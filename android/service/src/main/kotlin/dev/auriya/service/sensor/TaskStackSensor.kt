@@ -47,8 +47,11 @@ class TaskStackSensor(
             emitCurrentForeground()
         } else {
             Log.w(TAG, "binder API unavailable; falling back to polling")
-            schedulePoll()
         }
+        // Always schedule the poll fallback. On Android 16 the binder
+        // proxy's asBinder() may be silently discarded, leaving the
+        // process deaf to task-switch events. The poll keeps us alive.
+        schedulePoll()
     }
 
     fun stop() {
@@ -84,6 +87,10 @@ class TaskStackSensor(
         false
     }
 
+    // A real Binder token so registerTaskStackListener doesn't discard
+    // the proxy silently when it calls listener.asBinder().
+    private val binderToken = android.os.Binder()
+
     private inner class TaskStackInvocationHandler : InvocationHandler {
         override fun invoke(proxy: Any?, method: Method?, args: Array<out Any?>?): Any? {
             // We only care about state changes — every callback in
@@ -95,7 +102,7 @@ class TaskStackSensor(
                 "onTaskFocusChanged",
                 "onTaskCreated",
                 "onTaskRemoved" -> emitCurrentForeground()
-                "asBinder" -> return null
+                "asBinder" -> return binderToken
                 "toString" -> return "AuriyaTaskStackListener"
                 "hashCode" -> return System.identityHashCode(this)
                 "equals" -> return proxy === args?.firstOrNull()
