@@ -6,7 +6,7 @@ core-ktx = "1.18.0"
 java-target = "26"
 
 # Compose
-compose-bom = "2025.01.00"
+compose-bom = "2026.05.01"
 compose-compiler = "1.5.15"
 activity-compose = "1.13.0"
 lifecycle = "2.8.7"
