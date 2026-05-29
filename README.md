@@ -14,7 +14,7 @@
 - **Per-App Refresh Rate** - Different refresh rate for each app
 - **Per-Game Profile** - FPS target and mode configuration
 - **System Tweaks** - CPU and Memory optimization
-- **WebUI** - Configuration interface
+- **WebUI** *(deprecated, replaced by native Android app)* - Configuration interface (Compose Material 3 Expressive). Install the bundled APK after flashing the module.
 
 ## Supported Root Managers
 

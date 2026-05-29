@@ -5,4 +5,3 @@ versionCode=
 author=Pavelc4
 description=Ferris, let's goo!
 updateJson=https://raw.githubusercontent.com/pavelc4/auriya/main/update.json
-web_ui=file:///data/adb/modules/auriya/webroot/index.html
