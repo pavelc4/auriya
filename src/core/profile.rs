@@ -1,9 +1,10 @@
+use crate::core::cmd_writer::{CmdWriter, DndFilter};
 use crate::core::tweaks::{
     cpu, gpu, init, memory, paths, sched, storage,
     vendor::{detect as soc, mtk, snapdragon},
 };
 use anyhow::Result;
-use std::process::Command;
+use std::sync::OnceLock;
 use tracing::debug;
 #[inline]
 fn warn_on_err<E: std::fmt::Display>(result: Result<(), E>, context: &str) {
@@ -12,12 +13,27 @@ fn warn_on_err<E: std::fmt::Display>(result: Result<(), E>, context: &str) {
     }
 }
 
+fn cmd_writer() -> &'static CmdWriter {
+    static WRITER: OnceLock<CmdWriter> = OnceLock::new();
+    WRITER.get_or_init(CmdWriter::default_path)
+}
+
+/// Request the companion service to apply the given DnD filter. The
+/// daemon cannot call NotificationManager itself — it would need to be
+/// an app rather than a root binary — so we hand the work off through
+/// the cmd file.
 #[inline]
-fn set_notifications(enabled: bool) {
-    let val = if enabled { "1" } else { "0" };
-    let _ = Command::new("settings")
-        .args(["put", "global", "heads_up_notifications_enabled", val])
-        .output();
+fn request_dnd(filter: DndFilter) {
+    if let Err(e) = cmd_writer().write_dnd(filter) {
+        tracing::warn!(
+            target: "auriya::profile",
+            "Failed to write DnD {:?} to cmd file: {}",
+            filter,
+            e
+        );
+    } else {
+        debug!(target: "auriya::profile", "Requested DnD filter {:?}", filter);
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
@@ -93,8 +109,7 @@ pub fn apply_performance_with_config(
     }
 
     if enable_dnd {
-        set_notifications(false);
-        debug!(target: "auriya::profile", "Gaming mode: notifications silenced");
+        request_dnd(DndFilter::Priority);
     }
 
     Ok(())
@@ -126,8 +141,7 @@ pub fn apply_balance(governor: &str) -> Result<()> {
     warn_on_err(storage::unlock_storage_freq(), "unlock storage freq");
     warn_on_err(memory::restore_balanced(), "restore balanced memory");
 
-    set_notifications(true);
-    debug!(target: "auriya::profile", "Normal mode: notifications restored");
+    request_dnd(DndFilter::All);
 
     Ok(())
 }
@@ -137,7 +151,7 @@ pub fn apply_powersave() -> Result<()> {
 
     paths::set_governor_cached("powersave");
     warn_on_err(memory::apply_powersave_lmk(), "apply LMK");
-    set_notifications(true);
+    request_dnd(DndFilter::All);
 
     Ok(())
 }
