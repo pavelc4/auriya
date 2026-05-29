@@ -1,8 +1,10 @@
 use crate::core::profile::ProfileMode;
+use crate::core::system_status::{STATUS_FILE, SystemStatusCache};
 use crate::core::tweaks::vendor::{detect, mtk};
 use crate::daemon::state::{CurrentState, LastState};
 use anyhow::Result;
 use std::collections::HashSet;
+use std::path::PathBuf;
 use std::{
     sync::atomic::AtomicBool,
     sync::{Arc, RwLock},
@@ -98,12 +100,14 @@ pub struct Daemon {
     pub(crate) supported_modes: Vec<crate::core::display::DisplayMode>,
     pub(crate) refresh_rate_map: std::collections::HashMap<String, (u32, u32)>,
     pub(crate) cached_whitelist: HashSet<String>,
+    pub(crate) status_cache: SystemStatusCache,
 }
 
 impl Daemon {
     pub fn new(
         cfg: DaemonConfig,
         supported_modes: Vec<crate::core::display::DisplayMode>,
+        status_cache: SystemStatusCache,
     ) -> Result<Self> {
         let shared_settings = Arc::new(RwLock::new(cfg.settings.clone()));
         let shared_gamelist = Arc::new(RwLock::new(cfg.gamelist.clone()));
@@ -159,6 +163,7 @@ impl Daemon {
             refresh_rate_map: std::collections::HashMap::new(),
             cached_whitelist,
             tick_count: 0,
+            status_cache,
         })
     }
     #[inline]
@@ -324,7 +329,24 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
         }
     };
 
-    let mut daemon = Daemon::new(cfg.clone(), supported_modes)?;
+    // Companion service is required: it produces the status file the
+    // daemon now reads instead of polling dumpsys. Refuse to start
+    // without it so the user gets a clear error instead of silent
+    // misbehaviour.
+    let status_path = PathBuf::from(STATUS_FILE);
+    let wait_timeout = Duration::from_secs(10);
+    if let Err(e) = crate::core::system_status::watcher::await_status_file(&status_path, wait_timeout) {
+        error!(
+            target: "auriya::daemon",
+            "Daemon | {e}"
+        );
+        return Err(e);
+    }
+
+    let (status_cache, mut status_rx) =
+        crate::core::system_status::watcher::start_status_watcher(status_path)?;
+
+    let mut daemon = Daemon::new(cfg.clone(), supported_modes, status_cache)?;
 
     if detect::is_mediatek() {
         debug!(target: "auriya::daemon", "MTK device detected, applying PPM fix...");
@@ -358,6 +380,10 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
 
         tokio::select! {
             _ = time::sleep(Duration::from_millis(sleep_ms)) => {
+                daemon.tick().await;
+            }
+            Some(_) = status_rx.recv() => {
+                debug!(target: "auriya::daemon", "Status update received, triggering instant tick");
                 daemon.tick().await;
             }
             Some(msg) = watch_rx.recv() => {
