@@ -121,9 +121,16 @@ impl Daemon {
 
         let fas_controller = if cfg.settings.fas.enabled {
             debug!(target: "auriya::daemon", "FAS enabled");
-            Some(Arc::new(tokio::sync::Mutex::new(
-                crate::daemon::fas::FasController::with_target_fps(60),
-            )))
+            match crate::daemon::fas::FasController::with_target_fps(60) {
+                Ok(ctrl) => Some(Arc::new(tokio::sync::Mutex::new(ctrl))),
+                Err(e) => {
+                    tracing::warn!(
+                        target: "auriya::daemon",
+                        "FAS    | requested but unavailable: {e:#}. Continuing without FAS."
+                    );
+                    None
+                }
+            }
         } else {
             debug!(target: "auriya::daemon", "FAS disabled");
             None
