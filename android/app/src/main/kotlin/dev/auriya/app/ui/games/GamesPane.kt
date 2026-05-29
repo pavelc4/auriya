@@ -23,6 +23,7 @@ fun GamesPane(viewModel: UiViewModel) {
     val scope = rememberCoroutineScope()
     var selectedGame by remember { mutableStateOf<GameProfile?>(null) }
     val governors by viewModel.availableGovernors.collectAsState()
+    val gameList by viewModel.gameList.collectAsState()
 
     NavigableListDetailPaneScaffold(
         navigator = navigator,
@@ -43,9 +44,11 @@ fun GamesPane(viewModel: UiViewModel) {
             AnimatedPane {
                 val game = selectedGame
                 if (game != null) {
+                    val isExisting = gameList.games.any { it.packageName == game.packageName }
                     GameProfileScreen(
                         game = game,
                         governorOptions = governors,
+                        isExistingProfile = isExisting,
                         onDismiss = {
                             scope.launch { navigator.navigateBack() }
                         },
@@ -53,6 +56,12 @@ fun GamesPane(viewModel: UiViewModel) {
                             viewModel.addGame(updated)
                             scope.launch { navigator.navigateBack() }
                         },
+                        onRemove = if (isExisting) {
+                            {
+                                viewModel.removeGame(game.packageName)
+                                scope.launch { navigator.navigateBack() }
+                            }
+                        } else null,
                     )
                 }
             }

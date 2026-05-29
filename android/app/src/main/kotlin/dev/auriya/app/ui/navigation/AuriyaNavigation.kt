@@ -45,17 +45,29 @@ fun AuriyaNavigation(
     var subScreen by remember { mutableStateOf(SubScreen.None) }
     val themePrefs by themeViewModel.prefs.collectAsState()
     val governors by viewModel.availableGovernors.collectAsState()
+    val gameList by viewModel.gameList.collectAsState()
 
     when {
-        editingGameProfile != null -> GameProfileScreen(
-            game = editingGameProfile!!,
-            governorOptions = governors,
-            onDismiss = { editingGameProfile = null },
-            onSave = { updated ->
-                viewModel.addGame(updated)
-                editingGameProfile = null
-            },
-        )
+        editingGameProfile != null -> {
+            val current = editingGameProfile!!
+            val isExisting = gameList.games.any { it.packageName == current.packageName }
+            GameProfileScreen(
+                game = current,
+                governorOptions = governors,
+                isExistingProfile = isExisting,
+                onDismiss = { editingGameProfile = null },
+                onSave = { updated ->
+                    viewModel.addGame(updated)
+                    editingGameProfile = null
+                },
+                onRemove = if (isExisting) {
+                    {
+                        viewModel.removeGame(current.packageName)
+                        editingGameProfile = null
+                    }
+                } else null,
+            )
+        }
         subScreen == SubScreen.Language -> LanguageScreen(
             onDismiss = { subScreen = SubScreen.None },
         )

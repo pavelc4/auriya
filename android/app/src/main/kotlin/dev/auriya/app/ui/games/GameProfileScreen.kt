@@ -10,6 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,8 +35,10 @@ import dev.auriya.shared.model.GameProfile
 fun GameProfileScreen(
     game: GameProfile,
     governorOptions: List<String>,
+    isExistingProfile: Boolean = true,
     onDismiss: () -> Unit,
     onSave: (GameProfile) -> Unit,
+    onRemove: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val pm = context.packageManager
@@ -62,6 +66,8 @@ fun GameProfileScreen(
     var blockNotifications by remember { mutableStateOf(false) }
 
     var govDropdownExpanded by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -70,6 +76,39 @@ fun GameProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (isExistingProfile && onRemove != null) {
+                        Box {
+                            IconButton(onClick = { menuExpanded = true }) {
+                                Icon(Icons.Filled.MoreVert, contentDescription = "More options")
+                            }
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Remove profile",
+                                            color = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Outlined.DeleteOutline,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        pendingDelete = true
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -180,6 +219,28 @@ fun GameProfileScreen(
 
             Spacer(Modifier.height(AuriyaTokens.padding.normal))
         }
+    }
+
+    if (pendingDelete && onRemove != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDelete = false },
+            title = { Text("Remove profile?") },
+            text = {
+                Text("$appLabel will be removed from the active profile list. You can re-add it from the Games tab.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDelete = false
+                    onRemove()
+                    onDismiss()
+                }) {
+                    Text("Remove", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 
