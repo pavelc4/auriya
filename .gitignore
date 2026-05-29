@@ -3,3 +3,26 @@
 .vscode
 build.sh
 /build
+
+# Android workspace
+android/.gradle/
+android/.kotlin/
+android/build/
+android/*/build/
+android/local.properties
+android/captures/
+android/.externalNativeBuild/
+android/.cxx/
+
+# Gradle
+.gradle/
+local.properties
+
+# Signing (NEVER commit)
+android/signing.properties
+android/*.keystore
+android/*.jks
+signing.properties
+*.keystore
+*.jks
+keystore.properties
