@@ -2,6 +2,13 @@ use super::{app::*, client::IpcClient, output};
 use crate::common::SOCKET_PATH;
 use crate::{Context, Result};
 use anyhow::bail;
+use std::time::Duration;
+
+const DAEMON_BIN: &str = "auriya";
+const COMPANION_PROC: &str = "AuriyaSysMon";
+const CONFIG_DIR: &str = "/data/adb/.config/auriya";
+const LOG_DIR: &str = "/data/adb/auriya";
+const SERVICE_SCRIPT: &str = "/data/adb/modules/auriya/service.sh";
 
 pub async fn execute(cli: Cli) -> Result<()> {
     let socket = cli.socket.as_deref().unwrap_or(SOCKET_PATH);
@@ -12,82 +19,77 @@ pub async fn execute(cli: Cli) -> Result<()> {
     }
 
     match cli.command {
-        Commands::Status => {
-            handle_status(&client).await?;
-        }
+        Commands::Status => handle_status(&client).await?,
 
         Commands::Enable => {
             let resp = client.send("ENABLE").await?;
-            println!("{}", resp);
+            println!("{resp}");
         }
 
         Commands::Disable => {
             let resp = client.send("DISABLE").await?;
-            println!("{}", resp);
+            println!("{resp}");
         }
 
         Commands::Reload => {
             let resp = client.send("RELOAD").await?;
-            output::print_success(&format!("Configuration reloaded: {}", resp));
+            output::print_success(&format!("Configuration reloaded: {resp}"));
         }
 
-        Commands::Restart => {
-            handle_restart()?;
-        }
+        Commands::Restart => handle_restart()?,
 
         Commands::SetProfile { mode } => {
-            let cmd = format!("SET_PROFILE {}", mode.to_upper_str());
-            let resp = client.send(&cmd).await?;
-            output::print_success(&format!("Profile set: {}", resp));
+            let resp = client
+                .send(&format!("SET_PROFILE {}", mode.to_upper_str()))
+                .await?;
+            output::print_success(&format!("Profile set: {resp}"));
         }
 
         Commands::SetFps { fps } => {
-            let cmd = format!("SET_FPS {}", fps);
-            let resp = client.send(&cmd).await?;
-            output::print_success(&format!("FPS set: {}", resp));
+            let resp = client.send(&format!("SET_FPS {fps}")).await?;
+            output::print_success(&format!("FPS set: {resp}"));
         }
 
         Commands::GetFps => {
             let resp = client.send("GET_FPS").await?;
-            println!("Current FPS: {}", resp);
+            println!("Current FPS: {resp}");
         }
 
         Commands::AddGame { package } => {
-            let cmd = format!("ADD_GAME {}", package);
-            let resp = client.send(&cmd).await?;
-            output::print_success(&format!("Game added: {}", resp));
+            let resp = client.send(&format!("ADD_GAME {package}")).await?;
+            output::print_success(&format!("Game added: {resp}"));
         }
 
         Commands::RemoveGame { package } => {
-            let cmd = format!("REMOVE_GAME {}", package);
-            let resp = client.send(&cmd).await?;
-            output::print_success(&format!("Game removed: {}", resp));
+            let resp = client.send(&format!("REMOVE_GAME {package}")).await?;
+            output::print_success(&format!("Game removed: {resp}"));
         }
 
         Commands::ListGames => {
             let resp = client.send("GET_GAMELIST").await?;
-            println!("Configured games:\n{}", resp);
+            println!("Configured games:\n{resp}");
         }
 
         Commands::ListPackages => {
             let resp = client.send("LIST_PACKAGES").await?;
-            println!("Installed packages:\n{}", resp);
+            println!("Installed packages:\n{resp}");
         }
 
         Commands::GetRates => {
             let resp = client.send("GET_SUPPORTED_RATES").await?;
-            println!("Supported refresh rates:\n{}", resp);
+            println!("Supported refresh rates:\n{resp}");
         }
 
         Commands::SetLog { level } => {
-            let cmd = format!("SET_LOG {}", level.to_upper_str());
-            let resp = client.send(&cmd).await?;
-            output::print_success(&format!("Log level set: {}", resp));
+            let resp = client
+                .send(&format!("SETLOG {}", level.to_upper_str()))
+                .await?;
+            output::print_success(&format!("Log level set: {resp}"));
         }
 
         Commands::GetPid => {
             let resp = client.send("GET_PID").await?;
-            println!("Daemon PID: {}", resp);
+            println!("Daemon PID: {resp}");
         }
 
         Commands::Ping => {
@@ -99,14 +101,13 @@ pub async fn execute(cli: Cli) -> Result<()> {
         }
 
         Commands::Inject { package } => {
-            let cmd = format!("INJECT {}", package);
-            let resp = client.send(&cmd).await?;
-            output::print_success(&format!("Injected: {}", resp));
+            let resp = client.send(&format!("INJECT {package}")).await?;
+            output::print_success(&format!("Injected: {resp}"));
         }
 
         Commands::ClearInject => {
             let resp = client.send("CLEAR_INJECT").await?;
-            output::print_success(&format!("Inject cleared: {}", resp));
+            output::print_success(&format!("Inject cleared: {resp}"));
         }
     }
 
@@ -118,23 +119,53 @@ async fn handle_status(client: &IpcClient) -> Result<()> {
         output::print_daemon_stopped();
         return Ok(());
     }
-
-    let response = client.send("STATUS").await?;
-    output::print_status(&response);
+    let resp = client.send("STATUS").await?;
+    output::print_status(&resp);
     Ok(())
 }
 
 fn handle_restart() -> Result<()> {
-    println!("Restarting daemon...");
+    println!("Restarting daemon + companion...");
+    stop_processes()?;
+    clear_runtime_state()?;
+    launch_service()?;
+    println!("Restart initiated — tail {LOG_DIR}/restart.log for progress");
+    Ok(())
+}
 
-    let restart_cmd = "pkill -9 auriya; sleep 1; > /data/adb/auriya/daemon.log 2>/dev/null; (sh /data/adb/modules/auriya/service.sh > /dev/null 2>&1 &)";
+fn stop_processes() -> Result<()> {
+    for proc in [DAEMON_BIN, COMPANION_PROC] {
+        sh(&format!("killall -TERM {proc} 2>/dev/null"))?;
+    }
+    std::thread::sleep(Duration::from_secs(3));
+    for proc in [DAEMON_BIN, COMPANION_PROC] {
+        sh(&format!("killall -KILL {proc} 2>/dev/null"))?;
+    }
+    Ok(())
+}
 
+fn clear_runtime_state() -> Result<()> {
+    sh(&format!(
+        "rm -f {CONFIG_DIR}/system_status {CONFIG_DIR}/companion.lock \
+         && truncate -s 0 {LOG_DIR}/daemon.log 2>/dev/null || true"
+    ))
+}
+
+fn launch_service() -> Result<()> {
     std::process::Command::new("sh")
-        .arg("-c")
-        .arg(restart_cmd)
+        .args([
+            "-c",
+            &format!("sh {SERVICE_SCRIPT} >> {LOG_DIR}/restart.log 2>&1 &"),
+        ])
         .spawn()
-        .context("Failed to restart daemon")?;
+        .context("failed to spawn service.sh")?;
+    Ok(())
+}
 
-    println!("Restart initiated");
+fn sh(cmd: &str) -> Result<()> {
+    std::process::Command::new("sh")
+        .args(["-c", cmd])
+        .status()
+        .with_context(|| format!("sh -c '{cmd}' failed to spawn"))?;
     Ok(())
 }
