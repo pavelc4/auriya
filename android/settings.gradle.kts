@@ -24,4 +24,4 @@ rootProject.name = "auriya-android"
 
 include(":shared")
 include(":service")
-// :app added in Phase 1D
+include(":app")
