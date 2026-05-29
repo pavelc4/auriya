@@ -58,8 +58,10 @@ fun GamesPane(viewModel: UiViewModel) {
                         },
                         onRemove = if (isExisting) {
                             {
-                                viewModel.removeGame(game.packageName)
+                                // Navigate back first for instant UI
+                                // feedback, then dispatch the removal.
                                 scope.launch { navigator.navigateBack() }
+                                viewModel.removeGame(game.packageName)
                             }
                         } else null,
                     )

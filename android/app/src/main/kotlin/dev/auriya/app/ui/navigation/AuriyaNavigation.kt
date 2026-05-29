@@ -62,8 +62,12 @@ fun AuriyaNavigation(
                 },
                 onRemove = if (isExisting) {
                     {
-                        viewModel.removeGame(current.packageName)
+                        // Pop the detail screen FIRST so the user sees
+                        // instant feedback; removeGame is dispatched on
+                        // IO and would otherwise hold the screen until
+                        // gameList.games recomposes.
                         editingGameProfile = null
+                        viewModel.removeGame(current.packageName)
                     }
                 } else null,
             )

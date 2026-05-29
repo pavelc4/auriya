@@ -230,9 +230,12 @@ fun GameProfileScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
+                    // Hide the dialog instantly so it does not linger
+                    // while the parent recomposes; onRemove is expected
+                    // to also pop this screen (see call sites in
+                    // GamesPane / AuriyaNavigation).
                     pendingDelete = false
                     onRemove()
-                    onDismiss()
                 }) {
                     Text("Remove", color = MaterialTheme.colorScheme.error)
                 }
