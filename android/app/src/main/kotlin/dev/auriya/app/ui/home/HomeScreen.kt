@@ -17,9 +17,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.auriya.app.ui.components.ExpressiveList
-import dev.auriya.app.ui.components.LinearWavyProgress
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
 import dev.auriya.app.ui.components.rememberCookie9
@@ -31,7 +31,6 @@ import dev.auriya.app.viewmodel.UiViewModel
 fun HomeScreen(viewModel: UiViewModel) {
     val systemInfo by viewModel.systemInfo.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
-    val foregroundApp by viewModel.foregroundApp.collectAsState()
     val hasRoot by viewModel.hasRoot.collectAsState()
     val isDaemonRunning = systemInfo.pid != null && systemInfo.pid != "null"
     val context = LocalContext.current
@@ -48,7 +47,7 @@ fun HomeScreen(viewModel: UiViewModel) {
         }
         item { HeroCard(isDaemonRunning = isDaemonRunning, systemInfo = systemInfo) }
         item { MiniCardRow(profile = systemInfo.profile, gameCount = gameList.games.size) }
-        item { SystemMetricsList(systemInfo = systemInfo, foregroundApp = foregroundApp) }
+        item { SystemMetricsList(systemInfo = systemInfo) }
         item {
             LinkRow(
                 icon = Icons.Outlined.Info,
@@ -110,17 +109,18 @@ private fun RootDeniedBanner() {
 }
 
 @Composable
-private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {    val workingBg = Brush.linearGradient(
+private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
+    val workingBg = Brush.linearGradient(
         listOf(
             MaterialTheme.colorScheme.primaryContainer,
             MaterialTheme.colorScheme.surfaceContainerHigh,
-        )
+        ),
     )
     val stoppedBg = Brush.linearGradient(
         listOf(
             MaterialTheme.colorScheme.errorContainer,
             MaterialTheme.colorScheme.surfaceContainerHigh,
-        )
+        ),
     )
     Surface(
         shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
@@ -141,7 +141,7 @@ private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {    val 
                             .clip(rememberCookie9())
                             .background(
                                 if (isDaemonRunning) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.error,
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -185,21 +185,27 @@ private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {    val 
 
 @Composable
 private fun MiniCardRow(profile: String, gameCount: Int) {
-    Row(horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small)) {
+    Row(
+        modifier = Modifier.height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small),
+    ) {
         MiniCard(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
             icon = Icons.Outlined.SportsEsports,
             value = gameCount.toString(),
             label = "Games optimized",
             valueColor = MaterialTheme.colorScheme.primary,
         )
         MiniCard(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
             icon = Icons.Outlined.Tune,
             value = profile,
             label = "Active profile",
             valueColor = MaterialTheme.colorScheme.tertiary,
-            isText = true,
         )
     }
 }
@@ -211,7 +217,6 @@ private fun MiniCard(
     value: String,
     label: String,
     valueColor: androidx.compose.ui.graphics.Color,
-    isText: Boolean = false,
 ) {
     Surface(
         shape = RoundedCornerShape(AuriyaTokens.rounding.xl),
@@ -228,11 +233,17 @@ private fun MiniCard(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(AuriyaTokens.iconSize.medium),
             )
+            // Both cards share headlineMedium + ExtraBold so the row visually
+            // balances even when one cell is a number ("12") and the other
+            // is short text ("Balance"). single-line ellipsis stops a long
+            // profile name from breaking the row height.
             Text(
                 text = value,
-                style = if (isText) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = valueColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = label,
@@ -244,16 +255,15 @@ private fun MiniCard(
 }
 
 @Composable
-private fun SystemMetricsList(systemInfo: SystemInfo, foregroundApp: String?) {
-    val rows = remember(systemInfo, foregroundApp) {
-        buildList {
-            foregroundApp?.let { add(MetricRow(Icons.Outlined.Bolt, "Foreground", it, null)) }
-            add(MetricRow(Icons.Outlined.Memory, "Memory", systemInfo.ram, null))
-            add(MetricRow(Icons.Outlined.Thermostat, "Thermal", systemInfo.temp, null))
-            add(MetricRow(Icons.Outlined.BatteryFull, "Battery", systemInfo.battery, null))
-            add(MetricRow(Icons.Outlined.Settings, "Kernel", systemInfo.kernel, null))
-            add(MetricRow(Icons.Outlined.Speed, "Chipset", systemInfo.chipset, null))
-        }
+private fun SystemMetricsList(systemInfo: SystemInfo) {
+    val rows = remember(systemInfo) {
+        listOf(
+            MetricRow(Icons.Outlined.Memory, "Memory", systemInfo.ram),
+            MetricRow(Icons.Outlined.Thermostat, "Thermal", systemInfo.temp),
+            MetricRow(Icons.Outlined.BatteryFull, "Battery", systemInfo.battery),
+            MetricRow(Icons.Outlined.Settings, "Kernel", systemInfo.kernel),
+            MetricRow(Icons.Outlined.Speed, "Chipset", systemInfo.chipset),
+        )
     }
     Column {
         Text(
@@ -264,11 +274,8 @@ private fun SystemMetricsList(systemInfo: SystemInfo, foregroundApp: String?) {
             modifier = Modifier.padding(start = AuriyaTokens.padding.smaller, bottom = AuriyaTokens.padding.smaller),
         )
         ExpressiveList(count = rows.size) { i ->
-            val r = rows[i]
-            MetricRowItem(r)
+            MetricRowItem(rows[i])
         }
-        Spacer(Modifier.height(AuriyaTokens.padding.smaller))
-        ProfileLoadBar()
     }
 }
 
@@ -276,7 +283,6 @@ private data class MetricRow(
     val icon: ImageVector,
     val label: String,
     val value: String,
-    val progress: Float?,
 )
 
 @Composable
@@ -314,49 +320,6 @@ private fun MetricRowItem(row: MetricRow) {
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
         )
-    }
-}
-
-@Composable
-private fun ProfileLoadBar() {
-    // Placeholder live metric — replace with real CPU usage when daemon exposes it.
-    var fakeLoad by remember { mutableStateOf(0.6f) }
-    Surface(
-        shape = RoundedCornerShape(AuriyaTokens.rounding.xl),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Bolt,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(AuriyaTokens.iconSize.medium),
-            )
-            Spacer(Modifier.width(AuriyaTokens.padding.small))
-            Text(
-                text = "Profile load",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-            LinearWavyProgress(
-                progress = fakeLoad,
-                modifier = Modifier
-                    .weight(2f)
-                    .padding(horizontal = AuriyaTokens.padding.smaller),
-            )
-            Text(
-                text = "${(fakeLoad * 100).toInt()}%",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
     }
 }
 
