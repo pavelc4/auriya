@@ -44,10 +44,12 @@ fun AuriyaNavigation(
     var editingGameProfile by remember { mutableStateOf<GameProfile?>(null) }
     var subScreen by remember { mutableStateOf(SubScreen.None) }
     val themePrefs by themeViewModel.prefs.collectAsState()
+    val governors by viewModel.availableGovernors.collectAsState()
 
     when {
         editingGameProfile != null -> GameProfileScreen(
             game = editingGameProfile!!,
+            governorOptions = governors,
             onDismiss = { editingGameProfile = null },
             onSave = { updated ->
                 viewModel.addGame(updated)

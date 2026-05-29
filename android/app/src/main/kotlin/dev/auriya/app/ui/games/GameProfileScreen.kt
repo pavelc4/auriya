@@ -32,6 +32,7 @@ import dev.auriya.shared.model.GameProfile
 @Composable
 fun GameProfileScreen(
     game: GameProfile,
+    governorOptions: List<String>,
     onDismiss: () -> Unit,
     onSave: (GameProfile) -> Unit,
 ) {
@@ -44,7 +45,15 @@ fun GameProfileScreen(
     }
     val iconBitmap = rememberAppIcon(game.packageName)
 
-    var selectedGov by remember { mutableStateOf(game.cpuGovernor) }
+    // Default to whatever the daemon already wrote into the profile;
+    // fall back to the first available governor if that value is gone
+    // from this kernel (e.g. profile carried over from a different ROM).
+    val initialGov = if (game.cpuGovernor in governorOptions) {
+        game.cpuGovernor
+    } else {
+        governorOptions.firstOrNull() ?: game.cpuGovernor
+    }
+    var selectedGov by remember(initialGov) { mutableStateOf(initialGov) }
     var targetFps by remember { mutableStateOf(game.targetFps?.toFloat() ?: 60f) }
     var refreshRate by remember { mutableStateOf(game.refreshRate?.toFloat() ?: 0f) }
     var enableDnd by remember { mutableStateOf(game.enableDnd) }
@@ -53,7 +62,6 @@ fun GameProfileScreen(
     var blockNotifications by remember { mutableStateOf(false) }
 
     var govDropdownExpanded by remember { mutableStateOf(false) }
-    val governorOptions = listOf("performance", "schedutil", "interactive", "powersave")
 
     Scaffold(
         topBar = {
@@ -83,7 +91,7 @@ fun GameProfileScreen(
                     )
                 },
                 onReset = {
-                    selectedGov = "performance"
+                    selectedGov = governorOptions.firstOrNull() ?: game.cpuGovernor
                     targetFps = 60f
                     refreshRate = 0f
                     enableDnd = true

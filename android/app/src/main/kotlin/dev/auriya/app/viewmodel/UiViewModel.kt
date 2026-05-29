@@ -60,6 +60,9 @@ class UiViewModel : ViewModel() {
     private val _hasRoot = MutableStateFlow(false)
     val hasRoot: StateFlow<Boolean> = _hasRoot.asStateFlow()
 
+    private val _availableGovernors = MutableStateFlow<List<String>>(emptyList())
+    val availableGovernors: StateFlow<List<String>> = _availableGovernors.asStateFlow()
+
     fun setActive(active: Boolean) {
         _isActive.value = active
     }
@@ -67,10 +70,22 @@ class UiViewModel : ViewModel() {
     init {
         viewModelScope.launch(Dispatchers.IO) {
             _hasRoot.value = RootShell.hasRoot()
+            loadAvailableGovernors()
         }
         loadConfigurations()
         initSystemInfoStatic()
         startMonitoring()
+    }
+
+    private fun loadAvailableGovernors() {
+        // Sysfs is world-readable for governor list, but reading via
+        // RootShell keeps a single code path for /sys access.
+        val raw = RootShell.run("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors 2>/dev/null")
+        val parsed = raw.split(Regex("\\s+")).filter { it.isNotBlank() }
+        _availableGovernors.value = parsed.ifEmpty {
+            // Fallback so the dropdown is never empty on weirder kernels.
+            listOf("performance", "schedutil", "powersave")
+        }
     }
 
     fun loadConfigurations() {

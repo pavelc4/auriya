@@ -154,7 +154,11 @@ fun GamesScreen(
                 key = { _, a -> "active-${a.packageName}" },
             ) { index, app ->
                 ContinuousRow(index = index, lastIndex = filteredActive.lastIndex) {
-                    ActiveRowContent(app, onClick = { onEditGame(app.profile) })
+                    SwipeToDeleteRow(
+                        onDelete = { viewModel.removeGame(app.packageName) },
+                    ) {
+                        ActiveRowContent(app, onClick = { onEditGame(app.profile) })
+                    }
                 }
             }
         }
@@ -448,6 +452,75 @@ private fun AppIconBox(packageName: String, shape: Shape) {
                 modifier = Modifier.size(AuriyaTokens.iconSize.normal),
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeToDeleteRow(
+    onDelete: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    var pendingDelete by remember { mutableStateOf(false) }
+    val dismissState = rememberSwipeToDismissBoxState(
+        // 35% of row width before commit — enough for an intentional flick,
+        // not so little that a vertical-scroll wobble triggers it.
+        positionalThreshold = { distance -> distance * 0.35f },
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                pendingDelete = true
+                false // Defer the dismiss commit until the user confirms.
+            } else {
+                false
+            }
+        },
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .padding(horizontal = AuriyaTokens.padding.larger),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                Text(
+                    text = "DELETE",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+        },
+        content = { content() },
+    )
+
+    if (pendingDelete) {
+        AlertDialog(
+            onDismissRequest = {
+                pendingDelete = false
+            },
+            title = { Text("Remove profile?") },
+            text = { Text("This game will be removed from the active profile list. You can re-add it later.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDelete = false
+                    onDelete()
+                }) { Text("Remove") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = false }) { Text("Cancel") }
+            },
+        )
+    }
+
+    // Reset the swipe offset whenever the dialog goes away without
+    // committing — otherwise the row stays half-swiped after cancel.
+    LaunchedEffect(pendingDelete) {
+        if (!pendingDelete) dismissState.reset()
     }
 }
 

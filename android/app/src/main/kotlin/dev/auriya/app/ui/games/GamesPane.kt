@@ -6,6 +6,7 @@ import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.navigation.NavigableListDetailPaneScaffold
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -21,6 +22,7 @@ fun GamesPane(viewModel: UiViewModel) {
     val navigator = rememberListDetailPaneScaffoldNavigator<Any>()
     val scope = rememberCoroutineScope()
     var selectedGame by remember { mutableStateOf<GameProfile?>(null) }
+    val governors by viewModel.availableGovernors.collectAsState()
 
     NavigableListDetailPaneScaffold(
         navigator = navigator,
@@ -43,6 +45,7 @@ fun GamesPane(viewModel: UiViewModel) {
                 if (game != null) {
                     GameProfileScreen(
                         game = game,
+                        governorOptions = governors,
                         onDismiss = {
                             scope.launch { navigator.navigateBack() }
                         },
