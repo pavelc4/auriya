@@ -18,7 +18,7 @@ use crate::core::{
     scaling::ScalingAction,
     thermal::ThermalMonitor,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::time::{Duration, Instant};
 
 const WAITING_DELAY: Duration = Duration::from_secs(3);
@@ -52,10 +52,15 @@ pub struct FasController {
 }
 
 impl FasController {
-    pub fn new(target_fps_config: TargetFps) -> Self {
+    /// Construct a FAS controller. Returns `Err` if the eBPF frame probe
+    /// cannot be loaded — the daemon should disable FAS in that case
+    /// instead of falling back to a degraded source.
+    pub fn new(target_fps_config: TargetFps) -> Result<Self> {
+        let source = FrameSource::new()
+            .context("FAS    | eBPF frame probe load failed; FAS will be disabled")?;
         tracing::debug!(target: "auriya::fas", "FAS Controller initialized");
-        Self {
-            source: FrameSource::new(),
+        Ok(Self {
+            source,
             buffer: FrameBuffer::new(target_fps_config),
             thermal: ThermalMonitor::new(),
             package: String::new(),
@@ -66,10 +71,10 @@ impl FasController {
             util_sampler: UtilSampler::new(),
             target_fps_offset: 0.0,
             kp: KP_DEFAULT,
-        }
+        })
     }
 
-    pub fn with_target_fps(fps: u32) -> Self {
+    pub fn with_target_fps(fps: u32) -> Result<Self> {
         Self::new(TargetFps::Single(fps))
     }
 
