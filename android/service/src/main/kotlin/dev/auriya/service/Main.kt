@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Looper
 import android.util.Log
+import dev.auriya.service.actuator.DisplayActuator
 import dev.auriya.service.actuator.DnDActuator
 import dev.auriya.service.io.CmdReader
 import dev.auriya.service.io.StatusWriter
@@ -72,10 +73,10 @@ object Main {
         val zen = ZenSensor(context, sink)
 
         val dnd = DnDActuator(context)
+        val display = DisplayActuator(context)
         val cmdReader = CmdReader(File(ConfigPaths.CMD_FILE)) { cmd ->
             cmd.dnd?.let { dnd.apply(it) }
-            // refresh_rate handling lands when the display actuator
-            // is implemented.
+            cmd.refreshRate?.let { display.apply(it) }
         }
 
         Runtime.getRuntime().addShutdownHook(Thread {
