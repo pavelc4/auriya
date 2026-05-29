@@ -16,6 +16,8 @@ esac
 LIBS_DIR="$MODPATH/libs/$SOURCE_ARCH"
 DAEMON_BINARY="$LIBS_DIR/auriya"
 CLI_BINARY="$LIBS_DIR/auriyactl"
+COMPANION_APK_SRC="$MODPATH/libs/companion/service.apk"
+COMPANION_APK_DST="$MODPATH/system/etc/auriya/service.apk"
 DAEMON_SHA="$LIBS_DIR/auriya.sha256"
 CHECKSUMS_FILE="$LIBS_DIR/checksums.sha256"
 HAS_CLI=false
@@ -162,6 +164,26 @@ if [ "$HAS_CLI" = true ]; then
     fi
 fi
 
+# Install the headless companion service APK. The daemon refuses to
+# start without it, so this is required, not optional.
+if [ ! -f "$COMPANION_APK_SRC" ]; then
+    ui_print ""
+    ui_print "! COMPANION SERVICE APK NOT FOUND"
+    ui_print ""
+    ui_print "Expected: libs/companion/service.apk"
+    ui_print ""
+    ui_print "The companion service is required by Auriya."
+    ui_print ""
+    ui_print "Download a complete release from:"
+    ui_print "https://github.com/pavelc4/auriya/releases"
+    abort
+fi
+mkdir -p "$MODPATH/system/etc/auriya"
+cp "$COMPANION_APK_SRC" "$COMPANION_APK_DST" || abort "! Failed to copy companion service"
+chmod 0644 "$COMPANION_APK_DST"
+COMPANION_SIZE=$(du -h "$COMPANION_APK_DST" | cut -f1)
+ui_print "Companion service installed ($COMPANION_SIZE)"
+
 rm -rf "$MODPATH/libs"
 ui_print ""
 
@@ -189,6 +211,7 @@ chmod 0755 "$LOG_DIR"
 [ -f "$LOG_DIR/daemon.log" ] && mv "$LOG_DIR/daemon.log" "$LOG_DIR/daemon.log.old"
 
 set_perm "$MODPATH/system/bin/auriya" 0 0 0755
+set_perm "$COMPANION_APK_DST" 0 0 0644
 [ "$HAS_CLI" = true ] && set_perm "$MODPATH/system/bin/auriyactl" 0 0 0755
 
 ui_print "Installation complete!"

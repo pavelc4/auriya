@@ -3,10 +3,14 @@ MODDIR="${0%/*}"
 MODPATH="/data/adb/modules/auriya"
 MODULE_CONFIG="/data/adb/.config/auriya"
 AURIYA_BIN="$MODPATH/system/bin/auriya"
+COMPANION_APK="$MODPATH/system/etc/auriya/service.apk"
 SETTINGS_CFG="$MODULE_CONFIG/settings.toml"
 GAMELIST_CFG="$MODULE_CONFIG/gamelist.toml"
+STATUS_FILE="$MODULE_CONFIG/system_status"
+COMPANION_LOCK="$MODULE_CONFIG/companion.lock"
 LOGDIR="/data/adb/auriya"
 AURIYA_LOG="$LOGDIR/daemon.log"
+COMPANION_LOG="$LOGDIR/companion.log"
 SOCK="/dev/socket/auriya.sock"
 
 mkdir -p "$MODULE_CONFIG" "$LOGDIR"
@@ -27,6 +31,12 @@ if [ ! -f "$AURIYA_BIN" ]; then
     exit 1
 fi
 
+if [ ! -f "$COMPANION_APK" ]; then
+    log -t auriya "ERROR: Companion APK not found at $COMPANION_APK"
+    echo "[$(date)] ERROR: Companion APK not found" >> "$AURIYA_LOG"
+    exit 1
+fi
+
 if [ ! -f "$SETTINGS_CFG" ]; then
     log -t auriya "ERROR: Settings config not found at $SETTINGS_CFG"
     echo "[$(date)] ERROR: Settings config not found" >> "$AURIYA_LOG"
@@ -37,6 +47,17 @@ if [ ! -f "$GAMELIST_CFG" ]; then
     log -t auriya "ERROR: Gamelist config not found at $GAMELIST_CFG"
     echo "[$(date)] ERROR: Gamelist config not found" >> "$AURIYA_LOG"
     exit 1
+fi
+
+# Stop any previous companion. The flock will block us otherwise.
+if pgrep -f AuriyaSysMon >/dev/null 2>&1; then
+    log -t auriya "Stopping existing companion service..."
+    pkill -TERM -f AuriyaSysMon 2>/dev/null
+    for i in 1 2 3; do
+        pgrep -f AuriyaSysMon >/dev/null 2>&1 || break
+        sleep 1
+    done
+    pkill -KILL -f AuriyaSysMon 2>/dev/null
 fi
 
 if pidof auriya >/dev/null 2>&1; then
@@ -53,6 +74,44 @@ if pidof auriya >/dev/null 2>&1; then
     fi
 fi
 [ -S "$SOCK" ] && rm -f "$SOCK"
+# Force a fresh status file so the daemon's await loop only succeeds
+# once the companion has actually produced fresh data this boot.
+rm -f "$STATUS_FILE" "$COMPANION_LOCK"
+
+# Rotate companion log if it grew past 1MB.
+if [ -f "$COMPANION_LOG" ]; then
+    LOG_SIZE=$(stat -c%s "$COMPANION_LOG" 2>/dev/null || stat -f%z "$COMPANION_LOG" 2>/dev/null || echo 0)
+    if [ "$LOG_SIZE" -gt 1048576 ]; then
+        [ -f "$COMPANION_LOG.1" ] && rm -f "$COMPANION_LOG.1"
+        mv "$COMPANION_LOG" "$COMPANION_LOG.1"
+    fi
+fi
+echo "=== Companion starting at $(date) ===" >> "$COMPANION_LOG"
+log -t auriya "Starting Auriya companion service..."
+
+# Launch the headless Kotlin companion via app_process so it inherits
+# the system uid handed to us by Magisk's service.d hook.
+nohup app_process -Djava.class.path="$COMPANION_APK" \
+    /system/bin --nice-name=AuriyaSysMon \
+    dev.auriya.service.Main \
+    >> "$COMPANION_LOG" 2>&1 &
+
+# Give the companion a couple of seconds to acquire its flock and
+# produce the first status snapshot. The daemon also waits up to 10s
+# internally so this is belt-and-braces.
+for i in 1 2 3 4 5 6 7 8 9 10; do
+    if [ -f "$STATUS_FILE" ]; then
+        log -t auriya "Companion produced status file"
+        break
+    fi
+    sleep 1
+done
+
+if [ ! -f "$STATUS_FILE" ]; then
+    log -t auriya "ERROR: Companion did not produce $STATUS_FILE within 10s"
+    echo "[$(date)] ERROR: Companion startup timeout" >> "$AURIYA_LOG"
+    exit 1
+fi
 
 if [ -f "$AURIYA_LOG" ]; then
     LOG_SIZE=$(stat -c%s "$AURIYA_LOG" 2>/dev/null || stat -f%z "$AURIYA_LOG" 2>/dev/null || echo 0)
