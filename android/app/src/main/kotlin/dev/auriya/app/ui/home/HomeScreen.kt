@@ -32,6 +32,7 @@ fun HomeScreen(viewModel: UiViewModel) {
     val systemInfo by viewModel.systemInfo.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
     val foregroundApp by viewModel.foregroundApp.collectAsState()
+    val hasRoot by viewModel.hasRoot.collectAsState()
     val isDaemonRunning = systemInfo.pid != null && systemInfo.pid != "null"
     val context = LocalContext.current
 
@@ -42,6 +43,9 @@ fun HomeScreen(viewModel: UiViewModel) {
         verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
         contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.largest * 3),
     ) {
+        if (!hasRoot) {
+            item { RootDeniedBanner() }
+        }
         item { HeroCard(isDaemonRunning = isDaemonRunning, systemInfo = systemInfo) }
         item { MiniCardRow(profile = systemInfo.profile, gameCount = gameList.games.size) }
         item { SystemMetricsList(systemInfo = systemInfo, foregroundApp = foregroundApp) }
@@ -69,8 +73,44 @@ fun HomeScreen(viewModel: UiViewModel) {
 }
 
 @Composable
-private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
-    val workingBg = Brush.linearGradient(
+private fun RootDeniedBanner() {
+    Surface(
+        shape = RoundedCornerShape(AuriyaTokens.rounding.xl),
+        color = MaterialTheme.colorScheme.errorContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AuriyaTokens.padding.larger),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(AuriyaTokens.iconSize.normal),
+            )
+            Spacer(Modifier.width(AuriyaTokens.padding.normal))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Root access required",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                Text(
+                    text = "Grant superuser permission in KernelSU/Magisk/APatch manager so Auriya can read daemon state and config files.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {    val workingBg = Brush.linearGradient(
         listOf(
             MaterialTheme.colorScheme.primaryContainer,
             MaterialTheme.colorScheme.surfaceContainerHigh,

@@ -156,5 +156,7 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive.layout)
     implementation(libs.androidx.compose.material3.adaptive.navigation)
     implementation(libs.androidx.compose.ui.text.google.fonts)
+    implementation(libs.libsu.core)
+    implementation(libs.libsu.io)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

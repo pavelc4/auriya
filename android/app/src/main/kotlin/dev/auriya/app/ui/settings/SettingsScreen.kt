@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.auriya.app.data.NavMode
+import dev.auriya.app.data.RootShell
 import dev.auriya.app.data.ThemePrefs
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.viewmodel.UiViewModel
@@ -152,25 +153,23 @@ fun SettingsScreen(
                     subtitle = "Saves logs to Download/AuriyaLogs.tar.gz",
                     onClick = {
                         coroutineScope.launch(Dispatchers.IO) {
-                            try {
-                                val logDir = "/sdcard/Download/AuriyaLogs"
-                                val daemonLog = "/data/adb/auriya/daemon.log"
-                                val exec = Runtime.getRuntime()
-                                exec.exec(arrayOf("sh", "-c", "mkdir -p $logDir")).waitFor()
-                                exec.exec(arrayOf("sh", "-c", "cp $daemonLog $logDir/auriya.log")).waitFor()
-                                exec.exec(arrayOf("sh", "-c", "dmesg > $logDir/kernel.log")).waitFor()
-                                exec.exec(arrayOf("sh", "-c", "tar -czf /sdcard/Download/AuriyaLogs.tar.gz -C /sdcard/Download AuriyaLogs")).waitFor()
-                                launch(Dispatchers.Main) {
-                                    Toast.makeText(context, "Logs exported to Downloads/AuriyaLogs.tar.gz", Toast.LENGTH_LONG).show()
-                                }
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                                launch(Dispatchers.Main) {
-                                    Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                                }
+                            val cmd = """
+                                mkdir -p /sdcard/Download/AuriyaLogs &&
+                                cp /data/adb/auriya/daemon.log /sdcard/Download/AuriyaLogs/auriya.log 2>/dev/null;
+                                dmesg > /sdcard/Download/AuriyaLogs/kernel.log 2>/dev/null;
+                                tar -czf /sdcard/Download/AuriyaLogs.tar.gz -C /sdcard/Download AuriyaLogs
+                            """.trimIndent()
+                            val rc = RootShell.exec(cmd)
+                            launch(Dispatchers.Main) {
+                                Toast.makeText(
+                                    context,
+                                    if (rc == 0) "Logs exported to Downloads/AuriyaLogs.tar.gz"
+                                    else "Export failed (rc=$rc); check root grant",
+                                    Toast.LENGTH_LONG,
+                                ).show()
                             }
                         }
-                    }
+                    },
                 )
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -187,14 +186,12 @@ fun SettingsScreen(
                                 debugMode = it
                                 coroutineScope.launch(Dispatchers.IO) {
                                     val cmd = if (debugMode) "SETLOG DEBUG" else "SETLOG INFO"
-                                    val socketCmd = "echo \"$cmd\" | nc -U /dev/socket/auriya.sock"
-                                    val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", socketCmd))
-                                    process.waitFor()
+                                    RootShell.exec("echo \"$cmd\" | nc -U /dev/socket/auriya.sock")
                                 }
                                 Toast.makeText(context, "Debug logs ${if (debugMode) "enabled" else "disabled"}", Toast.LENGTH_SHORT).show()
-                            }
+                            },
                         )
-                    }
+                    },
                 )
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
