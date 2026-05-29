@@ -15,39 +15,18 @@ import androidx.graphics.shapes.star
 import androidx.graphics.shapes.toPath
 
 object MaterialShapes {
-    fun cookie9(): Shape = polygonShape {
-        RoundedPolygon.star(
-            numVerticesPerRadius = 9,
-            innerRadius = 0.62f,
-            rounding = CornerRounding(0.55f),
-        )
-    }
+    // Cached singletons. Each Shape is path-pure (no per-instance state),
+    // so sharing one instance across the whole UI is safe and avoids
+    // rebuilding RoundedPolygon four times per list row.
+    val Cookie9: Shape by lazy { polygonShape { RoundedPolygon.star(9, innerRadius = 0.62f, rounding = CornerRounding(0.55f)) } }
+    val Scallop12: Shape by lazy { polygonShape { RoundedPolygon.star(12, innerRadius = 0.84f, rounding = CornerRounding(0.6f)) } }
+    val Clover6: Shape by lazy { polygonShape { RoundedPolygon.star(6, innerRadius = 0.48f, rounding = CornerRounding(0.95f), innerRounding = CornerRounding(0.7f)) } }
+    val Puffy: Shape by lazy { polygonShape { RoundedPolygon.star(6, innerRadius = 0.72f, rounding = CornerRounding(0.85f), innerRounding = CornerRounding(0.4f)) } }
 
-    fun scallop12(): Shape = polygonShape {
-        RoundedPolygon.star(
-            numVerticesPerRadius = 12,
-            innerRadius = 0.84f,
-            rounding = CornerRounding(0.6f),
-        )
-    }
-
-    fun clover6(): Shape = polygonShape {
-        RoundedPolygon.star(
-            numVerticesPerRadius = 6,
-            innerRadius = 0.48f,
-            rounding = CornerRounding(0.95f),
-            innerRounding = CornerRounding(0.7f),
-        )
-    }
-
-    fun puffy(): Shape = polygonShape {
-        RoundedPolygon.star(
-            numVerticesPerRadius = 6,
-            innerRadius = 0.72f,
-            rounding = CornerRounding(0.85f),
-            innerRounding = CornerRounding(0.4f),
-        )
-    }
+    fun cookie9(): Shape = Cookie9
+    fun scallop12(): Shape = Scallop12
+    fun clover6(): Shape = Clover6
+    fun puffy(): Shape = Puffy
 
     private fun polygonShape(build: () -> RoundedPolygon): Shape = object : Shape {
         override fun createOutline(
@@ -80,13 +59,13 @@ object MaterialShapes {
 }
 
 @Composable
-fun rememberCookie9() = remember { MaterialShapes.cookie9() }
+fun rememberCookie9() = MaterialShapes.Cookie9
 
 @Composable
-fun rememberScallop() = remember { MaterialShapes.scallop12() }
+fun rememberScallop() = MaterialShapes.Scallop12
 
 @Composable
-fun rememberClover() = remember { MaterialShapes.clover6() }
+fun rememberClover() = MaterialShapes.Clover6
 
 @Composable
-fun rememberPuffy() = remember { MaterialShapes.puffy() }
+fun rememberPuffy() = MaterialShapes.Puffy

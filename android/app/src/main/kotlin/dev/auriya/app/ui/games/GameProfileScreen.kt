@@ -42,7 +42,7 @@ fun GameProfileScreen(
             pm.getApplicationLabel(pm.getApplicationInfo(game.packageName, 0)).toString()
         }.getOrDefault(game.packageName.substringAfterLast('.'))
     }
-    val iconPainter = rememberAppIconPainter(game.packageName)
+    val iconBitmap = rememberAppIcon(game.packageName)
 
     var selectedGov by remember { mutableStateOf(game.cpuGovernor) }
     var targetFps by remember { mutableStateOf(game.targetFps?.toFloat() ?: 60f) }
@@ -105,7 +105,7 @@ fun GameProfileScreen(
             HeroHeader(
                 label = appLabel,
                 packageName = game.packageName,
-                iconPainter = iconPainter,
+                iconBitmap = iconBitmap,
                 targetFps = targetFps.toInt(),
                 dnd = enableDnd,
                 gov = selectedGov,
@@ -179,7 +179,7 @@ fun GameProfileScreen(
 private fun HeroHeader(
     label: String,
     packageName: String,
-    iconPainter: androidx.compose.ui.graphics.painter.Painter?,
+    iconBitmap: androidx.compose.ui.graphics.ImageBitmap?,
     targetFps: Int,
     dnd: Boolean,
     gov: String,
@@ -211,8 +211,8 @@ private fun HeroHeader(
                             .background(MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (iconPainter != null) {
-                            Image(painter = iconPainter, contentDescription = null, modifier = Modifier.fillMaxSize())
+                        if (iconBitmap != null) {
+                            Image(bitmap = iconBitmap, contentDescription = null, modifier = Modifier.fillMaxSize())
                         } else {
                             Icon(
                                 imageVector = Icons.Outlined.SportsEsports,

@@ -2,9 +2,6 @@ package dev.auriya.app.ui.games
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -22,54 +19,48 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.auriya.app.data.AppIconCache
+import dev.auriya.app.ui.components.MaterialShapes
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
-import dev.auriya.app.ui.components.rememberClover
-import dev.auriya.app.ui.components.rememberCookie9
-import dev.auriya.app.ui.components.rememberPuffy
-import dev.auriya.app.ui.components.rememberScallop
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.viewmodel.UiViewModel
 import dev.auriya.shared.model.GameProfile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class AppInfoItem(val packageName: String, val label: String)
 data class ActiveAppItem(val packageName: String, val label: String, val profile: GameProfile)
 
+private val rowShapes = arrayOf(
+    MaterialShapes.Cookie9,
+    MaterialShapes.Scallop12,
+    MaterialShapes.Clover6,
+    MaterialShapes.Puffy,
+)
+
+private fun shapeFor(packageName: String): Shape {
+    val hash = packageName.hashCode().let { it xor (it ushr 16) }
+    return rowShapes[hash and 0x3]
+}
+
 @Composable
-fun rememberAppIconPainter(packageName: String): Painter? {
+fun rememberAppIcon(packageName: String): ImageBitmap? {
     val context = LocalContext.current
-    val pm = context.packageManager
-    return remember(packageName) {
-        try {
-            val drawable = pm.getApplicationIcon(packageName)
-            val bitmap = if (drawable is BitmapDrawable) {
-                drawable.bitmap
-            } else {
-                val bmp = Bitmap.createBitmap(
-                    drawable.intrinsicWidth.coerceAtLeast(1),
-                    drawable.intrinsicHeight.coerceAtLeast(1),
-                    Bitmap.Config.ARGB_8888,
-                )
-                val canvas = Canvas(bmp)
-                drawable.setBounds(0, 0, canvas.width, canvas.height)
-                drawable.draw(canvas)
-                bmp
+    return produceState<ImageBitmap?>(initialValue = AppIconCache.get(packageName), packageName) {
+        if (value == null && !AppIconCache.isMiss(packageName)) {
+            value = withContext(Dispatchers.IO) {
+                AppIconCache.load(context.packageManager, packageName)
             }
-            BitmapPainter(bitmap.asImageBitmap())
-        } catch (e: Exception) {
-            null
         }
-    }
+    }.value
 }
 
 @Composable
@@ -93,6 +84,7 @@ fun GamesScreen(
                     val label = runCatching {
                         pm.getApplicationLabel(appInfo).toString()
                     }.getOrDefault(appInfo.packageName)
+                    AppIconCache.load(pm, appInfo.packageName)
                     AppInfoItem(packageName = appInfo.packageName, label = label)
                 }
                 .sortedBy { it.label.lowercase() }
@@ -229,7 +221,7 @@ private fun HeroBanner() {
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(rememberCookie9())
+                    .clip(MaterialShapes.Cookie9)
                     .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center,
             ) {
@@ -359,7 +351,7 @@ private fun ActiveRowContent(app: ActiveAppItem, onClick: () -> Unit) {
                 .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AppIconBox(packageName = app.packageName, shape = pickShape(app.packageName))
+            AppIconBox(packageName = app.packageName, shape = shapeFor(app.packageName))
             Spacer(Modifier.width(AuriyaTokens.padding.normal))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -438,7 +430,7 @@ private fun InactiveRowContent(app: AppInfoItem, onClick: () -> Unit) {
 
 @Composable
 private fun AppIconBox(packageName: String, shape: Shape) {
-    val painter = rememberAppIconPainter(packageName)
+    val bitmap = rememberAppIcon(packageName)
     Box(
         modifier = Modifier
             .size(48.dp)
@@ -446,8 +438,8 @@ private fun AppIconBox(packageName: String, shape: Shape) {
             .background(MaterialTheme.colorScheme.surfaceContainerHigh),
         contentAlignment = Alignment.Center,
     ) {
-        if (painter != null) {
-            Image(painter = painter, contentDescription = null, modifier = Modifier.fillMaxSize())
+        if (bitmap != null) {
+            Image(bitmap = bitmap, contentDescription = null, modifier = Modifier.fillMaxSize())
         } else {
             Icon(
                 imageVector = Icons.Outlined.Android,
@@ -456,17 +448,6 @@ private fun AppIconBox(packageName: String, shape: Shape) {
                 modifier = Modifier.size(AuriyaTokens.iconSize.normal),
             )
         }
-    }
-}
-
-@Composable
-private fun pickShape(packageName: String): Shape {
-    val hash = packageName.hashCode().let { it xor (it ushr 16) }
-    return when ((hash and 0x3)) {
-        0 -> rememberCookie9()
-        1 -> rememberScallop()
-        2 -> rememberClover()
-        else -> rememberPuffy()
     }
 }
 
