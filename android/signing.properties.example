@@ -1,0 +1,11 @@
+## Auriya keystore configuration
+##
+## Copy this file to `signing.properties` (gitignored) and fill in
+## with your own keystore. The release build picks it up
+## automatically; without it the debug signing config is used so
+## the build still produces a runnable APK for local testing.
+
+KEYSTORE_PATH=keystores/auriya.keystore
+KEYSTORE_PASSWORD=
+KEY_ALIAS=auriya
+KEY_PASSWORD=
