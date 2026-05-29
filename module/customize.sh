@@ -18,9 +18,11 @@ DAEMON_BINARY="$LIBS_DIR/auriya"
 CLI_BINARY="$LIBS_DIR/auriyactl"
 COMPANION_APK_SRC="$MODPATH/libs/companion/service.apk"
 COMPANION_APK_DST="$MODPATH/system/etc/auriya/service.apk"
+USER_APK_SRC="$MODPATH/libs/companion/auriya-app.apk"
 DAEMON_SHA="$LIBS_DIR/auriya.sha256"
 CHECKSUMS_FILE="$LIBS_DIR/checksums.sha256"
 HAS_CLI=false
+HAS_USER_APK=false
 
 make_dir() { [ ! -d "$1" ] && mkdir -p "$1"; }
 make_node() { [ ! -f "$2" ] && echo "$1" > "$2"; }
@@ -183,6 +185,29 @@ cp "$COMPANION_APK_SRC" "$COMPANION_APK_DST" || abort "! Failed to copy companio
 chmod 0644 "$COMPANION_APK_DST"
 COMPANION_SIZE=$(du -h "$COMPANION_APK_DST" | cut -f1)
 ui_print "Companion service installed ($COMPANION_SIZE)"
+
+# Install the user-facing Compose UI APK so the user finds Auriya in the
+# launcher right after reboot. The APK is *not* required for the daemon
+# to run — service.sh launches the companion via app_process directly —
+# so we treat a missing or failed pm install as a warning, not an abort.
+if [ -f "$USER_APK_SRC" ]; then
+    HAS_USER_APK=true
+    USER_APK_SIZE=$(du -h "$USER_APK_SRC" | cut -f1)
+    ui_print "Installing user app ($USER_APK_SIZE)..."
+    if command -v pm > /dev/null 2>&1; then
+        if pm install -r -g "$USER_APK_SRC" > /dev/null 2>&1; then
+            ui_print "✓ User app installed (dev.auriya.app)"
+        else
+            ui_print "! pm install failed; install manually:"
+            ui_print "  adb install $USER_APK_SRC"
+        fi
+    else
+        ui_print "! pm not available; install manually:"
+        ui_print "  adb install $USER_APK_SRC"
+    fi
+else
+    ui_print "! User app APK not bundled (libs/companion/auriya-app.apk)"
+fi
 
 rm -rf "$MODPATH/libs"
 ui_print ""
