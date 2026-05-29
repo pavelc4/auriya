@@ -16,7 +16,7 @@ material-kolor = "2.0.0"
 graphics-shapes = "1.0.1"
 datastore = "1.1.1"
 adaptive = "1.0.0"
-google-fonts = "1.7.6"
+google-fonts = "1.11.2"
 libsu = "6.0.0"
 
 [libraries]
