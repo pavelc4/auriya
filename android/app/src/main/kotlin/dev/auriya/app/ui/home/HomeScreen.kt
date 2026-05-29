@@ -185,6 +185,16 @@ private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
 
 @Composable
 private fun MiniCardRow(profile: String, gameCount: Int) {
+    // Profile names like "Performance" / "Powersave" overflow the
+    // narrow MiniCard. Show a compact label instead — full value lives
+    // in the Settings screen anyway.
+    val profileShort = when (profile.lowercase()) {
+        "performance" -> "Perf"
+        "balance" -> "Balance"
+        "powersave" -> "Saver"
+        "fast" -> "Fast"
+        else -> profile
+    }
     Row(
         modifier = Modifier.height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small),
@@ -203,7 +213,7 @@ private fun MiniCardRow(profile: String, gameCount: Int) {
                 .weight(1f)
                 .fillMaxHeight(),
             icon = Icons.Outlined.Tune,
-            value = profile,
+            value = profileShort,
             label = "Active profile",
             valueColor = MaterialTheme.colorScheme.tertiary,
         )

@@ -160,8 +160,11 @@ class UiViewModel : ViewModel() {
 
     private fun pollOnce() {
         val configPath = "/data/adb/.config/auriya"
+        // Pull the active mode from [daemon].default_mode in settings.toml.
+        // The legacy /current_profile (1/2/3 codes) is no longer the
+        // source of truth — user edits settings.toml directly.
         val cmd = """
-            cat $configPath/current_profile 2>/dev/null; echo "|||";
+            awk '/^\[daemon\]/{flag=1;next}/^\[/{flag=0}flag && /default_mode/{gsub(/.*= *"/,"");gsub(/".*/,"");print;exit}' $configPath/settings.toml 2>/dev/null; echo "|||";
             uname -r 2>/dev/null; echo "|||";
             getprop ro.board.platform; echo "|||";
             getprop ro.product.device; echo "|||";
@@ -176,13 +179,17 @@ class UiViewModel : ViewModel() {
         if (out.isNotEmpty()) {
             val parts = out.split("|||").map { it.trim() }
             val rawProfile = parts.getOrNull(0) ?: ""
-            val profiles = mapOf(
-                "0" to "Init",
-                "1" to "Performance",
-                "2" to "Balance",
-                "3" to "Powersave",
-            )
-            val profileStr = profiles[rawProfile] ?: "Unknown"
+            // settings.toml stores the mode as a TOML string
+            // ("balance" / "performance" / "powersave" / "fast"). The
+            // old 0..3 numeric mapping is gone — just title-case it.
+            val profileStr = when (rawProfile.lowercase()) {
+                "performance" -> "Performance"
+                "balance" -> "Balance"
+                "powersave" -> "Powersave"
+                "fast" -> "Fast"
+                "" -> "Unknown"
+                else -> rawProfile.replaceFirstChar { it.uppercase() }
+            }
 
             val kernel = parts.getOrNull(1)?.ifEmpty { "Unknown" } ?: "Unknown"
             val chipset = parts.getOrNull(2)?.ifEmpty { "Unknown" } ?: "Unknown"
