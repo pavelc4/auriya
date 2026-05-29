@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Placeholder app-icon glyph. A single lightning bolt centred on a
+    transparent canvas. Replaced when the final brand identity is
+    settled.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@android:color/system_accent1_600"
+        android:pathData="M58,28 L42,58 L52,58 L46,80 L66,50 L56,50 Z" />
+</vector>

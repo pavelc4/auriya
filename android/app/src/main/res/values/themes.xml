@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        The Compose content lives in MainActivity; this XML theme only
+        exists for the platform's pre-Compose splash (status/nav-bar
+        colour during process start). It inherits from
+        Theme.Material3.DayNight.NoActionBar so the platform handles
+        light/dark automatically before AuriyaTheme takes over.
+    -->
+    <style name="Theme.Auriya" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@android:color/system_neutral1_900</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+</resources>
