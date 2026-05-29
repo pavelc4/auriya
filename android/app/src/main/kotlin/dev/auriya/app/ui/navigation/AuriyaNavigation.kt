@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -29,7 +29,7 @@ import dev.auriya.shared.model.GameProfile
 
 enum class NavigationTab(val title: String, val icon: ImageVector) {
     HOME("Home", Icons.Filled.Home),
-    GAMES("Games", Icons.Filled.Star),
+    GAMES("Games", Icons.Filled.SportsEsports),
     SETTINGS("Settings", Icons.Filled.Settings),
 }
 

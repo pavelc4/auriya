@@ -50,7 +50,7 @@ fun HomeScreen(viewModel: UiViewModel) {
         item { SystemMetricsList(systemInfo = systemInfo) }
         item {
             LinkRow(
-                icon = Icons.Outlined.Info,
+                iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_github),
                 title = "Learn more about Auriya",
                 subtitle = "github.com/Pavelc4/Auriya",
                 onClick = {
@@ -60,7 +60,7 @@ fun HomeScreen(viewModel: UiViewModel) {
         }
         item {
             LinkRow(
-                icon = Icons.Outlined.Share,
+                iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_telegram),
                 title = "Join Telegram updates channel",
                 subtitle = "Latest tuner updates",
                 onClick = {
@@ -325,7 +325,7 @@ private fun MetricRowItem(row: MetricRow) {
 
 @Composable
 private fun LinkRow(
-    icon: ImageVector,
+    iconPainter: androidx.compose.ui.graphics.painter.Painter,
     title: String,
     subtitle: String,
     onClick: () -> Unit,
@@ -343,7 +343,7 @@ private fun LinkRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = icon,
+                painter = iconPainter,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(AuriyaTokens.iconSize.normal),
