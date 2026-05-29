@@ -21,12 +21,6 @@ import androidx.compose.ui.unit.dp
 import dev.auriya.app.ui.theme.AuriyaTheme
 import dev.auriya.app.ui.theme.AuriyaTokens
 
-/**
- * Scaffold-only placeholder. Confirms the theme, manifest, and build
- * pipeline are wired before the real screens get designed. Real Home
- * / Games / Profile / Settings land in the post-design-discussion
- * phase.
- */
 @Composable
 fun PlaceholderScreen() {
     Surface(
@@ -68,7 +62,7 @@ fun PlaceholderScreen() {
 @Preview(showBackground = true)
 @Composable
 private fun PlaceholderScreenPreview() {
-    AuriyaTheme(dynamicColor = false) {
+    AuriyaTheme(prefs = null) {
         PlaceholderScreen()
     }
 }

@@ -3,72 +3,54 @@ package dev.auriya.app.ui.theme
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.materialkolor.PaletteStyle
+import com.materialkolor.rememberDynamicColorScheme
+import dev.auriya.app.data.ThemePrefs
 
-/**
- * Top-level theme wrapper. On Android 12+ we use the platform's
- * dynamic color (wallpaper-derived) so Auriya blends with the rest of
- * the system UI; on older platforms we fall back to a fixed brand
- * palette pending the final UI design pass.
- */
 @Composable
 fun AuriyaTheme(
+    prefs: ThemePrefs?,
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
+    val seedColor = prefs?.seedColor ?: 0xFFFFB68E.toInt()
+    val useDynamic = prefs?.useDynamicColor ?: true
+
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+        useDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context)
             else dynamicLightColorScheme(context)
         }
-        darkTheme -> darkColorScheme(
-            primary = AuriyaPrimaryDark,
-            onPrimary = AuriyaOnPrimaryDark,
-            primaryContainer = AuriyaPrimaryContainerDark,
-            onPrimaryContainer = AuriyaOnPrimaryContainerDark,
-            secondary = AuriyaSecondaryDark,
-            onSecondary = AuriyaOnSecondaryDark,
-            secondaryContainer = AuriyaSecondaryContainerDark,
-            onSecondaryContainer = AuriyaOnSecondaryContainerDark,
-            tertiary = AuriyaTertiaryDark,
-            onTertiary = AuriyaOnTertiaryDark,
-            tertiaryContainer = AuriyaTertiaryContainerDark,
-            onTertiaryContainer = AuriyaOnTertiaryContainerDark,
-            background = AuriyaBackgroundDark,
-            onBackground = AuriyaOnBackgroundDark,
-            surface = AuriyaSurfaceDark,
-            onSurface = AuriyaOnSurfaceDark,
-        )
-        else -> lightColorScheme(
-            primary = AuriyaPrimaryLight,
-            onPrimary = AuriyaOnPrimaryLight,
-            primaryContainer = AuriyaPrimaryContainerLight,
-            onPrimaryContainer = AuriyaOnPrimaryContainerLight,
-            secondary = AuriyaSecondaryLight,
-            onSecondary = AuriyaOnSecondaryLight,
-            secondaryContainer = AuriyaSecondaryContainerLight,
-            onSecondaryContainer = AuriyaOnSecondaryContainerLight,
-            tertiary = AuriyaTertiaryLight,
-            onTertiary = AuriyaOnTertiaryLight,
-            tertiaryContainer = AuriyaTertiaryContainerLight,
-            onTertiaryContainer = AuriyaOnTertiaryContainerLight,
-            background = AuriyaBackgroundLight,
-            onBackground = AuriyaOnBackgroundLight,
-            surface = AuriyaSurfaceLight,
-            onSurface = AuriyaOnSurfaceLight,
+        else -> rememberDynamicColorScheme(
+            seedColor = Color(seedColor),
+            isDark = darkTheme,
+            isAmoled = false,
+            style = PaletteStyle.TonalSpot,
         )
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AuriyaTypography,
-        content = content,
-    )
+    val semanticColors = if (darkTheme) DarkSemanticColors else LightSemanticColors
+
+    CompositionLocalProvider(LocalAuriyaSemanticColors provides semanticColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = AuriyaTypography,
+            content = content,
+        )
+    }
+}
+
+object AuriyaTheme {
+    val semantic: AuriyaSemanticColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalAuriyaSemanticColors.current
 }
