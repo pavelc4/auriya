@@ -1,76 +1,12 @@
+// The daemon used to drive `min_refresh_rate` / `peak_refresh_rate`
+// directly via `settings put`, but those writes are now delegated to
+// the Android companion through `auriya_cmd` (see `core::cmd_writer`).
+// Only the dumpsys-based mode enumeration is left in this module — the
+// daemon still needs it to validate user-requested rates against
+// `appsSupportedModes` before forwarding them.
 use anyhow::{Context, Result};
-
 use serde::{Deserialize, Serialize};
-
 use tokio::process::Command;
-use tracing::debug;
-
-pub async fn set_refresh_rate(hz: u32) -> Result<()> {
-    debug!(target: "auriya::display", "Setting refresh rate to {}Hz", hz);
-
-    let _ = Command::new("settings")
-        .args(["put", "system", "min_refresh_rate", &hz.to_string()])
-        .status()
-        .await?;
-
-    let _ = Command::new("settings")
-        .args(["put", "system", "peak_refresh_rate", &hz.to_string()])
-        .status()
-        .await?;
-    Ok(())
-}
-
-async fn read_rate_setting(name: &str) -> Result<u32> {
-    let output = Command::new("settings")
-        .args(["get", "system", name])
-        .output()
-        .await?;
-
-    // Android stores these as floats (e.g. "60.0"), so parse via f64 then round.
-    Ok(String::from_utf8_lossy(&output.stdout)
-        .trim()
-        .parse::<f64>()
-        .map(|f| f.round() as u32)
-        .unwrap_or(0))
-}
-
-pub async fn get_display_rates() -> Result<(u32, u32)> {
-    let min = read_rate_setting("min_refresh_rate").await?;
-    let peak = read_rate_setting("peak_refresh_rate").await?;
-    Ok((min, peak))
-}
-
-pub async fn restore_display_rates(min: u32, peak: u32) -> Result<()> {
-    debug!(target: "auriya::display", "Restoring refresh rates min={}Hz peak={}Hz", min, peak);
-
-    let _ = Command::new("settings")
-        .args(["put", "system", "min_refresh_rate", &min.to_string()])
-        .status()
-        .await?;
-
-    let _ = Command::new("settings")
-        .args(["put", "system", "peak_refresh_rate", &peak.to_string()])
-        .status()
-        .await?;
-
-    Ok(())
-}
-
-pub async fn reset_refresh_rate() -> Result<()> {
-    debug!(target: "auriya::display", "Resetting refresh rate to auto");
-
-    let _ = Command::new("settings")
-        .args(["put", "system", "min_refresh_rate", "0"])
-        .status()
-        .await?;
-
-    let _ = Command::new("settings")
-        .args(["put", "system", "peak_refresh_rate", "0"])
-        .status()
-        .await?;
-
-    Ok(())
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DisplayMode {

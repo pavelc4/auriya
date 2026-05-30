@@ -98,7 +98,10 @@ pub struct Daemon {
     pub(crate) balance_governor: String,
     pub(crate) default_mode: ProfileMode,
     pub(crate) supported_modes: Vec<crate::core::display::DisplayMode>,
-    pub(crate) refresh_rate_map: std::collections::HashMap<String, (u32, u32)>,
+    /// Currently-active refresh-rate override (Hz) we've asked the
+    /// companion to apply. `None` means we have not pushed a custom rate
+    /// since the daemon started or since the last release.
+    pub(crate) applied_refresh_rate: Option<u32>,
     pub(crate) cached_whitelist: HashSet<String>,
     pub(crate) status_cache: SystemStatusCache,
 }
@@ -160,7 +163,7 @@ impl Daemon {
             balance_governor,
             default_mode,
             supported_modes,
-            refresh_rate_map: std::collections::HashMap::new(),
+            applied_refresh_rate: None,
             cached_whitelist,
             tick_count: 0,
             status_cache,

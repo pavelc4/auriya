@@ -1,10 +1,9 @@
-use crate::core::cmd_writer::{CmdWriter, DndFilter};
+use crate::core::cmd_writer::{self, DndFilter};
 use crate::core::tweaks::{
     cpu, gpu, init, memory, paths, sched, storage,
     vendor::{detect as soc, mtk, snapdragon},
 };
 use anyhow::Result;
-use std::sync::OnceLock;
 use tracing::debug;
 #[inline]
 fn warn_on_err<E: std::fmt::Display>(result: Result<(), E>, context: &str) {
@@ -13,18 +12,13 @@ fn warn_on_err<E: std::fmt::Display>(result: Result<(), E>, context: &str) {
     }
 }
 
-fn cmd_writer() -> &'static CmdWriter {
-    static WRITER: OnceLock<CmdWriter> = OnceLock::new();
-    WRITER.get_or_init(CmdWriter::default_path)
-}
-
 /// Request the companion service to apply the given DnD filter. The
 /// daemon cannot call NotificationManager itself — it would need to be
 /// an app rather than a root binary — so we hand the work off through
 /// the cmd file.
 #[inline]
 fn request_dnd(filter: DndFilter) {
-    if let Err(e) = cmd_writer().write_dnd(filter) {
+    if let Err(e) = cmd_writer::shared().write_dnd(filter) {
         tracing::warn!(
             target: "auriya::profile",
             "Failed to write DnD {:?} to cmd file: {}",

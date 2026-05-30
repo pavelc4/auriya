@@ -167,12 +167,14 @@ impl Daemon {
                     bump_log(&mut self.last);
                 }
                 if self.last.pkg.as_deref() != Some(pkg)
-                    && let Some(last_pkg) = &self.last.pkg
-                    && let Some((min, peak)) = self.refresh_rate_map.remove(last_pkg)
+                    && let Some(last_pkg) = self.last.pkg.as_deref()
+                    && self.applied_refresh_rate.is_some()
                 {
-                    debug!(target: "auriya::display", "Restoring rates for {}: min={}Hz peak={}Hz", last_pkg, min, peak);
-                    if let Err(e) = crate::core::display::restore_display_rates(min, peak).await {
-                        error!(target: "auriya::display", ?e, "Failed to restore refresh rates");
+                    debug!(target: "auriya::display", "Releasing refresh-rate override for {}", last_pkg);
+                    if let Err(e) = crate::core::cmd_writer::shared().write_refresh_rate(0) {
+                        error!(target: "auriya::display", ?e, "Failed to release refresh-rate override");
+                    } else {
+                        self.applied_refresh_rate = None;
                     }
                 }
 
@@ -213,18 +215,6 @@ impl Daemon {
                 }
 
                 if let Some(rr) = game_cfg.and_then(|c| c.refresh_rate) {
-                    if !self.refresh_rate_map.contains_key(pkg) {
-                        match crate::core::display::get_display_rates().await {
-                            Ok((min, peak)) => {
-                                self.refresh_rate_map.insert(pkg.to_string(), (min, peak));
-                                debug!(target: "auriya::display", "Saved rates for {}: min={}Hz peak={}Hz", pkg, min, peak);
-                            }
-                            Err(e) => {
-                                warn!(target: "auriya::display", "Failed to read current refresh rates: {}", e)
-                            }
-                        }
-                    }
-
                     let known = !self.supported_modes.is_empty();
                     let supported = known
                         && self
@@ -236,10 +226,13 @@ impl Daemon {
                         warn!(target: "auriya::display", "Refresh rate {}Hz not in supported modes, applying anyway for {}", rr, pkg);
                     }
 
-                    if (!known || !supported)
-                        && let Err(e) = crate::core::display::set_refresh_rate(rr).await
-                    {
-                        error!(target: "auriya::display", ?e, "Failed to set refresh rate");
+                    if self.applied_refresh_rate != Some(rr) {
+                        if let Err(e) = crate::core::cmd_writer::shared().write_refresh_rate(rr) {
+                            error!(target: "auriya::display", ?e, "Failed to request refresh rate {}Hz", rr);
+                        } else {
+                            debug!(target: "auriya::display", "Requested refresh rate {}Hz for {}", rr, pkg);
+                            self.applied_refresh_rate = Some(rr);
+                        }
                     }
                 }
 
@@ -255,11 +248,15 @@ impl Daemon {
         use crate::core::profile;
 
         if self.last.pkg.as_deref() != Some(pkg)
-            && let Some(last_pkg) = &self.last.pkg
-            && let Some((min, peak)) = self.refresh_rate_map.remove(last_pkg)
+            && let Some(last_pkg) = self.last.pkg.as_deref()
+            && self.applied_refresh_rate.is_some()
         {
-            debug!(target: "auriya::display", "Restoring rates for {}: min={}Hz peak={}Hz ({})", last_pkg, min, peak, reason);
-            let _ = crate::core::display::restore_display_rates(min, peak).await;
+            debug!(target: "auriya::display", "Releasing refresh-rate override for {} ({})", last_pkg, reason);
+            if let Err(e) = crate::core::cmd_writer::shared().write_refresh_rate(0) {
+                error!(target: "auriya::display", ?e, "Failed to release refresh-rate override");
+            } else {
+                self.applied_refresh_rate = None;
+            }
         }
 
         if self.last.profile_mode != Some(self.default_mode) {
@@ -309,12 +306,14 @@ impl Daemon {
                 debug!(target: "auriya::daemon", "No foreground app detected");
                 bump_log(&mut self.last);
             }
-            if let Some(last_pkg) = self.last.pkg.take() {
-                if let Some((min, peak)) = self.refresh_rate_map.remove(&last_pkg) {
-                    debug!(target: "auriya::display", "Restoring rates for {} (no foreground): min={}Hz peak={}Hz", last_pkg, min, peak);
-                    let _ = crate::core::display::restore_display_rates(min, peak).await;
+            if let Some(last_pkg) = self.last.pkg.take()
+                && self.applied_refresh_rate.is_some()
+            {
+                debug!(target: "auriya::display", "Releasing refresh-rate override for {} (no foreground)", last_pkg);
+                if let Err(e) = crate::core::cmd_writer::shared().write_refresh_rate(0) {
+                    error!(target: "auriya::display", ?e, "Failed to release refresh-rate override");
                 } else {
-                    let _ = crate::core::display::reset_refresh_rate().await;
+                    self.applied_refresh_rate = None;
                 }
             }
             self.last.pid = None;

@@ -19,9 +19,18 @@
 use std::fmt::Write as _;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 pub const CMD_FILE: &str = "/data/adb/.config/auriya/auriya_cmd";
+
+/// Process-wide writer pointing at [`CMD_FILE`]. Every caller MUST go
+/// through this — multiple writers would each start their own `seq`
+/// counter and the companion's dedup logic would mis-fire.
+pub fn shared() -> &'static CmdWriter {
+    static WRITER: OnceLock<CmdWriter> = OnceLock::new();
+    WRITER.get_or_init(CmdWriter::default_path)
+}
 
 /// Maps to NotificationManager.INTERRUPTION_FILTER_*.
 ///
@@ -74,6 +83,16 @@ impl CmdWriter {
     pub fn write_dnd(&self, filter: DndFilter) -> anyhow::Result<u64> {
         self.write(&Cmd {
             dnd: Some(filter),
+            ..Cmd::default()
+        })
+    }
+
+    /// Convenience: write a single-field refresh-rate command. `0`
+    /// signals the companion to restore whatever it captured before the
+    /// daemon first set a custom rate.
+    pub fn write_refresh_rate(&self, hz: u32) -> anyhow::Result<u64> {
+        self.write(&Cmd {
+            refresh_rate: Some(hz),
             ..Cmd::default()
         })
     }
