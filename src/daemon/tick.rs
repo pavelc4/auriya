@@ -236,6 +236,17 @@ impl Daemon {
                     }
                 }
 
+                let want_lock = game_cfg.map(|c| c.lock_rotation).unwrap_or(false);
+                if self.applied_lock_rotation != Some(want_lock) {
+                    if let Err(e) = crate::core::cmd_writer::shared().write_lock_rotation(want_lock)
+                    {
+                        error!(target: "auriya::display", ?e, "Failed to push lock_rotation={} for {}", want_lock, pkg);
+                    } else {
+                        debug!(target: "auriya::display", "Requested lock_rotation={} for {}", want_lock, pkg);
+                        self.applied_lock_rotation = Some(want_lock);
+                    }
+                }
+
                 self.last.pkg = Some(pkg.to_string());
                 self.last.pid = Some(pid);
                 Ok(())
@@ -256,6 +267,15 @@ impl Daemon {
                 error!(target: "auriya::display", ?e, "Failed to release refresh-rate override");
             } else {
                 self.applied_refresh_rate = None;
+            }
+        }
+
+        if self.applied_lock_rotation == Some(true) {
+            if let Err(e) = crate::core::cmd_writer::shared().write_lock_rotation(false) {
+                error!(target: "auriya::display", ?e, "Failed to release rotation lock ({})", reason);
+            } else {
+                debug!(target: "auriya::display", "Released rotation lock ({})", reason);
+                self.applied_lock_rotation = Some(false);
             }
         }
 
@@ -314,6 +334,14 @@ impl Daemon {
                     error!(target: "auriya::display", ?e, "Failed to release refresh-rate override");
                 } else {
                     self.applied_refresh_rate = None;
+                }
+            }
+            if self.applied_lock_rotation == Some(true) {
+                if let Err(e) = crate::core::cmd_writer::shared().write_lock_rotation(false) {
+                    error!(target: "auriya::display", ?e, "Failed to release rotation lock (no foreground)");
+                } else {
+                    debug!(target: "auriya::display", "Released rotation lock (no foreground)");
+                    self.applied_lock_rotation = Some(false);
                 }
             }
             self.last.pid = None;

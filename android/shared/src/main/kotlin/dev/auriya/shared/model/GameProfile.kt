@@ -6,7 +6,8 @@ data class GameProfile(
     val enableDnd: Boolean,
     val targetFps: Int? = null,
     val refreshRate: Int? = null,
-    val mode: String? = null
+    val mode: String? = null,
+    val lockRotation: Boolean = false,
 )
 
 data class GameList(

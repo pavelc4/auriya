@@ -97,6 +97,10 @@ pub struct GameProfile {
     pub refresh_rate: Option<u32>,
     #[serde(default)]
     pub mode: Option<String>,
+    /// Lock the device's rotation while this game is foreground.
+    /// Missing in the TOML defaults to `false` (don't touch rotation).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub lock_rotation: bool,
 }
 
 impl GameList {

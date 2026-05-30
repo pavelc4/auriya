@@ -6,6 +6,7 @@ import android.os.Looper
 import android.util.Log
 import dev.auriya.service.actuator.DisplayActuator
 import dev.auriya.service.actuator.DnDActuator
+import dev.auriya.service.actuator.RotationActuator
 import dev.auriya.service.io.CmdReader
 import dev.auriya.service.io.StatusWriter
 import dev.auriya.service.lock.LockFile
@@ -74,9 +75,11 @@ object Main {
 
         val dnd = DnDActuator(context)
         val display = DisplayActuator(context)
+        val rotation = RotationActuator(context)
         val cmdReader = CmdReader(File(ConfigPaths.CMD_FILE)) { cmd ->
             cmd.dnd?.let { dnd.apply(it) }
             cmd.refreshRate?.let { display.apply(it) }
+            cmd.lockRotation?.let { rotation.apply(it) }
         }
 
         Runtime.getRuntime().addShutdownHook(Thread {

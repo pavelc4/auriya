@@ -9,8 +9,9 @@ import dev.auriya.shared.model.DndFilter
  * Layout (subset, order-independent, unknown keys ignored):
  *
  *   seq 42
- *   dnd 1            # 0=off, 1=priority, 2=total, 3=alarms
- *   refresh_rate 90  # Hz; 0 means "restore the previous rate"
+ *   dnd 1              # 0=off, 1=priority, 2=total, 3=alarms
+ *   refresh_rate 90    # Hz; 0 means "restore the previous rate"
+ *   lock_rotation 1    # 1=lock orientation, 0=release lock
  *
  * `seq` is mandatory — the companion uses it for deduplication.
  */
@@ -19,12 +20,14 @@ object CmdFormat {
         append("seq ").append(cmd.seq).append('\n')
         cmd.dnd?.let { append("dnd ").append(it.wire).append('\n') }
         cmd.refreshRate?.let { append("refresh_rate ").append(it).append('\n') }
+        cmd.lockRotation?.let { append("lock_rotation ").append(if (it) 1 else 0).append('\n') }
     }
 
     fun decode(text: String): Cmd? {
         var seq: Long? = null
         var dnd: DndFilter? = null
         var refreshRate: Int? = null
+        var lockRotation: Boolean? = null
 
         text.lineSequence().forEach { rawLine ->
             val line = rawLine.trim()
@@ -38,6 +41,7 @@ object CmdFormat {
                 "seq" -> seq = value.toLongOrNull()
                 "dnd" -> dnd = value.toIntOrNull()?.let(DndFilter::fromWire)
                 "refresh_rate" -> refreshRate = value.toIntOrNull()
+                "lock_rotation" -> lockRotation = value.toIntOrNull()?.let { it != 0 }
                 else -> Unit // forward-compatible
             }
         }
@@ -45,6 +49,6 @@ object CmdFormat {
         // A command without seq is malformed and must be discarded
         // rather than silently treated as seq=0.
         val s = seq ?: return null
-        return Cmd(seq = s, dnd = dnd, refreshRate = refreshRate)
+        return Cmd(seq = s, dnd = dnd, refreshRate = refreshRate, lockRotation = lockRotation)
     }
 }

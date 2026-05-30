@@ -155,6 +155,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         target_fps: None,
                         refresh_rate: None,
                         mode: Some("performance".to_string()),
+                        lock_rotation: false,
                     };
                     match gl.add(profile) {
                         Ok(_) => {

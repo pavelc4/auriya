@@ -9,8 +9,9 @@
 // Wire format (mirrors `android/shared/.../CmdFormat.kt`):
 //
 //     seq 42
-//     dnd 1            # 0=off, 1=priority, 2=total, 3=alarms
-//     refresh_rate 90  # Hz; 0 means "restore previous"
+//     dnd 1              # 0=off, 1=priority, 2=total, 3=alarms
+//     refresh_rate 90    # Hz; 0 means "restore previous"
+//     lock_rotation 1    # 1=lock orientation, 0=release lock
 //
 // Each write replaces the file atomically (tmp → rename) so the
 // companion never reads a half-written payload. `seq` is a process-
@@ -56,6 +57,10 @@ pub enum DndFilter {
 pub struct Cmd {
     pub dnd: Option<DndFilter>,
     pub refresh_rate: Option<u32>,
+    /// `Some(true)` → ask companion to lock the current rotation.
+    /// `Some(false)` → release the lock (companion restores user's value).
+    /// `None` → daemon has nothing to say about rotation this write.
+    pub lock_rotation: Option<bool>,
 }
 
 /// Writer for `auriya_cmd`. Cheap to construct (just a path + atomic
@@ -97,6 +102,16 @@ impl CmdWriter {
         })
     }
 
+    /// Convenience: write a single-field rotation lock command.
+    /// `true` asks the companion to lock orientation; `false` releases
+    /// the lock and restores the pre-override value.
+    pub fn write_lock_rotation(&self, lock: bool) -> anyhow::Result<u64> {
+        self.write(&Cmd {
+            lock_rotation: Some(lock),
+            ..Cmd::default()
+        })
+    }
+
     /// Render `cmd` and atomically replace the file. Returns the seq
     /// used so the caller can correlate logs if needed.
     pub fn write(&self, cmd: &Cmd) -> anyhow::Result<u64> {
@@ -109,6 +124,9 @@ impl CmdWriter {
         }
         if let Some(rr) = cmd.refresh_rate {
             let _ = writeln!(payload, "refresh_rate {rr}");
+        }
+        if let Some(lock) = cmd.lock_rotation {
+            let _ = writeln!(payload, "lock_rotation {}", if lock { 1 } else { 0 });
         }
 
         let parent = self.target.parent().ok_or_else(|| {
@@ -191,6 +209,7 @@ mod tests {
             .write(&Cmd {
                 dnd: Some(DndFilter::Alarms),
                 refresh_rate: Some(120),
+                ..Cmd::default()
             })
             .unwrap();
         let text = fs::read_to_string(&target).unwrap();
@@ -206,13 +225,27 @@ mod tests {
         let writer = CmdWriter::new(&target);
         writer
             .write(&Cmd {
-                dnd: None,
                 refresh_rate: Some(0),
+                ..Cmd::default()
             })
             .unwrap();
         let text = fs::read_to_string(&target).unwrap();
         assert!(text.contains("refresh_rate 0"));
         assert!(!text.contains("dnd"));
+        fs::remove_file(&target).ok();
+    }
+
+    #[test]
+    fn encodes_lock_rotation() {
+        let target = temp_target();
+        let writer = CmdWriter::new(&target);
+        writer.write_lock_rotation(true).unwrap();
+        let on = fs::read_to_string(&target).unwrap();
+        assert!(on.contains("lock_rotation 1"));
+
+        writer.write_lock_rotation(false).unwrap();
+        let off = fs::read_to_string(&target).unwrap();
+        assert!(off.contains("lock_rotation 0"));
         fs::remove_file(&target).ok();
     }
 }

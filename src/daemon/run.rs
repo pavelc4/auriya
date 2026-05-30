@@ -102,6 +102,11 @@ pub struct Daemon {
     /// companion to apply. `None` means we have not pushed a custom rate
     /// since the daemon started or since the last release.
     pub(crate) applied_refresh_rate: Option<u32>,
+    /// Currently-active rotation lock override.
+    /// `Some(true)` → we asked the companion to lock orientation.
+    /// `Some(false)` → we explicitly released the lock.
+    /// `None` → daemon hasn't expressed an opinion since startup.
+    pub(crate) applied_lock_rotation: Option<bool>,
     pub(crate) cached_whitelist: HashSet<String>,
     pub(crate) status_cache: SystemStatusCache,
 }
@@ -164,6 +169,7 @@ impl Daemon {
             default_mode,
             supported_modes,
             applied_refresh_rate: None,
+            applied_lock_rotation: None,
             cached_whitelist,
             tick_count: 0,
             status_cache,
