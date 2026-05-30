@@ -242,7 +242,6 @@ chmod 0755 "$LOG_DIR"
 set_perm "$MODPATH/system/bin/auriya" 0 0 0755
 set_perm "$COMPANION_APK_DST" 0 0 0644
 [ "$HAS_CLI" = true ] && set_perm "$MODPATH/system/bin/auriyactl" 0 0 0755
-[ -f "$MODPATH/smoke-test.sh" ] && set_perm "$MODPATH/smoke-test.sh" 0 0 0755
 
 ui_print "Installation complete!"
 ui_print ""
