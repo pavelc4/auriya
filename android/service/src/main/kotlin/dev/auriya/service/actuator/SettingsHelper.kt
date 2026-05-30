@@ -68,7 +68,7 @@ class SettingsHelper(context: Context) {
         Settings.System.putString(resolver, key, null)
     } catch (t: SecurityException) {
         Log.w(TAG, "Settings.System remove fallback to shell", t)
-        shellPut("system", key, null)
+        shellDelete("system", key)
     }
 
     // --- shell fallbacks (system uid, no su needed) ---
@@ -86,6 +86,17 @@ class SettingsHelper(context: Context) {
             it.readLine()?.trim()
         }.also {
             try { proc.waitFor() } catch (_: InterruptedException) {}
+        }
+    }
+
+    private fun shellDelete(namespace: String, key: String) {
+        try {
+            val proc = ProcessBuilder("settings", "delete", namespace, key)
+                .redirectErrorStream(true)
+                .start()
+            proc.waitFor()
+        } catch (e: Exception) {
+            Log.e(TAG, "shell delete exec failed: `settings delete $namespace $key`", e)
         }
     }
 

@@ -178,6 +178,9 @@ impl GameList {
             if let Some(m) = upd.mode {
                 profile.mode = Some(m);
             }
+            if let Some(lr) = upd.lock_rotation {
+                profile.lock_rotation = lr;
+            }
             if let Some(bn) = upd.block_notifications {
                 profile.block_notifications = bn;
             }
@@ -196,5 +199,6 @@ pub struct GameProfileUpdate {
     pub refresh_rate: Option<u32>,
     pub mode: Option<String>,
     pub fps_array: Option<Vec<u32>>,
+    pub lock_rotation: Option<bool>,
     pub block_notifications: Option<bool>,
 }

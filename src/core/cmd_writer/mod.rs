@@ -83,6 +83,22 @@ impl CmdWriter {
         Self::new(CMD_FILE)
     }
 
+    /// Write an arbitrary set of fields in a single atomic write.
+    /// Use this in tick.rs to batch refresh_rate + lock_rotation +
+    /// dnd changes so the companion never sees stale partial state.
+    pub fn write_fields(
+        &self,
+        dnd: Option<DndFilter>,
+        refresh_rate: Option<u32>,
+        lock_rotation: Option<bool>,
+    ) -> anyhow::Result<u64> {
+        self.write(&Cmd {
+            dnd,
+            refresh_rate,
+            lock_rotation,
+        })
+    }
+
     /// Convenience: write a single-field DnD command. Returns the
     /// seq assigned to the write so callers can correlate logs.
     pub fn write_dnd(&self, filter: DndFilter) -> anyhow::Result<u64> {
@@ -98,16 +114,6 @@ impl CmdWriter {
     pub fn write_refresh_rate(&self, hz: u32) -> anyhow::Result<u64> {
         self.write(&Cmd {
             refresh_rate: Some(hz),
-            ..Cmd::default()
-        })
-    }
-
-    /// Convenience: write a single-field rotation lock command.
-    /// `true` asks the companion to lock orientation; `false` releases
-    /// the lock and restores the pre-override value.
-    pub fn write_lock_rotation(&self, lock: bool) -> anyhow::Result<u64> {
-        self.write(&Cmd {
-            lock_rotation: Some(lock),
             ..Cmd::default()
         })
     }
@@ -239,11 +245,11 @@ mod tests {
     fn encodes_lock_rotation() {
         let target = temp_target();
         let writer = CmdWriter::new(&target);
-        writer.write_lock_rotation(true).unwrap();
+        writer.write_fields(None, None, Some(true)).unwrap();
         let on = fs::read_to_string(&target).unwrap();
         assert!(on.contains("lock_rotation 1"));
 
-        writer.write_lock_rotation(false).unwrap();
+        writer.write_fields(None, None, Some(false)).unwrap();
         let off = fs::read_to_string(&target).unwrap();
         assert!(off.contains("lock_rotation 0"));
         fs::remove_file(&target).ok();

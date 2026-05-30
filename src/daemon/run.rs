@@ -107,6 +107,11 @@ pub struct Daemon {
     /// `Some(false)` → we explicitly released the lock.
     /// `None` → daemon hasn't expressed an opinion since startup.
     pub(crate) applied_lock_rotation: Option<bool>,
+    /// `true` → we pushed `DndFilter::None` for the current game and
+    /// need to restore on exit.  Tracked separately from the profile's
+    /// own DnD setting so that `enable_dnd = false` (no DnD at all)
+    /// doesn't leak the None filter.
+    pub(crate) applied_block_notifications: bool,
     pub(crate) cached_whitelist: HashSet<String>,
     pub(crate) status_cache: SystemStatusCache,
 }
@@ -170,6 +175,7 @@ impl Daemon {
             supported_modes,
             applied_refresh_rate: None,
             applied_lock_rotation: None,
+            applied_block_notifications: false,
             cached_whitelist,
             tick_count: 0,
             status_cache,
