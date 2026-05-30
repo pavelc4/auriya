@@ -1,7 +1,5 @@
 package dev.auriya.service.actuator
 
-import android.content.Context
-import android.provider.Settings
 import android.util.Log
 
 /**
@@ -25,14 +23,13 @@ import android.util.Log
  * is granted automatically — no WRITE_SETTINGS or signature grant
  * required.
  */
-class DisplayActuator(context: Context) {
+class DisplayActuator(private val settings: SettingsHelper) {
     private companion object {
         private const val TAG = "AuriyaDisplay"
         private const val KEY_PEAK = "peak_refresh_rate"
         private const val KEY_MIN = "min_refresh_rate"
     }
 
-    private val resolver = context.contentResolver
     private var lastApplied: Int? = null
     private var savedMin: Float? = null
     private var savedPeak: Float? = null
@@ -53,8 +50,8 @@ class DisplayActuator(context: Context) {
                 restoreSnapshot()
             } else {
                 captureSnapshotIfNeeded()
-                Settings.System.putFloat(resolver, KEY_PEAK, rateHz.toFloat())
-                Settings.System.putFloat(resolver, KEY_MIN, rateHz.toFloat())
+                settings.putFloat(KEY_PEAK, rateHz.toFloat())
+                settings.putFloat(KEY_MIN, rateHz.toFloat())
                 Log.i(TAG, "set refresh rate to ${rateHz}Hz (min+peak)")
             }
             lastApplied = rateHz
@@ -75,21 +72,17 @@ class DisplayActuator(context: Context) {
         val min = savedMin
         val peak = savedPeak
         if (min != null) {
-            Settings.System.putFloat(resolver, KEY_MIN, min)
+            settings.putFloat(KEY_MIN, min)
         } else {
-            Settings.System.putString(resolver, KEY_MIN, null)
+            settings.remove(KEY_MIN)
         }
         if (peak != null) {
-            Settings.System.putFloat(resolver, KEY_PEAK, peak)
+            settings.putFloat(KEY_PEAK, peak)
         } else {
-            Settings.System.putString(resolver, KEY_PEAK, null)
+            settings.remove(KEY_PEAK)
         }
         Log.i(TAG, "restored refresh rate (min=$min peak=$peak)")
     }
 
-    private fun readFloatOrNull(key: String): Float? = try {
-        Settings.System.getFloat(resolver, key)
-    } catch (_: Settings.SettingNotFoundException) {
-        null
-    }
+    private fun readFloatOrNull(key: String): Float? = settings.getFloatOrNull(key)
 }

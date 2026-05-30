@@ -63,7 +63,7 @@ fun GameProfileScreen(
     var enableDnd by remember { mutableStateOf(game.enableDnd) }
     var killBackground by remember { mutableStateOf(false) }
     var autoRotate by remember { mutableStateOf(game.lockRotation) }
-    var blockNotifications by remember { mutableStateOf(false) }
+    var blockNotifications by remember { mutableStateOf(game.blockNotifications) }
 
     var govDropdownExpanded by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
@@ -127,6 +127,7 @@ fun GameProfileScreen(
                             targetFps = targetFps.toInt(),
                             refreshRate = if (refreshRate.toInt() == 0) null else refreshRate.toInt(),
                             lockRotation = autoRotate,
+                            blockNotifications = blockNotifications,
                         )
                     )
                 },

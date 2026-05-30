@@ -138,6 +138,7 @@ object TomlParser {
         var currentRate: Int? = null
         var currentMode: String? = null
         var currentLockRotation = false
+        var currentBlockNotifications = false
 
         fun commitCurrentGame() {
             if (currentPkg.isNotEmpty()) {
@@ -150,6 +151,7 @@ object TomlParser {
                         refreshRate = currentRate,
                         mode = currentMode,
                         lockRotation = currentLockRotation,
+                        blockNotifications = currentBlockNotifications,
                     )
                 )
             }
@@ -168,6 +170,7 @@ object TomlParser {
                 currentRate = null
                 currentMode = null
                 currentLockRotation = false
+                currentBlockNotifications = false
                 return@forEach
             }
 
@@ -184,6 +187,7 @@ object TomlParser {
                 "refresh_rate" -> currentRate = value.toIntOrNull()
                 "mode" -> currentMode = parseStringValue(value)
                 "lock_rotation" -> currentLockRotation = value.toBooleanStrictOrNull() ?: false
+                "block_notifications" -> currentBlockNotifications = value.toBooleanStrictOrNull() ?: false
             }
         }
         commitCurrentGame()
@@ -208,6 +212,9 @@ object TomlParser {
             }
             if (game.lockRotation) {
                 append("lock_rotation = true\n")
+            }
+            if (game.blockNotifications) {
+                append("block_notifications = true\n")
             }
             append("\n")
         }

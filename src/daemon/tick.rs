@@ -121,6 +121,7 @@ impl Daemon {
                     .map(|c| c.cpu_governor.clone())
                     .unwrap_or_else(|| self.balance_governor.clone());
                 let enable_dnd = game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
+                let block_notif = game_cfg.map(|c| c.block_notifications).unwrap_or(false);
 
                 if let Some(cfg) = game_cfg
                     && let Some(ref fps_cfg) = cfg.target_fps
@@ -130,7 +131,7 @@ impl Daemon {
                 }
 
                 match self
-                    .run_fas_tick(&fas, &pkg, &governor, self.last.pid, enable_dnd)
+                    .run_fas_tick(&fas, &pkg, &governor, self.last.pid, enable_dnd, block_notif)
                     .await
                 {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
@@ -247,6 +248,13 @@ impl Daemon {
                     }
                 }
 
+                let block_notif = game_cfg.map(|c| c.block_notifications).unwrap_or(false);
+                if block_notif {
+                    let _ = crate::core::cmd_writer::shared().write_dnd(
+                        crate::core::cmd_writer::DndFilter::None,
+                    );
+                }
+
                 self.last.pkg = Some(pkg.to_string());
                 self.last.pid = Some(pid);
                 Ok(())
@@ -348,6 +356,16 @@ impl Daemon {
         }
     }
 
+    /// Push `DndFilter::None` when the active game has `block_notifications`
+    /// enabled, overriding whatever the profile just set (e.g. Priority-only).
+    fn apply_block_notifications_if_needed(block_notif: bool) {
+        if block_notif {
+            let _ = crate::core::cmd_writer::shared().write_dnd(
+                crate::core::cmd_writer::DndFilter::None,
+            );
+        }
+    }
+
     pub(crate) async fn run_fas_tick(
         &mut self,
         fas: &Arc<tokio::sync::Mutex<crate::daemon::fas::FasController>>,
@@ -355,6 +373,7 @@ impl Daemon {
         game_governor: &str,
         pid: Option<i32>,
         enable_dnd: bool,
+        block_notif: bool,
     ) -> Result<bool> {
         use crate::core::{profile, scaling::ScalingAction};
 
@@ -372,6 +391,7 @@ impl Daemon {
                     debug!(target: "auriya::fas", "FAS decision: BOOST → applying PERFORMANCE");
                     profile::apply_performance_with_config(game_governor, enable_dnd, None)?;
                     self.last.profile_mode = Some(ProfileMode::Performance);
+                    Self::apply_block_notifications_if_needed(block_notif);
                 } else {
                     debug!(target: "auriya::fas", "FAS decision: BOOST → already PERFORMANCE, skip");
                 }
@@ -398,6 +418,7 @@ impl Daemon {
                     } else {
                         debug!(target: "auriya::fas", "FAS decision: REDUCE → applying {:?}", self.default_mode);
                         self.last.profile_mode = Some(self.default_mode);
+                        Self::apply_block_notifications_if_needed(block_notif);
                     }
                 } else {
                     debug!(target: "auriya::fas", "FAS decision: REDUCE → already {:?}, skip", self.default_mode);

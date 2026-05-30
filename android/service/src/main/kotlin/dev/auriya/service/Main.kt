@@ -7,6 +7,8 @@ import android.util.Log
 import dev.auriya.service.actuator.DisplayActuator
 import dev.auriya.service.actuator.DnDActuator
 import dev.auriya.service.actuator.RotationActuator
+import dev.auriya.service.actuator.SettingsHelper
+
 import dev.auriya.service.io.CmdReader
 import dev.auriya.service.io.StatusWriter
 import dev.auriya.service.lock.LockFile
@@ -73,9 +75,10 @@ object Main {
         val power = PowerSensor(context, sink)
         val zen = ZenSensor(context, sink)
 
+        val settings = SettingsHelper(context)
         val dnd = DnDActuator(context)
-        val display = DisplayActuator(context)
-        val rotation = RotationActuator(context)
+        val display = DisplayActuator(settings)
+        val rotation = RotationActuator(settings)
         val cmdReader = CmdReader(File(ConfigPaths.CMD_FILE)) { cmd ->
             cmd.dnd?.let { dnd.apply(it) }
             cmd.refreshRate?.let { display.apply(it) }

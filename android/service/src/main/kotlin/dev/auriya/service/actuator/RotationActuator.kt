@@ -1,7 +1,5 @@
 package dev.auriya.service.actuator
 
-import android.content.Context
-import android.provider.Settings
 import android.util.Log
 
 /**
@@ -20,13 +18,12 @@ import android.util.Log
  * The companion runs as system uid, so the Settings.System write
  * doesn't require WRITE_SETTINGS or a signature grant.
  */
-class RotationActuator(context: Context) {
+class RotationActuator(private val settings: SettingsHelper) {
     private companion object {
         private const val TAG = "AuriyaRotation"
-        private const val KEY = Settings.System.ACCELEROMETER_ROTATION
+        private const val KEY = "accelerometer_rotation"
     }
 
-    private val resolver = context.contentResolver
     private var lastApplied: Boolean? = null
     private var savedValue: Int? = null
     private var snapshotTaken = false
@@ -40,7 +37,7 @@ class RotationActuator(context: Context) {
         try {
             if (lock) {
                 captureSnapshotIfNeeded()
-                Settings.System.putInt(resolver, KEY, 0)
+                settings.putInt(KEY, 0)
                 Log.i(TAG, "locked rotation (auto-rotate=0)")
             } else {
                 restoreSnapshot()
@@ -53,18 +50,14 @@ class RotationActuator(context: Context) {
 
     private fun captureSnapshotIfNeeded() {
         if (snapshotTaken) return
-        savedValue = try {
-            Settings.System.getInt(resolver, KEY)
-        } catch (_: Settings.SettingNotFoundException) {
-            null
-        }
+        savedValue = settings.getIntOrNull(KEY)
         snapshotTaken = true
         Log.i(TAG, "captured original ACCELEROMETER_ROTATION=$savedValue")
     }
 
     private fun restoreSnapshot() {
         val restore = savedValue ?: 1
-        Settings.System.putInt(resolver, KEY, restore)
+        settings.putInt(KEY, restore)
         Log.i(TAG, "released rotation lock (restored auto-rotate=$restore)")
     }
 }

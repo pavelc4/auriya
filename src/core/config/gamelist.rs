@@ -101,6 +101,11 @@ pub struct GameProfile {
     /// Missing in the TOML defaults to `false` (don't touch rotation).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub lock_rotation: bool,
+    /// Suppress all notifications while this game is foreground.
+    /// Daemon pushes `DndFilter::None` to override whatever the profile
+    /// set (e.g. Priority-only from `enable_dnd`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub block_notifications: bool,
 }
 
 impl GameList {
@@ -173,6 +178,9 @@ impl GameList {
             if let Some(m) = upd.mode {
                 profile.mode = Some(m);
             }
+            if let Some(bn) = upd.block_notifications {
+                profile.block_notifications = bn;
+            }
             Ok(())
         } else {
             anyhow::bail!("Game {} not found", package)
@@ -188,4 +196,5 @@ pub struct GameProfileUpdate {
     pub refresh_rate: Option<u32>,
     pub mode: Option<String>,
     pub fps_array: Option<Vec<u32>>,
+    pub block_notifications: Option<bool>,
 }

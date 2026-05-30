@@ -156,6 +156,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         refresh_rate: None,
                         mode: Some("performance".to_string()),
                         lock_rotation: false,
+                        block_notifications: false,
                     };
                     match gl.add(profile) {
                         Ok(_) => {
@@ -228,6 +229,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         refresh_rate,
                         mode,
                         fps_array,
+                        block_notifications: None,
                     };
                     match gl.update(&pkg, upd) {
                         Ok(_) => {
