@@ -1,23 +1,28 @@
 package dev.auriya.app.ui.settings
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalCafe
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -90,7 +95,10 @@ fun AboutScreen(onDismiss: () -> Unit) {
         }
     }
 
-    val badgeTexts = listOf("Free", "Open Source", "Rust", "Kotlin", "eBPF", "M3 Expressive")
+    // Filter out pavelc4 from the dynamic contributors list, per your request
+    val filteredContributors = remember(contributors) {
+        contributors.filter { it.login.lowercase() != OWNER_LOGIN.lowercase() }
+    }
 
     Scaffold(
         topBar = {
@@ -99,7 +107,7 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onDismiss) {
                         Icon(
-                            imageVector = Icons.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -117,16 +125,13 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 .padding(innerPadding)
                 .padding(horizontal = AuriyaTokens.padding.normal),
             verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
-            contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.largest)
+            contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = 80.dp)
         ) {
-            item { HeroCard(repoInfo, isLoadingInfo, badgeTexts) }
-
+            // 1. Support Card
             item {
-                OwnerCard(
-                    owner = ownerInfo,
-                    isLoading = isLoadingOwner,
-                    onClick = {
-                        val url = ownerInfo?.htmlUrl ?: "https://github.com/$OWNER_LOGIN"
+                SupportCard(
+                    onCoffeeClick = {
+                        val url = "https://github.com/sponsors/$OWNER_LOGIN"
                         runCatching {
                             context.startActivity(
                                 android.content.Intent(
@@ -139,10 +144,24 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 )
             }
 
+            // 2. Contributors Card (Creator pavelc4 + Dynamic Expandable Contributor list)
             item {
                 ContributorsCard(
-                    contributors = contributors,
-                    isLoading = isLoadingContributors,
+                    owner = ownerInfo,
+                    isLoadingOwner = isLoadingOwner,
+                    contributors = filteredContributors,
+                    isLoadingContributors = isLoadingContributors,
+                    onCreatorClick = {
+                        val url = ownerInfo?.htmlUrl ?: "https://github.com/$OWNER_LOGIN"
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(url)
+                                )
+                            )
+                        }
+                    },
                     onContributorClick = { url ->
                         runCatching {
                             context.startActivity(
@@ -155,114 +174,41 @@ fun AboutScreen(onDismiss: () -> Unit) {
                     }
                 )
             }
-        }
-    }
-}
 
-@Composable
-private fun HeroCard(
-    repoInfo: RepoInfo?,
-    isLoading: Boolean,
-    badgeTexts: List<String>,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AuriyaTokens.rounding.extraLargeIncreased),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(AuriyaTokens.padding.larger),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(RoundedCornerShape(AuriyaTokens.rounding.large))
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.AutoAwesome,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        contentDescription = null,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(AuriyaTokens.iconSize.small),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    } else {
-                        Text(
-                            text = repoInfo?.name ?: "Auriya",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                        Text(
-                            text = repoInfo?.description ?: "eBPF-based game optimizer for Android",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                        )
+            // 3. Community & License Double Cards
+            item {
+                CommunityAndLicenseRow(
+                    onTelegramClick = {
+                        val url = "https://t.me/auriya_chat"
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(url)
+                                )
+                            )
+                        }
+                    },
+                    onLicenseClick = {
+                        val url = "https://github.com/$OWNER_LOGIN/$REPO_NAME/blob/main/LICENSE"
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(url)
+                                )
+                            )
+                        }
                     }
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(AuriyaTokens.rounding.large))
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(horizontal = AuriyaTokens.padding.small, vertical = AuriyaTokens.padding.smallest)
-            ) {
-                Text(
-                    text = repoInfo?.version ?: "v2.0.0",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                badgeTexts.forEach { badge ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(AuriyaTokens.rounding.large))
-                            .background(MaterialTheme.colorScheme.tertiary)
-                            .padding(horizontal = AuriyaTokens.padding.small, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = badge,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onTertiary
-                        )
-                    }
-                }
-            }
         }
     }
 }
 
 @Composable
-private fun OwnerCard(
-    owner: OwnerInfo?,
-    isLoading: Boolean,
-    onClick: () -> Unit,
+private fun SupportCard(
+    onCoffeeClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -273,34 +219,121 @@ private fun OwnerCard(
     ) {
         Column(
             modifier = Modifier.padding(AuriyaTokens.padding.larger),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small)
+            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
         ) {
             Text(
-                text = "PROJECT OWNER",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
+                text = "Support",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
+            Text(
+                text = "If Auriya saves your time when updating or tuning, consider buying me a coffee to keep the development going.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
+            )
+
+            Button(
+                onClick = onCoffeeClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(AuriyaTokens.rounding.large),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFE8C39E), // warm light peach/sand tone
+                    contentColor = Color(0xFF2E1C0C) // dark wood/brown tone
+                )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.LocalCafe,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Buy a Coffee",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContributorsCard(
+    owner: OwnerInfo?,
+    isLoadingOwner: Boolean,
+    contributors: List<Contributor>,
+    isLoadingContributors: Boolean,
+    onCreatorClick: () -> Unit,
+    onContributorClick: (String) -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(AuriyaTokens.padding.larger),
+            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
+        ) {
+            // Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.People,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Text(
+                    text = "Contributors",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            // Creator Sub-Card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onClick),
-                shape = RoundedCornerShape(AuriyaTokens.rounding.full),
+                    .clickable(onClick = onCreatorClick),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                 )
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+                        .padding(horizontal = AuriyaTokens.padding.normal, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(44.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center
@@ -312,7 +345,7 @@ private fun OwnerCard(
                         )
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        if (isLoading) {
+                        if (isLoadingOwner) {
                             Text(
                                 text = "Loading owner...",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -327,9 +360,8 @@ private fun OwnerCard(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = owner?.bio?.takeIf { it.isNotBlank() }
-                                    ?: "@${owner?.login ?: OWNER_LOGIN} on GitHub",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = "Creator & Lead Developer",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                             )
                         }
@@ -341,66 +373,73 @@ private fun OwnerCard(
                     )
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun ContributorsCard(
-    contributors: List<Contributor>,
-    isLoading: Boolean,
-    onContributorClick: (String) -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(AuriyaTokens.padding.larger),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small)
-        ) {
-            Text(
-                text = "CONTRIBUTORS",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
-
-            when {
-                isLoading -> Row(
+            // Expandable link to view all other contributors
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { isExpanded = !isExpanded }
+                        .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smaller),
-                    modifier = Modifier.padding(vertical = AuriyaTokens.padding.smaller)
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(AuriyaTokens.iconSize.small),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.AutoMirrored.Filled.ArrowForward,
+                        tint = MaterialTheme.colorScheme.primary,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Fetching contributors...",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = if (isExpanded) "Hide Contributors" else "View All Contributors",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
-                contributors.isEmpty() -> Text(
-                    text = "No contributors found or rate limited.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-
-                else -> Column(
-                    verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smaller)
-                ) {
-                    contributors.forEach { contributor ->
-                        ContributorRow(
-                            contributor = contributor,
-                            onClick = { onContributorClick(contributor.htmlUrl) }
-                        )
+                AnimatedVisibility(visible = isExpanded) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = AuriyaTokens.padding.small),
+                        verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smaller)
+                    ) {
+                        if (isLoadingContributors) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Fetching contributors...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else if (contributors.isEmpty()) {
+                            Text(
+                                text = "No other contributors found.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        } else {
+                            contributors.forEach { contributor ->
+                                ContributorRow(
+                                    contributor = contributor,
+                                    onClick = { onContributorClick(contributor.htmlUrl) }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -409,19 +448,20 @@ private fun ContributorsCard(
 }
 
 @Composable
-private fun ContributorRow(contributor: Contributor, onClick: () -> Unit) {    Card(
+private fun ContributorRow(contributor: Contributor, onClick: () -> Unit) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(AuriyaTokens.rounding.full),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = 10.dp),
+                .padding(horizontal = AuriyaTokens.padding.normal, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
         ) {
@@ -462,10 +502,155 @@ private fun ContributorRow(contributor: Contributor, onClick: () -> Unit) {    C
 }
 
 @Composable
+private fun CommunityAndLicenseRow(
+    onTelegramClick: () -> Unit,
+    onLicenseClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
+    ) {
+        // Community Card
+        Card(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(AuriyaTokens.padding.normal),
+                verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFFECE4D8)), // warm soft accent background
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Forum,
+                        tint = Color(0xFF6B4E2B),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Text(
+                    text = "Community",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = "Join the discussion about Auriya.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    minLines = 2
+                )
+
+                Button(
+                    onClick = onTelegramClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp),
+                    shape = RoundedCornerShape(AuriyaTokens.rounding.large),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF5A442E), // premium dark warm tone
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        text = "Telegram Group",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // License Card
+        Card(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(AuriyaTokens.padding.normal),
+                verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Info,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Text(
+                    text = "License",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = "Open Source Software.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    minLines = 2
+                )
+
+                Button(
+                    onClick = onLicenseClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp),
+                    shape = RoundedCornerShape(AuriyaTokens.rounding.large),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Code,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "2026 pavelc4",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun AvatarImage(
     url: String?,
     fallbackInitial: String,
-    fallbackContent: androidx.compose.ui.graphics.Color,
+    fallbackContent: Color,
 ) {
     if (url.isNullOrBlank()) {
         Text(
@@ -486,7 +671,8 @@ private fun AvatarImage(
     }
 }
 
-private suspend fun fetchJson(url: String): String? = withContext(Dispatchers.IO) {    try {
+private suspend fun fetchJson(url: String): String? = withContext(Dispatchers.IO) {
+    try {
         val connection = (java.net.URL(url).openConnection() as java.net.HttpURLConnection).apply {
             requestMethod = "GET"
             setRequestProperty("User-Agent", "Auriya-App")
