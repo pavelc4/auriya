@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,6 +29,14 @@ import dev.auriya.shared.model.Settings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
+
+private enum class SettingsSubScreen {
+    NONE,
+    APP,
+    APPEARANCE,
+    FLOATING_OVERLAY,
+    MONITORING
+}
 
 @Composable
 fun SettingsScreen(
@@ -61,188 +71,464 @@ fun SettingsScreen(
 
     val availablePresets = listOf("powersave", "balance", "performance")
 
-    LazyColumn(
+    var activeSubScreen by remember { mutableStateOf(SettingsSubScreen.NONE) }
+
+    androidx.activity.compose.BackHandler(enabled = activeSubScreen != SettingsSubScreen.NONE) {
+        activeSubScreen = SettingsSubScreen.NONE
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = AuriyaTokens.padding.normal),
-        verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
-        contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = 80.dp)
+            .padding(horizontal = AuriyaTokens.padding.normal)
     ) {
-        item {
-            Column(modifier = Modifier.padding(vertical = AuriyaTokens.padding.small)) {
-                Text(
-                    text = "Global Settings",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "Configure global parameters, tuner modes, and system operations",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        if (activeSubScreen != SettingsSubScreen.NONE) {
+            val title = when (activeSubScreen) {
+                SettingsSubScreen.APP -> "App Settings"
+                SettingsSubScreen.APPEARANCE -> "Appearance"
+                SettingsSubScreen.FLOATING_OVERLAY -> "Floating Overlay"
+                SettingsSubScreen.MONITORING -> "Monitoring"
+                else -> ""
             }
+            SubScreenHeader(title = title, onBack = { activeSubScreen = SettingsSubScreen.NONE })
         }
 
-        item {
-            ThemePickerCard(
-                seedColor = themePrefs?.seedColor ?: 0xFFFFB68E.toInt(),
-                useDynamicColor = themePrefs?.useDynamicColor ?: true,
-                navMode = themePrefs?.navMode ?: NavMode.STANDARD,
-                onSeedChange = onSeedChange,
-                onDynamicToggle = onDynamicToggle,
-                onNavModeChange = onNavModeChange,
-            )
-        }
-
-        item {
-            SectionCard(title = "Performance") {
-                SettingRow(
-                    icon = Icons.Filled.Settings,
-                    title = "CPU Governor",
-                    subtitle = "Global CPU scaling governor",
-                    control = {
-                        SettingsDropdown(
-                            value = defaultGov,
-                            options = availableGovernors,
-                            onValueChange = {
-                                defaultGov = it
-                                saveSettingsChange(viewModel, settings, defaultGov, globalPreset)
-                                Toast.makeText(context, "Governor set to $it", Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                    }
-                )
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    thickness = 1.dp
-                )
-                SettingRow(
-                    icon = Icons.Filled.Star,
-                    title = "Global Preset",
-                    subtitle = "Default performance profile when idle",
-                    control = {
-                        SettingsDropdown(
-                            value = globalPreset,
-                            options = availablePresets,
-                            onValueChange = {
-                                globalPreset = it
-                                saveSettingsChange(viewModel, settings, defaultGov, globalPreset)
-                                Toast.makeText(context, "Preset set to $it", Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                    }
-                )
-            }
-        }
-
-        item {
-            SectionCard(title = "Language") {
-                SettingRow(
-                    icon = Icons.Filled.Translate,
-                    title = "App Language",
-                    subtitle = "English (System Default)",
-                    onClick = onNavigateToLanguage
-                )
-            }
-        }
-
-        item {
-            SectionCard(title = "System") {
-                SettingRow(
-                    icon = Icons.Filled.Send,
-                    title = "Export System Logs",
-                    subtitle = "Saves logs to Download/AuriyaLogs.tar.gz",
-                    onClick = {
-                        coroutineScope.launch(Dispatchers.IO) {
-                            val cmd = """
-                                mkdir -p /sdcard/Download/AuriyaLogs &&
-                                cp /data/adb/auriya/daemon.log /sdcard/Download/AuriyaLogs/auriya.log 2>/dev/null;
-                                dmesg > /sdcard/Download/AuriyaLogs/kernel.log 2>/dev/null;
-                                tar -czf /sdcard/Download/AuriyaLogs.tar.gz -C /sdcard/Download AuriyaLogs
-                            """.trimIndent()
-                            val rc = RootShell.exec(cmd)
-                            launch(Dispatchers.Main) {
-                                Toast.makeText(
-                                    context,
-                                    if (rc == 0) "Logs exported to Downloads/AuriyaLogs.tar.gz"
-                                    else "Export failed (rc=$rc); check root grant",
-                                    Toast.LENGTH_LONG,
-                                ).show()
-                            }
-                        }
-                    },
-                )
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    thickness = 1.dp
-                )
-                DndAccessRow()
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    thickness = 1.dp
-                )
-                SettingRow(
-                    icon = Icons.Filled.BugReport,
-                    title = "Debug Logs Mode",
-                    subtitle = "Increase log verbosity for troubleshooting",
-                    control = {
-                        Switch(
-                            checked = debugMode,
-                            onCheckedChange = {
-                                debugMode = it
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    val cmd = if (debugMode) "SETLOG DEBUG" else "SETLOG INFO"
-                                    RootShell.exec("echo \"$cmd\" | nc -U /dev/socket/auriya.sock")
-                                }
-                                Toast.makeText(context, "Debug logs ${if (debugMode) "enabled" else "disabled"}", Toast.LENGTH_SHORT).show()
-                            },
-                        )
-                    },
-                )
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    thickness = 1.dp
-                )
-                SettingRow(
-                    icon = Icons.Filled.Refresh,
-                    title = "Restart Tuner Daemon",
-                    subtitle = "Force restart background eBPF daemon",
-                    control = {
-                        Button(
-                            onClick = {
-                                viewModel.restartDaemon()
-                                Toast.makeText(context, "Restarting Auriya daemon...", Toast.LENGTH_SHORT).show()
-                            },
-                            shape = RoundedCornerShape(AuriyaTokens.rounding.full),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer
-                            ),
-                            contentPadding = PaddingValues(horizontal = AuriyaTokens.padding.normal, vertical = 6.dp),
-                            modifier = Modifier.wrapContentSize()
-                        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
+            contentPadding = PaddingValues(top = AuriyaTokens.padding.smaller, bottom = 80.dp)
+        ) {
+            when (activeSubScreen) {
+                SettingsSubScreen.NONE -> {
+                    item {
+                        Column(modifier = Modifier.padding(vertical = AuriyaTokens.padding.small)) {
                             Text(
-                                text = "Restart",
+                                text = "Settings",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = "Manage profiles, performance tuning, appearance, and monitoring options",
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                )
-            }
-        }
 
-        item {
-            SectionCard(title = "About") {
-                SettingRow(
-                    icon = Icons.Filled.Info,
-                    title = "About Auriya",
-                    subtitle = "Version, owner, and contributors",
-                    onClick = onNavigateToAbout
-                )
+                    item {
+                        SettingsMenuItem(
+                            icon = Icons.Filled.Build,
+                            title = "App",
+                            subtitle = "General application and performance settings",
+                            onClick = { activeSubScreen = SettingsSubScreen.APP }
+                        )
+                    }
+
+                    item {
+                        SettingsMenuItem(
+                            icon = Icons.Filled.Palette,
+                            title = "Appearance",
+                            subtitle = "Theme, seed colors, and navigation style",
+                            onClick = { activeSubScreen = SettingsSubScreen.APPEARANCE }
+                        )
+                    }
+
+                    item {
+                        SettingsMenuItem(
+                            icon = Icons.Filled.Layers,
+                            title = "Floating Overlay",
+                            subtitle = "Global system monitor floating overlay settings",
+                            onClick = { activeSubScreen = SettingsSubScreen.FLOATING_OVERLAY }
+                        )
+                    }
+
+                    item {
+                        SettingsMenuItem(
+                            icon = Icons.Filled.Analytics,
+                            title = "Monitoring",
+                            subtitle = "Update intervals, unit type, and log history limits",
+                            onClick = { activeSubScreen = SettingsSubScreen.MONITORING }
+                        )
+                    }
+
+                    item {
+                        SettingsMenuItem(
+                            icon = Icons.Filled.Info,
+                            title = "About",
+                            subtitle = "Developer information and project specs",
+                            onClick = onNavigateToAbout
+                        )
+                    }
+                }
+
+                SettingsSubScreen.APP -> {
+                    item {
+                        SectionCard(title = "Performance Tuning") {
+                            SettingRow(
+                                icon = Icons.Filled.Settings,
+                                title = "CPU Governor",
+                                subtitle = "Global CPU scaling governor",
+                                control = {
+                                    SettingsDropdown(
+                                        value = defaultGov,
+                                        options = availableGovernors,
+                                        onValueChange = {
+                                            defaultGov = it
+                                            saveSettingsChange(viewModel, settings, defaultGov, globalPreset)
+                                            Toast.makeText(context, "Governor set to $it", Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                }
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                thickness = 1.dp
+                            )
+                            SettingRow(
+                                icon = Icons.Filled.Star,
+                                title = "Global Preset",
+                                subtitle = "Default performance profile when idle",
+                                control = {
+                                    SettingsDropdown(
+                                        value = globalPreset,
+                                        options = availablePresets,
+                                        onValueChange = {
+                                            globalPreset = it
+                                            saveSettingsChange(viewModel, settings, defaultGov, globalPreset)
+                                            Toast.makeText(context, "Preset set to $it", Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    }
+
+                    item {
+                        SectionCard(title = "Language Options") {
+                            SettingRow(
+                                icon = Icons.Filled.Translate,
+                                title = "App Language",
+                                subtitle = "English (System Default)",
+                                onClick = onNavigateToLanguage
+                            )
+                        }
+                    }
+
+                    item {
+                        SectionCard(title = "System & Operations") {
+                            SettingRow(
+                                icon = Icons.AutoMirrored.Filled.Send,
+                                title = "Export System Logs",
+                                subtitle = "Saves logs to Download/AuriyaLogs.tar.gz",
+                                onClick = {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        val cmd = """
+                                            mkdir -p /sdcard/Download/AuriyaLogs &&
+                                            cp /data/adb/auriya/daemon.log /sdcard/Download/AuriyaLogs/auriya.log 2>/dev/null;
+                                            dmesg > /sdcard/Download/AuriyaLogs/kernel.log 2>/dev/null;
+                                            tar -czf /sdcard/Download/AuriyaLogs.tar.gz -C /sdcard/Download AuriyaLogs
+                                        """.trimIndent()
+                                        val rc = RootShell.exec(cmd)
+                                        launch(Dispatchers.Main) {
+                                            Toast.makeText(
+                                                context,
+                                                if (rc == 0) "Logs exported to Downloads/AuriyaLogs.tar.gz"
+                                                else "Export failed (rc=$rc); check root grant",
+                                                Toast.LENGTH_LONG,
+                                            ).show()
+                                        }
+                                    }
+                                },
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                thickness = 1.dp
+                            )
+                            DndAccessRow()
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                thickness = 1.dp
+                            )
+                            SettingRow(
+                                icon = Icons.Filled.BugReport,
+                                title = "Debug Logs Mode",
+                                subtitle = "Increase log verbosity for troubleshooting",
+                                control = {
+                                    Switch(
+                                        checked = debugMode,
+                                        onCheckedChange = {
+                                            debugMode = it
+                                            coroutineScope.launch(Dispatchers.IO) {
+                                                val cmd = if (debugMode) "SETLOG DEBUG" else "SETLOG INFO"
+                                                RootShell.exec("echo \"$cmd\" | nc -U /dev/socket/auriya.sock")
+                                            }
+                                            Toast.makeText(context, "Debug logs ${if (debugMode) "enabled" else "disabled"}", Toast.LENGTH_SHORT).show()
+                                        },
+                                    )
+                                },
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                thickness = 1.dp
+                            )
+                            SettingRow(
+                                icon = Icons.Filled.Refresh,
+                                title = "Restart Tuner Daemon",
+                                subtitle = "Force restart background eBPF daemon",
+                                control = {
+                                    Button(
+                                        onClick = {
+                                            viewModel.restartDaemon()
+                                            Toast.makeText(context, "Restarting Auriya daemon...", Toast.LENGTH_SHORT).show()
+                                        },
+                                        shape = RoundedCornerShape(AuriyaTokens.rounding.full),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = AuriyaTokens.padding.normal, vertical = 6.dp),
+                                        modifier = Modifier.wrapContentSize()
+                                    ) {
+                                        Text(
+                                            text = "Restart",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
+                SettingsSubScreen.APPEARANCE -> {
+                    item {
+                        ThemePickerCard(
+                            seedColor = themePrefs?.seedColor ?: 0xFFFFB68E.toInt(),
+                            useDynamicColor = themePrefs?.useDynamicColor ?: true,
+                            navMode = themePrefs?.navMode ?: NavMode.STANDARD,
+                            onSeedChange = onSeedChange,
+                            onDynamicToggle = onDynamicToggle,
+                            onNavModeChange = onNavModeChange,
+                        )
+                    }
+                }
+
+                SettingsSubScreen.FLOATING_OVERLAY -> {
+                    item {
+                        SectionCard(title = "Overlay Enable") {
+                            var enableOverlay by remember { mutableStateOf(false) }
+                            SettingRow(
+                                icon = Icons.Filled.Layers,
+                                title = "Show Floating Overlay",
+                                subtitle = "Display system monitor overlay on top of other apps",
+                                control = {
+                                    Switch(
+                                        checked = enableOverlay,
+                                        onCheckedChange = { enableOverlay = it }
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    item {
+                        SectionCard(title = "Visual Configuration") {
+                            var showFps by remember { mutableStateOf(true) }
+                            var showTemp by remember { mutableStateOf(true) }
+                            var overlaySize by remember { mutableStateOf("Medium") }
+                            
+                            SettingRow(
+                                icon = Icons.Filled.Speed,
+                                title = "Show FPS Counter",
+                                subtitle = "Display active frame rate monitoring",
+                                control = {
+                                    Switch(
+                                        checked = showFps,
+                                        onCheckedChange = { showFps = it }
+                                    )
+                                }
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                thickness = 1.dp
+                            )
+                            SettingRow(
+                                icon = Icons.Filled.Thermostat,
+                                title = "Show CPU Temperature",
+                                subtitle = "Monitor real-time system core thermal metrics",
+                                control = {
+                                    Switch(
+                                        checked = showTemp,
+                                        onCheckedChange = { showTemp = it }
+                                    )
+                                }
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                thickness = 1.dp
+                            )
+                            SettingRow(
+                                icon = Icons.Filled.AspectRatio,
+                                title = "Overlay Size",
+                                subtitle = "Scale of the floating overlay text and container",
+                                control = {
+                                    SettingsDropdown(
+                                        value = overlaySize,
+                                        options = listOf("Small", "Medium", "Large"),
+                                        onValueChange = { overlaySize = it }
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                SettingsSubScreen.MONITORING -> {
+                    item {
+                        SectionCard(title = "Monitor Frequency") {
+                            var interval by remember { mutableStateOf("2 Seconds") }
+                            var historyLimit by remember { mutableStateOf("100 Points") }
+                            
+                            SettingRow(
+                                icon = Icons.Filled.Timer,
+                                title = "Update Interval",
+                                subtitle = "How frequently system statistics refresh",
+                                control = {
+                                    SettingsDropdown(
+                                        value = interval,
+                                        options = listOf("1 Second", "2 Seconds", "5 Seconds"),
+                                        onValueChange = { interval = it }
+                                    )
+                                }
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                thickness = 1.dp
+                            )
+                            SettingRow(
+                                icon = Icons.Filled.Timeline,
+                                title = "Graph History Limit",
+                                subtitle = "Maximum datapoints stored for metrics history",
+                                control = {
+                                    SettingsDropdown(
+                                        value = historyLimit,
+                                        options = listOf("50 Points", "100 Points", "200 Points"),
+                                        onValueChange = { historyLimit = it }
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    item {
+                        SectionCard(title = "Metrics Customization") {
+                            var useFahrenheit by remember { mutableStateOf(false) }
+                            
+                            SettingRow(
+                                icon = Icons.Filled.Thermostat,
+                                title = "Temperature Unit",
+                                subtitle = "Toggle Celsius or Fahrenheit scale",
+                                control = {
+                                    Switch(
+                                        checked = useFahrenheit,
+                                        onCheckedChange = { useFahrenheit = it }
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsMenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AuriyaTokens.rounding.large),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AuriyaTokens.padding.normal),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(AuriyaTokens.rounding.medium))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(AuriyaTokens.iconSize.medium)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(AuriyaTokens.padding.normal))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(AuriyaTokens.padding.small))
+            
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun SubScreenHeader(
+    title: String,
+    onBack: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = AuriyaTokens.padding.small),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        Spacer(modifier = Modifier.width(AuriyaTokens.padding.small))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
     }
 }
 
