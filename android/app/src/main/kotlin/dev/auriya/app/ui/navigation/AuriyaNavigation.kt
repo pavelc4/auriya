@@ -1,8 +1,9 @@
 package dev.auriya.app.ui.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -99,18 +100,26 @@ fun AuriyaNavigation(
                     )
                 },
                 bottomBar = {
-                    AuriyaBottomBar(
-                        items = navItems,
-                        selectedIndex = selectedIndex,
-                        onSelect = { activeTab = NavigationTab.entries[it] },
-                        mode = navMode,
-                    )
+                    if (navMode == NavMode.STANDARD) {
+                        AuriyaBottomBar(
+                            items = navItems,
+                            selectedIndex = selectedIndex,
+                            onSelect = { activeTab = NavigationTab.entries[it] },
+                            mode = navMode,
+                        )
+                    }
                 },
             ) { innerPadding ->
+                val bottomPadding = if (navMode == NavMode.STANDARD) innerPadding.calculateBottomPadding() else 0.dp
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .padding(
+                            top = innerPadding.calculateTopPadding(),
+                            bottom = bottomPadding,
+                            start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
+                            end = innerPadding.calculateEndPadding(LayoutDirection.Ltr)
+                        ),
                 ) {
                     when (activeTab) {
                         NavigationTab.HOME -> HomeScreen(viewModel = viewModel)
@@ -124,6 +133,21 @@ fun AuriyaNavigation(
                             onNavigateToLanguage = { subScreen = SubScreen.Language },
                             onNavigateToAbout = { subScreen = SubScreen.About },
                         )
+                    }
+
+                    if (navMode == NavMode.FLOATING) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomCenter)
+                        ) {
+                            AuriyaBottomBar(
+                                items = navItems,
+                                selectedIndex = selectedIndex,
+                                onSelect = { activeTab = NavigationTab.entries[it] },
+                                mode = navMode,
+                            )
+                        }
                     }
                 }
             }

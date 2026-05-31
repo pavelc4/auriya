@@ -1,5 +1,7 @@
 package dev.auriya.app.ui.settings
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -8,8 +10,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,6 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.auriya.app.data.NavMode
+import dev.auriya.app.ui.components.AuriyaBottomBar
+import dev.auriya.app.ui.components.AuriyaNavItem
 import dev.auriya.app.ui.theme.AuriyaTokens
 
 private val PALETTE = listOf(
@@ -40,6 +47,14 @@ fun ThemePickerCard(
     onDynamicToggle: (Boolean) -> Unit,
     onNavModeChange: (NavMode) -> Unit,
 ) {
+    var mockSelectedIndex by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(1600)
+            mockSelectedIndex = (mockSelectedIndex + 1) % 3
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
@@ -103,9 +118,10 @@ fun ThemePickerCard(
             Spacer(Modifier.height(AuriyaTokens.padding.small))
 
             Text(
-                text = "Navigation",
+                text = "Bottom Navigation Style",
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
             )
             Row(
                 modifier = Modifier
@@ -113,18 +129,23 @@ fun ThemePickerCard(
                     .padding(top = AuriyaTokens.padding.smaller),
                 horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smaller),
             ) {
-                NavModeChip(
+                NavigationStyleCard(
                     label = "Standard",
                     selected = navMode == NavMode.STANDARD,
                     onClick = { onNavModeChange(NavMode.STANDARD) },
                     modifier = Modifier.weight(1f),
-                )
-                NavModeChip(
-                    label = "Floating pill",
+                ) {
+                    StandardMockup(mockSelectedIndex)
+                }
+                
+                NavigationStyleCard(
+                    label = "Floating",
                     selected = navMode == NavMode.FLOATING,
                     onClick = { onNavModeChange(NavMode.FLOATING) },
                     modifier = Modifier.weight(1f),
-                )
+                ) {
+                    FloatingMockup(mockSelectedIndex)
+                }
             }
         }
     }
@@ -160,29 +181,144 @@ private fun SwatchDot(color: Color, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun NavModeChip(
+private fun NavigationStyleCard(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
 ) {
-    val container = if (selected) MaterialTheme.colorScheme.primary
-    else MaterialTheme.colorScheme.surfaceContainerHigh
-    val content = if (selected) MaterialTheme.colorScheme.onPrimary
-    else MaterialTheme.colorScheme.onSurfaceVariant
-    Surface(
+    val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+    val borderStroke = if (selected) BorderStroke(1.5.dp, borderColor) else null
+    
+    Card(
         onClick = onClick,
-        shape = RoundedCornerShape(AuriyaTokens.rounding.full),
-        color = container,
-        modifier = modifier,
+        shape = RoundedCornerShape(AuriyaTokens.rounding.large),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) 
+                             else MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        border = borderStroke,
+        modifier = modifier
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = content,
-            modifier = Modifier.padding(vertical = AuriyaTokens.padding.small),
-            textAlign = TextAlign.Center,
-        )
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF161616)),
+                contentAlignment = Alignment.Center
+            ) {
+                content()
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
+                
+                if (selected) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StandardMockup(selectedIndex: Int) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(22.dp)
+                .background(Color(0xFF222222)),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(3) { index ->
+                    val isActive = index == selectedIndex
+                    val width by androidx.compose.animation.core.animateDpAsState(
+                        targetValue = if (isActive) 16.dp else 5.dp,
+                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 300),
+                        label = "std-dot-width"
+                    )
+                    val color by animateColorAsState(
+                        targetValue = if (isActive) MaterialTheme.colorScheme.primary else Color(0xFF555555),
+                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 300),
+                        label = "std-dot-color"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(width = width, height = 5.dp)
+                            .clip(RoundedCornerShape(100.dp))
+                            .background(color)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FloatingMockup(selectedIndex: Int) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 64.dp, height = 18.dp)
+                .clip(RoundedCornerShape(100.dp))
+                .background(Color(0xFF222222)),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(3) { index ->
+                    val isActive = index == selectedIndex
+                    val width by androidx.compose.animation.core.animateDpAsState(
+                        targetValue = if (isActive) 12.dp else 4.dp,
+                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 300),
+                        label = "flt-dot-width"
+                    )
+                    val color by animateColorAsState(
+                        targetValue = if (isActive) MaterialTheme.colorScheme.primary else Color(0xFF555555),
+                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 300),
+                        label = "flt-dot-color"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(width = width, height = 4.dp)
+                            .clip(RoundedCornerShape(100.dp))
+                            .background(color)
+                    )
+                }
+            }
+        }
     }
 }
