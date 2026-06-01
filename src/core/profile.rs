@@ -155,6 +155,34 @@ pub fn apply_balance_with_dnd(governor: &str, enable_dnd: bool) -> Result<()> {
     Ok(())
 }
 
+pub fn apply_gpu_boost() -> Result<()> {
+    debug!(target: "auriya::profile", "Applying GPU BOOST (GPU only, CPU untouched)");
+    gpu::set_performance_mode()?;
+    Ok(())
+}
+
+pub fn apply_cpu_boost(governor: &str, pid: Option<i32>) -> Result<()> {
+    debug!(
+        target: "auriya::profile",
+        "Applying CPU BOOST (governor: {}, pid: {:?})",
+        governor,
+        pid
+    );
+
+    paths::set_governor_cached(governor);
+    cpu::enable_boost()?;
+    paths::online_all_cores_cached();
+    warn_on_err(sched::apply_performance_sched(), "apply scheduler tweaks");
+    gpu::set_balanced_mode()?;
+
+    if let Some(game_pid) = pid {
+        cpu::set_game_affinity_dynamic(game_pid, "performance")?;
+        cpu::set_process_priority(game_pid)?;
+    }
+
+    Ok(())
+}
+
 pub fn apply_powersave() -> Result<()> {
     apply_powersave_with_dnd(false)
 }

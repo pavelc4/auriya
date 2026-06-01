@@ -114,6 +114,10 @@ impl FrameBuffer {
         self.last_update.elapsed()
     }
 
+    pub fn recent_frametimes(&self, n: usize) -> Vec<Duration> {
+        self.frametimes.iter().take(n).copied().collect()
+    }
+
     /// Newest frame in the ring (front), or None if empty.
     /// The controller's P-loop normalises against this single sample, not the
     /// long-window average, so frame spikes drive an immediate response.

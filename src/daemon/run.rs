@@ -115,6 +115,8 @@ pub struct Daemon {
     pub(crate) cached_whitelist: HashSet<String>,
     pub(crate) status_cache: SystemStatusCache,
     pub(crate) vendor_lock: crate::core::tweaks::vendor_lock::VendorLock,
+    /// Cached FPS config string to avoid resetting FAS state every tick.
+    pub(crate) last_fps_config: Option<String>,
 }
 
 impl Daemon {
@@ -181,6 +183,7 @@ impl Daemon {
             tick_count: 0,
             status_cache,
             vendor_lock: crate::core::tweaks::vendor_lock::VendorLock::new(),
+            last_fps_config: None,
         })
     }
     #[inline]

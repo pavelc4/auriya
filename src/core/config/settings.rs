@@ -10,6 +10,8 @@ pub struct Settings {
     pub cpu: CpuConfig,
     pub dnd: DndConfig,
     pub fas: FasConfig,
+    #[serde(default)]
+    pub dynamic_governor: DynamicGovernorConfig,
     pub modes: HashMap<String, FasMode>,
 }
 
@@ -50,6 +52,26 @@ pub struct FasMode {
     pub thermal_threshold: f64,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct DynamicGovernorConfig {
+    #[serde(default = "default_dg_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_dg_cv_threshold")]
+    pub cv_threshold: f64,
+    #[serde(default = "default_dg_debounce")]
+    pub debounce_frames: u32,
+}
+
+impl Default for DynamicGovernorConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_dg_enabled(),
+            cv_threshold: default_dg_cv_threshold(),
+            debounce_frames: default_dg_debounce(),
+        }
+    }
+}
+
 impl Settings {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
@@ -75,4 +97,16 @@ fn default_poll_interval() -> u64 {
 
 fn default_mode() -> String {
     "balance".to_string()
+}
+
+fn default_dg_enabled() -> bool {
+    true
+}
+
+fn default_dg_cv_threshold() -> f64 {
+    0.15
+}
+
+fn default_dg_debounce() -> u32 {
+    3
 }

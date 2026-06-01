@@ -16,6 +16,11 @@ thermal_threshold = 90.0
 poll_interval_ms = 300
 target_fps = 60
 
+[dynamic_governor]
+enabled = true
+cv_threshold = 0.15
+debounce_frames = 3
+
 [modes.powersave]
 margin = 5.0
 thermal_threshold = 80.0

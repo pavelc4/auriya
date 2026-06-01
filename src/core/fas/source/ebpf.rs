@@ -31,12 +31,15 @@ impl EbpfHandle {
         thread::Builder::new()
             .name("auriya-fas-ebpf".into())
             .spawn(move || {
+                let mut poll_count: u64 = 0;
+
                 loop {
                     // Drain pending commands first so attach() callers don't
                     // wait for the next ring buffer event.
                     while let Ok(cmd) = cmd_rx.try_recv() {
                         match cmd {
                             Cmd::Attach(pid, reply) => {
+                                poll_count = 0;
                                 let res = probe
                                     .attach(pid)
                                     .map_err(|e| anyhow!("attach({pid}): {e}"));
@@ -49,11 +52,28 @@ impl EbpfHandle {
                     // A blocking variant would never return when no app is
                     // attached and we'd never check cmd_rx again, deadlocking
                     // attach calls.
-                    if let Some((_pid, frametime)) =
-                        probe.recv_with_deadline(Duration::from_millis(50))
-                        && frame_tx.blocking_send(frametime).is_err()
-                    {
-                        return;
+                    match probe.recv_with_deadline(Duration::from_millis(50)) {
+                        Some((pid, frametime)) => {
+                            poll_count = 0;
+                            tracing::debug!(
+                                target: "auriya::fas",
+                                "ebpf  | frame pid={pid} {:.3}ms",
+                                frametime.as_secs_f64() * 1000.0
+                            );
+                            if frame_tx.blocking_send(frametime).is_err() {
+                                return;
+                            }
+                        }
+                        None => {
+                            poll_count += 1;
+                            if poll_count.is_multiple_of(2000) {
+                                tracing::debug!(
+                                    target: "auriya::fas",
+                                    "ebpf  | worker alive, {} polls since last frame",
+                                    poll_count
+                                );
+                            }
+                        }
                     }
                     // None branch: no app attached yet, or poll timed out
                     // before a frame arrived. Loop back to check commands

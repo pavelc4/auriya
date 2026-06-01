@@ -8,14 +8,16 @@
 //   4. util-based target FPS offset (clamped <= 0): never asks above hw limit
 //   5. Thermal override: forces Reduce above threshold
 //
-// Output is `ScalingAction` (Boost/Maintain/Reduce). The internal control
-// signal is computed in nanoseconds (and would map to kHz on a freq-table
-// backend); the conversion to enum buckets is done at the bottom of `tick`.
+// Output is `ScalingAction` (BoostGpu/BoostCpu/BoostBalanced/Maintain/Reduce).
+// The internal control signal is computed in nanoseconds (and would map to kHz
+// on a freq-table backend); the conversion to enum buckets is done at the
+// bottom of `tick`, gated by bottleneck classification.
 
 use crate::core::{
+    fas::bottleneck::{BottleneckDetector, BottleneckType},
     fas::buffer::{BufferState, FrameBuffer, TargetFps},
     fas::source::FrameSource,
-    scaling::ScalingAction,
+    scaling::{PlatformCapabilities, ScalingAction},
     thermal::ThermalMonitor,
 };
 use anyhow::{Context, Result};
@@ -40,7 +42,9 @@ pub enum FasState {
 pub struct FasController {
     source: FrameSource,
     buffer: FrameBuffer,
+    bottleneck: BottleneckDetector,
     thermal: ThermalMonitor,
+    caps: PlatformCapabilities,
     package: String,
     pid: Option<i32>,
     last_attached_pkg: String,
@@ -58,11 +62,25 @@ impl FasController {
     pub fn new(target_fps_config: TargetFps) -> Result<Self> {
         let source = FrameSource::new()
             .context("FAS    | eBPF frame probe load failed; FAS will be disabled")?;
-        tracing::debug!(target: "auriya::fas", "FAS Controller initialized");
+        let caps = PlatformCapabilities::detect();
+        tracing::debug!(
+            target: "auriya::fas",
+            "FAS Controller initialized (gpu={} cpu={})",
+            caps.gpu_controllable,
+            caps.cpu_controllable
+        );
+        if !caps.gpu_controllable {
+            tracing::warn!(
+                target: "auriya::fas",
+                "GPU sysfs not found — BoostGpu will fall back to all-out Performance"
+            );
+        }
         Ok(Self {
             source,
             buffer: FrameBuffer::new(target_fps_config),
+            bottleneck: BottleneckDetector::new(0.15, 3),
             thermal: ThermalMonitor::new(),
+            caps,
             package: String::new(),
             pid: None,
             last_attached_pkg: String::new(),
@@ -85,17 +103,20 @@ impl FasController {
             self.pid = pid;
             self.last_attached_pkg.clear();
             self.buffer.clear();
+            self.bottleneck.reset();
             self.transition_not_working();
         }
     }
 
     pub fn set_target_fps(&mut self, fps: u32) {
         self.buffer = FrameBuffer::new(TargetFps::Single(fps));
+        self.bottleneck.reset();
         self.transition_not_working();
     }
 
     pub fn set_target_fps_config(&mut self, config: TargetFps) {
         self.buffer = FrameBuffer::new(config);
+        self.bottleneck.reset();
         self.transition_not_working();
     }
 
@@ -179,26 +200,48 @@ impl FasController {
         let is_janked =
             self.buffer.current_fps_long < f64::from(target_fps) - JANK_DELTA_FPS;
 
+        let frametimes = self.buffer.recent_frametimes(60);
+        let bottleneck = self.bottleneck.classify(&frametimes, target_fps);
+
         tracing::info!(
             target: "auriya::fas",
-            "fps_long={:.1} fps_short={:.1} target={} adj_target={:.2} jank={} ctl={:.0}kHz off={:.2}",
+            "fps_long={:.1} fps_short={:.1} target={} adj_target={:.2} jank={} ctl={:.0}kHz off={:.2} bneck={}",
             self.buffer.current_fps_long,
             self.buffer.current_fps_short,
             target_fps,
             adjusted_target_fps,
             is_janked,
             control_khz,
-            self.target_fps_offset
+            self.target_fps_offset,
+            match bottleneck {
+                BottleneckType::Gpu => "GPU",
+                BottleneckType::Cpu => "CPU",
+                BottleneckType::Balanced => "BAL",
+                BottleneckType::Unknown => "?",
+            }
         );
 
-        let action = decide_action(control_khz, is_janked);
+        let mut action = decide_action(control_khz, is_janked, bottleneck);
+        let raw_action = action;
+        action = self.caps.fallback_action(action);
         tracing::info!(
             target: "auriya::fas",
-            "decision={}",
+            "decision={}{}",
             match action {
-                ScalingAction::Boost => "BOOST",
+                ScalingAction::BoostGpu => "BOOST_GPU",
+                ScalingAction::BoostCpu => "BOOST_CPU",
+                ScalingAction::BoostBalanced => "BOOST_BAL",
                 ScalingAction::Maintain => "MAINTAIN",
                 ScalingAction::Reduce => "REDUCE",
+            },
+            if raw_action != action {
+                format!(" (fallback from {})", match raw_action {
+                    ScalingAction::BoostGpu => "GPU",
+                    ScalingAction::BoostCpu => "CPU",
+                    _ => "",
+                })
+            } else {
+                String::new()
             }
         );
 
@@ -323,12 +366,17 @@ pub fn compute_control_khz(last_frame: Duration, adjusted_target_fps: f64, kp: f
     error_ns * kp
 }
 
-/// Map a control signal + jank flag to a discrete ScalingAction.
+/// Map a control signal + jank flag + bottleneck type to a discrete ScalingAction.
 /// Pulled out of `tick` so replay tests can exercise the bucket boundaries
 /// without spinning up a full controller.
-pub fn decide_action(control_khz: f64, is_janked: bool) -> ScalingAction {
+pub fn decide_action(control_khz: f64, is_janked: bool, bottleneck: BottleneckType) -> ScalingAction {
     if is_janked || control_khz > BOOST_THRESHOLD_KHZ {
-        ScalingAction::Boost
+        match bottleneck {
+            BottleneckType::Gpu => ScalingAction::BoostGpu,
+            BottleneckType::Cpu => ScalingAction::BoostCpu,
+            BottleneckType::Balanced => ScalingAction::BoostBalanced,
+            BottleneckType::Unknown => ScalingAction::BoostBalanced,
+        }
     } else if control_khz < REDUCE_THRESHOLD_KHZ {
         ScalingAction::Reduce
     } else {
@@ -339,6 +387,7 @@ pub fn decide_action(control_khz: f64, is_janked: bool) -> ScalingAction {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::fas::bottleneck::BottleneckType;
 
     fn ft_ms(ms: f64) -> Duration {
         Duration::from_secs_f64(ms / 1000.0)
@@ -401,6 +450,42 @@ mod tests {
             let second = s.sample(Duration::ZERO).unwrap();
             assert!((0.0..=1.0).contains(&second));
         }
+    }
+
+    #[test]
+    fn decide_action_jank_with_gpu_bottleneck_returns_boost_gpu() {
+        let action = decide_action(100_000.0, true, BottleneckType::Gpu);
+        assert_eq!(action, ScalingAction::BoostGpu);
+    }
+
+    #[test]
+    fn decide_action_jank_with_cpu_bottleneck_returns_boost_cpu() {
+        let action = decide_action(100_000.0, true, BottleneckType::Cpu);
+        assert_eq!(action, ScalingAction::BoostCpu);
+    }
+
+    #[test]
+    fn decide_action_jank_with_unknown_bottleneck_returns_boost_balanced() {
+        let action = decide_action(100_000.0, true, BottleneckType::Unknown);
+        assert_eq!(action, ScalingAction::BoostBalanced);
+    }
+
+    #[test]
+    fn decide_action_high_control_returns_boost_variant() {
+        let action = decide_action(100_000.0, false, BottleneckType::Gpu);
+        assert_eq!(action, ScalingAction::BoostGpu);
+    }
+
+    #[test]
+    fn decide_action_low_control_returns_reduce() {
+        let action = decide_action(-100_000.0, false, BottleneckType::Balanced);
+        assert_eq!(action, ScalingAction::Reduce);
+    }
+
+    #[test]
+    fn decide_action_neutral_control_returns_maintain() {
+        let action = decide_action(0.0, false, BottleneckType::Balanced);
+        assert_eq!(action, ScalingAction::Maintain);
     }
 }
 

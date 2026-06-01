@@ -126,8 +126,13 @@ impl Daemon {
                 if let Some(cfg) = game_cfg
                     && let Some(ref fps_cfg) = cfg.target_fps
                 {
-                    let mut f = fas.lock().await;
-                    f.set_target_fps_config(fps_cfg.to_buffer_config());
+                    let fps_key = fps_cfg.to_buffer_config().values()
+                        .iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",");
+                    if self.last_fps_config.as_deref() != Some(&fps_key) {
+                        let mut f = fas.lock().await;
+                        f.set_target_fps_config(fps_cfg.to_buffer_config());
+                        self.last_fps_config = Some(fps_key);
+                    }
                 }
 
                 match self
@@ -431,14 +436,30 @@ impl Daemon {
         };
 
         match action {
-            ScalingAction::Boost => {
+            ScalingAction::BoostGpu => {
+                debug!(target: "auriya::fas", "FAS decision: BOOST_GPU → GPU-only boost");
+                if let Err(e) = profile::apply_gpu_boost() {
+                    error!(target: "auriya::fas", ?e, "Failed to apply GPU boost");
+                }
+                self.last.profile_mode = Some(ProfileMode::Performance);
+                Ok(true)
+            }
+            ScalingAction::BoostCpu => {
+                debug!(target: "auriya::fas", "FAS decision: BOOST_CPU → CPU-only boost");
+                if let Err(e) = profile::apply_cpu_boost(game_governor, self.last.pid) {
+                    error!(target: "auriya::fas", ?e, "Failed to apply CPU boost");
+                }
+                self.last.profile_mode = Some(ProfileMode::Performance);
+                Ok(true)
+            }
+            ScalingAction::BoostBalanced => {
                 if self.last.profile_mode != Some(ProfileMode::Performance) {
-                    debug!(target: "auriya::fas", "FAS decision: BOOST → applying PERFORMANCE");
+                    debug!(target: "auriya::fas", "FAS decision: BOOST_BAL → full PERFORMANCE");
                     profile::apply_performance_with_config(game_governor, enable_dnd, None)?;
                     self.last.profile_mode = Some(ProfileMode::Performance);
                     self.apply_block_notifications_if_needed(block_notif);
                 } else {
-                    debug!(target: "auriya::fas", "FAS decision: BOOST → already PERFORMANCE, skip");
+                    debug!(target: "auriya::fas", "FAS decision: BOOST_BAL → already PERFORMANCE, skip");
                 }
                 Ok(true)
             }
