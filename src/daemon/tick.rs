@@ -193,6 +193,11 @@ impl Daemon {
                     })
                     .unwrap_or(ProfileMode::Performance);
 
+                let entering_game = self.last.pkg.as_deref() != Some(pkg);
+                if entering_game {
+                    self.vendor_lock.lock_all();
+                }
+
                 if self.last.profile_mode != Some(target_mode) {
                     let res = match target_mode {
                         ProfileMode::Performance => {
@@ -270,6 +275,8 @@ impl Daemon {
         use crate::core::profile;
 
         if self.last.pkg.as_deref() != Some(pkg) {
+            self.vendor_lock.unlock_all();
+
             let needs_release = self.applied_refresh_rate.is_some()
                 || self.applied_lock_rotation == Some(true)
                 || self.applied_block_notifications;
@@ -346,6 +353,8 @@ impl Daemon {
         }
 
         if self.last.pkg.is_some() || self.last.pid.is_some() {
+            self.vendor_lock.unlock_all();
+
             if should_log_change(&self.last, &self.cfg) {
                 debug!(target: "auriya::daemon", "No foreground app detected");
                 bump_log(&mut self.last);

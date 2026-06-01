@@ -114,6 +114,7 @@ pub struct Daemon {
     pub(crate) applied_block_notifications: bool,
     pub(crate) cached_whitelist: HashSet<String>,
     pub(crate) status_cache: SystemStatusCache,
+    pub(crate) vendor_lock: crate::core::tweaks::vendor_lock::VendorLock,
 }
 
 impl Daemon {
@@ -179,6 +180,7 @@ impl Daemon {
             cached_whitelist,
             tick_count: 0,
             status_cache,
+            vendor_lock: crate::core::tweaks::vendor_lock::VendorLock::new(),
         })
     }
     #[inline]
