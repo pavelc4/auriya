@@ -34,8 +34,7 @@ private enum class SettingsSubScreen {
     NONE,
     APP,
     APPEARANCE,
-    FLOATING_OVERLAY,
-    MONITORING
+    FLOATING_OVERLAY
 }
 
 @Composable
@@ -87,7 +86,6 @@ fun SettingsScreen(
                 SettingsSubScreen.APP -> "App Settings"
                 SettingsSubScreen.APPEARANCE -> "Appearance"
                 SettingsSubScreen.FLOATING_OVERLAY -> "Floating Overlay"
-                SettingsSubScreen.MONITORING -> "Monitoring"
                 else -> ""
             }
             SubScreenHeader(title = title, onBack = { activeSubScreen = SettingsSubScreen.NONE })
@@ -143,14 +141,7 @@ fun SettingsScreen(
                         )
                     }
 
-                    item {
-                        SettingsMenuItem(
-                            icon = Icons.Filled.Analytics,
-                            title = "Monitoring",
-                            subtitle = "Update intervals, unit type, and log history limits",
-                            onClick = { activeSubScreen = SettingsSubScreen.MONITORING }
-                        )
-                    }
+
 
                     item {
                         SettingsMenuItem(
@@ -384,60 +375,7 @@ fun SettingsScreen(
                     }
                 }
 
-                SettingsSubScreen.MONITORING -> {
-                    item {
-                        SectionCard(title = "Monitor Frequency") {
-                            var interval by remember { mutableStateOf("2 Seconds") }
-                            var historyLimit by remember { mutableStateOf("100 Points") }
 
-                            SettingRow(
-                                icon = Icons.Filled.Timer,
-                                title = "Update Interval",
-                                subtitle = "How frequently system statistics refresh",
-                                control = {
-                                    SettingsDropdown(
-                                        value = interval,
-                                        options = listOf("1 Second", "2 Seconds", "5 Seconds"),
-                                        onValueChange = { interval = it }
-                                    )
-                                }
-                            )
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp
-                            )
-                            SettingRow(
-                                icon = Icons.Filled.Timeline,
-                                title = "Graph History Limit",
-                                subtitle = "Maximum datapoints stored for metrics history",
-                                control = {
-                                    SettingsDropdown(
-                                        value = historyLimit,
-                                        options = listOf("50 Points", "100 Points", "200 Points"),
-                                        onValueChange = { historyLimit = it }
-                                    )
-                                }
-                            )
-                        }
-                    }
-                    item {
-                        SectionCard(title = "Metrics Customization") {
-                            var useFahrenheit by remember { mutableStateOf(false) }
-
-                            SettingRow(
-                                icon = Icons.Filled.Thermostat,
-                                title = "Temperature Unit",
-                                subtitle = "Toggle Celsius or Fahrenheit scale",
-                                control = {
-                                    Switch(
-                                        checked = useFahrenheit,
-                                        onCheckedChange = { useFahrenheit = it }
-                                    )
-                                }
-                            )
-                        }
-                    }
-                }
             }
         }
     }
