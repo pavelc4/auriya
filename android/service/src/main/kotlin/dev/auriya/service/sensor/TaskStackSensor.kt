@@ -1,32 +1,17 @@
 package dev.auriya.service.sensor
 
 import android.app.ActivityManager
-import android.content.Context
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.IBinder
 import android.util.Log
+import dev.auriya.service.SystemServices
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 
-/**
- * Subscribes to foreground-app changes via the hidden
- * `IActivityTaskManager.registerTaskStackListener` API.
- *
- * The companion runs in the system uid (spawned by `app_process` from
- * service.sh), so the binder call is permitted without signature
- * permissions. We rely on stable internal class names — these have not
- * changed since Android 10 and are checked at build time on every
- * release the project targets.
- *
- * When the binder API is unavailable (very locked-down ROM, future
- * API rename, …) we fall back to polling
- * `ActivityManager.getRunningAppProcesses()` once a second. That's
- * still vastly cheaper than the dumpsys-shell path we replaced.
- */
 class TaskStackSensor(
-    private val context: Context,
     private val sink: SensorSink,
 ) {
     private companion object {
@@ -42,15 +27,10 @@ class TaskStackSensor(
         if (registerBinderListener()) {
             binderRegistered = true
             Log.i(TAG, "TaskStackListener registered via binder")
-            // Emit an initial snapshot so the daemon doesn't wait for
-            // the first app switch to populate focused_app.
             emitCurrentForeground()
         } else {
             Log.w(TAG, "binder API unavailable; falling back to polling")
         }
-        // Always schedule the poll fallback. On Android 16 the binder
-        // proxy's asBinder() may be silently discarded, leaving the
-        // process deaf to task-switch events. The poll keeps us alive.
         schedulePoll()
     }
 
@@ -59,16 +39,8 @@ class TaskStackSensor(
         binderRegistered = false
     }
 
-    // ----- binder path -----
-
     private fun registerBinderListener(): Boolean = try {
-        val serviceManager = Class.forName("android.os.ServiceManager")
-        val getServiceMethod = serviceManager.getMethod("getService", String::class.java)
-        val atmBinder = getServiceMethod.invoke(null, "activity_task") ?: return false
-
-        val stubClass = Class.forName("android.app.IActivityTaskManager\$Stub")
-        val asInterface = stubClass.getMethod("asInterface", android.os.IBinder::class.java)
-        val atm = asInterface.invoke(null, atmBinder) ?: return false
+        val atm = SystemServices.iActivityTaskManager() ?: return false
 
         val listenerInterface = Class.forName("android.app.ITaskStackListener")
         val listenerProxy = Proxy.newProxyInstance(
@@ -87,15 +59,10 @@ class TaskStackSensor(
         false
     }
 
-    // A real Binder token so registerTaskStackListener doesn't discard
-    // the proxy silently when it calls listener.asBinder().
     private val binderToken = android.os.Binder()
 
     private inner class TaskStackInvocationHandler : InvocationHandler {
         override fun invoke(proxy: Any?, method: Method?, args: Array<out Any?>?): Any? {
-            // We only care about state changes — every callback in
-            // ITaskStackListener implies that the foreground task may
-            // have moved. Re-query and emit if it actually changed.
             when (method?.name) {
                 "onTaskStackChanged",
                 "onTaskMovedToFront",
@@ -133,8 +100,6 @@ class TaskStackSensor(
         )
     }
 
-    // ----- fallback poll -----
-
     private fun schedulePoll() {
         handler.postDelayed(pollRunnable, FALLBACK_POLL_MS)
     }
@@ -146,38 +111,31 @@ class TaskStackSensor(
         }
     }
 
-    // ----- shared query -----
-
     private fun queryForegroundProcess(): ForegroundInfo? {
-        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
-            ?: return null
-        // Prefer the modern hidden API where available.
-        runCatching {
-            val method = am.javaClass.getMethod("getCurrentUser")
-            method.invoke(am)
-        }
-        // RunningAppProcesses is restricted to "your own" since Android
-        // 5.x for normal apps, but the system uid can still see the
-        // full list. The first entry with importance FOREGROUND wins.
+        val am = SystemServices.iActivityManager() ?: return null
         val processes = try {
-            am.runningAppProcesses ?: return null
-        } catch (_: SecurityException) {
+            val method = am.javaClass.getMethod("getRunningAppProcesses")
+            (method.invoke(am) as? List<*>) ?: return null
+        } catch (_: Exception) {
             return null
         }
 
-        val fg = processes.firstOrNull {
-            it.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+        val fg = processes.firstOrNull { p ->
+            val importance = p?.javaClass?.getField("importance")?.getInt(p) ?: -1
+            importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
         } ?: return null
 
-        val pkg = fg.pkgList?.firstOrNull() ?: fg.processName ?: return null
-        return ForegroundInfo(pkg = pkg, pid = fg.pid, uid = fg.uid)
+        val pkgList = fg.javaClass.getField("pkgList").get(fg) as? Array<*> ?: return null
+        val pkg = (pkgList.firstOrNull() as? String)
+            ?: fg.javaClass.getField("processName").get(fg) as? String
+            ?: return null
+        val pid = fg.javaClass.getField("pid").getInt(fg)
+        val uid = fg.javaClass.getField("uid").getInt(fg)
+        return ForegroundInfo(pkg = pkg, pid = pid, uid = uid)
     }
 
     private data class ForegroundInfo(val pkg: String, val pid: Int, val uid: Int)
 
-    // Touch Build to silence unused-import lint and document the
-    // minSdk assumption — registerTaskStackListener has been the same
-    // shape since API 26 but we target API 30+.
     init {
         require(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             "TaskStackSensor requires Android 11+"
