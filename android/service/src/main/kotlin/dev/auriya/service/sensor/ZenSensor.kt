@@ -1,10 +1,7 @@
 package dev.auriya.service.sensor
 
-import android.app.NotificationManager
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
-import dev.auriya.service.SystemServices
+import dev.auriya.service.actuator.SettingsHelper
 
 class ZenSensor(
     private val sink: SensorSink,
@@ -14,8 +11,8 @@ class ZenSensor(
         private const val POLL_MS = 1000L
     }
 
-    private val handler = Handler(Looper.getMainLooper())
-    private val nm = SystemServices.iNotificationManager()
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val settings = SettingsHelper()
     private var lastZen: Int = Int.MIN_VALUE
 
     fun start() {
@@ -26,23 +23,15 @@ class ZenSensor(
         handler.removeCallbacks(pollRunnable)
     }
 
-    private val pollRunnable = object : Runnable {
-        override fun run() {
-            val filter = SystemServices.callInt(nm, "getInterruptionFilter")
-            if (filter != null && filter != lastZen) {
-                lastZen = filter
-                sink.push(SensorSnapshot(zenMode = mapFilter(filter)))
+    private val pollRunnable =
+        object : Runnable {
+            override fun run() {
+                val zen = settings.getIntOrNull("zen_mode") ?: 0
+                if (zen != lastZen) {
+                    lastZen = zen
+                    sink.push(SensorSnapshot(zenMode = zen))
+                }
+                handler.postDelayed(this, POLL_MS)
             }
-            handler.postDelayed(this, POLL_MS)
         }
-    }
-
-    private fun mapFilter(filter: Int): Int = when (filter) {
-        NotificationManager.INTERRUPTION_FILTER_ALL,
-        NotificationManager.INTERRUPTION_FILTER_UNKNOWN -> 0
-        NotificationManager.INTERRUPTION_FILTER_PRIORITY -> 1
-        NotificationManager.INTERRUPTION_FILTER_NONE -> 2
-        NotificationManager.INTERRUPTION_FILTER_ALARMS -> 3
-        else -> 0
-    }
 }

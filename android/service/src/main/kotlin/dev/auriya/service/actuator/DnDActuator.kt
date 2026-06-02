@@ -1,6 +1,5 @@
 package dev.auriya.service.actuator
 
-import android.app.NotificationManager
 import android.util.Log
 import dev.auriya.service.SystemServices
 import dev.auriya.shared.model.DndFilter
@@ -8,21 +7,21 @@ import dev.auriya.shared.model.DndFilter
 class DnDActuator {
     private companion object {
         private const val TAG = "AuriyaDnD"
+        private const val CALLING_PKG = "dev.auriya.service"
     }
 
     private val nm = SystemServices.iNotificationManager()
 
     fun apply(filter: DndFilter) {
-        val target = when (filter) {
-            DndFilter.ALL -> NotificationManager.INTERRUPTION_FILTER_ALL
-            DndFilter.PRIORITY -> NotificationManager.INTERRUPTION_FILTER_PRIORITY
-            DndFilter.NONE -> NotificationManager.INTERRUPTION_FILTER_NONE
-            DndFilter.ALARMS -> NotificationManager.INTERRUPTION_FILTER_ALARMS
-        }
+        val target =
+            when (filter) {
+                DndFilter.ALL -> 1
+                DndFilter.PRIORITY -> 2
+                DndFilter.NONE -> 3
+                DndFilter.ALARMS -> 4
+            }
         try {
-            val current = SystemServices.callInt(nm, "getInterruptionFilter")
-            if (current == target) return
-            SystemServices.callVoid(nm, "setInterruptionFilter", target)
+            SystemServices.callVoid(nm, "setInterruptionFilter", CALLING_PKG, target, false)
             Log.i(TAG, "set interruption filter to $filter")
         } catch (t: Throwable) {
             Log.e(TAG, "setInterruptionFilter($filter) failed", t)

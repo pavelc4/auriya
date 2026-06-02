@@ -11,12 +11,13 @@ object SystemServices {
         sm.getMethod("getService", String::class.java)
     }
 
-    private fun rawService(name: String): IBinder? = try {
-        getService.invoke(null, name) as? IBinder
-    } catch (t: Throwable) {
-        Log.w(TAG, "ServiceManager.getService($name) failed", t)
-        null
-    }
+    private fun rawService(name: String): IBinder? =
+        try {
+            getService.invoke(null, name) as? IBinder
+        } catch (t: Throwable) {
+            Log.w(TAG, "ServiceManager.getService($name) failed", t)
+            null
+        }
 
     fun iPowerManager(): Any? {
         val binder = rawService("power") ?: return null
@@ -62,23 +63,62 @@ object SystemServices {
         }
     }
 
-    fun callBoolean(service: Any?, method: String): Boolean? = try {
-        service?.javaClass?.getMethod(method)?.invoke(service) as? Boolean
-    } catch (t: Throwable) {
-        Log.w(TAG, "$method failed", t)
-        null
-    }
-
-    fun callInt(service: Any?, method: String): Int? = try {
-        service?.javaClass?.getMethod(method)?.invoke(service) as? Int
-    } catch (t: Throwable) {
-        Log.w(TAG, "$method failed", t)
-        null
-    }
-
-    fun callVoid(service: Any?, method: String, vararg args: Any?) {
+    fun callBoolean(
+        service: Any?,
+        method: String,
+    ): Boolean? =
         try {
-            val types = args.map { it?.javaClass ?: Any::class.java }.toTypedArray()
+            service?.javaClass?.getMethod(method)?.invoke(service) as? Boolean
+        } catch (t: Throwable) {
+            Log.w(TAG, "$method failed", t)
+            null
+        }
+
+    fun callInt(
+        service: Any?,
+        method: String,
+    ): Int? =
+        try {
+            service?.javaClass?.getMethod(method)?.invoke(service) as? Int
+        } catch (t: Throwable) {
+            Log.w(TAG, "$method failed", t)
+            null
+        }
+
+    fun callInt(
+        service: Any?,
+        method: String,
+        vararg args: Any?,
+    ): Int? =
+        try {
+            val types = args.map { unbox(it?.javaClass ?: Any::class.java) }.toTypedArray()
+            service?.javaClass?.getMethod(method, *types)?.invoke(service, *args) as? Int
+        } catch (t: Throwable) {
+            Log.w(TAG, "$method failed", t)
+            null
+        }
+
+    @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
+    private fun unbox(c: Class<*>): Class<*> =
+        when (c) {
+            java.lang.Integer::class.java -> Int::class.javaPrimitiveType!!
+            java.lang.Boolean::class.java -> Boolean::class.javaPrimitiveType!!
+            java.lang.Long::class.java -> Long::class.javaPrimitiveType!!
+            java.lang.Float::class.java -> Float::class.javaPrimitiveType!!
+            java.lang.Double::class.java -> Double::class.javaPrimitiveType!!
+            java.lang.Short::class.java -> Short::class.javaPrimitiveType!!
+            java.lang.Byte::class.java -> Byte::class.javaPrimitiveType!!
+            java.lang.Character::class.java -> Char::class.javaPrimitiveType!!
+            else -> c
+        }
+
+    fun callVoid(
+        service: Any?,
+        method: String,
+        vararg args: Any?,
+    ) {
+        try {
+            val types = args.map { unbox(it?.javaClass ?: Any::class.java) }.toTypedArray()
             service?.javaClass?.getMethod(method, *types)?.invoke(service, *args)
         } catch (t: Throwable) {
             Log.w(TAG, "$method failed", t)
