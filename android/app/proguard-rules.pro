@@ -1,4 +1,9 @@
 # Auriya UI app — ProGuard / R8 rules.
+# Full obfuscation: repackage all classes into a single package and
+# allow access modification so R8 can inline aggressively.
+-allowaccessmodification
+-repackageclasses ''
+-optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
 
 # Compose / Kotlin reflection support that R8 cannot statically prove
 # reachable. Without these rules the runtime crashes with
@@ -10,6 +15,20 @@
 # (if and when it lands) still works.
 -keep class dev.auriya.app.** { *; }
 -keep class dev.auriya.shared.** { *; }
+
+# kotlinx.serialization (shared module uses it)
+-keepattributes *Annotation*, InnerClasses
+-keep,includedescriptorclasses class dev.auriya.**$$serializer { *; }
+-keepclassmembers class dev.auriya.** {
+    *** Companion;
+}
+-keepclasseswithmembers class dev.auriya.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Hilt / Dagger (not yet used but keeps the door open)
+-keep class dagger.hilt.** { *; }
+-keep class * extends dagger.hilt.android.HiltAndroidApp
 
 # Drop debug logs from the shipped APK.
 -assumenosideeffects class android.util.Log {

@@ -1,6 +1,8 @@
 package dev.auriya.app.ui.components
 
-import androidx.compose.material3.MaterialShapes as M3MaterialShapes
+// PixelCircle and friends — pure `androidx.graphics.shapes` so there is
+// zero dependency on the unstable M3E `MaterialShapes` API and we can
+// drop the `material3:1.5.0-alpha20` version pin.
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
@@ -23,10 +25,9 @@ object MaterialShapes {
     val Clover6: Shape by lazy { polygonShape { RoundedPolygon.star(6, innerRadius = 0.48f, rounding = CornerRounding(0.95f), innerRounding = CornerRounding(0.7f)) } }
     val Puffy: Shape by lazy { polygonShape { RoundedPolygon.star(6, innerRadius = 0.72f, rounding = CornerRounding(0.85f), innerRounding = CornerRounding(0.4f)) } }
 
-    // Official Material 3 Expressive shape — delegates the RoundedPolygon from M3MaterialShapes,
-    // then wraps it using our polygonShape() helper so it renders correctly at any size.
-    // Requires material3 >= 1.5.0-alpha20 and ExperimentalMaterial3ExpressiveApi opt-in.
-    val PixelCircle: Shape by lazy { polygonShape { M3MaterialShapes.PixelCircle } }
+    // PixelCircle approximation: a regular 128-gon that looks like a
+    // circle at all display densities. No M3E dependency needed.
+    val PixelCircle: Shape by lazy { polygonShape { RoundedPolygon.star(128, innerRadius = 0.999f, rounding = CornerRounding(1.0f)) } }
 
     fun cookie9(): Shape = Cookie9
     fun scallop12(): Shape = Scallop12
