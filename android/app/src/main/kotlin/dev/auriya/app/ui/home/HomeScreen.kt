@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -19,10 +20,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.auriya.app.ui.components.ExpressiveList
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
 import dev.auriya.app.ui.components.rememberCookie9
+import dev.auriya.app.ui.components.rememberPixelCircle
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.viewmodel.SystemInfo
 import dev.auriya.app.viewmodel.UiViewModel
@@ -137,21 +140,29 @@ private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
-                            .clip(rememberCookie9())
+                            .size(72.dp)
+                            .clip(rememberPixelCircle())
                             .background(
                                 if (isDaemonRunning) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.error,
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            imageVector = if (isDaemonRunning) Icons.Outlined.CheckCircle else Icons.Outlined.Warning,
-                            contentDescription = null,
-                            tint = if (isDaemonRunning) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onError,
-                            modifier = Modifier.size(AuriyaTokens.iconSize.large),
-                        )
+                        if (isDaemonRunning) {
+                            Icon(
+                                imageVector = Icons.Outlined.AutoAwesome,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(40.dp),
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Bedtime,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onError,
+                                modifier = Modifier.size(40.dp),
+                            )
+                        }
                     }
                     Spacer(Modifier.width(AuriyaTokens.padding.normal))
                     Column(modifier = Modifier.weight(1f)) {
@@ -171,9 +182,7 @@ private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
                 Spacer(Modifier.height(AuriyaTokens.padding.normal))
                 Row(horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)) {
                     if (isDaemonRunning) {
-                        StatusBadge(label = "eBPF", tone = StatusTone.PRIMARY)
                         StatusBadge(label = "PID ${systemInfo.pid}", tone = StatusTone.SUCCESS)
-                        StatusBadge(label = "FAS", tone = StatusTone.OUTLINE)
                     } else {
                         StatusBadge(label = "Stopped", tone = StatusTone.ERROR)
                     }
