@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -79,15 +80,34 @@ fun GameProfileScreen(
                     }
                 },
                 actions = {
-                    if (isExistingProfile && onRemove != null) {
-                        Box {
-                            IconButton(onClick = { menuExpanded = true }) {
-                                Icon(Icons.Filled.MoreVert, contentDescription = "More options")
-                            }
-                            DropdownMenu(
-                                expanded = menuExpanded,
-                                onDismissRequest = { menuExpanded = false },
-                            ) {
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Reset to defaults") },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Outlined.Refresh,
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    selectedGov = governorOptions.firstOrNull() ?: game.cpuGovernor
+                                    targetFps = 60f
+                                    refreshRate = 0f
+                                    enableDnd = true
+                                    killBackground = false
+                                    autoRotate = false
+                                    blockNotifications = false
+                                },
+                            )
+                            if (isExistingProfile && onRemove != null) {
                                 DropdownMenuItem(
                                     text = {
                                         Text(
@@ -114,32 +134,6 @@ fun GameProfileScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 ),
-            )
-        },
-        bottomBar = {
-            StickyActions(
-                onSave = {
-                    onSave(
-                        GameProfile(
-                            packageName = game.packageName,
-                            cpuGovernor = selectedGov,
-                            enableDnd = enableDnd,
-                            targetFps = targetFps.toInt(),
-                            refreshRate = if (refreshRate.toInt() == 0) null else refreshRate.toInt(),
-                            lockRotation = autoRotate,
-                            blockNotifications = blockNotifications,
-                        )
-                    )
-                },
-                onReset = {
-                    selectedGov = governorOptions.firstOrNull() ?: game.cpuGovernor
-                    targetFps = 60f
-                    refreshRate = 0f
-                    enableDnd = true
-                    killBackground = false
-                    autoRotate = false
-                    blockNotifications = false
-                },
             )
         },
     ) { padding ->
@@ -220,6 +214,47 @@ fun GameProfileScreen(
             }
 
             Spacer(Modifier.height(AuriyaTokens.padding.normal))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Button(
+                    onClick = {
+                        onSave(
+                            GameProfile(
+                                packageName = game.packageName,
+                                cpuGovernor = selectedGov,
+                                enableDnd = enableDnd,
+                                targetFps = targetFps.toInt(),
+                                refreshRate = if (refreshRate.toInt() == 0) null else refreshRate.toInt(),
+                                lockRotation = autoRotate,
+                                blockNotifications = blockNotifications,
+                            )
+                        )
+                    },
+                    shape = RoundedCornerShape(AuriyaTokens.rounding.large),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    contentPadding = PaddingValues(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(AuriyaTokens.iconSize.medium),
+                    )
+                    Spacer(Modifier.width(AuriyaTokens.padding.smaller))
+                    Text(
+                        text = "Save & Apply",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(120.dp))
         }
     }
 
@@ -472,43 +507,5 @@ private fun SwitchRow(
             )
         }
         Switch(checked = checked, onCheckedChange = onCheck)
-    }
-}
-
-@Composable
-private fun StickyActions(onSave: () -> Unit, onReset: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smaller),
-        ) {
-            Button(
-                onClick = onSave,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(AuriyaTokens.rounding.full),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            ) {
-                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(AuriyaTokens.iconSize.medium))
-                Spacer(Modifier.width(AuriyaTokens.padding.smaller))
-                Text(
-                    text = "Save & Apply",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                )
-            }
-            TextButton(
-                onClick = onReset,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Reset to defaults", style = MaterialTheme.typography.bodyMedium)
-            }
-        }
     }
 }

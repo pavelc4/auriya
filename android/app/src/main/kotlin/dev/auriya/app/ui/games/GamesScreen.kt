@@ -1,5 +1,6 @@
 package dev.auriya.app.ui.games
 
+import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import androidx.compose.foundation.Image
@@ -70,6 +71,8 @@ fun GamesScreen(
 ) {
     val context = LocalContext.current
     val pm = context.packageManager
+    val sharedPrefs = remember { context.getSharedPreferences("auriya_ui", Context.MODE_PRIVATE) }
+    var bannerDismissed by remember { mutableStateOf(sharedPrefs.getBoolean("games_banner_dismissed", false)) }
 
     val gameList by viewModel.gameList.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
@@ -138,7 +141,16 @@ fun GamesScreen(
             .padding(horizontal = AuriyaTokens.padding.normal),
         contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.largest * 3),
     ) {
-        item { HeroBanner() }
+        if (!bannerDismissed) {
+            item {
+                HeroBanner(
+                    onDismiss = {
+                        sharedPrefs.edit().putBoolean("games_banner_dismissed", true).apply()
+                        bannerDismissed = true
+                    }
+                )
+            }
+        }
         item { SearchPill(searchQuery, onChange = { searchQuery = it }) }
 
         if (filteredActive.isNotEmpty()) {
@@ -206,43 +218,59 @@ private fun LoadingState() {
 }
 
 @Composable
-private fun HeroBanner() {
+private fun HeroBanner(onDismiss: () -> Unit) {
     Surface(
-        shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
+        shape = RoundedCornerShape(AuriyaTokens.rounding.large),
         color = MaterialTheme.colorScheme.primaryContainer,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = AuriyaTokens.padding.smaller),
     ) {
-        Column(
-            modifier = Modifier.padding(AuriyaTokens.padding.larger),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small),
-        ) {
-            Box(
+        Box(modifier = Modifier.fillMaxWidth()) {
+            IconButton(
+                onClick = onDismiss,
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(MaterialShapes.Cookie9)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center,
+                    .align(Alignment.TopEnd)
+                    .padding(AuriyaTokens.padding.smaller)
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.SportsEsports,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(AuriyaTokens.iconSize.normal),
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Dismiss",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    modifier = Modifier.size(AuriyaTokens.iconSize.medium)
                 )
             }
-            Text(
-                text = "Games Tuner",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-            Text(
-                text = "Tune CPU governor, target FPS, refresh rate and DnD per game.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
-            )
+            Column(
+                modifier = Modifier.padding(AuriyaTokens.padding.larger),
+                verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(AuriyaTokens.rounding.medium))
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.SportsEsports,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(AuriyaTokens.iconSize.medium),
+                    )
+                }
+                Text(
+                    text = "Games Tuner",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Text(
+                    text = "Tune CPU governor, target FPS, refresh rate and DnD per game.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                    modifier = Modifier.padding(end = 24.dp)
+                )
+            }
         }
     }
 }
@@ -419,11 +447,6 @@ private fun InactiveRowContent(app: AppInfoItem, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(
-                text = "＋",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
         }
     }
 }
