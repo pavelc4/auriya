@@ -44,6 +44,7 @@ fun AuriyaNavigation(
 ) {
     var activeTab by rememberSaveable { mutableStateOf(NavigationTab.HOME) }
     var editingGameProfile by remember { mutableStateOf<GameProfile?>(null) }
+    var selectedGameProfile by remember { mutableStateOf<GameProfile?>(null) }
     var subScreen by remember { mutableStateOf(SubScreen.None) }
     val themePrefs by themeViewModel.prefs.collectAsState()
     val governors by viewModel.availableGovernors.collectAsState()
@@ -87,17 +88,19 @@ fun AuriyaNavigation(
 
             Scaffold(
                 topBar = {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = "Auriya",
-                                fontWeight = FontWeight.ExtraBold,
-                            )
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.background,
-                        ),
-                    )
+                    if (selectedGameProfile == null) {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    text = "Auriya",
+                                    fontWeight = FontWeight.ExtraBold,
+                                )
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.background,
+                            ),
+                        )
+                    }
                 },
                 bottomBar = {
                     if (navMode == NavMode.STANDARD) {
@@ -123,7 +126,33 @@ fun AuriyaNavigation(
                 ) {
                     when (activeTab) {
                         NavigationTab.HOME -> HomeScreen(viewModel = viewModel)
-                        NavigationTab.GAMES -> GamesPane(viewModel = viewModel)
+                        NavigationTab.GAMES -> {
+                            val current = selectedGameProfile
+                            if (current != null) {
+                                val isExisting = gameList.games.any { it.packageName == current.packageName }
+                                GameProfileScreen(
+                                    game = current,
+                                    governorOptions = governors,
+                                    isExistingProfile = isExisting,
+                                    onDismiss = { selectedGameProfile = null },
+                                    onSave = { updated ->
+                                        viewModel.addGame(updated)
+                                        selectedGameProfile = null
+                                    },
+                                    onRemove = if (isExisting) {
+                                        {
+                                            selectedGameProfile = null
+                                            viewModel.removeGame(current.packageName)
+                                        }
+                                    } else null,
+                                )
+                            } else {
+                                GamesPane(
+                                    viewModel = viewModel,
+                                    onEditGame = { selectedGameProfile = it }
+                                )
+                            }
+                        }
                         NavigationTab.SETTINGS -> SettingsScreen(
                             viewModel = viewModel,
                             themePrefs = themePrefs,

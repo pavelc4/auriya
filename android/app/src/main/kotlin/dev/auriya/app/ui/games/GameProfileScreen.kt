@@ -71,6 +71,7 @@ fun GameProfileScreen(
     var pendingDelete by remember { mutableStateOf(false) }
 
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text("Profile Tuning", fontWeight = FontWeight.Bold) },
@@ -254,7 +255,7 @@ fun GameProfileScreen(
                 }
             }
 
-            Spacer(Modifier.height(120.dp))
+            Spacer(Modifier.height(180.dp))
         }
     }
 
