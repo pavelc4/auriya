@@ -61,3 +61,12 @@ repos:
         language: system
         types: [rust]
         pass_filenames: false
+
+      # Kotlin lint (kts/kt) via standalone ktlint binary.
+      # Auto-downloads ktlint to ~/.cache/ktlint/ on first run.
+      - id: ktlint
+        name: ktlint
+        entry: android/scripts/ktlint-precommit.sh
+        language: script
+        files: ^android/.*\.kts?$
+        pass_filenames: false
