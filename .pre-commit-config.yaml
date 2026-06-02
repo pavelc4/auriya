@@ -1,11 +1,11 @@
 fail_fast: true
 default_install_hook_types: [pre-commit, commit-msg]
 repos:
-  - repo: builtin
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
-        exclude:
-          glob: CHANGELOG.md
+        exclude: CHANGELOG.md
       - id: mixed-line-ending
       - id: check-yaml
       - id: check-toml
