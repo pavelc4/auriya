@@ -337,7 +337,7 @@ fun SettingsScreen(
                             var showFps by remember { mutableStateOf(true) }
                             var showTemp by remember { mutableStateOf(true) }
                             var overlaySize by remember { mutableStateOf("Medium") }
-                            
+
                             SettingRow(
                                 icon = Icons.Filled.Speed,
                                 title = "Show FPS Counter",
@@ -389,7 +389,7 @@ fun SettingsScreen(
                         SectionCard(title = "Monitor Frequency") {
                             var interval by remember { mutableStateOf("2 Seconds") }
                             var historyLimit by remember { mutableStateOf("100 Points") }
-                            
+
                             SettingRow(
                                 icon = Icons.Filled.Timer,
                                 title = "Update Interval",
@@ -423,7 +423,7 @@ fun SettingsScreen(
                     item {
                         SectionCard(title = "Metrics Customization") {
                             var useFahrenheit by remember { mutableStateOf(false) }
-                            
+
                             SettingRow(
                                 icon = Icons.Filled.Thermostat,
                                 title = "Temperature Unit",
@@ -476,9 +476,9 @@ private fun SettingsMenuItem(
                     modifier = Modifier.size(AuriyaTokens.iconSize.medium)
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(AuriyaTokens.padding.normal))
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -492,9 +492,9 @@ private fun SettingsMenuItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(AuriyaTokens.padding.small))
-            
+
             Icon(
                 imageVector = Icons.Filled.ChevronRight,
                 contentDescription = null,

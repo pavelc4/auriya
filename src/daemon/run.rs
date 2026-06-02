@@ -355,7 +355,9 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     // misbehaviour.
     let status_path = PathBuf::from(STATUS_FILE);
     let wait_timeout = Duration::from_secs(10);
-    if let Err(e) = crate::core::system_status::watcher::await_status_file(&status_path, wait_timeout) {
+    if let Err(e) =
+        crate::core::system_status::watcher::await_status_file(&status_path, wait_timeout)
+    {
         error!(
             target: "auriya::daemon",
             "Daemon | {e}"

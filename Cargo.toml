@@ -31,25 +31,25 @@ toml = "1.1.2"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 tokio = { version = "1.52.3", default-features = false, features = [
-    "rt",
-    "net",
-    "sync",
-    "time",
-    "macros",
-    "io-util",
-    "signal",
-    "process",
+  "rt",
+  "net",
+  "sync",
+  "time",
+  "macros",
+  "io-util",
+  "signal",
+  "process",
 ] }
 tracing = { version = "0.1.44", default-features = false, features = [
-    "std",
-    "attributes",
+  "std",
+  "attributes",
 ] }
 tracing-subscriber = { version = "0.3.23", default-features = false, features = [
-    "fmt",
-    "ansi",
-    "env-filter",
-    "smallvec",
-    "time",
+  "fmt",
+  "ansi",
+  "env-filter",
+  "smallvec",
+  "time",
 ] }
 time = { version = "0.3", features = ["formatting"] }
 libc = "0.2.186"
@@ -66,9 +66,9 @@ unused_must_use = "deny"
 # Whole-group dials. Pedantic is opt-in via #[warn] on individual
 # items if we ever want to enable it locally; as a workspace-wide
 # default it produces too much style noise without catching real bugs.
-all         = { level = "deny", priority = -1 }
+all = { level = "deny", priority = -1 }
 correctness = { level = "deny", priority = -1 }
-suspicious  = { level = "deny", priority = -1 }
-perf        = { level = "deny", priority = -1 }
-complexity  = { level = "deny", priority = -1 }
-style       = { level = "warn", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
+perf = { level = "deny", priority = -1 }
+complexity = { level = "deny", priority = -1 }
+style = { level = "warn", priority = -1 }

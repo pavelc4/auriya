@@ -1,0 +1,63 @@
+fail_fast: true
+default_install_hook_types: [pre-commit, commit-msg]
+repos:
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+        exclude:
+          glob: CHANGELOG.md
+      - id: mixed-line-ending
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.46.2
+    hooks:
+      - id: typos
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.10.0-2
+    hooks:
+      - id: shfmt
+        args: [-w, -s, -i=2]
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: []
+
+  - repo: local
+    hooks:
+      - id: taplo-fmt
+        name: taplo fmt
+        entry: taplo fmt
+        language: python
+        additional_dependencies: ["taplo==0.9.3"]
+        types: [toml]
+
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-check
+        name: cargo check
+        entry: cargo check --bins --lib
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: cargo clippy --bins --lib
+        language: system
+        types: [rust]
+        pass_filenames: false

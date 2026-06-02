@@ -1,5 +1,5 @@
-pub mod constanst;
+pub mod constants;
 pub mod types;
 
-pub use constanst::*;
+pub use constants::*;
 pub use types::*;

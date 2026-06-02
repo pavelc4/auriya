@@ -126,8 +126,13 @@ impl Daemon {
                 if let Some(cfg) = game_cfg
                     && let Some(ref fps_cfg) = cfg.target_fps
                 {
-                    let fps_key = fps_cfg.to_buffer_config().values()
-                        .iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",");
+                    let fps_key = fps_cfg
+                        .to_buffer_config()
+                        .values()
+                        .iter()
+                        .map(|v| v.to_string())
+                        .collect::<Vec<_>>()
+                        .join(",");
                     if self.last_fps_config.as_deref() != Some(&fps_key) {
                         let mut f = fas.lock().await;
                         f.set_target_fps_config(fps_cfg.to_buffer_config());
@@ -136,7 +141,14 @@ impl Daemon {
                 }
 
                 match self
-                    .run_fas_tick(&fas, &pkg, &governor, self.last.pid, enable_dnd, block_notif)
+                    .run_fas_tick(
+                        &fas,
+                        &pkg,
+                        &governor,
+                        self.last.pid,
+                        enable_dnd,
+                        block_notif,
+                    )
                     .await
                 {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
@@ -404,14 +416,12 @@ impl Daemon {
     /// Also tracks applied state so exit paths can undo it.
     fn apply_block_notifications_if_needed(&mut self, block_notif: bool) {
         if block_notif && !self.applied_block_notifications {
-            let _ = crate::core::cmd_writer::shared().write_dnd(
-                crate::core::cmd_writer::DndFilter::None,
-            );
+            let _ = crate::core::cmd_writer::shared()
+                .write_dnd(crate::core::cmd_writer::DndFilter::None);
             self.applied_block_notifications = true;
         } else if !block_notif && self.applied_block_notifications {
-            let _ = crate::core::cmd_writer::shared().write_dnd(
-                crate::core::cmd_writer::DndFilter::All,
-            );
+            let _ = crate::core::cmd_writer::shared()
+                .write_dnd(crate::core::cmd_writer::DndFilter::All);
             self.applied_block_notifications = false;
         }
     }

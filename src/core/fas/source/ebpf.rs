@@ -40,9 +40,8 @@ impl EbpfHandle {
                         match cmd {
                             Cmd::Attach(pid, reply) => {
                                 poll_count = 0;
-                                let res = probe
-                                    .attach(pid)
-                                    .map_err(|e| anyhow!("attach({pid}): {e}"));
+                                let res =
+                                    probe.attach(pid).map_err(|e| anyhow!("attach({pid}): {e}"));
                                 let _ = reply.send(res);
                             }
                         }

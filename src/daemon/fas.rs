@@ -197,8 +197,7 @@ impl FasController {
         };
 
         let control_khz = compute_control_khz(last_frame, adjusted_target_fps, self.kp);
-        let is_janked =
-            self.buffer.current_fps_long < f64::from(target_fps) - JANK_DELTA_FPS;
+        let is_janked = self.buffer.current_fps_long < f64::from(target_fps) - JANK_DELTA_FPS;
 
         let frametimes = self.buffer.recent_frametimes(60);
         let bottleneck = self.bottleneck.classify(&frametimes, target_fps);
@@ -369,7 +368,11 @@ pub fn compute_control_khz(last_frame: Duration, adjusted_target_fps: f64, kp: f
 /// Map a control signal + jank flag + bottleneck type to a discrete ScalingAction.
 /// Pulled out of `tick` so replay tests can exercise the bucket boundaries
 /// without spinning up a full controller.
-pub fn decide_action(control_khz: f64, is_janked: bool, bottleneck: BottleneckType) -> ScalingAction {
+pub fn decide_action(
+    control_khz: f64,
+    is_janked: bool,
+    bottleneck: BottleneckType,
+) -> ScalingAction {
     if is_janked || control_khz > BOOST_THRESHOLD_KHZ {
         match bottleneck {
             BottleneckType::Gpu => ScalingAction::BoostGpu,
@@ -488,4 +491,3 @@ mod tests {
         assert_eq!(action, ScalingAction::Maintain);
     }
 }
-

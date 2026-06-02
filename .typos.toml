@@ -1,0 +1,11 @@
+[default]
+extend-ignore-re = [
+  '(?s)-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----',
+]
+
+[default.extend-words]
+mis = "mis"
+UE = "UE"
+
+[files]
+extend-exclude = ["android/app/src/main/res/values/font_certs.xml"]

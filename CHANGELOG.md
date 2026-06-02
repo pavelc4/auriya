@@ -239,7 +239,7 @@
 
 ---
 
-## v1.0.1 
+## v1.0.1
 
 ### New Features
 
@@ -305,7 +305,7 @@
 - Extracted SoC detection to dedicated module
 - Separated Snapdragon and MediaTek tweaks into vendor modules
 - Consolidated system tweaks module
-- Enhanced GPU tweaks for Adreno 
+- Enhanced GPU tweaks for Adreno
 - Removed regex dependency (manual display mode parsing)
 - Flattened nested conditionals throughout codebase
 

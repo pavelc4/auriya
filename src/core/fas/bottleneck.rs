@@ -25,11 +25,7 @@ impl BottleneckDetector {
         }
     }
 
-    pub fn classify(
-        &mut self,
-        frametimes: &[Duration],
-        target_fps: u32,
-    ) -> BottleneckType {
+    pub fn classify(&mut self, frametimes: &[Duration], target_fps: u32) -> BottleneckType {
         let n = frametimes.len();
         if n < 3 {
             return BottleneckType::Unknown;
@@ -37,8 +33,11 @@ impl BottleneckDetector {
 
         let target_interval = Duration::from_secs_f64(1.0 / f64::from(target_fps));
 
-        let mean_ns: f64 =
-            frametimes.iter().map(|ft| ft.as_nanos() as f64).sum::<f64>() / n as f64;
+        let mean_ns: f64 = frametimes
+            .iter()
+            .map(|ft| ft.as_nanos() as f64)
+            .sum::<f64>()
+            / n as f64;
 
         if mean_ns <= target_interval.as_nanos() as f64 {
             return self.debounce(BottleneckType::Balanced);

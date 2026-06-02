@@ -137,7 +137,7 @@ fun ThemePickerCard(
                 ) {
                     StandardMockup(mockSelectedIndex)
                 }
-                
+
                 NavigationStyleCard(
                     label = "Floating",
                     selected = navMode == NavMode.FLOATING,
@@ -190,12 +190,12 @@ private fun NavigationStyleCard(
 ) {
     val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
     val borderStroke = if (selected) BorderStroke(1.5.dp, borderColor) else null
-    
+
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(AuriyaTokens.rounding.large),
         colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) 
+            containerColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                              else MaterialTheme.colorScheme.surfaceContainerHigh
         ),
         border = borderStroke,
@@ -215,7 +215,7 @@ private fun NavigationStyleCard(
             ) {
                 content()
             }
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -227,7 +227,7 @@ private fun NavigationStyleCard(
                     fontWeight = FontWeight.SemiBold,
                     color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 if (selected) {
                     Icon(
                         imageVector = Icons.Filled.Check,

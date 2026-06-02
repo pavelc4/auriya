@@ -28,11 +28,11 @@
 - [Changelog](CHANGELOG.md) - Version history
 - [Issues](https://github.com/pavelc4/auriya/issues) - Report bugs
 
-                        
+
 ## Stargazers over time
 [![Stargazers over time](https://starchart.cc/pavelc4/auriya.svg?variant=adaptive)](https://starchart.cc/pavelc4/auriya)
 
-                    
+
 
 ## License
 

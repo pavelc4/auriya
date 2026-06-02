@@ -156,7 +156,7 @@ private fun PillNavItem(
         label = "nav-fg",
     )
     val interactionSource = remember { MutableInteractionSource() }
-    
+
     Box(
         modifier = Modifier
             .height(44.dp)
@@ -183,7 +183,7 @@ private fun PillNavItem(
                 tint = fg,
                 modifier = Modifier.size(AuriyaTokens.iconSize.normal),
             )
-            
+
             AnimatedVisibility(
                 visible = selected,
                 enter = fadeIn() + expandHorizontally(),

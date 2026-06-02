@@ -5,7 +5,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::ptr;
 
-use libc::{mount, umount2, MS_BIND, MS_REC, MNT_DETACH};
+use libc::{MNT_DETACH, MS_BIND, MS_REC, mount, umount2};
 use tracing::{debug, warn};
 
 const VENDOR_PATHS: &[(&str, &str)] = &[

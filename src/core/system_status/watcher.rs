@@ -129,7 +129,9 @@ pub fn await_status_file(path: &Path, timeout: Duration) -> anyhow::Result<()> {
 ///
 /// The watcher pre-seeds the cache from the on-disk file before
 /// returning, so the first daemon tick already sees real data.
-pub fn start_status_watcher(path: PathBuf) -> anyhow::Result<(SystemStatusCache, mpsc::Receiver<()>)> {
+pub fn start_status_watcher(
+    path: PathBuf,
+) -> anyhow::Result<(SystemStatusCache, mpsc::Receiver<()>)> {
     let cache = SystemStatusCache::new();
     let (tx, rx) = mpsc::channel::<()>(8);
 
