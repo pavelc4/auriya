@@ -117,6 +117,7 @@ pub struct Daemon {
     pub(crate) vendor_lock: crate::core::tweaks::vendor_lock::VendorLock,
     /// Cached FPS config string to avoid resetting FAS state every tick.
     pub(crate) last_fps_config: Option<String>,
+    pub(crate) pid_tracker: Option<crate::core::pid_tracker::PidTracker>,
 }
 
 impl Daemon {
@@ -184,6 +185,7 @@ impl Daemon {
             status_cache,
             vendor_lock: crate::core::tweaks::vendor_lock::VendorLock::new(),
             last_fps_config: None,
+            pid_tracker: None,
         })
     }
     #[inline]
@@ -194,6 +196,11 @@ impl Daemon {
             .map(|pkg| self.cached_whitelist.contains(pkg))
             .unwrap_or(false)
             && self.last.pid.is_some()
+    }
+
+    pub(crate) fn set_pid(&mut self, pid: Option<i32>) {
+        self.last.pid = pid;
+        self.pid_tracker = pid.map(crate::core::pid_tracker::PidTracker::new);
     }
 
     #[inline]
@@ -235,10 +242,15 @@ impl Daemon {
     }
 
     fn rebuild_whitelist(&mut self) {
-        if let Ok(gl) = self.shared_gamelist.read() {
-            self.cached_whitelist = gl.game.iter().map(|g| g.package.clone()).collect();
+        let whitelist: Option<HashSet<String>> = self
+            .shared_gamelist
+            .read()
+            .ok()
+            .map(|gl| gl.game.iter().map(|g| g.package.clone()).collect());
+        if let Some(list) = whitelist {
+            self.cached_whitelist = list;
             self.last.pkg = None;
-            self.last.pid = None;
+            self.set_pid(None);
             debug!(target: "auriya::daemon", "Whitelist cache rebuilt: {} packages (forcing re-detect)", self.cached_whitelist.len());
         }
     }

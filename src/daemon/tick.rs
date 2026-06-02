@@ -1,3 +1,4 @@
+use crate::core::pid_tracker::PidTracker;
 use crate::core::profile::ProfileMode;
 use crate::daemon::run::{
     Daemon, bump_log, now_ms, should_log_change, update_current_profile_file,
@@ -106,10 +107,7 @@ impl Daemon {
         }
         let pkg = pkg_opt.unwrap();
 
-        let pid_still_valid = self
-            .last
-            .pid
-            .is_some_and(crate::core::dumpsys::activity::is_pid_valid);
+        let pid_still_valid = self.pid_tracker.as_ref().is_some_and(PidTracker::is_alive);
 
         if self.last.pkg.as_deref() == Some(pkg.as_str()) && pid_still_valid {
             let fas_clone = self.fas_controller.clone();
@@ -281,7 +279,7 @@ impl Daemon {
                 }
 
                 self.last.pkg = Some(pkg.to_string());
-                self.last.pid = Some(pid);
+                self.set_pid(Some(pid));
                 Ok(())
             }
             None => self.apply_balance_and_clear(pkg, "PID not found").await,
@@ -347,7 +345,7 @@ impl Daemon {
         }
 
         self.last.pkg = Some(pkg.to_string());
-        self.last.pid = None;
+        self.set_pid(None);
         Ok(())
     }
 
@@ -407,7 +405,7 @@ impl Daemon {
                     self.applied_block_notifications = false;
                 }
             }
-            self.last.pid = None;
+            self.set_pid(None);
         }
     }
 

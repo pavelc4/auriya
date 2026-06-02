@@ -3,6 +3,7 @@ pub mod config;
 pub mod display;
 pub mod dumpsys;
 pub mod fas;
+pub mod pid_tracker;
 pub mod profile;
 pub mod scaling;
 pub mod system_status;
