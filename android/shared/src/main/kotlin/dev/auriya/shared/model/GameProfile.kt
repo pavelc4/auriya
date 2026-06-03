@@ -1,13 +1,14 @@
 package dev.auriya.shared.model
 
-/**
- * Per-game profile stored in `gamelist.toml`.
- */
 data class GameProfile(
-    val packageName: String = "",
-    val mode: String = "performance",
-    val cpuGovernor: String = "performance",
-    val refreshRate: Int? = null,
-    val enableDnd: Boolean = true,
+    val packageName: String,
+    val cpuGovernor: String,
+    val enableDnd: Boolean,
     val targetFps: Int? = null,
+    val refreshRate: Int? = null,
+    val mode: String? = null,
+)
+
+data class GameList(
+    val games: List<GameProfile> = emptyList()
 )
