@@ -2,53 +2,54 @@ package dev.auriya.shared.status
 
 import dev.auriya.shared.model.Cmd
 import dev.auriya.shared.model.DndFilter
+import java.io.File
+
+private const val TAG = "CmdFormat"
 
 /**
- * Line-based key/value wire format for the `auriya_cmd` file.
+ * Encodes a [Cmd] to the wire format (one line per field)
+ * and decodes it back.
  *
- * Layout (subset, order-independent, unknown keys ignored):
+ * Wire format (mirrors `src/core/cmd_writer/mod.rs`):
  *
- *   seq 42
- *   dnd 1              # 0=off, 1=priority, 2=total, 3=alarms
- *   refresh_rate 90    # Hz; 0 means "restore the previous rate"
- *   lock_rotation 1    # 1=lock orientation, 0=release lock
- *
- * `seq` is mandatory — the companion uses it for deduplication.
+ *     seq 42
+ *     dnd 1              # 0=off, 1=priority
+ *     refresh_rate 90    # Hz; 0 means "restore previous"
  */
 object CmdFormat {
-    fun encode(cmd: Cmd): String = buildString {
-        append("seq ").append(cmd.seq).append('\n')
-        cmd.dnd?.let { append("dnd ").append(it.wire).append('\n') }
-        cmd.refreshRate?.let { append("refresh_rate ").append(it).append('\n') }
-        cmd.lockRotation?.let { append("lock_rotation ").append(if (it) 1 else 0).append('\n') }
+
+    fun encode(cmd: Cmd, sb: StringBuilder = StringBuilder()): String {
+        sb.append("seq ").append(cmd.seq).append('\n')
+        cmd.dnd?.let { sb.append("dnd ").append(it.wire).append('\n') }
+        cmd.refreshRate?.let { sb.append("refresh_rate ").append(it).append('\n') }
+        return sb.toString()
     }
 
-    fun decode(text: String): Cmd? {
-        var seq: Long? = null
+    fun decode(file: File): Cmd? {
+        if (!file.exists()) return null
+        val lines = try {
+            file.readLines()
+        } catch (e: Exception) {
+            android.util.Log.w(TAG, "failed to read cmd file", e)
+            return null
+        }
+        var s = 0L
         var dnd: DndFilter? = null
         var refreshRate: Int? = null
-        var lockRotation: Boolean? = null
 
-        text.lineSequence().forEach { rawLine ->
-            val line = rawLine.trim()
-            if (line.isEmpty() || line.startsWith("#")) return@forEach
-            val sep = line.indexOf(' ')
-            if (sep <= 0) return@forEach
-            val key = line.substring(0, sep)
-            val value = line.substring(sep + 1).trim()
-
+        for (line in lines) {
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) continue
+            val parts = trimmed.split(' ', limit = 2)
+            if (parts.size < 2) continue
+            val key = parts[0]
+            val value = parts[1]
             when (key) {
-                "seq" -> seq = value.toLongOrNull()
+                "seq" -> s = value.toLongOrNull() ?: continue
                 "dnd" -> dnd = value.toIntOrNull()?.let(DndFilter::fromWire)
                 "refresh_rate" -> refreshRate = value.toIntOrNull()
-                "lock_rotation" -> lockRotation = value.toIntOrNull()?.let { it != 0 }
-                else -> Unit // forward-compatible
             }
         }
-
-        // A command without seq is malformed and must be discarded
-        // rather than silently treated as seq=0.
-        val s = seq ?: return null
-        return Cmd(seq = s, dnd = dnd, refreshRate = refreshRate, lockRotation = lockRotation)
+        return Cmd(seq = s, dnd = dnd, refreshRate = refreshRate)
     }
 }

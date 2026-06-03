@@ -63,8 +63,7 @@ fun GameProfileScreen(
     var refreshRate by remember { mutableStateOf(game.refreshRate?.toFloat() ?: 0f) }
     var enableDnd by remember { mutableStateOf(game.enableDnd) }
     var killBackground by remember { mutableStateOf(false) }
-    var autoRotate by remember { mutableStateOf(game.lockRotation) }
-    var blockNotifications by remember { mutableStateOf(game.blockNotifications) }
+
 
     var govDropdownExpanded by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
@@ -104,8 +103,6 @@ fun GameProfileScreen(
                                     refreshRate = 0f
                                     enableDnd = true
                                     killBackground = false
-                                    autoRotate = false
-                                    blockNotifications = false
                                 },
                             )
                             if (isExistingProfile && onRemove != null) {
@@ -194,22 +191,10 @@ fun GameProfileScreen(
                         onCheck = { enableDnd = it },
                     )
                     1 -> SwitchRow(
-                        title = "Auto-rotate lock",
-                        subtitle = "Force landscape during game",
-                        checked = autoRotate,
-                        onCheck = { autoRotate = it },
-                    )
-                    2 -> SwitchRow(
                         title = "Kill background apps",
                         subtitle = "Free RAM before launch",
                         checked = killBackground,
                         onCheck = { killBackground = it },
-                    )
-                    3 -> SwitchRow(
-                        title = "Block notifications",
-                        subtitle = "Silence all incoming",
-                        checked = blockNotifications,
-                        onCheck = { blockNotifications = it },
                     )
                 }
             }
@@ -229,8 +214,7 @@ fun GameProfileScreen(
                                 enableDnd = enableDnd,
                                 targetFps = targetFps.toInt(),
                                 refreshRate = if (refreshRate.toInt() == 0) null else refreshRate.toInt(),
-                                lockRotation = autoRotate,
-                                blockNotifications = blockNotifications,
+
                             )
                         )
                     },

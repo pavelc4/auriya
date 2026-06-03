@@ -102,11 +102,6 @@ pub struct Daemon {
     /// companion to apply. `None` means we have not pushed a custom rate
     /// since the daemon started or since the last release.
     pub(crate) applied_refresh_rate: Option<u32>,
-    /// `true` → we pushed `DndFilter::None` for the current game and
-    /// need to restore on exit.  Tracked separately from the profile's
-    /// own DnD setting so that `enable_dnd = false` (no DnD at all)
-    /// doesn't leak the None filter.
-    pub(crate) applied_block_notifications: bool,
     pub(crate) cached_whitelist: HashSet<String>,
     pub(crate) status_cache: SystemStatusCache,
     pub(crate) vendor_lock: crate::core::tweaks::vendor_lock::VendorLock,
@@ -173,7 +168,6 @@ impl Daemon {
             default_mode,
             supported_modes,
             applied_refresh_rate: None,
-            applied_block_notifications: false,
             cached_whitelist,
             tick_count: 0,
             status_cache,

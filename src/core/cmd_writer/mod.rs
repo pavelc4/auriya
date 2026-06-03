@@ -9,7 +9,7 @@
 // Wire format (mirrors `android/shared/.../CmdFormat.kt`):
 //
 //     seq 42
-//     dnd 1              # 0=off, 1=priority, 2=total, 3=alarms
+//     dnd 1              # 0=off, 1=priority
 //     refresh_rate 90    # Hz; 0 means "restore previous"
 //
 // Each write replaces the file atomically (tmp → rename) so the
@@ -33,22 +33,10 @@ pub fn shared() -> &'static CmdWriter {
 }
 
 /// Maps to NotificationManager.INTERRUPTION_FILTER_*.
-///
-/// The full enum is part of the wire contract with the companion
-/// service even when the daemon does not currently emit every
-/// variant — keeping the dead variants in place avoids breaking the
-/// numeric mapping if a future profile picks them up.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum DndFilter {
-    /// All notifications pass through.
     All = 0,
-    /// Priority-only (the most common gaming setting).
     Priority = 1,
-    /// Total silence.
-    None = 2,
-    /// Alarms only.
-    Alarms = 3,
 }
 
 /// Single command snapshot delivered to the companion.
@@ -98,9 +86,9 @@ impl CmdWriter {
         })
     }
 
-    /// Convenience: write a single-field refresh-rate command. `0`
-    /// signals the companion to restore whatever it captured before the
-    /// daemon first set a custom rate.
+    /// Write a single-field refresh-rate command. `0` signals the
+    /// companion to restore whatever it captured before the daemon
+    /// first set a custom rate.
     pub fn write_refresh_rate(&self, hz: u32) -> anyhow::Result<u64> {
         self.write(&Cmd {
             refresh_rate: Some(hz),
@@ -184,13 +172,11 @@ mod tests {
         let writer = CmdWriter::new(&target);
         let s1 = writer.write_dnd(DndFilter::All).unwrap();
         let s2 = writer.write_dnd(DndFilter::Priority).unwrap();
-        let s3 = writer.write_dnd(DndFilter::None).unwrap();
         assert_eq!(s1, 1);
         assert_eq!(s2, 2);
-        assert_eq!(s3, 3);
         let text = fs::read_to_string(&target).unwrap();
-        assert!(text.contains("seq 3"));
-        assert!(text.contains("dnd 2"));
+        assert!(text.contains("seq 2"));
+        assert!(text.contains("dnd 1"));
         fs::remove_file(&target).ok();
     }
 
@@ -200,14 +186,13 @@ mod tests {
         let writer = CmdWriter::new(&target);
         writer
             .write(&Cmd {
-                dnd: Some(DndFilter::Alarms),
+                dnd: Some(DndFilter::All),
                 refresh_rate: Some(120),
-                ..Cmd::default()
             })
             .unwrap();
         let text = fs::read_to_string(&target).unwrap();
         assert!(text.contains("seq 1"));
-        assert!(text.contains("dnd 3"));
+        assert!(text.contains("dnd 0"));
         assert!(text.contains("refresh_rate 120"));
         fs::remove_file(&target).ok();
     }

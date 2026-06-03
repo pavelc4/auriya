@@ -23,14 +23,10 @@ data class Cmd(
  *
  *   ALL      → no DnD, all notifications pass
  *   PRIORITY → priority-only (the most common gaming setting)
- *   NONE     → total silence
- *   ALARMS   → alarms only
  */
 enum class DndFilter(val wire: Int) {
     ALL(0),
-    PRIORITY(1),
-    NONE(2),
-    ALARMS(3);
+    PRIORITY(1);
 
     companion object {
         fun fromWire(value: Int): DndFilter? = entries.firstOrNull { it.wire == value }

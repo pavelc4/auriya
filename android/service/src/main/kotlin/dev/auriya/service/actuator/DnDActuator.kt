@@ -17,8 +17,6 @@ class DnDActuator {
             when (filter) {
                 DndFilter.ALL -> 1
                 DndFilter.PRIORITY -> 2
-                DndFilter.NONE -> 3
-                DndFilter.ALARMS -> 4
             }
         try {
             SystemServices.callVoid(nm, "setInterruptionFilter", CALLING_PKG, target, false)

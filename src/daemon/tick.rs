@@ -119,7 +119,6 @@ impl Daemon {
                     .map(|c| c.cpu_governor.clone())
                     .unwrap_or_else(|| self.balance_governor.clone());
                 let enable_dnd = game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
-                let block_notif = game_cfg.map(|c| c.block_notifications).unwrap_or(false);
 
                 if let Some(cfg) = game_cfg
                     && let Some(ref fps_cfg) = cfg.target_fps
@@ -139,14 +138,7 @@ impl Daemon {
                 }
 
                 match self
-                    .run_fas_tick(
-                        &fas,
-                        &pkg,
-                        &governor,
-                        self.last.pid,
-                        enable_dnd,
-                        block_notif,
-                    )
+                    .run_fas_tick(&fas, &pkg, &governor, self.last.pid, enable_dnd)
                     .await
                 {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
@@ -236,45 +228,16 @@ impl Daemon {
                 }
 
                 let rr = game_cfg.and_then(|c| c.refresh_rate);
-                let want_lock = game_cfg.map(|c| c.lock_rotation).unwrap_or(false);
-                let block_notif = game_cfg.map(|c| c.block_notifications).unwrap_or(false);
                 let rr_changed = rr.is_some() && self.applied_refresh_rate != rr;
-                let lock_changed = self.applied_lock_rotation != Some(want_lock);
-                let notif_changed = block_notif != self.applied_block_notifications;
 
-                let dnd_override: Option<crate::core::cmd_writer::DndFilter> = if block_notif {
-                    Some(crate::core::cmd_writer::DndFilter::None)
-                } else if notif_changed {
-                    // Was previously blocking, now unblocked — write All to restore
-                    Some(crate::core::cmd_writer::DndFilter::All)
-                } else {
-                    None
-                };
-
-                if rr_changed || lock_changed || notif_changed {
-                    let want_rr = rr.unwrap_or(0);
-                    let cmd_rr = if rr_changed { Some(want_rr) } else { None };
-                    let cmd_lock = if lock_changed { Some(want_lock) } else { None };
-
-                    if let Err(e) = crate::core::cmd_writer::shared().write_fields(
-                        dnd_override,
-                        cmd_rr,
-                        cmd_lock,
-                    ) {
-                        error!(target: "auriya::display", ?e, "Failed to batch-write game settings for {}", pkg);
+                if rr_changed {
+                    if let Err(e) =
+                        crate::core::cmd_writer::shared().write_fields(None, Some(rr.unwrap_or(0)))
+                    {
+                        error!(target: "auriya::display", ?e, "Failed to write refresh rate for {}", pkg);
                     } else {
-                        if rr_changed {
-                            debug!(target: "auriya::display", "Requested refresh rate {}Hz for {}", want_rr, pkg);
-                            self.applied_refresh_rate = rr;
-                        }
-                        if lock_changed {
-                            debug!(target: "auriya::display", "Requested lock_rotation={} for {}", want_lock, pkg);
-                            self.applied_lock_rotation = Some(want_lock);
-                        }
-                        if notif_changed {
-                            debug!(target: "auriya::display", "{} block_notifications for {}", if block_notif { "Enabled" } else { "Disabled" }, pkg);
-                            self.applied_block_notifications = block_notif;
-                        }
+                        debug!(target: "auriya::display", "Requested refresh rate {}Hz for {}", rr.unwrap_or(0), pkg);
+                        self.applied_refresh_rate = rr;
                     }
                 }
 
@@ -292,35 +255,12 @@ impl Daemon {
         if self.last.pkg.as_deref() != Some(pkg) {
             self.vendor_lock.unlock_all();
 
-            let needs_release = self.applied_refresh_rate.is_some()
-                || self.applied_lock_rotation == Some(true)
-                || self.applied_block_notifications;
-
-            if needs_release {
-                let rr = if self.applied_refresh_rate.is_some() {
-                    Some(0u32)
-                } else {
-                    None
-                };
-                let lock = if self.applied_lock_rotation == Some(true) {
-                    Some(false)
-                } else {
-                    None
-                };
-                let dnd = if self.applied_block_notifications {
-                    Some(crate::core::cmd_writer::DndFilter::All)
-                } else {
-                    None
-                };
-
-                let last_pkg = self.last.pkg.as_deref().unwrap_or(pkg);
-                debug!(target: "auriya::display", "Releasing game overrides for {} ({})", last_pkg, reason);
-                if let Err(e) = crate::core::cmd_writer::shared().write_fields(dnd, rr, lock) {
+            if self.applied_refresh_rate.is_some() {
+                debug!(target: "auriya::display", "Releasing game overrides for {} ({})", pkg, reason);
+                if let Err(e) = crate::core::cmd_writer::shared().write_fields(None, Some(0)) {
                     error!(target: "auriya::display", ?e, "Failed to release game overrides ({})", reason);
                 } else {
                     self.applied_refresh_rate = None;
-                    self.applied_lock_rotation = None;
-                    self.applied_block_notifications = false;
                 }
             }
         }
@@ -374,53 +314,17 @@ impl Daemon {
                 debug!(target: "auriya::daemon", "No foreground app detected");
                 bump_log(&mut self.last);
             }
-            let needs_release = self.applied_refresh_rate.is_some()
-                || self.applied_lock_rotation == Some(true)
-                || self.applied_block_notifications;
 
-            if needs_release {
-                let rr = if self.applied_refresh_rate.is_some() {
-                    Some(0u32)
-                } else {
-                    None
-                };
-                let lock = if self.applied_lock_rotation == Some(true) {
-                    Some(false)
-                } else {
-                    None
-                };
-                let dnd = if self.applied_block_notifications {
-                    Some(crate::core::cmd_writer::DndFilter::All)
-                } else {
-                    None
-                };
-
+            if self.applied_refresh_rate.is_some() {
                 let last_pkg = self.last.pkg.as_deref().unwrap_or("?");
                 debug!(target: "auriya::display", "Releasing game overrides for {} (no foreground)", last_pkg);
-                if let Err(e) = crate::core::cmd_writer::shared().write_fields(dnd, rr, lock) {
+                if let Err(e) = crate::core::cmd_writer::shared().write_fields(None, Some(0)) {
                     error!(target: "auriya::display", ?e, "Failed to release game overrides (no foreground)");
                 } else {
                     self.applied_refresh_rate = None;
-                    self.applied_lock_rotation = None;
-                    self.applied_block_notifications = false;
                 }
             }
             self.set_pid(None);
-        }
-    }
-
-    /// Push `DndFilter::None` when the active game has `block_notifications`
-    /// enabled, overriding whatever the profile just set (e.g. Priority-only).
-    /// Also tracks applied state so exit paths can undo it.
-    fn apply_block_notifications_if_needed(&mut self, block_notif: bool) {
-        if block_notif && !self.applied_block_notifications {
-            let _ = crate::core::cmd_writer::shared()
-                .write_dnd(crate::core::cmd_writer::DndFilter::None);
-            self.applied_block_notifications = true;
-        } else if !block_notif && self.applied_block_notifications {
-            let _ = crate::core::cmd_writer::shared()
-                .write_dnd(crate::core::cmd_writer::DndFilter::All);
-            self.applied_block_notifications = false;
         }
     }
 
@@ -431,7 +335,6 @@ impl Daemon {
         game_governor: &str,
         pid: Option<i32>,
         enable_dnd: bool,
-        block_notif: bool,
     ) -> Result<bool> {
         use crate::core::{profile, scaling::ScalingAction};
 
@@ -465,7 +368,6 @@ impl Daemon {
                     debug!(target: "auriya::fas", "FAS decision: BOOST_BAL → full PERFORMANCE");
                     profile::apply_performance_with_config(game_governor, enable_dnd, None)?;
                     self.last.profile_mode = Some(ProfileMode::Performance);
-                    self.apply_block_notifications_if_needed(block_notif);
                 } else {
                     debug!(target: "auriya::fas", "FAS decision: BOOST_BAL → already PERFORMANCE, skip");
                 }
@@ -492,7 +394,6 @@ impl Daemon {
                     } else {
                         debug!(target: "auriya::fas", "FAS decision: REDUCE → applying {:?}", self.default_mode);
                         self.last.profile_mode = Some(self.default_mode);
-                        self.apply_block_notifications_if_needed(block_notif);
                     }
                 } else {
                     debug!(target: "auriya::fas", "FAS decision: REDUCE → already {:?}, skip", self.default_mode);
