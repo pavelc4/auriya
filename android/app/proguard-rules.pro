@@ -11,6 +11,12 @@
 -keep class androidx.compose.runtime.** { *; }
 -dontwarn org.jetbrains.annotations.**
 
+# Keep manifest-referenced classes from being repackaged by -repackageclasses.
+# Without these, AuriyaApplication / MainActivity move to root package but the
+# manifest's android:name=".AuriyaApplication" still looks in dev.auriya.app.
+-keep class dev.auriya.app.AuriyaApplication
+-keep class dev.auriya.app.MainActivity
+
 # Keep Auriya's own data classes so reflection-based serialization
 # (if and when it lands) still works.
 -keep class dev.auriya.app.** { *; }
