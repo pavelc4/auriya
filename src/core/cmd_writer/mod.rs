@@ -11,7 +11,6 @@
 //     seq 42
 //     dnd 1              # 0=off, 1=priority, 2=total, 3=alarms
 //     refresh_rate 90    # Hz; 0 means "restore previous"
-//     lock_rotation 1    # 1=lock orientation, 0=release lock
 //
 // Each write replaces the file atomically (tmp → rename) so the
 // companion never reads a half-written payload. `seq` is a process-
@@ -57,10 +56,6 @@ pub enum DndFilter {
 pub struct Cmd {
     pub dnd: Option<DndFilter>,
     pub refresh_rate: Option<u32>,
-    /// `Some(true)` → ask companion to lock the current rotation.
-    /// `Some(false)` → release the lock (companion restores user's value).
-    /// `None` → daemon has nothing to say about rotation this write.
-    pub lock_rotation: Option<bool>,
 }
 
 /// Writer for `auriya_cmd`. Cheap to construct (just a path + atomic
@@ -84,23 +79,18 @@ impl CmdWriter {
     }
 
     /// Write an arbitrary set of fields in a single atomic write.
-    /// Use this in tick.rs to batch refresh_rate + lock_rotation +
-    /// dnd changes so the companion never sees stale partial state.
+    /// Use this in tick.rs to batch refresh_rate + dnd changes so the
+    /// companion never sees stale partial state.
     pub fn write_fields(
         &self,
         dnd: Option<DndFilter>,
         refresh_rate: Option<u32>,
-        lock_rotation: Option<bool>,
     ) -> anyhow::Result<u64> {
-        self.write(&Cmd {
-            dnd,
-            refresh_rate,
-            lock_rotation,
-        })
+        self.write(&Cmd { dnd, refresh_rate })
     }
 
-    /// Convenience: write a single-field DnD command. Returns the
-    /// seq assigned to the write so callers can correlate logs.
+    /// Write a single-field DnD command. Returns the seq assigned to
+    /// the write so callers can correlate logs.
     pub fn write_dnd(&self, filter: DndFilter) -> anyhow::Result<u64> {
         self.write(&Cmd {
             dnd: Some(filter),
@@ -130,9 +120,6 @@ impl CmdWriter {
         }
         if let Some(rr) = cmd.refresh_rate {
             let _ = writeln!(payload, "refresh_rate {rr}");
-        }
-        if let Some(lock) = cmd.lock_rotation {
-            let _ = writeln!(payload, "lock_rotation {}", if lock { 1 } else { 0 });
         }
 
         let parent = self.target.parent().ok_or_else(|| {
@@ -238,20 +225,6 @@ mod tests {
         let text = fs::read_to_string(&target).unwrap();
         assert!(text.contains("refresh_rate 0"));
         assert!(!text.contains("dnd"));
-        fs::remove_file(&target).ok();
-    }
-
-    #[test]
-    fn encodes_lock_rotation() {
-        let target = temp_target();
-        let writer = CmdWriter::new(&target);
-        writer.write_fields(None, None, Some(true)).unwrap();
-        let on = fs::read_to_string(&target).unwrap();
-        assert!(on.contains("lock_rotation 1"));
-
-        writer.write_fields(None, None, Some(false)).unwrap();
-        let off = fs::read_to_string(&target).unwrap();
-        assert!(off.contains("lock_rotation 0"));
         fs::remove_file(&target).ok();
     }
 }

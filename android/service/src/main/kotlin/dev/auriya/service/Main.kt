@@ -4,7 +4,7 @@ import android.os.Looper
 import android.util.Log
 import dev.auriya.service.actuator.DisplayActuator
 import dev.auriya.service.actuator.DnDActuator
-import dev.auriya.service.actuator.RotationActuator
+
 import dev.auriya.service.actuator.SettingsHelper
 import dev.auriya.service.io.CmdReader
 import dev.auriya.service.io.StatusWriter
@@ -47,11 +47,9 @@ object Main {
         val zen = ZenSensor(sink)
         val dnd = DnDActuator()
         val display = DisplayActuator(settings)
-        val rotation = RotationActuator(settings)
         val cmdReader = CmdReader(File(ConfigPaths.CMD_FILE)) { cmd ->
             cmd.dnd?.let { dnd.apply(it) }
             cmd.refreshRate?.let { display.apply(it) }
-            cmd.lockRotation?.let { rotation.apply(it) }
         }
 
         Runtime.getRuntime().addShutdownHook(Thread {

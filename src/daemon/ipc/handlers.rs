@@ -155,7 +155,6 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         target_fps: None,
                         refresh_rate: None,
                         mode: Some("performance".to_string()),
-                        lock_rotation: false,
                         block_notifications: false,
                     };
                     match gl.add(profile) {
@@ -227,7 +226,6 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 refresh_rate,
                 mode,
                 fps_array,
-                lock_rotation,
             )) => {
                 use crate::core::config::gamelist::GameProfileUpdate;
                 if let Ok(mut gl) = h.shared_config.write() {
@@ -238,7 +236,6 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         refresh_rate,
                         mode,
                         fps_array,
-                        lock_rotation,
                         block_notifications: None,
                     };
                     match gl.update(&pkg, upd) {

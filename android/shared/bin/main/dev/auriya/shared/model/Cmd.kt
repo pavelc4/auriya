@@ -15,15 +15,6 @@ data class Cmd(
     val seq: Long,
     val dnd: DndFilter? = null,
     val refreshRate: Int? = null,
-    /**
-     * Rotation policy override.
-     *   `true`  → lock the device's current orientation
-     *             (ACCELEROMETER_ROTATION = 0).
-     *   `false` → release the override; the actuator restores the user's
-     *             pre-override value if it captured one.
-     *   `null`  → daemon didn't mention rotation this snapshot.
-     */
-    val lockRotation: Boolean? = null,
 )
 
 /**
