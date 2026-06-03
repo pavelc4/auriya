@@ -4,7 +4,21 @@ use crate::core::tweaks::{
     vendor::{detect as soc, mtk, snapdragon},
 };
 use anyhow::Result;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tracing::debug;
+
+/// Set by the daemon each tick to indicate whether the companion service
+/// is believed to be alive. When `false`, `request_dnd` falls back to
+/// `settings put global zen_mode` directly instead of going through the
+/// companion's cmd_writer path.
+static COMPANION_ALIVE: AtomicBool = AtomicBool::new(true);
+
+/// Update the global companion-alive flag. Called by the daemon tick
+/// after its health check.
+pub fn set_companion_alive(alive: bool) {
+    COMPANION_ALIVE.store(alive, Ordering::Release);
+}
+
 #[inline]
 fn warn_on_err<E: std::fmt::Display>(result: Result<(), E>, context: &str) {
     if let Err(e) = result {
@@ -15,18 +29,34 @@ fn warn_on_err<E: std::fmt::Display>(result: Result<(), E>, context: &str) {
 /// Request the companion service to apply the given DnD filter. The
 /// daemon cannot call NotificationManager itself — it would need to be
 /// an app rather than a root binary — so we hand the work off through
-/// the cmd file.
+/// the cmd file. When the companion is known dead we fall back to a
+/// `settings put global zen_mode` call directly (less polished — no status
+/// bar icon — but still functional).
 #[inline]
 fn request_dnd(filter: DndFilter) {
-    if let Err(e) = cmd_writer::shared().write_dnd(filter) {
-        tracing::warn!(
-            target: "auriya::profile",
-            "Failed to write DnD {:?} to cmd file: {}",
-            filter,
-            e
-        );
+    if COMPANION_ALIVE.load(Ordering::Acquire) {
+        if let Err(e) = cmd_writer::shared().write_dnd(filter) {
+            tracing::warn!(
+                target: "auriya::profile",
+                "Failed to write DnD {:?} to cmd file: {}",
+                filter,
+                e
+            );
+        } else {
+            debug!(target: "auriya::profile", "Requested DnD filter {:?}", filter);
+        }
     } else {
-        debug!(target: "auriya::profile", "Requested DnD filter {:?}", filter);
+        let val = match filter {
+            DndFilter::All => "0",
+            DndFilter::Priority => "1",
+        };
+        debug!(
+            target: "auriya::profile",
+            "DnD fallback (companion dead): zen_mode={val}"
+        );
+        let _ = std::process::Command::new("settings")
+            .args(["put", "global", "zen_mode", val])
+            .status();
     }
 }
 

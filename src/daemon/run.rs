@@ -1,17 +1,16 @@
 use crate::core::profile::ProfileMode;
+use crate::core::system_status::watcher::COMPANION_STALE_TIMEOUT;
 use crate::core::system_status::{STATUS_FILE, SystemStatusCache};
 use crate::core::tweaks::vendor::{detect, mtk};
 use crate::daemon::state::{CurrentState, LastState};
 use anyhow::Result;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::{
-    sync::atomic::AtomicBool,
-    sync::{Arc, RwLock},
-    time::Duration,
-};
+use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, RwLock};
+use std::time::Duration;
 use tokio::{signal, time};
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 type AsyncFpsCallback = Arc<
@@ -28,6 +27,21 @@ type AsyncGetFpsCallback = Arc<
 const INGAME_INTERVAL_MS: u64 = 500;
 const NORMAL_INTERVAL_MS: u64 = 5000;
 const SCREEN_OFF_INTERVAL_MS: u64 = 10000;
+
+/// How often to re-check whether the companion process is still alive.
+/// The daemon checks `elapsed_since_last_event()` against
+/// `COMPANION_STALE_TIMEOUT` and relaunches the service if it exceeds
+/// the threshold.
+/// At 500ms tick (in-game), 24 ticks = 12s. At 5s tick (idle), 24 ticks = 120s.
+pub(crate) const COMPANION_HEALTH_CHECK_TICKS: u64 = 24;
+
+/// Minimum interval between companion restart attempts.
+const COMPANION_RESTART_COOLDOWN_SECS: u64 = 30;
+
+/// Companion process name (matches `--nice-name` in service.sh).
+const COMPANION_PROC: &str = "AuriyaSysMon";
+/// Companion APK path (matches `COMPANION_APK` in service.sh).
+const COMPANION_APK: &str = "/data/adb/modules/auriya/system/etc/auriya/service.apk";
 
 pub(crate) fn update_current_profile_file(mode: ProfileMode) {
     let val = match mode {
@@ -93,6 +107,10 @@ pub struct Daemon {
     pub(crate) last_error: Option<(String, u128)>,
     pub(crate) error_debounce_ms: u128,
     pub(crate) tick_count: u64,
+    pub(crate) companion_alive: bool,
+    /// `Instant` of the last companion restart attempt, used to
+    /// throttle retries to at most one per `COMPANION_RESTART_COOLDOWN_SECS`.
+    companion_restart_cooldown: Option<std::time::Instant>,
 
     pub(crate) fas_controller: Option<Arc<tokio::sync::Mutex<crate::daemon::fas::FasController>>>,
     pub(crate) balance_governor: String,
@@ -170,6 +188,8 @@ impl Daemon {
             applied_refresh_rate: None,
             cached_whitelist,
             tick_count: 0,
+            companion_alive: true,
+            companion_restart_cooldown: None,
             status_cache,
             vendor_lock: crate::core::tweaks::vendor_lock::VendorLock::new(),
             last_fps_config: None,
@@ -330,6 +350,121 @@ impl Daemon {
                 Err(e) => error!(target: "auriya::daemon", "IPC    | Error: {:?}", e),
             }
         });
+    }
+
+    /// Check whether the Android companion service is still alive by
+    /// inspecting how long since the last status file update. If it
+    /// has been longer than [`COMPANION_STALE_TIMEOUT`] we assume the
+    /// process was killed and try to restart it.
+    ///
+    /// Called every [`COMPANION_HEALTH_CHECK_TICKS`] ticks.
+    pub(crate) fn check_companion_health(&mut self) {
+        let elapsed = self.status_cache.elapsed_since_last_event();
+
+        let alive = elapsed < COMPANION_STALE_TIMEOUT;
+        let was_alive = self.companion_alive;
+
+        self.companion_alive = alive;
+        crate::core::profile::set_companion_alive(alive);
+
+        match (was_alive, alive) {
+            (true, false) => {
+                warn!(
+                    target: "auriya::companion",
+                    "Companion appears dead (no status update for {:.1}s). Restarting...",
+                    elapsed.as_secs_f64()
+                );
+                self.restart_companion();
+            }
+            (false, false) => {
+                // Still dead. Try again if enough time has passed.
+                let cooldown = Duration::from_secs(COMPANION_RESTART_COOLDOWN_SECS);
+                match self.companion_restart_cooldown {
+                    Some(last) if last.elapsed() < cooldown => {
+                        // Too soon, skip.
+                    }
+                    _ => {
+                        warn!(
+                            target: "auriya::companion",
+                            "Companion still dead (no update for {:.1}s), retrying restart...",
+                            elapsed.as_secs_f64()
+                        );
+                        self.restart_companion();
+                    }
+                }
+            }
+            (false, true) => {
+                info!(target: "auriya::companion", "Companion is alive again");
+            }
+            (true, true) => {
+                // All good, nothing to do.
+            }
+        }
+    }
+
+    /// Apply refresh rate via the fallback path (`settings put system`)
+    /// when the companion is not available. `0` restores default.
+    /// Returns `true` on success.
+    pub(crate) fn apply_refresh_rate_fallback(&self, hz: u32) -> bool {
+        let ok = if !self.companion_alive {
+            debug!(target: "auriya::companion", "RR fallback: setting {hz}Hz");
+            let r1 = std::process::Command::new("settings")
+                .args(["put", "system", "min_refresh_rate", &hz.to_string()])
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false);
+            let r2 = std::process::Command::new("settings")
+                .args(["put", "system", "peak_refresh_rate", &hz.to_string()])
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false);
+            r1 && r2
+        } else {
+            crate::core::cmd_writer::shared()
+                .write_refresh_rate(hz)
+                .is_ok()
+        };
+        if !ok {
+            error!(target: "auriya::companion", "Failed to apply refresh rate {hz}Hz");
+        }
+        ok
+    }
+
+    /// Spawn a new companion process by launching `app_process` with
+    /// the companion APK. This is a lighter alternative to running the
+    /// full `service.sh` (which would also kill-and-restart the daemon).
+    fn restart_companion(&mut self) {
+        self.companion_restart_cooldown = Some(std::time::Instant::now());
+
+        // First, kill any existing companion process gracefully.
+        let _ = std::process::Command::new("killall")
+            .args(["-TERM", COMPANION_PROC])
+            .status();
+        std::thread::sleep(Duration::from_millis(500));
+        let _ = std::process::Command::new("killall")
+            .args(["-KILL", COMPANION_PROC])
+            .status();
+
+        // Now launch a fresh companion process via the shell, same
+        // pattern as service.sh but without touching the daemon.
+        let companion_log = "/data/adb/auriya/companion.log";
+        let cmd = format!(
+            "nohup app_process -Djava.class.path={apk} \
+             /system/bin --nice-name={proc} \
+             dev.auriya.service.Main >> {log} 2>&1 &",
+            apk = COMPANION_APK,
+            proc = COMPANION_PROC,
+            log = companion_log,
+        );
+        let child = std::process::Command::new("sh").args(["-c", &cmd]).spawn();
+
+        match child {
+            Ok(_) => info!(target: "auriya::companion", "Companion restart spawned"),
+            Err(e) => error!(
+                target: "auriya::companion",
+                "Failed to spawn companion restart: {e}"
+            ),
+        }
     }
 }
 

@@ -1,7 +1,8 @@
 use crate::core::pid_tracker::PidTracker;
 use crate::core::profile::ProfileMode;
 use crate::daemon::run::{
-    Daemon, bump_log, now_ms, should_log_change, update_current_profile_file,
+    COMPANION_HEALTH_CHECK_TICKS, Daemon, bump_log, now_ms, should_log_change,
+    update_current_profile_file,
 };
 use anyhow::Result;
 use std::sync::Arc;
@@ -20,6 +21,11 @@ impl Daemon {
     pub async fn tick(&mut self) {
         self.tick_count = self.tick_count.wrapping_add(1);
         debug!(target: "auriya::daemon", "Tick #{}", self.tick_count);
+
+        // Periodic companion health check (spaced by COMPANION_HEALTH_CHECK_TICKS).
+        if self.tick_count.is_multiple_of(COMPANION_HEALTH_CHECK_TICKS) {
+            self.check_companion_health();
+        }
 
         let gamelist = match self.shared_gamelist.read() {
             Ok(g) => g.clone(),
@@ -53,6 +59,7 @@ impl Daemon {
             cur.screen_awake = self.last.screen_awake.unwrap_or(false);
             cur.battery_saver = self.last.battery_saver.unwrap_or(false);
             cur.profile = self.last.profile_mode.unwrap_or(self.default_mode);
+            cur.companion_alive = self.companion_alive;
 
             if let Some(mode) = self.last.profile_mode {
                 update_current_profile_file(mode);
@@ -179,9 +186,7 @@ impl Daemon {
                     && self.applied_refresh_rate.is_some()
                 {
                     debug!(target: "auriya::display", "Releasing refresh-rate override for {}", last_pkg);
-                    if let Err(e) = crate::core::cmd_writer::shared().write_refresh_rate(0) {
-                        error!(target: "auriya::display", ?e, "Failed to release refresh-rate override");
-                    } else {
+                    if self.apply_refresh_rate_fallback(0) {
                         self.applied_refresh_rate = None;
                     }
                 }
@@ -230,15 +235,9 @@ impl Daemon {
                 let rr = game_cfg.and_then(|c| c.refresh_rate);
                 let rr_changed = rr.is_some() && self.applied_refresh_rate != rr;
 
-                if rr_changed {
-                    if let Err(e) =
-                        crate::core::cmd_writer::shared().write_fields(None, Some(rr.unwrap_or(0)))
-                    {
-                        error!(target: "auriya::display", ?e, "Failed to write refresh rate for {}", pkg);
-                    } else {
-                        debug!(target: "auriya::display", "Requested refresh rate {}Hz for {}", rr.unwrap_or(0), pkg);
-                        self.applied_refresh_rate = rr;
-                    }
+                if rr_changed && self.apply_refresh_rate_fallback(rr.unwrap_or(0)) {
+                    debug!(target: "auriya::display", "Requested refresh rate {}Hz for {}", rr.unwrap_or(0), pkg);
+                    self.applied_refresh_rate = rr;
                 }
 
                 self.last.pkg = Some(pkg.to_string());
@@ -257,9 +256,7 @@ impl Daemon {
 
             if self.applied_refresh_rate.is_some() {
                 debug!(target: "auriya::display", "Releasing game overrides for {} ({})", pkg, reason);
-                if let Err(e) = crate::core::cmd_writer::shared().write_fields(None, Some(0)) {
-                    error!(target: "auriya::display", ?e, "Failed to release game overrides ({})", reason);
-                } else {
+                if self.apply_refresh_rate_fallback(0) {
                     self.applied_refresh_rate = None;
                 }
             }
@@ -318,9 +315,7 @@ impl Daemon {
             if self.applied_refresh_rate.is_some() {
                 let last_pkg = self.last.pkg.as_deref().unwrap_or("?");
                 debug!(target: "auriya::display", "Releasing game overrides for {} (no foreground)", last_pkg);
-                if let Err(e) = crate::core::cmd_writer::shared().write_fields(None, Some(0)) {
-                    error!(target: "auriya::display", ?e, "Failed to release game overrides (no foreground)");
-                } else {
+                if self.apply_refresh_rate_fallback(0) {
                     self.applied_refresh_rate = None;
                 }
             }

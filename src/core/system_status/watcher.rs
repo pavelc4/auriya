@@ -25,9 +25,22 @@ use tracing::{debug, error, warn};
 /// Cheap to clone — internally just an `Arc`. Read paths take a read
 /// lock that returns immediately in the absence of a writer, so the
 /// tick loop pays almost nothing per tick.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct SystemStatusCache {
     inner: Arc<RwLock<Option<SystemStatus>>>,
+    /// Timestamp of the last successful file parse. Updated by the
+    /// watcher thread every time it reads a new snapshot. The daemon
+    /// uses this to detect a crashed companion (if too stale).
+    last_event: Arc<RwLock<Instant>>,
+}
+
+impl Default for SystemStatusCache {
+    fn default() -> Self {
+        Self {
+            inner: Arc::default(),
+            last_event: Arc::new(RwLock::new(Instant::now())),
+        }
+    }
 }
 
 impl SystemStatusCache {
@@ -38,14 +51,14 @@ impl SystemStatusCache {
     /// True once the watcher has parsed at least one snapshot. Used by
     /// the IPC layer when callers want to check whether the daemon has
     /// usable data yet.
-    #[allow(dead_code)] // surfaced via IPC in a follow-up phase
+    #[allow(dead_code)]
     pub fn is_valid(&self) -> bool {
         self.inner.read().map(|g| g.is_some()).unwrap_or(false)
     }
 
     /// Take a clone of the most recent snapshot. Useful for diagnostics
     /// and the IPC `status` command.
-    #[allow(dead_code)] // surfaced via IPC in a follow-up phase
+    #[allow(dead_code)]
     pub fn snapshot(&self) -> Option<SystemStatus> {
         self.inner.read().ok().and_then(|g| g.clone())
     }
@@ -82,6 +95,17 @@ impl SystemStatusCache {
         }
     }
 
+    /// Time since the last successful status file parse. The daemon
+    /// uses this to detect a crashed companion: if more than
+    /// [`COMPANION_STALE_TIMEOUT`] has elapsed the companion is
+    /// presumed dead.
+    pub fn elapsed_since_last_event(&self) -> Duration {
+        self.last_event
+            .read()
+            .map(|t| t.elapsed())
+            .unwrap_or(Duration::MAX)
+    }
+
     fn store(&self, status: SystemStatus) {
         match self.inner.write() {
             Ok(mut g) => *g = Some(status),
@@ -90,8 +114,17 @@ impl SystemStatusCache {
                 "SystemStatusCache write lock poisoned: {e}"
             ),
         }
+        // Bump the event timestamp on every successful store so the
+        // daemon can detect staleness.
+        if let Ok(mut e) = self.last_event.write() {
+            *e = Instant::now();
+        }
     }
 }
+
+/// If no status file update arrives within this window the companion
+/// is considered dead or disconnected.
+pub const COMPANION_STALE_TIMEOUT: Duration = Duration::from_secs(15);
 
 /// Wait for the status file to be produced by the companion service.
 ///

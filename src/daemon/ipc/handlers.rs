@@ -217,15 +217,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     "ERR lock poisoned\n".to_string()
                 }
             }
-            Ok(Command::UpdateGame(
-                pkg,
-                gov,
-                dnd,
-                target_fps,
-                refresh_rate,
-                mode,
-                fps_array,
-            )) => {
+            Ok(Command::UpdateGame(pkg, gov, dnd, target_fps, refresh_rate, mode, fps_array)) => {
                 use crate::core::config::gamelist::GameProfileUpdate;
                 if let Ok(mut gl) = h.shared_config.write() {
                     let upd = GameProfileUpdate {

@@ -5,6 +5,10 @@ pub struct CurrentState {
     pub screen_awake: bool,
     pub battery_saver: bool,
     pub profile: crate::core::profile::ProfileMode,
+    /// Whether the Android companion service (AuriyaSysMon) is
+    /// believed to be alive. Set to `false` when the status file
+    /// has not been updated for too long.
+    pub companion_alive: bool,
 }
 
 #[derive(Debug, Default, Clone)]

@@ -23,6 +23,7 @@ import kotlin.system.exitProcess
 object Main {
     private const val TAG = "AuriyaService"
     private const val WRITE_DEBOUNCE_MS = 50L
+    private const val HEARTBEAT_INTERVAL_MS = 3000L
 
     @JvmStatic
     fun main(args: Array<String>) {
@@ -83,7 +84,7 @@ object Main {
             while (true) {
                 val current = state.get()
                 val merged = current.merge(update)
-                if (merged == current) return
+                if (merged == current) break
                 if (state.compareAndSet(current, merged)) break
             }
             synchronized(lock) {

@@ -69,6 +69,7 @@ impl CmdWriter {
     /// Write an arbitrary set of fields in a single atomic write.
     /// Use this in tick.rs to batch refresh_rate + dnd changes so the
     /// companion never sees stale partial state.
+    #[allow(dead_code)]
     pub fn write_fields(
         &self,
         dnd: Option<DndFilter>,
