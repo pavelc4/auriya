@@ -34,7 +34,7 @@ private enum class SettingsSubScreen {
     NONE,
     APP,
     APPEARANCE,
-    FLOATING_OVERLAY
+    FLOATING_OVERLAY,
 }
 
 @Composable
@@ -55,18 +55,19 @@ fun SettingsScreen(
     var globalPreset by remember(settings) { mutableStateOf(settings.daemon.defaultMode) }
     var debugMode by remember { mutableStateOf(false) }
 
-    val availableGovernors = remember {
-        try {
-            val file = File("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors")
-            if (file.exists()) {
-                file.readText().split(Regex("\\s+")).filter { it.isNotEmpty() }
-            } else {
+    val availableGovernors =
+        remember {
+            try {
+                val file = File("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors")
+                if (file.exists()) {
+                    file.readText().split(Regex("\\s+")).filter { it.isNotEmpty() }
+                } else {
+                    listOf("schedutil", "performance", "powersave")
+                }
+            } catch (e: Exception) {
                 listOf("schedutil", "performance", "powersave")
             }
-        } catch (e: Exception) {
-            listOf("schedutil", "performance", "powersave")
         }
-    }
 
     val availablePresets = listOf("powersave", "balance", "performance")
 
@@ -77,24 +78,26 @@ fun SettingsScreen(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = AuriyaTokens.padding.normal)
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = AuriyaTokens.padding.normal),
     ) {
         if (activeSubScreen != SettingsSubScreen.NONE) {
-            val title = when (activeSubScreen) {
-                SettingsSubScreen.APP -> "App Settings"
-                SettingsSubScreen.APPEARANCE -> "Appearance"
-                SettingsSubScreen.FLOATING_OVERLAY -> "Floating Overlay"
-                else -> ""
-            }
+            val title =
+                when (activeSubScreen) {
+                    SettingsSubScreen.APP -> "App Settings"
+                    SettingsSubScreen.APPEARANCE -> "Appearance"
+                    SettingsSubScreen.FLOATING_OVERLAY -> "Floating Overlay"
+                    else -> ""
+                }
             SubScreenHeader(title = title, onBack = { activeSubScreen = SettingsSubScreen.NONE })
         }
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
-            contentPadding = PaddingValues(top = AuriyaTokens.padding.smaller, bottom = 80.dp)
+            contentPadding = PaddingValues(top = AuriyaTokens.padding.smaller, bottom = 80.dp),
         ) {
             when (activeSubScreen) {
                 SettingsSubScreen.NONE -> {
@@ -104,12 +107,12 @@ fun SettingsScreen(
                                 text = "Settings",
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
+                                color = MaterialTheme.colorScheme.onBackground,
                             )
                             Text(
                                 text = "Manage profiles, performance tuning, appearance, and monitoring options",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -119,7 +122,7 @@ fun SettingsScreen(
                             icon = Icons.Filled.Build,
                             title = "App",
                             subtitle = "General application and performance settings",
-                            onClick = { activeSubScreen = SettingsSubScreen.APP }
+                            onClick = { activeSubScreen = SettingsSubScreen.APP },
                         )
                     }
 
@@ -128,7 +131,7 @@ fun SettingsScreen(
                             icon = Icons.Filled.Palette,
                             title = "Appearance",
                             subtitle = "Theme, seed colors, and navigation style",
-                            onClick = { activeSubScreen = SettingsSubScreen.APPEARANCE }
+                            onClick = { activeSubScreen = SettingsSubScreen.APPEARANCE },
                         )
                     }
 
@@ -137,18 +140,16 @@ fun SettingsScreen(
                             icon = Icons.Filled.Layers,
                             title = "Floating Overlay",
                             subtitle = "Global system monitor floating overlay settings",
-                            onClick = { activeSubScreen = SettingsSubScreen.FLOATING_OVERLAY }
+                            onClick = { activeSubScreen = SettingsSubScreen.FLOATING_OVERLAY },
                         )
                     }
-
-
 
                     item {
                         SettingsMenuItem(
                             icon = Icons.Filled.Info,
                             title = "About",
                             subtitle = "Developer information and project specs",
-                            onClick = onNavigateToAbout
+                            onClick = onNavigateToAbout,
                         )
                     }
                 }
@@ -168,13 +169,13 @@ fun SettingsScreen(
                                             defaultGov = it
                                             saveSettingsChange(viewModel, settings, defaultGov, globalPreset)
                                             Toast.makeText(context, "Governor set to $it", Toast.LENGTH_SHORT).show()
-                                        }
+                                        },
                                     )
-                                }
+                                },
                             )
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp
+                                thickness = 1.dp,
                             )
                             SettingRow(
                                 icon = Icons.Filled.Star,
@@ -188,9 +189,9 @@ fun SettingsScreen(
                                             globalPreset = it
                                             saveSettingsChange(viewModel, settings, defaultGov, globalPreset)
                                             Toast.makeText(context, "Preset set to $it", Toast.LENGTH_SHORT).show()
-                                        }
+                                        },
                                     )
-                                }
+                                },
                             )
                         }
                     }
@@ -201,7 +202,7 @@ fun SettingsScreen(
                                 icon = Icons.Filled.Translate,
                                 title = "App Language",
                                 subtitle = "English (System Default)",
-                                onClick = onNavigateToLanguage
+                                onClick = onNavigateToLanguage,
                             )
                         }
                     }
@@ -214,32 +215,37 @@ fun SettingsScreen(
                                 subtitle = "Saves logs to Download/AuriyaLogs.tar.gz",
                                 onClick = {
                                     coroutineScope.launch(Dispatchers.IO) {
-                                        val cmd = """
+                                        val cmd =
+                                            """
                                             mkdir -p /sdcard/Download/AuriyaLogs &&
                                             cp /data/adb/auriya/daemon.log /sdcard/Download/AuriyaLogs/auriya.log 2>/dev/null;
                                             dmesg > /sdcard/Download/AuriyaLogs/kernel.log 2>/dev/null;
                                             tar -czf /sdcard/Download/AuriyaLogs.tar.gz -C /sdcard/Download AuriyaLogs
-                                        """.trimIndent()
+                                            """.trimIndent()
                                         val rc = RootShell.exec(cmd)
                                         launch(Dispatchers.Main) {
-                                            Toast.makeText(
-                                                context,
-                                                if (rc == 0) "Logs exported to Downloads/AuriyaLogs.tar.gz"
-                                                else "Export failed (rc=$rc); check root grant",
-                                                Toast.LENGTH_LONG,
-                                            ).show()
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    if (rc == 0) {
+                                                        "Logs exported to Downloads/AuriyaLogs.tar.gz"
+                                                    } else {
+                                                        "Export failed (rc=$rc); check root grant"
+                                                    },
+                                                    Toast.LENGTH_LONG,
+                                                ).show()
                                         }
                                     }
                                 },
                             )
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp
+                                thickness = 1.dp,
                             )
                             DndAccessRow()
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp
+                                thickness = 1.dp,
                             )
                             SettingRow(
                                 icon = Icons.Filled.BugReport,
@@ -254,14 +260,19 @@ fun SettingsScreen(
                                                 val cmd = if (debugMode) "SETLOG DEBUG" else "SETLOG INFO"
                                                 RootShell.exec("echo \"$cmd\" | nc -U /dev/socket/auriya.sock")
                                             }
-                                            Toast.makeText(context, "Debug logs ${if (debugMode) "enabled" else "disabled"}", Toast.LENGTH_SHORT).show()
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    "Debug logs ${if (debugMode) "enabled" else "disabled"}",
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
                                         },
                                     )
                                 },
                             )
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp
+                                thickness = 1.dp,
                             )
                             SettingRow(
                                 icon = Icons.Filled.Refresh,
@@ -274,20 +285,21 @@ fun SettingsScreen(
                                             Toast.makeText(context, "Restarting Auriya daemon...", Toast.LENGTH_SHORT).show()
                                         },
                                         shape = RoundedCornerShape(AuriyaTokens.rounding.full),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                                        ),
+                                        colors =
+                                            ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                            ),
                                         contentPadding = PaddingValues(horizontal = AuriyaTokens.padding.normal, vertical = 6.dp),
-                                        modifier = Modifier.wrapContentSize()
+                                        modifier = Modifier.wrapContentSize(),
                                     ) {
                                         Text(
                                             text = "Restart",
                                             style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.Bold,
                                         )
                                     }
-                                }
+                                },
                             )
                         }
                     }
@@ -317,9 +329,9 @@ fun SettingsScreen(
                                 control = {
                                     Switch(
                                         checked = enableOverlay,
-                                        onCheckedChange = { enableOverlay = it }
+                                        onCheckedChange = { enableOverlay = it },
                                     )
-                                }
+                                },
                             )
                         }
                     }
@@ -336,13 +348,13 @@ fun SettingsScreen(
                                 control = {
                                     Switch(
                                         checked = showFps,
-                                        onCheckedChange = { showFps = it }
+                                        onCheckedChange = { showFps = it },
                                     )
-                                }
+                                },
                             )
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp
+                                thickness = 1.dp,
                             )
                             SettingRow(
                                 icon = Icons.Filled.Thermostat,
@@ -351,13 +363,13 @@ fun SettingsScreen(
                                 control = {
                                     Switch(
                                         checked = showTemp,
-                                        onCheckedChange = { showTemp = it }
+                                        onCheckedChange = { showTemp = it },
                                     )
-                                }
+                                },
                             )
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp
+                                thickness = 1.dp,
                             )
                             SettingRow(
                                 icon = Icons.Filled.AspectRatio,
@@ -367,15 +379,13 @@ fun SettingsScreen(
                                     SettingsDropdown(
                                         value = overlaySize,
                                         options = listOf("Small", "Medium", "Large"),
-                                        onValueChange = { overlaySize = it }
+                                        onValueChange = { overlaySize = it },
                                     )
-                                }
+                                },
                             )
                         }
                     }
                 }
-
-
             }
         }
     }
@@ -386,32 +396,34 @@ private fun SettingsMenuItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(AuriyaTokens.rounding.large),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AuriyaTokens.padding.normal),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(AuriyaTokens.padding.normal),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(AuriyaTokens.rounding.medium))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(AuriyaTokens.rounding.medium))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(AuriyaTokens.iconSize.medium)
+                    modifier = Modifier.size(AuriyaTokens.iconSize.medium),
                 )
             }
 
@@ -422,12 +434,12 @@ private fun SettingsMenuItem(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                 )
             }
 
@@ -436,7 +448,7 @@ private fun SettingsMenuItem(
             Icon(
                 imageVector = Icons.Filled.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -445,19 +457,20 @@ private fun SettingsMenuItem(
 @Composable
 private fun SubScreenHeader(
     title: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = AuriyaTokens.padding.small),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = AuriyaTokens.padding.small),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.onBackground
+                tint = MaterialTheme.colorScheme.onBackground,
             )
         }
         Spacer(modifier = Modifier.width(AuriyaTokens.padding.small))
@@ -465,7 +478,7 @@ private fun SubScreenHeader(
             text = title,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.onBackground,
         )
     }
 }
@@ -478,18 +491,18 @@ private fun SectionCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         Column(
             modifier = Modifier.padding(AuriyaTokens.padding.larger),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)
+            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest),
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = AuriyaTokens.padding.smaller)
+                modifier = Modifier.padding(bottom = AuriyaTokens.padding.smaller),
             )
             content()
         }
@@ -501,40 +514,57 @@ fun SettingsDropdown(
     value: String,
     options: List<String>,
     onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    accentColor: androidx.compose.ui.graphics.Color? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier = modifier) {
-        Button(
+        Surface(
             onClick = { expanded = true },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
             shape = RoundedCornerShape(AuriyaTokens.rounding.full),
-            contentPadding = PaddingValues(horizontal = AuriyaTokens.padding.normal, vertical = 6.dp),
-            modifier = Modifier.wrapContentSize()
+            color = accentColor ?: MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.wrapContentSize(),
         ) {
             Row(
+                modifier = Modifier.padding(horizontal = AuriyaTokens.padding.small, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)
+                horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest),
             ) {
                 Text(
                     text = value.uppercase(),
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color =
+                        if (accentColor !=
+                            null
+                        ) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                 )
                 Icon(
                     imageVector = Icons.Filled.ArrowDropDown,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+                    tint =
+                        if (accentColor !=
+                            null
+                        ) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            modifier =
+                Modifier
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .clip(RoundedCornerShape(AuriyaTokens.rounding.medium)),
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
@@ -543,13 +573,13 @@ fun SettingsDropdown(
                             text = option.uppercase(),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = if (option == value) FontWeight.Bold else FontWeight.Normal,
-                            color = if (option == value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            color = if (option == value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         )
                     },
                     onClick = {
                         onValueChange(option)
                         expanded = false
-                    }
+                    },
                 )
             }
         }
@@ -562,27 +592,29 @@ fun SettingRow(
     title: String,
     subtitle: String,
     onClick: (() -> Unit)? = null,
-    control: @Composable (() -> Unit)? = null
+    control: @Composable (() -> Unit)? = null,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = 10.dp, horizontal = 2.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .padding(vertical = 10.dp, horizontal = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(AuriyaTokens.rounding.medium))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(AuriyaTokens.rounding.medium))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(AuriyaTokens.iconSize.medium)
+                modifier = Modifier.size(AuriyaTokens.iconSize.medium),
             )
         }
 
@@ -593,12 +625,12 @@ fun SettingRow(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
             )
         }
 
@@ -610,7 +642,7 @@ fun SettingRow(
             Icon(
                 imageVector = Icons.Filled.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -625,8 +657,12 @@ private fun DndAccessRow() {
     SettingRow(
         icon = Icons.Filled.DoNotDisturbOn,
         title = "Do Not Disturb Access",
-        subtitle = if (isGranted) "Granted — companion can set game-mode DnD"
-                   else "Required for auto DnD during gaming",
+        subtitle =
+            if (isGranted) {
+                "Granted — companion can set game-mode DnD"
+            } else {
+                "Required for auto DnD during gaming"
+            },
         control = {
             if (isGranted) {
                 Text(
@@ -634,10 +670,11 @@ private fun DndAccessRow() {
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(AuriyaTokens.rounding.full))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(AuriyaTokens.rounding.full))
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             } else {
                 Button(
@@ -648,19 +685,20 @@ private fun DndAccessRow() {
                     },
                     shape = RoundedCornerShape(AuriyaTokens.rounding.full),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                    ),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        ),
                 ) {
                     Text(
                         text = "GRANT",
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
-        }
+        },
     )
 }
 
@@ -668,11 +706,12 @@ private fun saveSettingsChange(
     viewModel: UiViewModel,
     settings: Settings,
     defaultGov: String,
-    globalPreset: String
+    globalPreset: String,
 ) {
-    val updated = settings.copy(
-        cpu = settings.cpu.copy(defaultGovernor = defaultGov),
-        daemon = settings.daemon.copy(defaultMode = globalPreset)
-    )
+    val updated =
+        settings.copy(
+            cpu = settings.cpu.copy(defaultGovernor = defaultGov),
+            daemon = settings.daemon.copy(defaultMode = globalPreset),
+        )
     viewModel.saveSettings(updated)
 }

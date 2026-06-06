@@ -3,7 +3,6 @@ package dev.auriya.shared.config
 import dev.auriya.shared.model.*
 
 object TomlParser {
-
     fun parseSettings(content: String): Settings {
         var daemonLogLevel = "info"
         var daemonCheckIntervalMs = 2000L
@@ -65,16 +64,19 @@ object TomlParser {
                         "default_mode" -> daemonDefaultMode = parseStringValue(value)
                     }
                 }
+
                 "cpu" -> {
                     if (key == "default_governor") {
                         cpuDefaultGovernor = parseStringValue(value)
                     }
                 }
+
                 "dnd" -> {
                     if (key == "default_enable") {
                         dndDefaultEnable = value.toBooleanStrictOrNull() ?: true
                     }
                 }
+
                 "fas" -> {
                     when (key) {
                         "enabled" -> fasEnabled = value.toBooleanStrictOrNull() ?: true
@@ -84,6 +86,7 @@ object TomlParser {
                         "target_fps" -> fasTargetFps = value.toIntOrNull() ?: 60
                     }
                 }
+
                 "modes" -> {
                     when (key) {
                         "margin" -> currentModeMargin = value.toDoubleOrNull()
@@ -99,35 +102,36 @@ object TomlParser {
             cpu = CpuConfig(cpuDefaultGovernor),
             dnd = DndConfig(dndDefaultEnable),
             fas = FasConfig(fasEnabled, fasDefaultMode, fasThermalThreshold, fasPollIntervalMs, fasTargetFps),
-            modes = modes
+            modes = modes,
         )
     }
 
-    fun serializeSettings(settings: Settings): String = buildString {
-        append("[daemon]\n")
-        append("log_level = \"").append(settings.daemon.logLevel).append("\"\n")
-        append("check_interval_ms = ").append(settings.daemon.checkIntervalMs).append("\n")
-        append("default_mode = \"").append(settings.daemon.defaultMode).append("\"\n\n")
+    fun serializeSettings(settings: Settings): String =
+        buildString {
+            append("[daemon]\n")
+            append("log_level = \"").append(settings.daemon.logLevel).append("\"\n")
+            append("check_interval_ms = ").append(settings.daemon.checkIntervalMs).append("\n")
+            append("default_mode = \"").append(settings.daemon.defaultMode).append("\"\n\n")
 
-        append("[cpu]\n")
-        append("default_governor = \"").append(settings.cpu.defaultGovernor).append("\"\n\n")
+            append("[cpu]\n")
+            append("default_governor = \"").append(settings.cpu.defaultGovernor).append("\"\n\n")
 
-        append("[dnd]\n")
-        append("default_enable = ").append(settings.dnd.defaultEnable).append("\n\n")
+            append("[dnd]\n")
+            append("default_enable = ").append(settings.dnd.defaultEnable).append("\n\n")
 
-        append("[fas]\n")
-        append("enabled = ").append(settings.fas.enabled).append("\n")
-        append("default_mode = \"").append(settings.fas.defaultMode).append("\"\n")
-        append("thermal_threshold = ").append(settings.fas.thermalThreshold).append("\n")
-        append("poll_interval_ms = ").append(settings.fas.pollIntervalMs).append("\n")
-        append("target_fps = ").append(settings.fas.targetFps).append("\n\n")
+            append("[fas]\n")
+            append("enabled = ").append(settings.fas.enabled).append("\n")
+            append("default_mode = \"").append(settings.fas.defaultMode).append("\"\n")
+            append("thermal_threshold = ").append(settings.fas.thermalThreshold).append("\n")
+            append("poll_interval_ms = ").append(settings.fas.pollIntervalMs).append("\n")
+            append("target_fps = ").append(settings.fas.targetFps).append("\n\n")
 
-        settings.modes.forEach { (name, mode) ->
-            append("[modes.").append(name).append("]\n")
-            append("margin = ").append(mode.margin).append("\n")
-            append("thermal_threshold = ").append(mode.thermalThreshold).append("\n\n")
+            settings.modes.forEach { (name, mode) ->
+                append("[modes.").append(name).append("]\n")
+                append("margin = ").append(mode.margin).append("\n")
+                append("thermal_threshold = ").append(mode.thermalThreshold).append("\n\n")
+            }
         }
-    }
 
     fun parseGameList(content: String): GameList {
         val games = mutableListOf<GameProfile>()
@@ -137,6 +141,8 @@ object TomlParser {
         var currentFps: Int? = null
         var currentRate: Int? = null
         var currentMode: String? = null
+        var currentCeiling: String? = null
+
         fun commitCurrentGame() {
             if (currentPkg.isNotEmpty()) {
                 games.add(
@@ -147,7 +153,8 @@ object TomlParser {
                         targetFps = currentFps,
                         refreshRate = currentRate,
                         mode = currentMode,
-                    )
+                        ceiling = currentCeiling,
+                    ),
                 )
             }
         }
@@ -164,6 +171,7 @@ object TomlParser {
                 currentFps = null
                 currentRate = null
                 currentMode = null
+                currentCeiling = null
                 return@forEach
             }
 
@@ -179,7 +187,7 @@ object TomlParser {
                 "target_fps" -> currentFps = value.toIntOrNull()
                 "refresh_rate" -> currentRate = value.toIntOrNull()
                 "mode" -> currentMode = parseStringValue(value)
-
+                "ceiling" -> currentCeiling = parseStringValue(value)
             }
         }
         commitCurrentGame()
@@ -187,24 +195,28 @@ object TomlParser {
         return GameList(games)
     }
 
-    fun serializeGameList(gameList: GameList): String = buildString {
-        gameList.games.forEach { game ->
-            append("[[game]]\n")
-            append("package = \"").append(game.packageName).append("\"\n")
-            append("cpu_governor = \"").append(game.cpuGovernor).append("\"\n")
-            append("enable_dnd = ").append(game.enableDnd).append("\n")
-            if (game.targetFps != null) {
-                append("target_fps = ").append(game.targetFps).append("\n")
+    fun serializeGameList(gameList: GameList): String =
+        buildString {
+            gameList.games.forEach { game ->
+                append("[[game]]\n")
+                append("package = \"").append(game.packageName).append("\"\n")
+                append("cpu_governor = \"").append(game.cpuGovernor).append("\"\n")
+                append("enable_dnd = ").append(game.enableDnd).append("\n")
+                if (game.targetFps != null) {
+                    append("target_fps = ").append(game.targetFps).append("\n")
+                }
+                if (game.refreshRate != null) {
+                    append("refresh_rate = ").append(game.refreshRate).append("\n")
+                }
+                if (game.mode != null) {
+                    append("mode = \"").append(game.mode).append("\"\n")
+                }
+                if (game.ceiling != null) {
+                    append("ceiling = \"").append(game.ceiling).append("\"\n")
+                }
+                append("\n")
             }
-            if (game.refreshRate != null) {
-                append("refresh_rate = ").append(game.refreshRate).append("\n")
-            }
-            if (game.mode != null) {
-                append("mode = \"").append(game.mode).append("\"\n")
-            }
-            append("\n")
         }
-    }
 
     private fun parseStringValue(value: String): String {
         val s = value.trim()

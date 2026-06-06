@@ -7,8 +7,9 @@ data class GameProfile(
     val targetFps: Int? = null,
     val refreshRate: Int? = null,
     val mode: String? = null,
+    val ceiling: String? = null,
 )
 
 data class GameList(
-    val games: List<GameProfile> = emptyList()
+    val games: List<GameProfile> = emptyList(),
 )
