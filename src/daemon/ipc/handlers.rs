@@ -69,9 +69,61 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     Ok(l) => format!("{:?}", *l),
                     Err(_) => "Unknown".to_string(),
                 };
+
+                let mut telemetry_lines = String::new();
+                if let Ok(st) = h.current_state.read() {
+                    if let Some(fps) = st.fps {
+                        let source = match st.fps_source {
+                            Some(crate::core::fps_meter::FpsSource::Ebpf) => "ebpf",
+                            Some(crate::core::fps_meter::FpsSource::Sysfs) => "sysfs",
+                            None => "?",
+                        };
+                        telemetry_lines.push_str(&format!("FPS={:.1} SOURCE={}\n", fps, source));
+                    }
+                    if let Some(ref cpu) = st.cpu_telemetry {
+                        telemetry_lines.push_str(&format!(
+                            "CPU_CORES={} CPU_LOAD={:.0}\n",
+                            cpu.cores.len(),
+                            cpu.load_pct,
+                        ));
+                        for core in &cpu.cores {
+                            telemetry_lines.push_str(&format!(
+                                "CORE_{}={} online={} freq={} governor={} cluster={:?}\n",
+                                core.core_id,
+                                core.core_id,
+                                core.online,
+                                core.cur_freq_khz,
+                                core.governor,
+                                core.cluster,
+                            ));
+                        }
+                    }
+                    if let Some(ref gpu) = st.gpu_telemetry {
+                        telemetry_lines.push_str(&format!(
+                            "GPU_FREQ={} GPU_LOAD={} GPU_VENDOR={:?}\n",
+                            gpu.cur_freq_mhz.unwrap_or(0),
+                            gpu.load_pct.unwrap_or(0),
+                            gpu.vendor,
+                        ));
+                    }
+                    if let Some(ref thermal) = st.thermal_telemetry {
+                        telemetry_lines.push_str(&format!(
+                            "TEMP_CPU={} TEMP_GPU={}\n",
+                            thermal
+                                .cpu_temp_c
+                                .map(|v| format!("{:.1}", v))
+                                .unwrap_or_else(|| "N/A".to_string()),
+                            thermal
+                                .gpu_temp_c
+                                .map(|v| format!("{:.1}", v))
+                                .unwrap_or_else(|| "N/A".to_string()),
+                        ));
+                    }
+                }
+
                 format!(
-                    "ENABLED={} PACKAGES={} OVERRIDE={:?} LOG_LEVEL={}\n",
-                    enabled, n, ov, log_level
+                    "ENABLED={} PACKAGES={} OVERRIDE={:?} LOG_LEVEL={}\n{}",
+                    enabled, n, ov, log_level, telemetry_lines,
                 )
             }
             Ok(Command::Enable) => {
@@ -155,6 +207,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         target_fps: None,
                         refresh_rate: None,
                         mode: Some("performance".to_string()),
+                        ceiling: None,
                     };
                     match gl.add(profile) {
                         Ok(_) => {
@@ -217,7 +270,16 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     "ERR lock poisoned\n".to_string()
                 }
             }
-            Ok(Command::UpdateGame(pkg, gov, dnd, target_fps, refresh_rate, mode, fps_array)) => {
+            Ok(Command::UpdateGame(
+                pkg,
+                gov,
+                dnd,
+                target_fps,
+                refresh_rate,
+                mode,
+                fps_array,
+                ceiling,
+            )) => {
                 use crate::core::config::gamelist::GameProfileUpdate;
                 if let Ok(mut gl) = h.shared_config.write() {
                     let upd = GameProfileUpdate {
@@ -227,6 +289,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         refresh_rate,
                         mode,
                         fps_array,
+                        ceiling,
                     };
                     match gl.update(&pkg, upd) {
                         Ok(_) => {
@@ -247,8 +310,12 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 format!("OK SET_FPS {}\n", fps)
             }
             Ok(Command::GetFps) => {
-                let fps = (h.get_fps)().await;
-                format!("FPS={}\n", fps)
+                let target = (h.get_fps)().await;
+                let measured = h.current_state.read().ok().and_then(|s| s.fps);
+                match measured {
+                    Some(m) => format!("FPS={:.1} TARGET={}\n", m, target),
+                    None => format!("FPS=0 TARGET={}\n", target),
+                }
             }
             Ok(Command::GetSupportedRates) => {
                 use std::collections::BTreeSet;

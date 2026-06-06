@@ -1,6 +1,8 @@
+use crate::core::fps_meter::FpsMeter;
 use crate::core::profile::ProfileMode;
 use crate::core::system_status::watcher::COMPANION_STALE_TIMEOUT;
 use crate::core::system_status::{STATUS_FILE, SystemStatusCache};
+use crate::core::telemetry::TelemetryHub;
 use crate::core::tweaks::vendor::{detect, mtk};
 use crate::daemon::state::{CurrentState, LastState};
 use anyhow::Result;
@@ -126,6 +128,11 @@ pub struct Daemon {
     /// Cached FPS config string to avoid resetting FAS state every tick.
     pub(crate) last_fps_config: Option<String>,
     pub(crate) pid_tracker: Option<crate::core::pid_tracker::PidTracker>,
+    pub(crate) ceiling_controller: crate::core::tweaks::ceiling::CeilingController,
+    pub(crate) ceiling_config: crate::core::tweaks::ceiling::CeilingConfig,
+    pub(crate) current_ceiling: Option<crate::core::tweaks::ceiling::CeilingLevel>,
+    pub(crate) telemetry_hub: TelemetryHub,
+    pub(crate) fps_meter: FpsMeter,
 }
 
 impl Daemon {
@@ -172,6 +179,20 @@ impl Daemon {
             .map(|g| g.package.clone())
             .collect();
 
+        let ceiling_config = {
+            let c = &cfg.settings.ceiling;
+            crate::core::tweaks::ceiling::CeilingConfig {
+                default: c
+                    .default
+                    .parse::<crate::core::tweaks::ceiling::CeilingLevel>()
+                    .unwrap_or(crate::core::tweaks::ceiling::CeilingLevel::Balance),
+                low_freq_little_khz: c.low_freq_little_khz,
+                low_freq_big_khz: c.low_freq_big_khz,
+            }
+        };
+
+        let core_layout = crate::core::tweaks::ceiling::CoreLayout::detect();
+
         Ok(Self {
             cfg,
             _shared_settings: shared_settings,
@@ -194,6 +215,11 @@ impl Daemon {
             vendor_lock: crate::core::tweaks::vendor_lock::VendorLock::new(),
             last_fps_config: None,
             pid_tracker: None,
+            ceiling_controller: crate::core::tweaks::ceiling::CeilingController::new(),
+            ceiling_config,
+            current_ceiling: None,
+            telemetry_hub: TelemetryHub::new(&core_layout),
+            fps_meter: FpsMeter::new(),
         })
     }
     #[inline]

@@ -12,6 +12,8 @@ pub struct Settings {
     pub fas: FasConfig,
     #[serde(default)]
     pub dynamic_governor: DynamicGovernorConfig,
+    #[serde(default)]
+    pub ceiling: CeilingConfig,
     pub modes: HashMap<String, FasMode>,
 }
 
@@ -72,6 +74,24 @@ impl Default for DynamicGovernorConfig {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct CeilingConfig {
+    #[serde(default = "default_ceiling_level")]
+    pub default: String,
+    pub low_freq_little_khz: Option<u64>,
+    pub low_freq_big_khz: Option<u64>,
+}
+
+impl Default for CeilingConfig {
+    fn default() -> Self {
+        Self {
+            default: default_ceiling_level(),
+            low_freq_little_khz: None,
+            low_freq_big_khz: None,
+        }
+    }
+}
+
 impl Settings {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
@@ -109,4 +129,8 @@ fn default_dg_cv_threshold() -> f64 {
 
 fn default_dg_debounce() -> u32 {
     3
+}
+
+fn default_ceiling_level() -> String {
+    "balance".to_string()
 }

@@ -1,5 +1,5 @@
 use crate::core::pid_tracker::PidTracker;
-use crate::core::profile::ProfileMode;
+use crate::core::profile::{self, ProfileMode};
 use crate::daemon::run::{
     COMPANION_HEALTH_CHECK_TICKS, Daemon, bump_log, now_ms, should_log_change,
     update_current_profile_file,
@@ -53,13 +53,43 @@ impl Daemon {
             } else {
                 debug!(target: "auriya::daemon", "Tick error suppressed: {:?}", e);
             }
-        } else if let Ok(mut cur) = self.shared_current.write() {
-            cur.pkg = self.last.pkg.clone();
-            cur.pid = self.last.pid;
-            cur.screen_awake = self.last.screen_awake.unwrap_or(false);
-            cur.battery_saver = self.last.battery_saver.unwrap_or(false);
-            cur.profile = self.last.profile_mode.unwrap_or(self.default_mode);
-            cur.companion_alive = self.companion_alive;
+        } else {
+            let telemetry = self.telemetry_hub.snapshot(&self.ceiling_controller.layout);
+
+            let fas_fps = if let Some(fas) = &self.fas_controller {
+                let guard = fas.lock().await;
+                guard.get_measured_fps()
+            } else {
+                None
+            };
+
+            if let Ok(mut cur) = self.shared_current.write() {
+                cur.pkg = self.last.pkg.clone();
+                cur.pid = self.last.pid;
+                cur.screen_awake = self.last.screen_awake.unwrap_or(false);
+                cur.battery_saver = self.last.battery_saver.unwrap_or(false);
+                cur.profile = self.last.profile_mode.unwrap_or(self.default_mode);
+                cur.companion_alive = self.companion_alive;
+                cur.cpu_telemetry = telemetry.cpu;
+                cur.gpu_telemetry = telemetry.gpu;
+                cur.thermal_telemetry = telemetry.thermal;
+
+                match fas_fps {
+                    Some(f) => {
+                        cur.fps = Some(f);
+                        cur.fps_source = Some(crate::core::fps_meter::FpsSource::Ebpf);
+                    }
+                    None => {
+                        if let Some(reading) = self.fps_meter.read_sysfs() {
+                            cur.fps = Some(reading.fps);
+                            cur.fps_source = Some(reading.source);
+                        } else {
+                            cur.fps = None;
+                            cur.fps_source = None;
+                        }
+                    }
+                }
+            }
 
             if let Some(mode) = self.last.profile_mode {
                 update_current_profile_file(mode);
@@ -89,6 +119,10 @@ impl Daemon {
                     self.last.profile_mode = Some(target);
                 }
             }
+            self.apply_ceiling_for_state(
+                Some(crate::core::tweaks::ceiling::CeilingLevel::Low),
+                None,
+            );
             self.last.screen_awake = Some(power.screen_awake);
             self.last.battery_saver = Some(power.battery_saver);
             return Ok(());
@@ -232,6 +266,11 @@ impl Daemon {
                     }
                 }
 
+                let ceiling_level = game_cfg
+                    .and_then(|c| c.ceiling.as_deref())
+                    .and_then(|s| s.parse::<crate::core::tweaks::ceiling::CeilingLevel>().ok());
+                self.apply_ceiling_for_state(ceiling_level, Some(pkg));
+
                 let rr = game_cfg.and_then(|c| c.refresh_rate);
                 let rr_changed = rr.is_some() && self.applied_refresh_rate != rr;
 
@@ -277,6 +316,8 @@ impl Daemon {
             }
         }
 
+        self.apply_ceiling_for_state(None, None);
+
         if self.last.pkg.as_deref() != Some(pkg) {
             debug!(target: "auriya::daemon", "Foreground: {} ({})", pkg, reason);
         }
@@ -303,6 +344,8 @@ impl Daemon {
                 self.last.profile_mode = Some(self.default_mode);
             }
         }
+
+        self.apply_ceiling_for_state(None, None);
 
         if self.last.pkg.is_some() || self.last.pid.is_some() {
             self.vendor_lock.unlock_all();
@@ -396,5 +439,28 @@ impl Daemon {
                 Ok(true)
             }
         }
+    }
+
+    pub(crate) fn apply_ceiling_for_state(
+        &mut self,
+        game_override: Option<crate::core::tweaks::ceiling::CeilingLevel>,
+        _pkg: Option<&str>,
+    ) {
+        let level = match game_override {
+            Some(l) => l,
+            None => self.ceiling_config.default,
+        };
+
+        if self.current_ceiling == Some(level) {
+            return;
+        }
+
+        debug!(
+            target: "auriya::ceiling",
+            "Applying ceiling level: {} (was {:?})",
+            level, self.current_ceiling
+        );
+        profile::apply_ceiling(&mut self.ceiling_controller, level, &self.ceiling_config);
+        self.current_ceiling = Some(level);
     }
 }

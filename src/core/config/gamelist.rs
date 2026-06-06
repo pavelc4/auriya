@@ -97,6 +97,8 @@ pub struct GameProfile {
     pub refresh_rate: Option<u32>,
     #[serde(default)]
     pub mode: Option<String>,
+    #[serde(default)]
+    pub ceiling: Option<String>,
 }
 
 impl GameList {
@@ -169,6 +171,9 @@ impl GameList {
             if let Some(m) = upd.mode {
                 profile.mode = Some(m);
             }
+            if upd.ceiling.is_some() {
+                profile.ceiling = upd.ceiling;
+            }
             Ok(())
         } else {
             anyhow::bail!("Game {} not found", package)
@@ -184,4 +189,5 @@ pub struct GameProfileUpdate {
     pub refresh_rate: Option<u32>,
     pub mode: Option<String>,
     pub fps_array: Option<Vec<u32>>,
+    pub ceiling: Option<String>,
 }

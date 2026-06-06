@@ -213,6 +213,16 @@ pub fn apply_cpu_boost(governor: &str, pid: Option<i32>) -> Result<()> {
     Ok(())
 }
 
+pub fn apply_ceiling(
+    controller: &mut crate::core::tweaks::ceiling::CeilingController,
+    level: crate::core::tweaks::ceiling::CeilingLevel,
+    config: &crate::core::tweaks::ceiling::CeilingConfig,
+) {
+    if let Err(e) = controller.apply(level, config) {
+        tracing::warn!(target: "auriya::ceiling", "Failed to apply ceiling {:?}: {e}", level);
+    }
+}
+
 pub fn apply_powersave() -> Result<()> {
     apply_powersave_with_dnd(false)
 }

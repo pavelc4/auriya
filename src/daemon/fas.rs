@@ -124,6 +124,16 @@ impl FasController {
         self.buffer.target_fps.unwrap_or(60)
     }
 
+    pub fn get_measured_fps(&self) -> Option<f64> {
+        if self.buffer.current_fps_short > 0.0 {
+            Some(self.buffer.current_fps_short)
+        } else if self.buffer.current_fps_long > 0.0 {
+            Some(self.buffer.current_fps_long)
+        } else {
+            None
+        }
+    }
+
     #[allow(dead_code)]
     pub fn state(&self) -> FasState {
         self.state

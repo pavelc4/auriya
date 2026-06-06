@@ -9,6 +9,13 @@ pub struct CurrentState {
     /// believed to be alive. Set to `false` when the status file
     /// has not been updated for too long.
     pub companion_alive: bool,
+    /// Telemetry fields updated each tick.
+    pub cpu_telemetry: Option<crate::core::telemetry::cpu::CpuSnapshot>,
+    pub gpu_telemetry: Option<crate::core::telemetry::gpu::GpuSnapshot>,
+    pub thermal_telemetry: Option<crate::core::telemetry::thermal::ThermalSnapshot>,
+    /// Measured FPS from eBPF (FAS) or sysfs fallback.
+    pub fps: Option<f64>,
+    pub fps_source: Option<crate::core::fps_meter::FpsSource>,
 }
 
 #[derive(Debug, Default, Clone)]

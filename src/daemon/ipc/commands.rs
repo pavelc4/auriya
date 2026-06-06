@@ -42,6 +42,7 @@ pub enum Command {
         Option<u32>,
         Option<String>,
         Option<Vec<u32>>,
+        Option<String>,
     ),
     SetFps(u32),
     GetFps,
@@ -100,6 +101,7 @@ impl FromStr for Command {
                 let mut refresh_rate = None;
                 let mut mode = None;
                 let mut fps_array = None;
+                let mut ceiling = None;
                 for arg in rest {
                     if let Some(gov) = arg.strip_prefix("gov=") {
                         governor = Some(gov.to_string());
@@ -119,6 +121,8 @@ impl FromStr for Command {
                         refresh_rate = rate_val.parse::<u32>().ok();
                     } else if let Some(mode_val) = arg.strip_prefix("mode=") {
                         mode = Some(mode_val.to_string());
+                    } else if let Some(ceiling_val) = arg.strip_prefix("ceiling=") {
+                        ceiling = Some(ceiling_val.to_string());
                     }
                 }
 
@@ -130,6 +134,7 @@ impl FromStr for Command {
                     refresh_rate,
                     mode,
                     fps_array,
+                    ceiling,
                 ))
             }
 
