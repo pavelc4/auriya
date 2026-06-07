@@ -1,6 +1,7 @@
 package dev.auriya.app.ui.settings
 
 import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -320,74 +321,162 @@ fun SettingsScreen(
 
                 SettingsSubScreen.FLOATING_OVERLAY -> {
                     item {
-                        SectionCard(title = "Overlay Enable") {
-                            var enableOverlay by remember { mutableStateOf(false) }
-                            SettingRow(
-                                icon = Icons.Filled.Layers,
-                                title = "Show Floating Overlay",
-                                subtitle = "Display system monitor overlay on top of other apps",
-                                control = {
-                                    Switch(
-                                        checked = enableOverlay,
-                                        onCheckedChange = { enableOverlay = it },
-                                    )
-                                },
-                            )
-                        }
-                    }
-                    item {
-                        SectionCard(title = "Visual Configuration") {
-                            var showFps by remember { mutableStateOf(true) }
-                            var showTemp by remember { mutableStateOf(true) }
-                            var overlaySize by remember { mutableStateOf("Medium") }
-
-                            SettingRow(
-                                icon = Icons.Filled.Speed,
-                                title = "Show FPS Counter",
-                                subtitle = "Display active frame rate monitoring",
-                                control = {
-                                    Switch(
-                                        checked = showFps,
-                                        onCheckedChange = { showFps = it },
-                                    )
-                                },
-                            )
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp,
-                            )
-                            SettingRow(
-                                icon = Icons.Filled.Thermostat,
-                                title = "Show CPU Temperature",
-                                subtitle = "Monitor real-time system core thermal metrics",
-                                control = {
-                                    Switch(
-                                        checked = showTemp,
-                                        onCheckedChange = { showTemp = it },
-                                    )
-                                },
-                            )
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp,
-                            )
-                            SettingRow(
-                                icon = Icons.Filled.AspectRatio,
-                                title = "Overlay Size",
-                                subtitle = "Scale of the floating overlay text and container",
-                                control = {
-                                    SettingsDropdown(
-                                        value = overlaySize,
-                                        options = listOf("Small", "Medium", "Large"),
-                                        onValueChange = { overlaySize = it },
-                                    )
-                                },
-                            )
-                        }
+                        FloatingOverlayContent(context)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FloatingOverlayContent(context: android.content.Context) {
+    val prefs = remember { context.getSharedPreferences("auriya_overlay", Context.MODE_PRIVATE) }
+    var enableOverlay by remember { mutableStateOf(prefs.getBoolean("enabled", false)) }
+    var showFps by remember { mutableStateOf(prefs.getBoolean("show_fps", true)) }
+    var showTemp by remember { mutableStateOf(prefs.getBoolean("show_temp", true)) }
+    var overlaySize by remember { mutableStateOf(prefs.getString("size", "Medium") ?: "Medium") }
+
+    val hasOverlayPermission =
+        remember {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                android.provider.Settings.canDrawOverlays(context)
+            } else {
+                true
+            }
+        }
+
+    LaunchedEffect(enableOverlay) {
+        if (enableOverlay) {
+            if (!hasOverlayPermission) {
+                val intent =
+                    Intent(
+                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:${context.packageName}"),
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            } else {
+                prefs.edit().putBoolean("enabled", true).apply()
+                val i =
+                    Intent(context, dev.auriya.app.service.OverlayService::class.java).apply {
+                        putExtra("show_fps", showFps)
+                        putExtra("show_temp", showTemp)
+                        putExtra("size", overlaySize)
+                    }
+                context.startService(i)
+            }
+        } else {
+            prefs.edit().putBoolean("enabled", false).apply()
+            context.stopService(Intent(context, dev.auriya.app.service.OverlayService::class.java))
+        }
+    }
+
+    LaunchedEffect(hasOverlayPermission) {
+        if (hasOverlayPermission && enableOverlay) {
+            val i =
+                Intent(context, dev.auriya.app.service.OverlayService::class.java).apply {
+                    putExtra("show_fps", showFps)
+                    putExtra("show_temp", showTemp)
+                    putExtra("size", overlaySize)
+                }
+            context.startService(i)
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)) {
+        SectionCard(title = "Overlay Enable") {
+            SettingRow(
+                icon = Icons.Filled.Layers,
+                title = "Show Floating Overlay",
+                subtitle =
+                    if (hasOverlayPermission) {
+                        "Granted — overlay can display on top of apps"
+                    } else {
+                        "Tap to grant overlay permission"
+                    },
+                control = {
+                    Switch(
+                        checked = enableOverlay,
+                        onCheckedChange = { enableOverlay = it },
+                    )
+                },
+            )
+        }
+        SectionCard(title = "Visual Configuration") {
+            SettingRow(
+                icon = Icons.Filled.Speed,
+                title = "Show FPS Counter",
+                subtitle = "Display active frame rate monitoring",
+                control = {
+                    Switch(
+                        checked = showFps,
+                        onCheckedChange = {
+                            showFps = it
+                            prefs.edit().putBoolean("show_fps", it).apply()
+                            restartOverlay(context, enableOverlay, hasOverlayPermission, showFps, showTemp, overlaySize)
+                        },
+                    )
+                },
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+            SettingRow(
+                icon = Icons.Filled.Thermostat,
+                title = "Show CPU Temperature",
+                subtitle = "Monitor real-time system core thermal metrics",
+                control = {
+                    Switch(
+                        checked = showTemp,
+                        onCheckedChange = {
+                            showTemp = it
+                            prefs.edit().putBoolean("show_temp", it).apply()
+                            restartOverlay(context, enableOverlay, hasOverlayPermission, showFps, showTemp, overlaySize)
+                        },
+                    )
+                },
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+            SettingRow(
+                icon = Icons.Filled.AspectRatio,
+                title = "Overlay Size",
+                subtitle = "Scale of the floating overlay text and container",
+                control = {
+                    SettingsDropdown(
+                        value = overlaySize,
+                        options = listOf("Small", "Medium", "Large"),
+                        onValueChange = {
+                            overlaySize = it
+                            prefs.edit().putString("size", it).apply()
+                            restartOverlay(context, enableOverlay, hasOverlayPermission, showFps, showTemp, overlaySize)
+                        },
+                    )
+                },
+            )
+        }
+    }
+}
+
+private fun restartOverlay(
+    context: android.content.Context,
+    enabled: Boolean,
+    hasPermission: Boolean,
+    showFps: Boolean,
+    showTemp: Boolean,
+    size: String,
+) {
+    context.stopService(Intent(context, dev.auriya.app.service.OverlayService::class.java))
+    if (enabled && hasPermission) {
+        val i = Intent(context, dev.auriya.app.service.OverlayService::class.java).apply {
+            putExtra("show_fps", showFps)
+            putExtra("show_temp", showTemp)
+            putExtra("size", size)
+        }
+        context.startService(i)
     }
 }
 

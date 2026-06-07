@@ -20,7 +20,7 @@ use crate::core::{
     scaling::{PlatformCapabilities, ScalingAction},
     thermal::ThermalMonitor,
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::time::{Duration, Instant};
 
 const WAITING_DELAY: Duration = Duration::from_secs(3);
@@ -56,12 +56,14 @@ pub struct FasController {
 }
 
 impl FasController {
-    /// Construct a FAS controller. Returns `Err` if the eBPF frame probe
-    /// cannot be loaded — the daemon should disable FAS in that case
-    /// instead of falling back to a degraded source.
-    pub fn new(target_fps_config: TargetFps) -> Result<Self> {
-        let source = FrameSource::new()
-            .context("FAS    | eBPF frame probe load failed; FAS will be disabled")?;
+    /// Construct a FAS controller. Takes a broadcast receiver from the
+    /// shared `EbpfFrameStream` — the eBPF probe is already loaded by the
+    /// caller so FAS creation cannot fail.
+    pub fn new(
+        rx: tokio::sync::broadcast::Receiver<Duration>,
+        target_fps_config: TargetFps,
+    ) -> Self {
+        let source = FrameSource::new(rx);
         let caps = PlatformCapabilities::detect();
         tracing::debug!(
             target: "auriya::fas",
@@ -75,7 +77,7 @@ impl FasController {
                 "GPU sysfs not found — BoostGpu will fall back to all-out Performance"
             );
         }
-        Ok(Self {
+        Self {
             source,
             buffer: FrameBuffer::new(target_fps_config),
             bottleneck: BottleneckDetector::new(0.15, 3),
@@ -89,11 +91,11 @@ impl FasController {
             util_sampler: UtilSampler::new(),
             target_fps_offset: 0.0,
             kp: KP_DEFAULT,
-        })
+        }
     }
 
-    pub fn with_target_fps(fps: u32) -> Result<Self> {
-        Self::new(TargetFps::Single(fps))
+    pub fn with_target_fps(rx: tokio::sync::broadcast::Receiver<Duration>, fps: u32) -> Self {
+        Self::new(rx, TargetFps::Single(fps))
     }
 
     pub fn set_package(&mut self, package: String, pid: Option<i32>) {
@@ -124,17 +126,6 @@ impl FasController {
         self.buffer.target_fps.unwrap_or(60)
     }
 
-    pub fn get_measured_fps(&self) -> Option<f64> {
-        if self.buffer.current_fps_short > 0.0 {
-            Some(self.buffer.current_fps_short)
-        } else if self.buffer.current_fps_long > 0.0 {
-            Some(self.buffer.current_fps_long)
-        } else {
-            None
-        }
-    }
-
-    #[allow(dead_code)]
     pub fn state(&self) -> FasState {
         self.state
     }
@@ -148,7 +139,7 @@ impl FasController {
                 "Attaching to package: {} (PID: {})",
                 self.package, pid
             );
-            match self.source.attach(&self.package, pid).await {
+            match self.source.attach(&self.package, pid) {
                 Ok(()) => {
                     self.last_attached_pkg.clear();
                     self.last_attached_pkg.push_str(&self.package);
@@ -165,7 +156,7 @@ impl FasController {
             }
         }
 
-        let frames = self.source.drain_frame_times().await;
+        let frames = self.source.drain_frame_times();
         if frames.is_empty() {
             if self.buffer.time_since_last_frame() >= FRAME_TIMEOUT {
                 self.buffer.additional_frametime();

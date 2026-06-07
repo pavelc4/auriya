@@ -1,6 +1,17 @@
+// FpsMeter — dual-source FPS reader, fully independent from FAS.
+//
+// Sources (priority order):
+//   1. eBPF (broadcast::Receiver from EbpfFrameStream) — per-frame deltas
+//   2. Sysfs (fallback, via measured_fps paths)
+//
+// Each source maintains its own frame buffer and FPS calculation.
+// When eBPF frames are flowing, sysfs is never queried.
+
+use std::collections::VecDeque;
 use std::fs;
 use std::path::Path;
 use std::time::{Duration, Instant};
+use tokio::sync::broadcast;
 
 const FPS_SYSFS_PATHS: &[&str] = &[
     "/sys/class/drm/sde-crtc-0/measured_fps",
@@ -15,6 +26,9 @@ const FPS_SYSFS_PATHS: &[&str] = &[
 
 const SYSFS_POLL_INTERVAL: Duration = Duration::from_secs(2);
 
+/// Number of frames for the short-window EMA (≈ ½s at 60 fps).
+const SHORT_WINDOW: usize = 30;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FpsSource {
     Ebpf,
@@ -28,20 +42,34 @@ pub struct FpsReading {
 }
 
 pub struct FpsMeter {
+    ebpf_rx: Option<broadcast::Receiver<Duration>>,
+    frametimes: VecDeque<Duration>,
+
     sysfs_path: Option<String>,
     last_poll: Instant,
-    cached: Option<FpsReading>,
+    cached_sysfs: Option<FpsReading>,
+
+    last_ebpf_frame: Instant,
+    ebpf_timeout: Duration,
 }
 
 impl FpsMeter {
-    pub fn new() -> Self {
+    pub fn new(ebpf_rx: Option<broadcast::Receiver<Duration>>) -> Self {
         let sysfs_path = Self::detect_sysfs();
-        let path_desc = sysfs_path.as_deref().unwrap_or("none");
-        tracing::debug!(target: "auriya::fps", "FPS sysfs path: {}", path_desc);
+        tracing::debug!(
+            target: "auriya::fps",
+            "FPS     | sysfs={:?} ebpf={}",
+            sysfs_path,
+            ebpf_rx.is_some(),
+        );
         Self {
+            ebpf_rx,
+            frametimes: VecDeque::with_capacity(SHORT_WINDOW),
             sysfs_path,
             last_poll: Instant::now(),
-            cached: None,
+            cached_sysfs: None,
+            last_ebpf_frame: Instant::now(),
+            ebpf_timeout: Duration::from_secs(3),
         }
     }
 
@@ -57,10 +85,68 @@ impl FpsMeter {
         None
     }
 
-    pub fn read_sysfs(&mut self) -> Option<FpsReading> {
+    /// Read the current FPS from the best available source.
+    /// Drains eBPF frames first, falls back to sysfs if stale.
+    pub fn read(&mut self) -> Option<FpsReading> {
+        self.drain_ebpf();
+
+        if !self.frametimes.is_empty() && self.last_ebpf_frame.elapsed() < self.ebpf_timeout {
+            let avg: Duration = self.frametimes.iter().sum();
+            let n = self.frametimes.len() as f64;
+            let avg_secs = avg.as_secs_f64() / n;
+            if avg_secs > 0.0 {
+                let fps = 1.0 / avg_secs;
+                if fps > 0.0 && fps < 500.0 {
+                    return Some(FpsReading {
+                        fps,
+                        source: FpsSource::Ebpf,
+                    });
+                }
+            }
+        }
+
+        self.read_sysfs()
+    }
+
+    fn drain_ebpf(&mut self) {
+        let Some(rx) = &mut self.ebpf_rx else { return };
+
+        let mut new_frames = false;
+        loop {
+            match rx.try_recv() {
+                Ok(dt) => {
+                    if dt < Duration::from_millis(500) {
+                        self.frametimes.push_front(dt);
+                        new_frames = true;
+                    }
+                }
+                Err(broadcast::error::TryRecvError::Empty) => break,
+                Err(broadcast::error::TryRecvError::Closed) => {
+                    self.ebpf_rx = None;
+                    break;
+                }
+                Err(broadcast::error::TryRecvError::Lagged(n)) => {
+                    tracing::debug!(
+                        target: "auriya::fps",
+                        "eBPF broadcast lagged by {n} frames"
+                    );
+                    continue;
+                }
+            }
+        }
+
+        if new_frames {
+            self.last_ebpf_frame = Instant::now();
+            while self.frametimes.len() > SHORT_WINDOW {
+                self.frametimes.pop_back();
+            }
+        }
+    }
+
+    fn read_sysfs(&mut self) -> Option<FpsReading> {
         let now = Instant::now();
         if now.duration_since(self.last_poll) < SYSFS_POLL_INTERVAL {
-            return self.cached.clone();
+            return self.cached_sysfs.clone();
         }
         self.last_poll = now;
 
@@ -72,7 +158,6 @@ impl FpsMeter {
         }
 
         let fps: f64 = trimmed.parse::<f64>().ok()?;
-
         if fps <= 0.0 || fps > 500.0 {
             return None;
         }
@@ -81,13 +166,7 @@ impl FpsMeter {
             fps,
             source: FpsSource::Sysfs,
         };
-        self.cached = Some(reading.clone());
+        self.cached_sysfs = Some(reading.clone());
         Some(reading)
-    }
-}
-
-impl Default for FpsMeter {
-    fn default() -> Self {
-        Self::new()
     }
 }

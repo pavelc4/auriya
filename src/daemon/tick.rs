@@ -56,13 +56,6 @@ impl Daemon {
         } else {
             let telemetry = self.telemetry_hub.snapshot(&self.ceiling_controller.layout);
 
-            let fas_fps = if let Some(fas) = &self.fas_controller {
-                let guard = fas.lock().await;
-                guard.get_measured_fps()
-            } else {
-                None
-            };
-
             if let Ok(mut cur) = self.shared_current.write() {
                 cur.pkg = self.last.pkg.clone();
                 cur.pid = self.last.pid;
@@ -74,19 +67,14 @@ impl Daemon {
                 cur.gpu_telemetry = telemetry.gpu;
                 cur.thermal_telemetry = telemetry.thermal;
 
-                match fas_fps {
-                    Some(f) => {
-                        cur.fps = Some(f);
-                        cur.fps_source = Some(crate::core::fps_meter::FpsSource::Ebpf);
+                match self.fps_meter.read() {
+                    Some(reading) => {
+                        cur.fps = Some(reading.fps);
+                        cur.fps_source = Some(reading.source);
                     }
                     None => {
-                        if let Some(reading) = self.fps_meter.read_sysfs() {
-                            cur.fps = Some(reading.fps);
-                            cur.fps_source = Some(reading.source);
-                        } else {
-                            cur.fps = None;
-                            cur.fps_source = None;
-                        }
+                        cur.fps = None;
+                        cur.fps_source = None;
                     }
                 }
             }
@@ -189,6 +177,8 @@ impl Daemon {
             debug!(target: "auriya::daemon", "Same app with known PID; skip profile reapply");
             return Ok(());
         }
+
+        self.attach_ebpf_for_pkg(&pkg);
 
         if self.cached_whitelist.contains(&pkg) {
             self.handle_whitelisted_app(&pkg, gamelist).await
@@ -325,6 +315,21 @@ impl Daemon {
         self.last.pkg = Some(pkg.to_string());
         self.set_pid(None);
         Ok(())
+    }
+
+    fn attach_ebpf_for_pkg(&self, pkg: &str) {
+        let Some(listener) = self.ebpf.as_ref() else {
+            return;
+        };
+        let Some(pid) = self.status_cache.focused_pid().filter(|&p| {
+            crate::core::dumpsys::activity::is_pid_valid(p)
+                && crate::core::dumpsys::activity::verify_pid_package(p, pkg)
+        }) else {
+            return;
+        };
+        if let Err(e) = listener.attach(pid) {
+            warn!(target: "auriya::ebpf", "attach({pid}): {e}");
+        }
     }
 
     async fn handle_no_foreground(&mut self) {

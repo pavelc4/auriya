@@ -133,6 +133,7 @@ pub struct Daemon {
     pub(crate) current_ceiling: Option<crate::core::tweaks::ceiling::CeilingLevel>,
     pub(crate) telemetry_hub: TelemetryHub,
     pub(crate) fps_meter: FpsMeter,
+    pub(crate) ebpf: Option<crate::core::ebpf::EbpfFrameStream>,
 }
 
 impl Daemon {
@@ -155,21 +156,44 @@ impl Daemon {
             .unwrap_or(ProfileMode::Balance);
         debug!(target: "auriya::daemon", "Default mode: {:?}", default_mode);
 
-        let fas_controller = if cfg.settings.fas.enabled {
-            debug!(target: "auriya::daemon", "FAS enabled");
-            match crate::daemon::fas::FasController::with_target_fps(60) {
-                Ok(ctrl) => Some(Arc::new(tokio::sync::Mutex::new(ctrl))),
-                Err(e) => {
+        let (fas_controller, fps_meter, ebpf) = {
+            let e = match crate::core::ebpf::EbpfFrameStream::new() {
+                Ok(e) => {
+                    debug!(target: "auriya::daemon", "eBPF frame stream ready");
+                    Some(e)
+                }
+                Err(err) => {
                     tracing::warn!(
                         target: "auriya::daemon",
-                        "FAS    | requested but unavailable: {e:#}. Continuing without FAS."
+                        "eBPF frame stream unavailable: {err:#}. FPS=sysfs-only, FAS disabled."
                     );
                     None
                 }
-            }
-        } else {
-            debug!(target: "auriya::daemon", "FAS disabled");
-            None
+            };
+
+            let ebpf_rx = e.as_ref().map(|e| e.subscribe());
+            let fps = FpsMeter::new(ebpf_rx);
+
+            let fas = if cfg.settings.fas.enabled {
+                if let Some(ref listener) = e {
+                    debug!(target: "auriya::daemon", "FAS enabled with eBPF");
+                    let rx = listener.subscribe();
+                    Some(Arc::new(tokio::sync::Mutex::new(
+                        crate::daemon::fas::FasController::with_target_fps(rx, 60),
+                    )))
+                } else {
+                    tracing::warn!(
+                        target: "auriya::daemon",
+                        "FAS    | requested but eBPF unavailable. Continuing without FAS."
+                    );
+                    None
+                }
+            } else {
+                debug!(target: "auriya::daemon", "FAS disabled");
+                None
+            };
+
+            (fas, fps, e)
         };
 
         let cached_whitelist: HashSet<String> = cfg
@@ -219,7 +243,8 @@ impl Daemon {
             ceiling_config,
             current_ceiling: None,
             telemetry_hub: TelemetryHub::new(&core_layout),
-            fps_meter: FpsMeter::new(),
+            fps_meter,
+            ebpf,
         })
     }
     #[inline]
