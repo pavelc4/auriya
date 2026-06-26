@@ -10,6 +10,7 @@ pub fn apply_general_tweaks() -> Result<()> {
     optimize_vm()?;
     optimize_scheduler()?;
     disable_bloat()?;
+    disable_battery_saver();
     Ok(())
 }
 
@@ -173,4 +174,12 @@ fn disable_bloat() -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn disable_battery_saver() {
+    let path = "/sys/module/battery_saver/parameters/enabled";
+    if Path::new(path).exists() {
+        let _ = fs::write(path, "0");
+        debug!("OEM battery saver module disabled");
+    }
 }

@@ -1,6 +1,6 @@
 use crate::core::cmd_writer::{self, DndFilter};
 use crate::core::tweaks::{
-    cpu, gpu, init, memory, paths, sched, storage,
+    cpu, gpu, init, memory, paths, sched, storage, touchpanel,
     vendor::{detect as soc, mtk, snapdragon},
 };
 use anyhow::Result;
@@ -120,6 +120,10 @@ pub fn apply_performance_with_config(
     }
 
     gpu::set_performance_mode()?;
+    warn_on_err(
+        touchpanel::enable_game_mode(),
+        "enable touchpanel game mode",
+    );
 
     warn_on_err(init::apply_general_tweaks(), "apply general tweaks");
     warn_on_err(sched::apply_performance_sched(), "apply scheduler tweaks");
@@ -169,6 +173,10 @@ pub fn apply_balance_with_dnd(governor: &str, enable_dnd: bool) -> Result<()> {
         _ => {}
     }
     gpu::set_balanced_mode()?;
+    warn_on_err(
+        touchpanel::disable_game_mode(),
+        "disable touchpanel game mode",
+    );
 
     warn_on_err(sched::apply_balance_sched(), "apply balanced scheduler");
     warn_on_err(storage::unlock_storage_freq(), "unlock storage freq");
