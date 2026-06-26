@@ -4,9 +4,15 @@
 // via `tokio::sync::broadcast`. Both FAS and the FPS meter subscribe
 // independently.
 //
+// The worker only polls for frames while at least one PID is attached.
+// When nothing is attached (no game in the foreground) it blocks on the
+// command channel, so the thread costs zero CPU while idle instead of
+// draining frames from whatever happens to be on screen.
+//
 // API:
 //   - new()         — load probe, spawn worker, fail if unavailable
-//   - attach(pid)   — switch the probe to a target process
+//   - attach(pid)   — start tracking a target process
+//   - detach(pid)   — stop tracking a target process
 //   - subscribe()   — get a new broadcast receiver
 
 use anyhow::{Result, anyhow};
@@ -18,6 +24,7 @@ use tokio::sync::broadcast;
 
 enum Cmd {
     Attach(i32, std_mpsc::Sender<Result<()>>),
+    Detach(i32, std_mpsc::Sender<Result<bool>>),
 }
 
 pub struct EbpfFrameStream {
@@ -37,40 +44,33 @@ impl EbpfFrameStream {
         thread::Builder::new()
             .name("auriya-ebpf".into())
             .spawn(move || {
-                let mut poll_count: u64 = 0;
-
                 loop {
-                    while let Ok(cmd) = cmd_rx.try_recv() {
-                        match cmd {
-                            Cmd::Attach(pid, reply) => {
-                                poll_count = 0;
-                                let res =
-                                    probe.attach(pid).map_err(|e| anyhow!("attach({pid}): {e}"));
-                                let _ = reply.send(res);
-                            }
+                    // Nothing attached → block until a command arrives. This
+                    // is what keeps the thread at ~0% CPU when no game is
+                    // being tracked, instead of polling frames from whatever
+                    // app is currently on screen.
+                    if probe.attached() == 0 {
+                        match cmd_rx.recv() {
+                            Ok(cmd) => handle_cmd(&mut probe, cmd),
+                            Err(_) => return, // all senders dropped
+                        }
+                        continue;
+                    }
+
+                    // Attached → drain pending commands without blocking,
+                    // then poll for the next frame.
+                    loop {
+                        match cmd_rx.try_recv() {
+                            Ok(cmd) => handle_cmd(&mut probe, cmd),
+                            Err(std_mpsc::TryRecvError::Empty) => break,
+                            Err(std_mpsc::TryRecvError::Disconnected) => return,
                         }
                     }
 
-                    match probe.recv_with_deadline(Duration::from_millis(50)) {
-                        Some((_pid, frametime)) => {
-                            poll_count = 0;
-                            tracing::debug!(
-                                target: "auriya::ebpf",
-                                "frame {:.3}ms",
-                                frametime.as_secs_f64() * 1000.0
-                            );
-                            let _ = frame_tx.send(frametime);
-                        }
-                        None => {
-                            poll_count += 1;
-                            if poll_count.is_multiple_of(2000) {
-                                tracing::debug!(
-                                    target: "auriya::ebpf",
-                                    "worker alive, {} polls since last frame",
-                                    poll_count
-                                );
-                            }
-                        }
+                    if let Some((_pid, frametime)) =
+                        probe.recv_with_deadline(Duration::from_millis(50))
+                    {
+                        let _ = frame_tx.send(frametime);
                     }
                 }
             })
@@ -100,6 +100,37 @@ impl EbpfFrameStream {
             Err(std_mpsc::RecvTimeoutError::Disconnected) => {
                 Err(anyhow!("eBPF worker dropped reply channel"))
             }
+        }
+    }
+
+    /// Detach the BPF program from a target process so the worker stops
+    /// draining its frames. Blocking with a 1s timeout.
+    pub fn detach(&self, pid: i32) -> Result<bool> {
+        let (reply_tx, reply_rx) = std_mpsc::channel();
+        self.cmd_tx
+            .send(Cmd::Detach(pid, reply_tx))
+            .map_err(|_| anyhow!("eBPF worker died"))?;
+        match reply_rx.recv_timeout(Duration::from_secs(1)) {
+            Ok(res) => res,
+            Err(std_mpsc::RecvTimeoutError::Timeout) => {
+                Err(anyhow!("detach({pid}) timed out after 1s"))
+            }
+            Err(std_mpsc::RecvTimeoutError::Disconnected) => {
+                Err(anyhow!("eBPF worker dropped reply channel"))
+            }
+        }
+    }
+}
+
+fn handle_cmd(probe: &mut FrameProbe, cmd: Cmd) {
+    match cmd {
+        Cmd::Attach(pid, reply) => {
+            let res = probe.attach(pid).map_err(|e| anyhow!("attach({pid}): {e}"));
+            let _ = reply.send(res);
+        }
+        Cmd::Detach(pid, reply) => {
+            let res = probe.detach(pid).map_err(|e| anyhow!("detach({pid}): {e}"));
+            let _ = reply.send(res);
         }
     }
 }

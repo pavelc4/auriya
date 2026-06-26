@@ -114,6 +114,8 @@ impl Daemon {
                 Some(crate::core::tweaks::ceiling::CeilingLevel::Low),
                 None,
             );
+            // Screen off / battery saver: stop draining frames entirely.
+            self.ebpf_detach();
             self.last.screen_awake = Some(power.screen_awake);
             self.last.battery_saver = Some(power.battery_saver);
             return Ok(());
@@ -180,8 +182,6 @@ impl Daemon {
             debug!(target: "auriya::daemon", "Same app with known PID; skip profile reapply");
             return Ok(());
         }
-
-        self.attach_ebpf_for_pkg(&pkg);
 
         if self.cached_whitelist.contains(&pkg) {
             self.handle_whitelisted_app(&pkg, gamelist).await
@@ -272,6 +272,7 @@ impl Daemon {
                     self.applied_refresh_rate = rr;
                 }
 
+                self.ebpf_attach(pid);
                 self.last.pkg = Some(pkg.to_string());
                 self.set_pid(Some(pid));
                 Ok(())
@@ -310,6 +311,7 @@ impl Daemon {
         }
 
         self.apply_ceiling_for_state(None, None);
+        self.ebpf_detach();
 
         if self.last.pkg.as_deref() != Some(pkg) {
             debug!(target: "auriya::daemon", "Foreground: {} ({})", pkg, reason);
@@ -320,18 +322,39 @@ impl Daemon {
         Ok(())
     }
 
-    fn attach_ebpf_for_pkg(&self, pkg: &str) {
+    /// Attach the eBPF frame probe to a (validated) game PID. Only called
+    /// for whitelisted games — the worker stays idle for every other app.
+    /// No-op when already tracking this PID.
+    fn ebpf_attach(&mut self, pid: i32) {
         let Some(listener) = self.ebpf.as_ref() else {
             return;
         };
-        let Some(pid) = self.status_cache.focused_pid().filter(|&p| {
-            crate::core::dumpsys::activity::is_pid_valid(p)
-                && crate::core::dumpsys::activity::verify_pid_package(p, pkg)
-        }) else {
+        if self.attached_ebpf_pid == Some(pid) {
+            return;
+        }
+        if let Some(prev) = self.attached_ebpf_pid {
+            let _ = listener.detach(prev);
+        }
+        match listener.attach(pid) {
+            Ok(_) => {
+                self.attached_ebpf_pid = Some(pid);
+                debug!(target: "auriya::ebpf", "Attached frame probe to {pid}");
+            }
+            Err(e) => warn!(target: "auriya::ebpf", "attach({pid}): {e}"),
+        }
+    }
+
+    /// Detach the eBPF frame probe so the worker thread stops draining
+    /// frames (drops to ~0% CPU) once no game is in the foreground.
+    pub(crate) fn ebpf_detach(&mut self) {
+        let Some(listener) = self.ebpf.as_ref() else {
             return;
         };
-        if let Err(e) = listener.attach(pid) {
-            warn!(target: "auriya::ebpf", "attach({pid}): {e}");
+        if let Some(pid) = self.attached_ebpf_pid.take() {
+            match listener.detach(pid) {
+                Ok(_) => debug!(target: "auriya::ebpf", "Detached frame probe from {pid}"),
+                Err(e) => warn!(target: "auriya::ebpf", "detach({pid}): {e}"),
+            }
         }
     }
 
@@ -354,6 +377,7 @@ impl Daemon {
         }
 
         self.apply_ceiling_for_state(None, None);
+        self.ebpf_detach();
 
         if self.last.pkg.is_some() || self.last.pid.is_some() {
             self.vendor_lock.unlock_all();

@@ -135,6 +135,9 @@ pub struct Daemon {
     pub(crate) telemetry_hub: TelemetryHub,
     pub(crate) fps_meter: FpsMeter,
     pub(crate) ebpf: Option<crate::core::ebpf::EbpfFrameStream>,
+    /// PID the eBPF frame probe is currently attached to, if any. Used to
+    /// detach when leaving a game session so the worker thread goes idle.
+    pub(crate) attached_ebpf_pid: Option<i32>,
     /// Producer side of the out-of-band event channel. Cloned to the
     /// background threads (PID tracker, companion lock watcher) so they
     /// can wake the tick loop instantly.
@@ -251,6 +254,7 @@ impl Daemon {
             telemetry_hub: TelemetryHub::new(&core_layout),
             fps_meter,
             ebpf,
+            attached_ebpf_pid: None,
             event_tx,
         })
     }
