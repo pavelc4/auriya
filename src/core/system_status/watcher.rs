@@ -71,12 +71,17 @@ impl SystemStatusCache {
     /// so it does not aggressively powersave when the snapshot is
     /// incomplete.
     pub fn power_state(&self) -> (bool, bool) {
-        match self.inner.read().ok().and_then(|g| g.clone()) {
-            Some(s) => (
-                s.screen_awake.unwrap_or(true),
-                s.battery_saver.unwrap_or(false),
-            ),
-            None => (true, false),
+        // Read the two bools out under the guard instead of deep-cloning
+        // the whole SystemStatus (which carries a String) every tick.
+        match self.inner.read() {
+            Ok(g) => match g.as_ref() {
+                Some(s) => (
+                    s.screen_awake.unwrap_or(true),
+                    s.battery_saver.unwrap_or(false),
+                ),
+                None => (true, false),
+            },
+            Err(_) => (true, false),
         }
     }
 
