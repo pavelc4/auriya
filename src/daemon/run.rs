@@ -4,6 +4,7 @@ use crate::core::system_status::watcher::COMPANION_STALE_TIMEOUT;
 use crate::core::system_status::{STATUS_FILE, SystemStatusCache};
 use crate::core::telemetry::TelemetryHub;
 use crate::core::tweaks::vendor::{detect, mtk};
+use crate::daemon::event::{self, DaemonEvent, EventSender};
 use crate::daemon::state::{CurrentState, LastState};
 use anyhow::Result;
 use std::collections::HashSet;
@@ -134,6 +135,10 @@ pub struct Daemon {
     pub(crate) telemetry_hub: TelemetryHub,
     pub(crate) fps_meter: FpsMeter,
     pub(crate) ebpf: Option<crate::core::ebpf::EbpfFrameStream>,
+    /// Producer side of the out-of-band event channel. Cloned to the
+    /// background threads (PID tracker, companion lock watcher) so they
+    /// can wake the tick loop instantly.
+    pub(crate) event_tx: EventSender,
 }
 
 impl Daemon {
@@ -141,6 +146,7 @@ impl Daemon {
         cfg: DaemonConfig,
         supported_modes: Arc<Vec<crate::core::display::DisplayMode>>,
         status_cache: SystemStatusCache,
+        event_tx: EventSender,
     ) -> Result<Self> {
         let shared_settings = Arc::new(RwLock::new(cfg.settings.clone()));
         let shared_gamelist = Arc::new(RwLock::new(cfg.gamelist.clone()));
@@ -245,6 +251,7 @@ impl Daemon {
             telemetry_hub: TelemetryHub::new(&core_layout),
             fps_meter,
             ebpf,
+            event_tx,
         })
     }
     #[inline]
@@ -517,6 +524,36 @@ impl Daemon {
             ),
         }
     }
+
+    /// React to the companion's liveness lock being released — the
+    /// service process died. Mark it dead and relaunch it. The restart
+    /// is rate-limited by [`COMPANION_RESTART_COOLDOWN_SECS`] inside
+    /// [`Self::restart_companion`].
+    pub(crate) fn on_companion_died(&mut self) {
+        if !self.companion_alive {
+            // Already known dead (e.g. the staleness check beat us to it).
+            return;
+        }
+        warn!(
+            target: "auriya::companion",
+            "Companion liveness lock released — service died. Restarting..."
+        );
+        self.companion_alive = false;
+        crate::core::profile::set_companion_alive(false);
+        self.restart_companion();
+    }
+
+    /// Release every host-state override the daemon owns before exiting,
+    /// so a graceful stop (Ctrl-C or a staged module update) does not
+    /// leave mount-binds or offlined cores behind. The `CeilingController`
+    /// also restores on `Drop`, but doing it explicitly keeps the ordering
+    /// deterministic and covers `VendorLock`, which has no `Drop`.
+    pub(crate) fn shutdown_cleanup(&mut self) {
+        debug!(target: "auriya::daemon", "Releasing overrides for graceful shutdown");
+        self.vendor_lock.unlock_all();
+        self.ceiling_controller.restore();
+        self.ceiling_controller.online_all();
+    }
 }
 
 pub async fn run_with_config_and_logger(cfg: &DaemonConfig, reload: ReloadHandle) -> Result<()> {
@@ -554,7 +591,9 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     let (status_cache, mut status_rx) =
         crate::core::system_status::watcher::start_status_watcher(status_path)?;
 
-    let mut daemon = Daemon::new(cfg.clone(), supported_modes, status_cache)?;
+    let (event_tx, mut event_rx) = event::channel();
+
+    let mut daemon = Daemon::new(cfg.clone(), supported_modes, status_cache, event_tx)?;
 
     if detect::is_mediatek() {
         debug!(target: "auriya::daemon", "MTK device detected, applying PPM fix...");
@@ -572,6 +611,8 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     debug!(target: "auriya::daemon", "IPC socket ready at /dev/socket/auriya.sock");
 
     let mut watch_rx = crate::daemon::watcher::start_config_watcher(daemon.shared_gamelist.clone());
+
+    crate::daemon::watcher::start_module_update_watcher(daemon.event_tx.clone());
 
     debug!(target: "auriya::daemon", "Tick loop started (adaptive: {}ms idle, {}ms gaming)", NORMAL_INTERVAL_MS, INGAME_INTERVAL_MS);
 
@@ -603,8 +644,25 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                      daemon.tick().await;
                 }
             }
+            Some(ev) = event_rx.recv() => {
+                match ev {
+                    DaemonEvent::PidExited(pid) => {
+                        debug!(target: "auriya::daemon", "Tracked PID {} exited, triggering instant tick", pid);
+                        daemon.tick().await;
+                    }
+                    DaemonEvent::CompanionDied => {
+                        daemon.on_companion_died();
+                    }
+                    DaemonEvent::ModuleUpdate => {
+                        info!(target: "auriya::daemon", "Daemon | Module update staged, stopping gracefully");
+                        daemon.shutdown_cleanup();
+                        break;
+                    }
+                }
+            }
             _ = signal::ctrl_c() => {
                 info!(target: "auriya::daemon", "Daemon | Received Ctrl-C, shutting down");
+                daemon.shutdown_cleanup();
                 break;
             }
         }

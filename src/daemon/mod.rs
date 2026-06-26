@@ -1,4 +1,5 @@
 pub mod config;
+pub mod event;
 pub mod fas;
 pub mod ipc;
 pub mod run;
