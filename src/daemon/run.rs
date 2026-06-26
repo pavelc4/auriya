@@ -266,7 +266,9 @@ impl Daemon {
 
     pub(crate) fn set_pid(&mut self, pid: Option<i32>) {
         self.last.pid = pid;
-        self.pid_tracker = pid.map(crate::core::pid_tracker::PidTracker::new);
+        self.pid_tracker = pid.map(|p| {
+            crate::core::pid_tracker::PidTracker::spawn(p, self.event_tx.clone())
+        });
     }
 
     #[inline]
