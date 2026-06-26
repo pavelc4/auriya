@@ -1,6 +1,9 @@
 [target.aarch64-linux-android]
 ar = "/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ar"
 linker = "/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang"
+# Run cross-compiled test binaries on a connected device via adb so
+# `cargo test` validates against real Android hardware.
+runner = "bash .cargo/adb-runner.sh"
 
 rustflags = [
   "-C",

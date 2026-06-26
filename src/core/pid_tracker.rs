@@ -224,3 +224,52 @@ fn wait_proc_poll(pid: i32, wakeup: RawFd, stop: &AtomicBool) -> bool {
 fn is_eintr() -> bool {
     std::io::Error::last_os_error().raw_os_error() == Some(libc::EINTR)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::process::Command;
+    use std::time::{Duration, Instant};
+
+    /// Real-device test: spawn a child, track it, kill it, and assert the
+    /// tracker reports the exit. Exercises the actual `pidfd_open`/`poll`
+    /// path on the target kernel.
+    #[test]
+    fn detects_child_process_exit() {
+        let (tx, mut rx) = tokio::sync::mpsc::channel(4);
+
+        let mut child = Command::new("sleep")
+            .arg("30")
+            .spawn()
+            .expect("spawn sleep child");
+        let pid = child.id() as i32;
+
+        let tracker = PidTracker::spawn(pid, tx);
+        assert!(tracker.is_alive(), "child should be alive immediately after spawn");
+
+        child.kill().expect("kill child");
+        let _ = child.wait();
+
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut got = None;
+        while Instant::now() < deadline {
+            if let Ok(ev) = rx.try_recv() {
+                got = Some(ev);
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+
+        assert_eq!(got, Some(DaemonEvent::PidExited(pid)));
+        assert!(!tracker.is_alive(), "tracker should report the child as dead");
+    }
+
+    #[test]
+    fn dead_pid_is_not_alive() {
+        // PID 0 is never a valid tracked target; open_pidfd returns None
+        // and the /proc fallback reports not-alive for a nonexistent PID.
+        let (tx, _rx) = tokio::sync::mpsc::channel(1);
+        let tracker = PidTracker::spawn(999_999_999, tx);
+        assert!(!tracker.is_alive());
+    }
+}
