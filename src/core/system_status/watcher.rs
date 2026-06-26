@@ -48,21 +48,6 @@ impl SystemStatusCache {
         Self::default()
     }
 
-    /// True once the watcher has parsed at least one snapshot. Used by
-    /// the IPC layer when callers want to check whether the daemon has
-    /// usable data yet.
-    #[allow(dead_code)]
-    pub fn is_valid(&self) -> bool {
-        self.inner.read().map(|g| g.is_some()).unwrap_or(false)
-    }
-
-    /// Take a clone of the most recent snapshot. Useful for diagnostics
-    /// and the IPC `status` command.
-    #[allow(dead_code)]
-    pub fn snapshot(&self) -> Option<SystemStatus> {
-        self.inner.read().ok().and_then(|g| g.clone())
-    }
-
     /// Convenience: return the focused package name from the latest
     /// snapshot, if any.
     pub fn focused_package(&self) -> Option<String> {

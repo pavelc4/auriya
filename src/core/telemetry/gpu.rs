@@ -29,10 +29,7 @@ const GPU_PATHS: &[(&str, &str, &str, &str)] = &[
 pub struct GpuSnapshot {
     pub vendor: Option<String>,
     pub cur_freq_mhz: Option<u64>,
-    pub max_freq_mhz: Option<u64>,
-    pub min_freq_mhz: Option<u64>,
     pub load_pct: Option<u32>,
-    pub available_freqs: Vec<u64>,
 }
 
 #[derive(Default)]
@@ -40,8 +37,6 @@ pub struct GpuCollector {
     pub(crate) vendor: Option<String>,
     freq_path: Option<String>,
     load_path: Option<String>,
-    max_freq_path: Option<String>,
-    min_freq_path: Option<String>,
 }
 
 impl GpuCollector {
@@ -71,14 +66,6 @@ impl GpuCollector {
                 if Path::new(&load_path).exists() {
                     self.load_path = Some(load_path.clone());
                 }
-                let max_path = "/sys/class/kgsl/kgsl-3d0/max_gpuclk".to_string();
-                if Path::new(&max_path).exists() {
-                    self.max_freq_path = Some(max_path);
-                }
-                let min_path = "/sys/class/kgsl/kgsl-3d0/min_gpuclk".to_string();
-                if Path::new(&min_path).exists() {
-                    self.min_freq_path = Some(min_path);
-                }
                 debug!(target: "auriya::telemetry", "GPU vendor: {} freq={}, load={}", vendor, expanded, load_path);
                 return;
             }
@@ -102,20 +89,6 @@ impl GpuCollector {
                 }
             });
 
-        let max_freq_mhz = self
-            .max_freq_path
-            .as_ref()
-            .and_then(|p| fs::read_to_string(p).ok())
-            .and_then(|s| s.trim().parse::<u64>().ok())
-            .map(|hz| hz / 1_000_000);
-
-        let min_freq_mhz = self
-            .min_freq_path
-            .as_ref()
-            .and_then(|p| fs::read_to_string(p).ok())
-            .and_then(|s| s.trim().parse::<u64>().ok())
-            .map(|hz| hz / 1_000_000);
-
         let load_pct = self
             .load_path
             .as_ref()
@@ -125,10 +98,7 @@ impl GpuCollector {
         GpuSnapshot {
             vendor: self.vendor.clone(),
             cur_freq_mhz,
-            max_freq_mhz,
-            min_freq_mhz,
             load_pct,
-            available_freqs: Vec::new(),
         }
     }
 }

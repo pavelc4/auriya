@@ -117,7 +117,7 @@ pub struct Daemon {
     pub(crate) fas_controller: Option<Arc<tokio::sync::Mutex<crate::daemon::fas::FasController>>>,
     pub(crate) balance_governor: String,
     pub(crate) default_mode: ProfileMode,
-    pub(crate) supported_modes: Vec<crate::core::display::DisplayMode>,
+    pub(crate) supported_modes: Arc<Vec<crate::core::display::DisplayMode>>,
     /// Currently-active refresh-rate override (Hz) we've asked the
     /// companion to apply. `None` means we have not pushed a custom rate
     /// since the daemon started or since the last release.
@@ -139,7 +139,7 @@ pub struct Daemon {
 impl Daemon {
     pub fn new(
         cfg: DaemonConfig,
-        supported_modes: Vec<crate::core::display::DisplayMode>,
+        supported_modes: Arc<Vec<crate::core::display::DisplayMode>>,
         status_cache: SystemStatusCache,
     ) -> Result<Self> {
         let shared_settings = Arc::new(RwLock::new(cfg.settings.clone()));
@@ -391,7 +391,7 @@ impl Daemon {
             current_state: current_state.clone(),
             balance_governor: cfg.settings.cpu.default_governor.clone(),
             current_log_level,
-            supported_modes: Arc::new(self.supported_modes.clone()),
+            supported_modes: self.supported_modes.clone(),
         };
 
         tokio::spawn(async move {
@@ -527,11 +527,11 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     let supported_modes = match crate::core::display::get_app_supported_modes().await {
         Ok(modes) => {
             debug!(target: "auriya::daemon", "Cached {} supported display modes", modes.len());
-            modes
+            Arc::new(modes)
         }
         Err(e) => {
             error!(target: "auriya::daemon", "Failed to cache supported modes: {}", e);
-            Vec::new()
+            Arc::new(Vec::new())
         }
     };
 

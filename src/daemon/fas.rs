@@ -126,10 +126,6 @@ impl FasController {
         self.buffer.target_fps.unwrap_or(60)
     }
 
-    pub fn state(&self) -> FasState {
-        self.state
-    }
-
     pub async fn tick(&mut self, thermal_thresh: f32) -> Result<ScalingAction> {
         if let Some(pid) = self.pid.filter(|_| !self.package.is_empty())
             && self.last_attached_pkg != self.package

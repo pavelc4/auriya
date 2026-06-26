@@ -55,8 +55,23 @@ time = { version = "0.3", features = ["formatting"] }
 libc = "0.2.186"
 clap = { version = "4", features = ["derive", "color", "suggestions"] }
 memchr = "2.8.0"
-toru = { git = "https://github.com/pavelc4/kala", branch = "main" }
+kala = { git = "https://github.com/pavelc4/kala", branch = "main" }
 
+
+[dev-dependencies]
+dhat = "0.3"
+tempfile = "3"
+
+[target.'cfg(not(target_os = "android"))'.dev-dependencies]
+criterion = { version = "0.8", features = [] }
+
+[[bench]]
+name = "parser"
+harness = false
+
+[[bench]]
+name = "profile"
+harness = false
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

@@ -1,4 +1,4 @@
-// Shared broadcast of per-frame deltas from eBPF (toru `FrameProbe`).
+// Shared broadcast of per-frame deltas from eBPF (kala `FrameProbe`).
 //
 // Owns the worker thread. Frame times are broadcast to all subscribers
 // via `tokio::sync::broadcast`. Both FAS and the FPS meter subscribe
@@ -10,11 +10,11 @@
 //   - subscribe()   — get a new broadcast receiver
 
 use anyhow::{Result, anyhow};
+use kala::FrameProbe;
 use std::sync::mpsc as std_mpsc;
 use std::thread;
 use std::time::Duration;
 use tokio::sync::broadcast;
-use toru::FrameProbe;
 
 enum Cmd {
     Attach(i32, std_mpsc::Sender<Result<()>>),
@@ -29,7 +29,7 @@ impl EbpfFrameStream {
     /// Load the eBPF probe and spawn the worker thread.
     /// Failures (old kernel, no BTF, SELinux deny) propagate to the caller.
     pub fn new() -> Result<Self> {
-        let mut probe = FrameProbe::new().map_err(|e| anyhow!("Toru init: {e}"))?;
+        let mut probe = FrameProbe::new().map_err(|e| anyhow!("kala init: {e}"))?;
 
         let (cmd_tx, cmd_rx) = std_mpsc::channel::<Cmd>();
         let (frame_tx, rx) = broadcast::channel(4096);

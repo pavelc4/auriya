@@ -9,7 +9,7 @@ async fn main() -> Result<()> {
     let base_filter = EnvFilter::new("info");
     let (filter_layer, filter_handle) = reload::Layer::new(base_filter);
     let timer = tracing_subscriber::fmt::time::UtcTime::new(
-        time::format_description::parse("[hour]:[minute]:[second]").unwrap(),
+        time::format_description::parse_borrowed::<2>("[hour]:[minute]:[second]").unwrap(),
     );
 
     tracing_subscriber::registry()

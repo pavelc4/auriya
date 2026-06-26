@@ -3,6 +3,9 @@
 .vscode
 build.sh
 /build
+scripts
+examples
+benches
 
 # Android workspace
 android/.gradle/

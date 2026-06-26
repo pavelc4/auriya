@@ -48,15 +48,13 @@ pub struct CoreLayout {
 
 impl CoreLayout {
     pub fn detect() -> Self {
-        let cores: Vec<usize> = (0..16)
+        let mut cores_for_classify: Vec<usize> = (0..16)
             .filter(|i| Path::new(&format!("/sys/devices/system/cpu/cpu{}/cpufreq", i)).exists())
             .collect();
 
-        let cores_for_classify = if cores.is_empty() {
-            (0..8).collect()
-        } else {
-            cores.clone()
-        };
+        if cores_for_classify.is_empty() {
+            cores_for_classify = (0..8).collect();
+        }
 
         let (little_mask, big_mask, prime_mask) =
             crate::core::tweaks::cpu::classify_cores(&cores_for_classify);
@@ -94,20 +92,6 @@ impl CoreLayout {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn has_little(&self) -> bool {
-        !self.little_ids.is_empty()
-    }
-
-    #[allow(dead_code)]
-    pub fn has_big(&self) -> bool {
-        !self.big_ids.is_empty()
-    }
-
-    #[allow(dead_code)]
-    pub fn has_prime(&self) -> bool {
-        !self.prime_ids.is_empty()
-    }
 }
 
 fn read_available_freqs(core_ids: &[usize]) -> Vec<u64> {
@@ -201,11 +185,6 @@ impl CeilingController {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn current_level(&self) -> Option<CeilingLevel> {
-        self.current_level
-    }
-
     pub fn apply(&mut self, level: CeilingLevel, config: &CeilingConfig) -> Result<()> {
         if self.current_level == Some(level) {
             return Ok(());
@@ -225,7 +204,7 @@ impl CeilingController {
     }
 
     fn apply_low(&mut self, config: &CeilingConfig) -> Result<()> {
-        let prime_ids = self.layout.prime_ids.clone();
+            let prime_ids = &self.layout.prime_ids;
         let big_ids = self.layout.big_ids.clone();
         let little_ids = self.layout.little_ids.clone();
         let little_freq = config
@@ -235,7 +214,7 @@ impl CeilingController {
             .low_freq_big_khz
             .or_else(|| self.layout.big_freqs_khz.first().copied());
 
-        for &core in &prime_ids {
+        for &core in prime_ids {
             let path = format!("/sys/devices/system/cpu/cpu{}/online", core);
             if Path::new(&path).exists() {
                 let _ = fs::write(&path, "0");
@@ -253,7 +232,7 @@ impl CeilingController {
         }
 
         if let Some(freq) = little_freq {
-            for &core in &little_ids {
+            for core in little_ids {
                 let p = format!(
                     "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_max_freq",
                     core
@@ -280,10 +259,10 @@ impl CeilingController {
     fn apply_high(&mut self, _config: &CeilingConfig) -> Result<()> {
         self.online_all();
 
-        let all_ids = self.layout.all_core_ids.clone();
+        let all_ids = &self.layout.all_core_ids;
         let mut freq_targets: Vec<(String, u64)> = Vec::new();
 
-        for &core in &all_ids {
+        for &core in all_ids {
             let max_path = format!(
                 "/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq",
                 core

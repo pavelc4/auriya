@@ -14,8 +14,6 @@ pub struct CoreTelemetry {
     pub core_id: usize,
     pub online: bool,
     pub cur_freq_khz: u64,
-    pub min_freq_khz: u64,
-    pub max_freq_khz: u64,
     pub governor: String,
     pub cluster: ClusterType,
 }
@@ -50,8 +48,6 @@ impl CpuCollector {
         for &id in &layout.all_core_ids {
             let online = read_online(id);
             let cur_freq_khz = read_cur_freq(id).unwrap_or(0);
-            let min_freq_khz = read_min_freq(id).unwrap_or(0);
-            let max_freq_khz = read_max_freq(id).unwrap_or(0);
             let governor = read_governor(id);
 
             let cluster = if layout.prime_ids.contains(&id) {
@@ -66,8 +62,6 @@ impl CpuCollector {
                 core_id: id,
                 online,
                 cur_freq_khz,
-                min_freq_khz,
-                max_freq_khz,
                 governor,
                 cluster,
             });
@@ -109,26 +103,6 @@ fn read_online(core: usize) -> bool {
 fn read_cur_freq(core: usize) -> Option<u64> {
     let path = format!(
         "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_cur_freq",
-        core
-    );
-    fs::read_to_string(&path)
-        .ok()
-        .and_then(|s| s.trim().parse::<u64>().ok())
-}
-
-fn read_min_freq(core: usize) -> Option<u64> {
-    let path = format!(
-        "/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_min_freq",
-        core
-    );
-    fs::read_to_string(&path)
-        .ok()
-        .and_then(|s| s.trim().parse::<u64>().ok())
-}
-
-fn read_max_freq(core: usize) -> Option<u64> {
-    let path = format!(
-        "/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq",
         core
     );
     fs::read_to_string(&path)

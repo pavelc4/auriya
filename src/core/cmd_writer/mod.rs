@@ -66,18 +66,6 @@ impl CmdWriter {
         Self::new(CMD_FILE)
     }
 
-    /// Write an arbitrary set of fields in a single atomic write.
-    /// Use this in tick.rs to batch refresh_rate + dnd changes so the
-    /// companion never sees stale partial state.
-    #[allow(dead_code)]
-    pub fn write_fields(
-        &self,
-        dnd: Option<DndFilter>,
-        refresh_rate: Option<u32>,
-    ) -> anyhow::Result<u64> {
-        self.write(&Cmd { dnd, refresh_rate })
-    }
-
     /// Write a single-field DnD command. Returns the seq assigned to
     /// the write so callers can correlate logs.
     pub fn write_dnd(&self, filter: DndFilter) -> anyhow::Result<u64> {
