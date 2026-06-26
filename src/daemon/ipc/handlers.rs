@@ -209,9 +209,13 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         mode: Some("performance".to_string()),
                         ceiling: None,
                     };
-                    match gl.add(profile) {
+                    // Copy-on-write: clone the shared snapshot only when we
+                    // actually mutate it (rare, IPC-driven), keeping the
+                    // per-tick read path a cheap Arc bump.
+                    let g = std::sync::Arc::make_mut(&mut gl);
+                    match g.add(profile) {
                         Ok(_) => {
-                            if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
+                            if let Err(e) = g.save(crate::core::config::gamelist_path()) {
                                 format!("ERR SAVE_GAMELIST {:?}\n", e)
                             } else {
                                 format!("OK ADD_GAME {}\n", pkg)
@@ -225,9 +229,10 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
             }
             Ok(Command::RemoveGame(pkg)) => {
                 if let Ok(mut gl) = h.shared_config.write() {
-                    match gl.remove(&pkg) {
+                    let g = std::sync::Arc::make_mut(&mut gl);
+                    match g.remove(&pkg) {
                         Ok(_) => {
-                            if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
+                            if let Err(e) = g.save(crate::core::config::gamelist_path()) {
                                 format!("ERR SAVE_GAMELIST {:?}\n", e)
                             } else {
                                 format!("OK REMOVE_GAME {}\n", pkg)
@@ -291,9 +296,10 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         fps_array,
                         ceiling,
                     };
-                    match gl.update(&pkg, upd) {
+                    let g = std::sync::Arc::make_mut(&mut gl);
+                    match g.update(&pkg, upd) {
                         Ok(_) => {
-                            if let Err(e) = gl.save(crate::core::config::gamelist_path()) {
+                            if let Err(e) = g.save(crate::core::config::gamelist_path()) {
                                 format!("ERR SAVE_GAMELIST {:?}\n", e)
                             } else {
                                 format!("OK UPDATE_GAME {}\n", pkg)

@@ -27,8 +27,11 @@ impl Daemon {
             self.check_companion_health();
         }
 
+        // Cheap `Arc` refcount bump instead of deep-copying the whole
+        // GameList every tick — the guard cannot be held across the
+        // `.await` in `process_tick_logic`, hence the clone.
         let gamelist = match self.shared_gamelist.read() {
-            Ok(g) => g.clone(),
+            Ok(g) => Arc::clone(&g),
             Err(_) => {
                 warn!(target: "auriya::daemon", "Gamelist lock poisoned, skipping tick");
                 return;

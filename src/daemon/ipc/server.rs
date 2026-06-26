@@ -23,7 +23,7 @@ type AsyncGetFpsCallback = Arc<
 
 pub struct IpcHandles {
     pub enabled: Arc<AtomicBool>,
-    pub shared_config: Arc<RwLock<GameList>>,
+    pub shared_config: Arc<RwLock<Arc<GameList>>>,
     pub override_foreground: Arc<RwLock<Option<String>>>,
     pub reload_fn: Arc<dyn Fn() -> anyhow::Result<usize> + Send + Sync>,
     pub set_log_level: Arc<dyn Fn(LogLevelCmd) + Send + Sync>,

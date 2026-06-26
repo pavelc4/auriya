@@ -102,7 +102,7 @@ pub type ReloadHandle =
 pub struct Daemon {
     pub(crate) cfg: DaemonConfig,
     pub(crate) _shared_settings: Arc<RwLock<crate::core::config::Settings>>,
-    pub(crate) shared_gamelist: Arc<RwLock<crate::core::config::GameList>>,
+    pub(crate) shared_gamelist: Arc<RwLock<Arc<crate::core::config::GameList>>>,
     pub(crate) shared_current: Arc<RwLock<CurrentState>>,
     pub(crate) override_foreground: Arc<RwLock<Option<String>>>,
 
@@ -149,7 +149,7 @@ impl Daemon {
         event_tx: EventSender,
     ) -> Result<Self> {
         let shared_settings = Arc::new(RwLock::new(cfg.settings.clone()));
-        let shared_gamelist = Arc::new(RwLock::new(cfg.gamelist.clone()));
+        let shared_gamelist = Arc::new(RwLock::new(Arc::new(cfg.gamelist.clone())));
         let shared_current = Arc::new(RwLock::new(CurrentState::default()));
         let override_foreground = Arc::new(RwLock::new(None));
 
@@ -353,7 +353,7 @@ impl Daemon {
                 Ok(new_cfg) => {
                     if let Ok(mut g) = shared_cfg.write() {
                         let count = new_cfg.game.len();
-                        *g = new_cfg;
+                        *g = Arc::new(new_cfg);
                         Ok(count)
                     } else {
                         Err(anyhow::anyhow!("Gamelist lock poisoned"))
