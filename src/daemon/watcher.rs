@@ -1,4 +1,3 @@
-use crate::common::MODULE_PATH;
 use crate::core::config::{GameList, gamelist_path, settings_path};
 use crate::daemon::event::{DaemonEvent, EventSender};
 use notify::{EventKind, RecursiveMode, Watcher};
@@ -6,6 +5,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use tokio::sync::mpsc;
 use tracing::{debug, error, warn};
+const MODULE_PATH: &str = "/data/adb/modules/auriya";
 
 pub fn start_config_watcher(shared_gamelist: Arc<RwLock<GameList>>) -> mpsc::Receiver<String> {
     let (watch_tx, watch_rx) = mpsc::channel::<String>(10);

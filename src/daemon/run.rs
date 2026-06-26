@@ -616,6 +616,8 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
 
     crate::daemon::watcher::start_module_update_watcher(daemon.event_tx.clone());
 
+    crate::daemon::companion_lock::start_companion_lock_watcher(daemon.event_tx.clone());
+
     debug!(target: "auriya::daemon", "Tick loop started (adaptive: {}ms idle, {}ms gaming)", NORMAL_INTERVAL_MS, INGAME_INTERVAL_MS);
 
     daemon.tick().await;
