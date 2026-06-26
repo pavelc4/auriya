@@ -32,8 +32,11 @@ fn warn_on_err<E: std::fmt::Display>(result: Result<(), E>, context: &str) {
 /// the cmd file. When the companion is known dead we fall back to a
 /// `settings put global zen_mode` call directly (less polished — no status
 /// bar icon — but still functional).
+/// Driven by the daemon's game-session lifecycle (see `Daemon::sync_dnd`),
+/// not by profile transitions — DnD must toggle on game enter/exit even
+/// when the CPU/GPU profile itself does not change.
 #[inline]
-fn request_dnd(filter: DndFilter) {
+pub fn request_dnd(filter: DndFilter) {
     if COMPANION_ALIVE.load(Ordering::Acquire) {
         if let Err(e) = cmd_writer::shared().write_dnd(filter) {
             tracing::warn!(
@@ -136,9 +139,8 @@ pub fn apply_performance_with_config(
         cpu::set_process_priority(game_pid)?;
     }
 
-    if enable_dnd {
-        request_dnd(DndFilter::Priority);
-    }
+    // DnD is handled by the daemon lifecycle, not here — see request_dnd.
+    let _ = enable_dnd;
 
     Ok(())
 }
@@ -182,13 +184,10 @@ pub fn apply_balance_with_dnd(governor: &str, enable_dnd: bool) -> Result<()> {
     warn_on_err(storage::unlock_storage_freq(), "unlock storage freq");
     warn_on_err(memory::restore_balanced(), "restore balanced memory");
 
-    // Only clear DnD if no game session asked us to keep it on. The
-    // FAS Reduce path still calls into balance during a live session
-    // (thermal chill / load drop) and we must not yank the user's
-    // notification filter while they are still in the game.
-    if !enable_dnd {
-        request_dnd(DndFilter::All);
-    }
+    // DnD is owned by the daemon lifecycle (Daemon::sync_dnd), not by the
+    // profile path — the FAS Reduce path drops to balance mid-game without
+    // touching the user's notification filter.
+    let _ = enable_dnd;
 
     Ok(())
 }
@@ -245,9 +244,8 @@ pub fn apply_powersave_with_dnd(enable_dnd: bool) -> Result<()> {
     paths::set_governor_cached("powersave");
     warn_on_err(memory::apply_powersave_lmk(), "apply LMK");
 
-    if !enable_dnd {
-        request_dnd(DndFilter::All);
-    }
+    // DnD is owned by the daemon lifecycle (Daemon::sync_dnd).
+    let _ = enable_dnd;
 
     Ok(())
 }

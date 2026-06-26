@@ -19,7 +19,7 @@
 use std::fmt::Write as _;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 pub const CMD_FILE: &str = "/data/adb/.config/auriya/auriya_cmd";
@@ -46,11 +46,23 @@ pub struct Cmd {
     pub refresh_rate: Option<u32>,
 }
 
-/// Writer for `auriya_cmd`. Cheap to construct (just a path + atomic
-/// counter); clone-friendly via the `Arc` the caller wraps it in.
+/// Writer for `auriya_cmd`.
+///
+/// The companion consumes this file by polling and reading the *whole*
+/// file each time (a single command file, not a queue). So two quick
+/// single-field writes — e.g. `dnd` then `refresh_rate` on a game switch —
+/// would clobber each other: the companion only ever sees the last one.
+///
+/// To avoid that, the writer is **stateful**: it remembers the last value
+/// of every field and re-emits the full desired state on every write. A
+/// `write_refresh_rate` therefore still carries the current `dnd`, and
+/// vice versa, so nothing is lost no matter how the writes interleave with
+/// the companion's poll.
 pub struct CmdWriter {
     target: PathBuf,
     seq: AtomicU64,
+    /// Last-known full state, re-emitted on every write.
+    state: Mutex<Cmd>,
 }
 
 impl CmdWriter {
@@ -58,6 +70,7 @@ impl CmdWriter {
         Self {
             target: target.as_ref().to_path_buf(),
             seq: AtomicU64::new(0),
+            state: Mutex::new(Cmd::default()),
         }
     }
 
@@ -90,12 +103,26 @@ impl CmdWriter {
     pub fn write(&self, cmd: &Cmd) -> anyhow::Result<u64> {
         let seq = self.seq.fetch_add(1, Ordering::Relaxed) + 1;
 
+        // Merge the incoming fields into the remembered state and emit the
+        // full state, so a single-field write never drops the other field
+        // from the companion's view of the file.
+        let merged = {
+            let mut st = self.state.lock().unwrap_or_else(|e| e.into_inner());
+            if cmd.dnd.is_some() {
+                st.dnd = cmd.dnd;
+            }
+            if cmd.refresh_rate.is_some() {
+                st.refresh_rate = cmd.refresh_rate;
+            }
+            st.clone()
+        };
+
         let mut payload = String::with_capacity(64);
         let _ = writeln!(payload, "seq {seq}");
-        if let Some(dnd) = cmd.dnd {
+        if let Some(dnd) = merged.dnd {
             let _ = writeln!(payload, "dnd {}", dnd as u8);
         }
-        if let Some(rr) = cmd.refresh_rate {
+        if let Some(rr) = merged.refresh_rate {
             let _ = writeln!(payload, "refresh_rate {rr}");
         }
 

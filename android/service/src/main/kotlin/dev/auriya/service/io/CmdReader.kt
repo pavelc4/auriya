@@ -59,12 +59,12 @@ class CmdReader(
             return
         }
         val cmd = CmdFormat.decode(text) ?: return
-        if (cmd.seq <= lastSeq) {
-            if (cmd.seq < lastSeq) {
-                Log.i(TAG, "seq jumped back from $lastSeq to ${cmd.seq} — daemon restarted; accepting")
-                lastSeq = cmd.seq
-            }
-            return
+        // Skip only an exact duplicate of the last command we applied. A
+        // lower seq means the daemon restarted (its counter reset) — that
+        // is a *new* command we must still dispatch, not drop.
+        if (cmd.seq == lastSeq) return
+        if (cmd.seq < lastSeq) {
+            Log.i(TAG, "seq jumped back from $lastSeq to ${cmd.seq} — daemon restarted")
         }
         lastSeq = cmd.seq
         try {

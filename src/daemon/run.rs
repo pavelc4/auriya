@@ -138,6 +138,10 @@ pub struct Daemon {
     /// PID the eBPF frame probe is currently attached to, if any. Used to
     /// detach when leaving a game session so the worker thread goes idle.
     pub(crate) attached_ebpf_pid: Option<i32>,
+    /// Last DnD filter pushed to the companion. Driven by the game-session
+    /// lifecycle (not profile transitions) so DnD toggles reliably on every
+    /// game enter/exit. `None` until the first sync.
+    pub(crate) last_dnd: Option<crate::core::cmd_writer::DndFilter>,
     /// Producer side of the out-of-band event channel. Cloned to the
     /// background threads (PID tracker, companion lock watcher) so they
     /// can wake the tick loop instantly.
@@ -255,6 +259,7 @@ impl Daemon {
             fps_meter,
             ebpf,
             attached_ebpf_pid: None,
+            last_dnd: None,
             event_tx,
         })
     }

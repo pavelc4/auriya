@@ -116,6 +116,7 @@ impl Daemon {
             );
             // Screen off / battery saver: stop draining frames entirely.
             self.ebpf_detach();
+            self.sync_dnd(crate::core::cmd_writer::DndFilter::All);
             self.last.screen_awake = Some(power.screen_awake);
             self.last.battery_saver = Some(power.battery_saver);
             return Ok(());
@@ -273,6 +274,11 @@ impl Daemon {
                 }
 
                 self.ebpf_attach(pid);
+                self.sync_dnd(if enable_dnd {
+                    crate::core::cmd_writer::DndFilter::Priority
+                } else {
+                    crate::core::cmd_writer::DndFilter::All
+                });
                 self.last.pkg = Some(pkg.to_string());
                 self.set_pid(Some(pid));
                 Ok(())
@@ -312,6 +318,7 @@ impl Daemon {
 
         self.apply_ceiling_for_state(None, None);
         self.ebpf_detach();
+        self.sync_dnd(crate::core::cmd_writer::DndFilter::All);
 
         if self.last.pkg.as_deref() != Some(pkg) {
             debug!(target: "auriya::daemon", "Foreground: {} ({})", pkg, reason);
@@ -342,6 +349,20 @@ impl Daemon {
             }
             Err(e) => warn!(target: "auriya::ebpf", "attach({pid}): {e}"),
         }
+    }
+
+    /// Push the desired DnD filter to the companion, but only when it
+    /// changed. Driven by the game-session lifecycle so DnD turns on/off on
+    /// every game enter/exit regardless of whether the CPU/GPU profile
+    /// itself transitioned (the FAS path can leave `profile_mode` at Balance
+    /// mid-game, which used to swallow the toggle).
+    fn sync_dnd(&mut self, desired: crate::core::cmd_writer::DndFilter) {
+        if self.last_dnd == Some(desired) {
+            return;
+        }
+        crate::core::profile::request_dnd(desired);
+        self.last_dnd = Some(desired);
+        debug!(target: "auriya::daemon", "DnD → {:?}", desired);
     }
 
     /// Detach the eBPF frame probe so the worker thread stops draining
@@ -378,6 +399,7 @@ impl Daemon {
 
         self.apply_ceiling_for_state(None, None);
         self.ebpf_detach();
+        self.sync_dnd(crate::core::cmd_writer::DndFilter::All);
 
         if self.last.pkg.is_some() || self.last.pid.is_some() {
             self.vendor_lock.unlock_all();
