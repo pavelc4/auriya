@@ -132,6 +132,70 @@ fn do_unmount(path: &str) -> bool {
     unsafe { umount2(p.as_ptr(), MNT_DETACH) == 0 }
 }
 
+/// The hardware frequency limit a frozen `scaling_{max,min}_freq` node
+/// should be reset to on restore. A max-freq cap restores to
+/// `cpuinfo_max_freq`; a min-freq lock restores to `cpuinfo_min_freq`.
+fn hardware_limit_for(path: &str) -> Option<String> {
+    let sibling = if path.ends_with("scaling_max_freq") {
+        path.replace("scaling_max_freq", "cpuinfo_max_freq")
+    } else if path.ends_with("scaling_min_freq") {
+        path.replace("scaling_min_freq", "cpuinfo_min_freq")
+    } else {
+        return None;
+    };
+    fs::read_to_string(&sibling)
+        .ok()
+        .and_then(|s| s.split_whitespace().next().map(str::to_string))
+}
+
+/// Tear down any leftover ceiling mount-binds from a previous daemon
+/// instance. A `scaling_{max,min}_freq` node appearing as a mount point in
+/// `/proc/mounts` can only be our bind, so unmount it and reset the node to
+/// its hardware limit.
+fn cleanup_stale_mounts() {
+    // 1. Unmount orphaned binds still present in /proc/mounts.
+    if let Ok(mounts) = fs::read_to_string("/proc/mounts") {
+        for line in mounts.lines() {
+            let mut fields = line.split_whitespace();
+            let _src = fields.next();
+            let Some(dest) = fields.next() else {
+                continue;
+            };
+            if dest.ends_with("scaling_max_freq") || dest.ends_with("scaling_min_freq") {
+                do_unmount(dest);
+                let cache = format!(
+                    "/cache/.auriya_ceiling_{}",
+                    dest.replace('/', "_").trim_end_matches('_')
+                );
+                let _ = fs::remove_file(&cache);
+                info!(target: "auriya::ceiling", "Cleaned stale ceiling mount: {}", dest);
+            }
+        }
+    }
+
+    // 2. Reset any freq node still marked read-only (0o444). Normal
+    //    scaling_{max,min}_freq nodes are writable; 0o444 is the signature
+    //    of our freeze whose bind was already torn down but whose value and
+    //    permissions persisted (the cause of a cluster stuck low after a
+    //    crash or a buggy restore). Reset perms and value to the hardware
+    //    limit so the cluster scales freely again.
+    for core in 0..16 {
+        for kind in ["scaling_max_freq", "scaling_min_freq"] {
+            let p = format!("/sys/devices/system/cpu/cpu{core}/cpufreq/{kind}");
+            let Ok(meta) = fs::metadata(&p) else {
+                continue;
+            };
+            if meta.permissions().mode() & 0o777 == 0o444 {
+                let _ = fs::set_permissions(&p, PermissionsExt::from_mode(0o644));
+                if let Some(limit) = hardware_limit_for(&p) {
+                    let _ = fs::write(&p, &limit);
+                }
+                info!(target: "auriya::ceiling", "Reset stale read-only freq node: {p}");
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CeilingConfig {
     pub default: CeilingLevel,
@@ -152,6 +216,10 @@ impl Default for CeilingConfig {
 struct MountEntry {
     path: String,
     mount_point: String,
+    /// Whether the mount-bind actually succeeded. When it fails we still
+    /// wrote the capped value to the real node, so restore must reset it
+    /// regardless.
+    bound: bool,
 }
 
 pub struct CeilingController {
@@ -168,6 +236,11 @@ impl Default for CeilingController {
 
 impl CeilingController {
     pub fn new() -> Self {
+        // A previous daemon that died mid-ceiling (crash, kill -9, update)
+        // leaves mount-binds over scaling_{max,min}_freq nodes. Tear any
+        // down and reset the nodes so we don't inherit a stuck cluster.
+        cleanup_stale_mounts();
+
         let layout = CoreLayout::detect();
         if !layout.all_core_ids.is_empty() {
             info!(
@@ -297,24 +370,40 @@ impl CeilingController {
         let _ = fs::write(path, &value_str);
         let _ = fs::set_permissions(path, PermissionsExt::from_mode(0o444));
         let _ = fs::write(&mount_point, &value_str);
-        if do_mount_bind(&mount_point, path) {
+        let bound = do_mount_bind(&mount_point, path);
+        if bound {
             debug!(target: "auriya::ceiling", "Froze {} = {} kHz", path, value_str);
-            self.mounts.push(MountEntry {
-                path: path.to_string(),
-                mount_point,
-            });
         } else {
             let _ = fs::set_permissions(path, PermissionsExt::from_mode(0o644));
             warn!(target: "auriya::ceiling", "Mount-bind failed for {}, freq cap active without bind", path);
         }
+        // Track the path either way: even without a bind we overwrote the
+        // real node and must reset it on restore.
+        self.mounts.push(MountEntry {
+            path: path.to_string(),
+            mount_point,
+            bound,
+        });
     }
 
     pub fn restore(&mut self) {
         for entry in self.mounts.drain(..) {
             let _ = fs::set_permissions(&entry.path, PermissionsExt::from_mode(0o644));
-            do_unmount(&entry.path);
+            if entry.bound {
+                do_unmount(&entry.path);
+            }
             let _ = fs::remove_file(&entry.mount_point);
-            debug!(target: "auriya::ceiling", "Unmounted {}", entry.path);
+            // Unmounting only reveals the real node, which still holds the
+            // capped value we wrote before binding. Reset it to the
+            // hardware limit so the governor/powerHAL can scale freely
+            // again — otherwise the cluster stays stuck (e.g. little at
+            // 300 MHz after screen-off → on).
+            if let Some(limit) = hardware_limit_for(&entry.path) {
+                let _ = fs::write(&entry.path, &limit);
+                debug!(target: "auriya::ceiling", "Restored {} = {} kHz", entry.path, limit);
+            } else {
+                debug!(target: "auriya::ceiling", "Unmounted {}", entry.path);
+            }
         }
         self.current_level = None;
     }
