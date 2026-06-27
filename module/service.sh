@@ -13,6 +13,53 @@ AURIYA_LOG="$LOGDIR/daemon.log"
 COMPANION_LOG="$LOGDIR/companion.log"
 SOCK="/dev/socket/auriya.sock"
 
+_REMOVE_FLAG="/data/adb/modules/auriya/remove"
+[ ! -f "$_REMOVE_FLAG" ] && _REMOVE_FLAG="/data/adb/modules_update/auriya/remove"
+
+_kill_daemon() {
+  local pid
+  pid=$(pidof auriya 2>/dev/null)
+  [ -z "$pid" ] && return 0
+  kill -TERM "$pid" 2>/dev/null
+  local i=0
+  while [ $i -lt 5 ]; do
+    pidof auriya >/dev/null 2>&1 || return 0
+    sleep 1
+    i=$((i + 1))
+  done
+  kill -KILL "$pid" 2>/dev/null
+}
+
+_kill_companion() {
+  local pid
+  pid=$(pgrep -f AuriyaSysMon 2>/dev/null)
+  [ -z "$pid" ] && return 0
+  kill -TERM "$pid" 2>/dev/null
+  local i=0
+  while [ $i -lt 5 ]; do
+    pgrep -f AuriyaSysMon >/dev/null 2>&1 || return 0
+    sleep 1
+    i=$((i + 1))
+  done
+  kill -KILL "$pid" 2>/dev/null
+}
+
+_cleanup_all() {
+  log -t auriya "Remove flag detected; cleaning up..."
+  echo "[$(date)] Remove flag detected; cleaning up..." >>"$AURIYA_LOG"
+  _kill_daemon
+  _kill_companion
+  rm -f /dev/socket/auriya.sock
+  rm -rf /data/adb/.config/auriya
+  rm -rf /data/adb/auriya
+  rm -f /data/adb/ksu/bin/auriya /data/adb/ap/bin/auriya
+  rm -f /data/adb/ksu/bin/auriyactl /data/adb/ap/bin/auriyactl
+  pm uninstall dev.auriya.app 2>/dev/null
+  pm uninstall dev.auriya.app.debug 2>/dev/null
+}
+
+[ -f "$_REMOVE_FLAG" ] && { _cleanup_all; exit 0; }
+
 mkdir -p "$MODULE_CONFIG" "$LOGDIR"
 chmod 0755 "$MODULE_CONFIG" "$LOGDIR"
 
@@ -77,6 +124,17 @@ fi
 # Force a fresh status file so the daemon's await loop only succeeds
 # once the companion has actually produced fresh data this boot.
 rm -f "$STATUS_FILE" "$COMPANION_LOCK"
+
+(
+  while true; do
+    sleep 30
+    _R="/data/adb/modules/auriya/remove"
+    [ ! -f "$_R" ] && _R="/data/adb/modules_update/auriya/remove"
+    [ ! -f "$_R" ] && continue
+    _cleanup_all
+    break
+  done
+) &
 
 # Rotate companion log if it grew past 1MB.
 if [ -f "$COMPANION_LOG" ]; then
