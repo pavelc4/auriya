@@ -95,41 +95,51 @@ pub fn read_core_max_freq(core: usize) -> Option<u32> {
 }
 
 pub fn classify_cores(cores: &[usize]) -> (u64, u64, u64) {
-    let mut little_mask = 0u64;
-    let mut big_mask = 0u64;
-    let mut prime_mask = 0u64;
-
-    let mut core_freqs: Vec<(usize, u32)> = cores
+    let core_freqs: Vec<(usize, u32)> = cores
         .iter()
         .filter_map(|&core| read_core_max_freq(core).map(|freq| (core, freq)))
         .collect();
 
     if core_freqs.is_empty() {
-        for &core in cores {
-            big_mask |= 1 << core;
-        }
+        let big_mask = cores.iter().fold(0u64, |m, &c| m | (1u64 << c));
         return (0, big_mask, 0);
     }
 
-    core_freqs.sort_by_key(|c| std::cmp::Reverse(c.1));
+    classify_from_freqs(&core_freqs)
+}
 
-    let prime_core = core_freqs[0].0;
-    prime_mask |= 1 << prime_core;
+/// Pure classification of `(core, hw_max_freq)` pairs into
+/// `(little, big, prime)` bitmasks. Split out from [`classify_cores`] so the
+/// tier logic can be unit-tested without sysfs. Assumes a non-empty input.
+fn classify_from_freqs(core_freqs: &[(usize, u32)]) -> (u64, u64, u64) {
+    let mut little_mask = 0u64;
+    let mut big_mask = 0u64;
+    let mut prime_mask = 0u64;
 
-    let median_freq = if core_freqs.len() > 2 {
-        core_freqs[core_freqs.len() / 2].1
-    } else {
-        0
-    };
+    // Group by distinct hardware max frequency (a robust proxy for the
+    // cpufreq cluster). Highest tier = prime, lowest = little, anything in
+    // between = big. Using distinct *tiers* rather than a median avoids the
+    // classic 4+3+1 failure where the little tier ties the median and gets
+    // misclassified as big (which then caps the whole little policy when
+    // the ceiling freezes a "big" core that actually shares the little
+    // policy).
+    let mut tiers: Vec<u32> = core_freqs.iter().map(|&(_, f)| f).collect();
+    tiers.sort_unstable_by(|a, b| b.cmp(a));
+    tiers.dedup();
+    let n_tiers = tiers.len();
+    let top = tiers[0];
+    let bottom = tiers[n_tiers - 1];
 
-    for &(core, freq) in &core_freqs {
-        if core == prime_core {
-            continue;
-        }
-        if freq >= median_freq && freq >= 1_000_000 {
-            big_mask |= 1 << core;
+    for &(core, freq) in core_freqs {
+        let bit = 1u64 << core;
+        if n_tiers >= 3 && freq == top {
+            prime_mask |= bit;
+        } else if n_tiers >= 2 && freq == bottom {
+            little_mask |= bit;
         } else {
-            little_mask |= 1 << core;
+            // Single-tier (all big), the middle tier of a 3+ layout, or the
+            // top tier of a 2-tier layout (no dedicated prime).
+            big_mask |= bit;
         }
     }
 
@@ -215,4 +225,80 @@ pub fn set_process_priority(pid: i32) -> Result<()> {
 
     info!(target: "auriya:cpu", "Process priority set for PID {}", pid);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::classify_from_freqs;
+
+    /// Helper: turn a bitmask into a sorted Vec of core ids for assertions.
+    fn ids(mask: u64) -> Vec<usize> {
+        (0..64usize).filter(|&i| (mask >> i) & 1 == 1).collect()
+    }
+
+    #[test]
+    fn classifies_4_3_1_topology() {
+        // Snapdragon-style: cpu0-3 @1.8GHz, cpu4-6 @2.5GHz, cpu7 @2.9GHz.
+        // Regression: the little tier used to tie the median and land in big.
+        let freqs = [
+            (0, 1_804_800),
+            (1, 1_804_800),
+            (2, 1_804_800),
+            (3, 1_804_800),
+            (4, 2_496_000),
+            (5, 2_496_000),
+            (6, 2_496_000),
+            (7, 2_918_400),
+        ];
+        let (little, big, prime) = classify_from_freqs(&freqs);
+        assert_eq!(ids(little), vec![0, 1, 2, 3], "little");
+        assert_eq!(ids(big), vec![4, 5, 6], "big");
+        assert_eq!(ids(prime), vec![7], "prime");
+    }
+
+    #[test]
+    fn classifies_4_4_two_tier_no_prime() {
+        let freqs = [
+            (0, 1_800_000),
+            (1, 1_800_000),
+            (2, 1_800_000),
+            (3, 1_800_000),
+            (4, 2_400_000),
+            (5, 2_400_000),
+            (6, 2_400_000),
+            (7, 2_400_000),
+        ];
+        let (little, big, prime) = classify_from_freqs(&freqs);
+        assert_eq!(ids(little), vec![0, 1, 2, 3]);
+        assert_eq!(ids(big), vec![4, 5, 6, 7]);
+        assert_eq!(ids(prime), Vec::<usize>::new());
+    }
+
+    #[test]
+    fn classifies_single_tier_all_big() {
+        let freqs = [(0, 2_000_000), (1, 2_000_000), (2, 2_000_000), (3, 2_000_000)];
+        let (little, big, prime) = classify_from_freqs(&freqs);
+        assert_eq!(ids(little), Vec::<usize>::new());
+        assert_eq!(ids(big), vec![0, 1, 2, 3]);
+        assert_eq!(ids(prime), Vec::<usize>::new());
+    }
+
+    #[test]
+    fn classifies_1_3_4_topology() {
+        // 4 little, 3 big, 1 prime (different counts, same 3-tier shape).
+        let freqs = [
+            (0, 2_000_000),
+            (1, 2_000_000),
+            (2, 2_000_000),
+            (3, 2_000_000),
+            (4, 2_800_000),
+            (5, 2_800_000),
+            (6, 2_800_000),
+            (7, 3_200_000),
+        ];
+        let (little, big, prime) = classify_from_freqs(&freqs);
+        assert_eq!(ids(little), vec![0, 1, 2, 3]);
+        assert_eq!(ids(big), vec![4, 5, 6]);
+        assert_eq!(ids(prime), vec![7]);
+    }
 }
