@@ -15,14 +15,14 @@ private val provider = GoogleFont.Provider(
     certificates = R.array.com_google_android_gms_fonts_certs,
 )
 
-private val robotoFlex = GoogleFont("Roboto Flex")
+private val montserrat = GoogleFont("Montserrat")
 
 internal val AuriyaFontFamily = FontFamily(
-    Font(googleFont = robotoFlex, fontProvider = provider, weight = FontWeight.Normal),
-    Font(googleFont = robotoFlex, fontProvider = provider, weight = FontWeight.Medium),
-    Font(googleFont = robotoFlex, fontProvider = provider, weight = FontWeight.SemiBold),
-    Font(googleFont = robotoFlex, fontProvider = provider, weight = FontWeight.Bold),
-    Font(googleFont = robotoFlex, fontProvider = provider, weight = FontWeight.ExtraBold),
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.Normal),
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.Medium),
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.SemiBold),
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.Bold),
+    Font(googleFont = montserrat, fontProvider = provider, weight = FontWeight.ExtraBold),
 )
 
 internal val AuriyaTypography = Typography(
