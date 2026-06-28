@@ -16,6 +16,7 @@
 # manifest's android:name=".AuriyaApplication" still looks in dev.auriya.app.
 -keep class dev.auriya.app.AuriyaApplication
 -keep class dev.auriya.app.MainActivity
+-keep class dev.auriya.app.widget.AuriyaWidgetReceiver
 
 # Keep Auriya's own data classes so reflection-based serialization
 # (if and when it lands) still works.
@@ -49,3 +50,11 @@
 -keepclassmembers class kotlinx.coroutines.** {
     volatile <fields>;
 }
+
+# WorkManager and Room proguard rules
+-keep class androidx.work.** { *; }
+-keep class androidx.room.** { *; }
+-keep class * extends androidx.work.impl.WorkDatabase { *; }
+-keep class * extends androidx.room.RoomDatabase { *; }
+-dontwarn androidx.work.**
+-dontwarn androidx.room.**
