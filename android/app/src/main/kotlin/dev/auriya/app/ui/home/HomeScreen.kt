@@ -241,7 +241,7 @@ private fun MiniCardRow(
             icon = Icons.Outlined.SportsEsports,
             value = gameCount.toString(),
             label = "Games optimized",
-            valueColor = MaterialTheme.colorScheme.primary,
+            accentColor = MaterialTheme.colorScheme.primary,
             onClick = onGamesClick,
         )
         MiniCard(
@@ -251,7 +251,7 @@ private fun MiniCardRow(
             icon = Icons.Outlined.Tune,
             value = profileShort,
             label = "Active profile",
-            valueColor = MaterialTheme.colorScheme.tertiary,
+            accentColor = MaterialTheme.colorScheme.tertiary,
             onClick = onProfileClick,
         )
     }
@@ -263,40 +263,57 @@ private fun MiniCard(
     icon: ImageVector,
     value: String,
     label: String,
-    valueColor: androidx.compose.ui.graphics.Color,
+    accentColor: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(AuriyaTokens.rounding.xl),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier.clip(RoundedCornerShape(AuriyaTokens.rounding.xl)).clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = modifier
+            .clip(RoundedCornerShape(24.dp))
+            .clickable(onClick = onClick)
     ) {
         Column(
-            modifier = Modifier.padding(AuriyaTokens.padding.normal),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest),
+            modifier = Modifier.padding(12.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(AuriyaTokens.iconSize.medium),
-            )
-            // Both cards share headlineMedium + ExtraBold so the row visually
-            // balances even when one cell is a number ("12") and the other
-            // is short text ("Balance"). single-line ellipsis stops a long
-            // profile name from breaking the row height.
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = valueColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            // Upper colored pill container
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(
+                        color = accentColor.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(16.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Lower text info - title first, then value
             Text(
                 text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
                 style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
