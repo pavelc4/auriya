@@ -327,8 +327,6 @@ private fun SystemMetricsList(systemInfo: SystemInfo) {
     val rows = remember(systemInfo) {
         listOf(
             MetricRow(Icons.Outlined.Memory, "Memory", systemInfo.ram),
-            MetricRow(Icons.Outlined.Thermostat, "Thermal", systemInfo.temp),
-            MetricRow(Icons.Outlined.BatteryFull, "Battery", systemInfo.battery),
             MetricRow(Icons.Outlined.Settings, "Kernel", systemInfo.kernel),
             MetricRow(Icons.Outlined.Speed, "Chipset", systemInfo.chipset),
         )
