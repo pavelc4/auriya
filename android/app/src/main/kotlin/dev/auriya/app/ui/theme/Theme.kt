@@ -22,22 +22,42 @@ fun AuriyaTheme(
 ) {
     val seedColor = prefs?.seedColor ?: 0xFFFFB68E.toInt()
     val useDynamic = prefs?.useDynamicColor ?: true
+    val darkThemeMode = prefs?.darkThemeMode ?: dev.auriya.app.data.DarkThemeMode.FOLLOW_SYSTEM
+    val isAmoled = prefs?.isAmoled ?: false
+
+    val isDark = when (darkThemeMode) {
+        dev.auriya.app.data.DarkThemeMode.FOLLOW_SYSTEM -> darkTheme
+        dev.auriya.app.data.DarkThemeMode.LIGHT -> false
+        dev.auriya.app.data.DarkThemeMode.DARK -> true
+    }
 
     val colorScheme = when {
         useDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context)
-            else dynamicLightColorScheme(context)
+            val baseScheme = if (isDark) dynamicDarkColorScheme(context)
+                             else dynamicLightColorScheme(context)
+            if (isDark && isAmoled) {
+                baseScheme.copy(
+                    background = Color.Black,
+                    surface = Color.Black,
+                    surfaceContainer = Color.Black,
+                    surfaceContainerLow = Color(0xFF0F0F0F),
+                    surfaceContainerHigh = Color(0xFF1F1F1F),
+                    surfaceContainerLowest = Color.Black,
+                )
+            } else {
+                baseScheme
+            }
         }
         else -> rememberDynamicColorScheme(
             seedColor = Color(seedColor),
-            isDark = darkTheme,
-            isAmoled = false,
+            isDark = isDark,
+            isAmoled = isDark && isAmoled,
             style = PaletteStyle.TonalSpot,
         )
     }
 
-    val semanticColors = if (darkTheme) DarkSemanticColors else LightSemanticColors
+    val semanticColors = if (isDark) DarkSemanticColors else LightSemanticColors
 
     CompositionLocalProvider(LocalAuriyaSemanticColors provides semanticColors) {
         MaterialTheme(

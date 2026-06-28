@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.auriya.app.data.NavMode
+import dev.auriya.app.data.NavType
+import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.data.ThemePrefs
 import dev.auriya.app.data.ThemeRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,4 +25,8 @@ class ThemeViewModel(app: Application) : AndroidViewModel(app) {
     fun setSeedColor(color: Int) = viewModelScope.launch { repo.setSeedColor(color) }
     fun setUseDynamicColor(enabled: Boolean) = viewModelScope.launch { repo.setUseDynamicColor(enabled) }
     fun setNavMode(mode: NavMode) = viewModelScope.launch { repo.setNavMode(mode) }
+    fun setNavType(type: NavType) = viewModelScope.launch { repo.setNavType(type) }
+    fun setCornerRadius(radius: Int) = viewModelScope.launch { repo.setCornerRadius(radius) }
+    fun setDarkThemeMode(mode: DarkThemeMode) = viewModelScope.launch { repo.setDarkThemeMode(mode) }
+    fun setAmoled(enabled: Boolean) = viewModelScope.launch { repo.setAmoled(enabled) }
 }

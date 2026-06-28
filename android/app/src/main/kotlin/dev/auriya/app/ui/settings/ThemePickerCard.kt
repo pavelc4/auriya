@@ -1,8 +1,10 @@
 package dev.auriya.app.ui.settings
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -19,10 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.auriya.app.data.NavMode
+import dev.auriya.app.data.NavType
+import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.ui.components.AuriyaBottomBar
 import dev.auriya.app.ui.components.AuriyaNavItem
 import dev.auriya.app.ui.theme.AuriyaTokens
@@ -43,9 +49,17 @@ fun ThemePickerCard(
     seedColor: Int,
     useDynamicColor: Boolean,
     navMode: NavMode,
+    navType: NavType,
+    cornerRadius: Int,
+    darkThemeMode: DarkThemeMode,
+    isAmoled: Boolean,
     onSeedChange: (Int) -> Unit,
     onDynamicToggle: (Boolean) -> Unit,
     onNavModeChange: (NavMode) -> Unit,
+    onNavTypeChange: (NavType) -> Unit,
+    onCornerRadiusChange: (Int) -> Unit,
+    onDarkModeChange: (DarkThemeMode) -> Unit,
+    onAmoledToggle: (Boolean) -> Unit,
 ) {
     var mockSelectedIndex by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) {
@@ -108,10 +122,66 @@ fun ThemePickerCard(
             ) {
                 items(PALETTE) { color ->
                     SwatchDot(
-                        color = Color(color),
+                        seedColor = Color(color),
                         selected = !useDynamicColor && color == seedColor,
                         onClick = { onSeedChange(color) },
                     )
+                }
+            }
+
+            Spacer(Modifier.height(AuriyaTokens.padding.small))
+
+            Text(
+                text = "Dark Theme Settings",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = AuriyaTokens.padding.small),
+            )
+            
+            SegmentedControl(
+                items = listOf("System", "Light", "Dark"),
+                selectedIndex = when (darkThemeMode) {
+                    DarkThemeMode.FOLLOW_SYSTEM -> 0
+                    DarkThemeMode.LIGHT -> 1
+                    DarkThemeMode.DARK -> 2
+                },
+                onItemSelected = { index ->
+                    val mode = when (index) {
+                        0 -> DarkThemeMode.FOLLOW_SYSTEM
+                        1 -> DarkThemeMode.LIGHT
+                        2 -> DarkThemeMode.DARK
+                        else -> DarkThemeMode.FOLLOW_SYSTEM
+                    }
+                    onDarkModeChange(mode)
+                }
+            )
+
+            val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+            val isDarkActive = when (darkThemeMode) {
+                DarkThemeMode.FOLLOW_SYSTEM -> isSystemDark
+                DarkThemeMode.LIGHT -> false
+                DarkThemeMode.DARK -> true
+            }
+
+            AnimatedVisibility(visible = isDarkActive) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = AuriyaTokens.padding.smaller),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "AMOLED Black",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = "Use pure black for dark backgrounds",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = isAmoled, onCheckedChange = onAmoledToggle)
                 }
             }
 
@@ -147,34 +217,159 @@ fun ThemePickerCard(
                     FloatingMockup(mockSelectedIndex)
                 }
             }
+
+            Text(
+                text = "Bottom Navigation Type",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = AuriyaTokens.padding.small),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = AuriyaTokens.padding.smaller),
+                horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smaller),
+            ) {
+                NavigationStyleCard(
+                    label = "Legacy",
+                    selected = navType == NavType.LEGACY,
+                    onClick = { onNavTypeChange(NavType.LEGACY) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    LegacyMockup(mockSelectedIndex)
+                }
+
+                NavigationStyleCard(
+                    label = "Modern",
+                    selected = navType == NavType.MODERN,
+                    onClick = { onNavTypeChange(NavType.MODERN) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    ModernMockup(mockSelectedIndex)
+                }
+            }
+
+            Text(
+                text = "Corner Radius",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = AuriyaTokens.padding.small),
+            )
+            Text(
+                text = "Customize navigation bar rounding",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Slider(
+                    value = cornerRadius.toFloat(),
+                    onValueChange = { onCornerRadiusChange(it.toInt()) },
+                    valueRange = 0f..32f,
+                    steps = 32,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = "${cornerRadius}dp",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(48.dp),
+                    textAlign = TextAlign.End
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun SwatchDot(color: Color, selected: Boolean, onClick: () -> Unit) {
+private fun SwatchDot(seedColor: Color, selected: Boolean, onClick: () -> Unit) {
+    val primary = seedColor
+    val secondary = Color(android.graphics.Color.HSVToColor(FloatArray(3).apply {
+        android.graphics.Color.colorToHSV(primary.toArgb(), this)
+        this[0] = (this[0] + 30) % 360f
+        this[1] = (this[1] * 0.8f).coerceIn(0f, 1f)
+    }))
+    val tertiary = Color(android.graphics.Color.HSVToColor(FloatArray(3).apply {
+        android.graphics.Color.colorToHSV(primary.toArgb(), this)
+        this[0] = (this[0] + 120) % 360f
+        this[1] = (this[1] * 0.9f).coerceIn(0f, 1f)
+    }))
+    val neutral = Color(android.graphics.Color.HSVToColor(FloatArray(3).apply {
+        android.graphics.Color.colorToHSV(primary.toArgb(), this)
+        this[1] = (this[1] * 0.2f).coerceIn(0f, 1f)
+        this[2] = 0.5f
+    }))
+
     Box(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(color)
-            .let { if (selected) it.then(Modifier.background(color)) else it },
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Surface(
-            onClick = onClick,
-            shape = CircleShape,
-            color = Color.Transparent,
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            if (selected) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = "Selected",
-                        tint = Color.Black.copy(alpha = 0.8f),
-                    )
-                }
+        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+            drawArc(color = primary, startAngle = 180f, sweepAngle = 90f, useCenter = true)
+            drawArc(color = secondary, startAngle = 270f, sweepAngle = 90f, useCenter = true)
+            drawArc(color = tertiary, startAngle = 0f, sweepAngle = 90f, useCenter = true)
+            drawArc(color = neutral, startAngle = 90f, sweepAngle = 90f, useCenter = true)
+        }
+
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = "Selected",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SegmentedControl(
+    items: List<String>,
+    selectedIndex: Int,
+    onItemSelected: (Int) -> Unit,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.3f),
+    activeColor: Color = MaterialTheme.colorScheme.surface,
+    inactiveColor: Color = Color.Transparent
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(containerColor)
+            .padding(4.dp)
+    ) {
+        items.forEachIndexed { index, title ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (selectedIndex == index) activeColor else inactiveColor)
+                    .clickable { onItemSelected(index) }
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium
+                    ),
+                    color = if (selectedIndex == index) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -318,6 +513,64 @@ private fun FloatingMockup(selectedIndex: Int) {
                             .background(color)
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LegacyMockup(selectedIndex: Int) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(3) { index ->
+                val isActive = index == selectedIndex
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(if (isActive) MaterialTheme.colorScheme.primary else Color(0xFF555555))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModernMockup(selectedIndex: Int) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(3) { index ->
+                val isActive = index == selectedIndex
+                val scale by androidx.compose.animation.core.animateFloatAsState(
+                    targetValue = if (isActive) 1.2f else 1.0f,
+                    animationSpec = androidx.compose.animation.core.spring(
+                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                        stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+                    ),
+                    label = "mockup-scale"
+                )
+                Box(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(if (isActive) MaterialTheme.colorScheme.primary else Color(0xFF555555))
+                )
             }
         }
     }
