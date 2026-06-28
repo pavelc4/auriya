@@ -157,5 +157,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.libsu.core)
     implementation(libs.libsu.io)
+    implementation(libs.androidx.glance.appwidget)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
