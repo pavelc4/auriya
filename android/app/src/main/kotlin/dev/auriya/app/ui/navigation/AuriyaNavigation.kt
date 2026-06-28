@@ -131,7 +131,10 @@ fun AuriyaNavigation(
                         ),
                 ) {
                     when (activeTab) {
-                        NavigationTab.HOME -> HomeScreen(viewModel = viewModel)
+                        NavigationTab.HOME -> HomeScreen(
+                            viewModel = viewModel,
+                            onNavigateToGames = { activeTab = NavigationTab.GAMES }
+                        )
                         NavigationTab.GAMES -> {
                             val current = selectedGameProfile
                             if (current != null) {

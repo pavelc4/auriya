@@ -3,12 +3,15 @@ package dev.auriya.app.ui.home
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,12 +34,23 @@ import dev.auriya.app.viewmodel.SystemInfo
 import dev.auriya.app.viewmodel.UiViewModel
 
 @Composable
-fun HomeScreen(viewModel: UiViewModel) {
+fun HomeScreen(viewModel: UiViewModel, onNavigateToGames: () -> Unit) {
     val systemInfo by viewModel.systemInfo.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
     val hasRoot by viewModel.hasRoot.collectAsState()
     val isDaemonRunning = systemInfo.pid != null && systemInfo.pid != "null"
     val context = LocalContext.current
+    var showProfileDialog by remember { mutableStateOf(false) }
+
+    if (showProfileDialog) {
+        ProfileSelectionDialog(
+            currentProfile = systemInfo.profile,
+            onSelect = { mode ->
+                viewModel.updateProfile(mode)
+            },
+            onDismiss = { showProfileDialog = false }
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -49,7 +63,14 @@ fun HomeScreen(viewModel: UiViewModel) {
             item { RootDeniedBanner() }
         }
         item { HeroCard(isDaemonRunning = isDaemonRunning, systemInfo = systemInfo) }
-        item { MiniCardRow(profile = systemInfo.profile, gameCount = gameList.games.size) }
+        item {
+            MiniCardRow(
+                profile = systemInfo.profile,
+                gameCount = gameList.games.size,
+                onGamesClick = onNavigateToGames,
+                onProfileClick = { showProfileDialog = true }
+            )
+        }
         item { SystemMetricsList(systemInfo = systemInfo) }
         item {
             LinkRow(
@@ -193,7 +214,12 @@ private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
 }
 
 @Composable
-private fun MiniCardRow(profile: String, gameCount: Int) {
+private fun MiniCardRow(
+    profile: String,
+    gameCount: Int,
+    onGamesClick: () -> Unit,
+    onProfileClick: () -> Unit
+) {
     // Profile names like "Performance" / "Powersave" overflow the
     // narrow MiniCard. Show a compact label instead — full value lives
     // in the Settings screen anyway.
@@ -216,6 +242,7 @@ private fun MiniCardRow(profile: String, gameCount: Int) {
             value = gameCount.toString(),
             label = "Games optimized",
             valueColor = MaterialTheme.colorScheme.primary,
+            onClick = onGamesClick,
         )
         MiniCard(
             modifier = Modifier
@@ -225,6 +252,7 @@ private fun MiniCardRow(profile: String, gameCount: Int) {
             value = profileShort,
             label = "Active profile",
             valueColor = MaterialTheme.colorScheme.tertiary,
+            onClick = onProfileClick,
         )
     }
 }
@@ -236,11 +264,12 @@ private fun MiniCard(
     value: String,
     label: String,
     valueColor: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
 ) {
     Surface(
         shape = RoundedCornerShape(AuriyaTokens.rounding.xl),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier,
+        modifier = modifier.clip(RoundedCornerShape(AuriyaTokens.rounding.xl)).clickable(onClick = onClick),
     ) {
         Column(
             modifier = Modifier.padding(AuriyaTokens.padding.normal),
@@ -379,6 +408,131 @@ private fun LinkRow(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.outline,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileSelectionDialog(
+    currentProfile: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Select Performance Preset",
+                fontWeight = FontWeight.ExtraBold,
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ProfileDialogItem(
+                    title = "Power Save",
+                    description = "Limits frequencies to maximize battery life.",
+                    icon = Icons.Outlined.Eco,
+                    color = MaterialTheme.colorScheme.primary,
+                    selected = currentProfile.lowercase() == "powersave" || currentProfile == "3",
+                    onClick = {
+                        onSelect("3")
+                        onDismiss()
+                    }
+                )
+                ProfileDialogItem(
+                    title = "Balance",
+                    description = "Dynamic optimization for everyday use.",
+                    icon = Icons.Outlined.Tune,
+                    color = MaterialTheme.colorScheme.secondary,
+                    selected = currentProfile.lowercase() == "balance" || currentProfile == "2" || currentProfile.isEmpty() || currentProfile == "unknown",
+                    onClick = {
+                        onSelect("2")
+                        onDismiss()
+                    }
+                )
+                ProfileDialogItem(
+                    title = "Performance",
+                    description = "Enables full potential for heavy gaming.",
+                    icon = Icons.Outlined.Bolt,
+                    color = MaterialTheme.colorScheme.error,
+                    selected = currentProfile.lowercase() == "performance" || currentProfile == "1",
+                    onClick = {
+                        onSelect("1")
+                        onDismiss()
+                    }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+@Composable
+private fun ProfileDialogItem(
+    title: String,
+    description: String,
+    icon: ImageVector,
+    color: androidx.compose.ui.graphics.Color,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = if (selected) color.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainerLow,
+        border = if (selected) BorderStroke(1.5.dp, color) else null,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(color.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (selected) color else MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp
+                )
+            }
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
