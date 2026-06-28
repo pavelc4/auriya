@@ -14,6 +14,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -42,7 +44,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.auriya.app.data.NavMode
+import dev.auriya.app.data.NavType
 import dev.auriya.app.ui.theme.AuriyaTokens
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.graphics.graphicsLayer
 
 data class AuriyaNavItem(
     val label: String,
@@ -55,10 +69,16 @@ fun AuriyaBottomBar(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     mode: NavMode,
+    type: NavType,
+    cornerRadius: Int,
 ) {
-    when (mode) {
-        NavMode.STANDARD -> StandardBar(items, selectedIndex, onSelect)
-        NavMode.FLOATING -> FloatingPillBar(items, selectedIndex, onSelect)
+    if (type == NavType.MODERN) {
+        ModernBar(items, selectedIndex, onSelect, mode, cornerRadius)
+    } else {
+        when (mode) {
+            NavMode.STANDARD -> StandardBar(items, selectedIndex, onSelect)
+            NavMode.FLOATING -> FloatingPillBar(items, selectedIndex, onSelect)
+        }
     }
 }
 
@@ -201,5 +221,196 @@ private fun PillNavItem(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ModernBar(
+    items: List<AuriyaNavItem>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    mode: NavMode,
+    cornerRadius: Int,
+) {
+    when (mode) {
+        NavMode.STANDARD -> ModernStandardBar(items, selectedIndex, onSelect, cornerRadius)
+        NavMode.FLOATING -> ModernFloatingBar(items, selectedIndex, onSelect, cornerRadius)
+    }
+}
+
+@Composable
+private fun ModernStandardBar(
+    items: List<AuriyaNavItem>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    cornerRadius: Int,
+) {
+    Surface(
+        shape = RoundedCornerShape(
+            topStart = cornerRadius.dp,
+            topEnd = cornerRadius.dp,
+            bottomStart = 0.dp,
+            bottomEnd = 0.dp
+        ),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 4.dp,
+        shadowElevation = 8.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                .height(80.dp)
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items.forEachIndexed { index, item ->
+                val isSelected = selectedIndex == index
+                ModernNavItem(
+                    item = item,
+                    selected = isSelected,
+                    onClick = { onSelect(index) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModernFloatingBar(
+    items: List<AuriyaNavItem>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    cornerRadius: Int,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 28.dp, top = AuriyaTokens.padding.smaller),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(cornerRadius.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            tonalElevation = 4.dp,
+            shadowElevation = 16.dp,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .height(64.dp)
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items.forEachIndexed { index, item ->
+                    val isSelected = selectedIndex == index
+                    ModernNavItem(
+                        item = item,
+                        selected = isSelected,
+                        onClick = { onSelect(index) },
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModernNavItem(
+    item: AuriyaNavItem,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    
+    val iconScale by animateFloatAsState(
+        targetValue = if (selected) 1.18f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "modern-icon-scale"
+    )
+    val iconColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(durationMillis = 200),
+        label = "modern-icon-color"
+    )
+    val textColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(durationMillis = 200),
+        label = "modern-text-color"
+    )
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                onClick = onClick,
+                indication = null
+            )
+            .padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(64.dp, 32.dp)
+        ) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = selected,
+                enter = fadeIn(animationSpec = tween(150)) +
+                        scaleIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialScale = 0.7f
+                        ),
+                exit = fadeOut(animationSpec = tween(150)) +
+                        scaleOut(
+                            animationSpec = tween(150),
+                            targetScale = 0.7f
+                        )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                )
+            }
+
+            Icon(
+                imageVector = item.icon,
+                contentDescription = item.label,
+                tint = iconColor,
+                modifier = Modifier
+                    .size(24.dp)
+                    .graphicsLayer {
+                        scaleX = iconScale
+                        scaleY = iconScale
+                    }
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Text(
+            text = item.label,
+            color = textColor,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+        )
     }
 }

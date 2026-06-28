@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import dev.auriya.app.data.NavMode
+import dev.auriya.app.data.NavType
+import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.ui.components.AuriyaBottomBar
 import dev.auriya.app.ui.components.AuriyaNavItem
 import dev.auriya.app.ui.games.GameProfileScreen
@@ -85,6 +87,8 @@ fun AuriyaNavigation(
             val navItems = NavigationTab.entries.map { AuriyaNavItem(it.title, it.icon) }
             val selectedIndex = NavigationTab.entries.indexOf(activeTab)
             val navMode = themePrefs?.navMode ?: NavMode.STANDARD
+            val navType = themePrefs?.navType ?: NavType.LEGACY
+            val cornerRadius = themePrefs?.cornerRadius ?: 24
 
             Scaffold(
                 topBar = {
@@ -109,6 +113,8 @@ fun AuriyaNavigation(
                             selectedIndex = selectedIndex,
                             onSelect = { activeTab = NavigationTab.entries[it] },
                             mode = navMode,
+                            type = navType,
+                            cornerRadius = cornerRadius,
                         )
                     }
                 },
@@ -159,6 +165,10 @@ fun AuriyaNavigation(
                             onSeedChange = themeViewModel::setSeedColor,
                             onDynamicToggle = themeViewModel::setUseDynamicColor,
                             onNavModeChange = themeViewModel::setNavMode,
+                            onNavTypeChange = themeViewModel::setNavType,
+                            onCornerRadiusChange = themeViewModel::setCornerRadius,
+                            onDarkModeChange = themeViewModel::setDarkThemeMode,
+                            onAmoledToggle = themeViewModel::setAmoled,
                             onNavigateToLanguage = { subScreen = SubScreen.Language },
                             onNavigateToAbout = { subScreen = SubScreen.About },
                         )
@@ -170,11 +180,13 @@ fun AuriyaNavigation(
                                 .fillMaxWidth()
                                 .align(Alignment.BottomCenter)
                         ) {
-                            AuriyaBottomBar(
+                             AuriyaBottomBar(
                                 items = navItems,
                                 selectedIndex = selectedIndex,
                                 onSelect = { activeTab = NavigationTab.entries[it] },
                                 mode = navMode,
+                                type = navType,
+                                cornerRadius = cornerRadius,
                             )
                         }
                     }

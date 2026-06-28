@@ -22,6 +22,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.auriya.app.data.NavMode
+import dev.auriya.app.data.NavType
+import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.data.RootShell
 import dev.auriya.app.data.ThemePrefs
 import dev.auriya.app.ui.theme.AuriyaTokens
@@ -45,6 +47,10 @@ fun SettingsScreen(
     onSeedChange: (Int) -> Unit,
     onDynamicToggle: (Boolean) -> Unit,
     onNavModeChange: (NavMode) -> Unit,
+    onNavTypeChange: (NavType) -> Unit,
+    onCornerRadiusChange: (Int) -> Unit,
+    onDarkModeChange: (DarkThemeMode) -> Unit,
+    onAmoledToggle: (Boolean) -> Unit,
     onNavigateToLanguage: () -> Unit,
     onNavigateToAbout: () -> Unit,
 ) {
@@ -312,9 +318,17 @@ fun SettingsScreen(
                             seedColor = themePrefs?.seedColor ?: 0xFFFFB68E.toInt(),
                             useDynamicColor = themePrefs?.useDynamicColor ?: true,
                             navMode = themePrefs?.navMode ?: NavMode.STANDARD,
+                            navType = themePrefs?.navType ?: NavType.LEGACY,
+                            cornerRadius = themePrefs?.cornerRadius ?: 24,
+                            darkThemeMode = themePrefs?.darkThemeMode ?: DarkThemeMode.FOLLOW_SYSTEM,
+                            isAmoled = themePrefs?.isAmoled ?: false,
                             onSeedChange = onSeedChange,
                             onDynamicToggle = onDynamicToggle,
                             onNavModeChange = onNavModeChange,
+                            onNavTypeChange = onNavTypeChange,
+                            onCornerRadiusChange = onCornerRadiusChange,
+                            onDarkModeChange = onDarkModeChange,
+                            onAmoledToggle = onAmoledToggle,
                         )
                     }
                 }
