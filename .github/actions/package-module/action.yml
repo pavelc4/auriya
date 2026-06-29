@@ -42,21 +42,34 @@ runs:
         APPS_DIR="$BUILD_DIR/module/libs/companion"
         mkdir -p "$APPS_DIR"
 
-        APP_APK="android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
-        SERVICE_APK="android/service/build/outputs/apk/release/service-release.apk"
+        # upload-artifact v7 stores files relative to glob pattern, not workspace
+        # root.  Use find instead of hardcoded paths so we find the APKs regardless
+        # of how the artifact was laid down.
+        APP_APK=$(find . -name "app-arm64-v8a-release.apk" -type f 2>/dev/null | head -1)
+        if [ -z "$APP_APK" ]; then
+            APP_APK=$(find . -name "*-arm64-v8a-*.apk" -type f 2>/dev/null | head -1)
+        fi
+        if [ -z "$APP_APK" ]; then
+            APP_APK=$(find . -name "*.apk" -path "*/app/*" -type f 2>/dev/null | head -1)
+        fi
 
-        if [ -f "$APP_APK" ]; then
+        SERVICE_APK=$(find . -name "service-release.apk" -type f 2>/dev/null | head -1)
+        if [ -z "$SERVICE_APK" ]; then
+            SERVICE_APK=$(find . -name "*.apk" -path "*/service/*" -type f 2>/dev/null | head -1)
+        fi
+
+        if [ -n "$APP_APK" ]; then
             cp "$APP_APK" "$APPS_DIR/auriya-app.apk"
             echo "Packaged app APK ($(du -h "$APP_APK" | cut -f1))"
         else
-            echo "Warning: App APK not found at $APP_APK"
+            echo "Warning: App APK not found — companion dir will be incomplete"
         fi
 
-        if [ -f "$SERVICE_APK" ]; then
+        if [ -n "$SERVICE_APK" ]; then
             cp "$SERVICE_APK" "$APPS_DIR/service.apk"
             echo "Packaged service APK ($(du -h "$SERVICE_APK" | cut -f1))"
         else
-            echo "Warning: Service APK not found at $SERVICE_APK"
+            echo "Warning: Service APK not found — companion dir will be incomplete"
         fi
 
         # 4. Binary (aarch64 only)
