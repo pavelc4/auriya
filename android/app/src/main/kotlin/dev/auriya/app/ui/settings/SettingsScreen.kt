@@ -681,101 +681,184 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                     )
                 },
             )
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                thickness = 1.dp,
-            )
-            
-            // Slider 1: Text Size
-            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Text Size", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                    Text("${textSizeSp.toInt()} sp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                }
-                Slider(
-                    value = textSizeSp,
-                    onValueChange = {
-                        textSizeSp = it
-                        prefs.edit().putFloat("text_size_sp", it).apply()
-                    },
-                    onValueChangeFinished = { restartOverlay(context) },
-                    valueRange = 8f..20f,
-                    steps = 11
-                )
-            }
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                thickness = 1.dp,
-            )
+        }
 
-            // Slider 2: Background Opacity
-            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Background Opacity", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                    Text("${(bgOpacity * 100).toInt()}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                }
-                Slider(
-                    value = bgOpacity,
-                    onValueChange = {
-                        bgOpacity = it
-                        prefs.edit().putFloat("bg_opacity", it).apply()
-                    },
-                    onValueChangeFinished = { restartOverlay(context) },
-                    valueRange = 0f..1f
-                )
-            }
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                thickness = 1.dp,
-            )
+        // Standalone RV-style Slider Cards
+        SettingsSliderCard(
+            title = "Text Size",
+            description = "Scale of the floating overlay text",
+            icon = Icons.Filled.TextFields,
+            value = textSizeSp,
+            onValueChange = {
+                textSizeSp = it
+                prefs.edit().putFloat("text_size_sp", it).apply()
+            },
+            onValueChangeFinished = { restartOverlay(context) },
+            valueRange = 8f..20f,
+            displayValueFormatter = { "${it.toInt()} sp" },
+            valueLabel = "Font Size",
+            steps = 11
+        )
+        
+        SettingsSliderCard(
+            title = "Background Opacity",
+            description = "Opacity level of the backing block",
+            icon = Icons.Filled.Opacity,
+            value = bgOpacity,
+            onValueChange = {
+                bgOpacity = it
+                prefs.edit().putFloat("bg_opacity", it).apply()
+            },
+            onValueChangeFinished = { restartOverlay(context) },
+            valueRange = 0f..1f,
+            displayValueFormatter = { "${(it * 100).toInt()}%" },
+            valueLabel = "Opacity Level"
+        )
 
-            // Slider 3: Container Padding
-            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Container Padding", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                    Text("${paddingDp.toInt()} dp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                }
-                Slider(
-                    value = paddingDp,
-                    onValueChange = {
-                        paddingDp = it
-                        prefs.edit().putFloat("padding_dp", it).apply()
-                    },
-                    onValueChangeFinished = { restartOverlay(context) },
-                    valueRange = 4f..24f
-                )
-            }
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                thickness = 1.dp,
-            )
+        SettingsSliderCard(
+            title = "Container Padding",
+            description = "Thickness of internal margins",
+            icon = Icons.Filled.AspectRatio,
+            value = paddingDp,
+            onValueChange = {
+                paddingDp = it
+                prefs.edit().putFloat("padding_dp", it).apply()
+            },
+            onValueChangeFinished = { restartOverlay(context) },
+            valueRange = 4f..24f,
+            displayValueFormatter = { "${it.toInt()} dp" },
+            valueLabel = "Internal Margin"
+        )
 
-            // Slider 4: Corner Radius
-            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        SettingsSliderCard(
+            title = "Corner Radius",
+            description = "Rounding index of the overlay",
+            icon = Icons.Filled.RoundedCorner,
+            value = cornerRadiusDp,
+            onValueChange = {
+                cornerRadiusDp = it
+                prefs.edit().putFloat("corner_radius_dp", it).apply()
+            },
+            onValueChangeFinished = { restartOverlay(context) },
+            valueRange = 0f..32f,
+            displayValueFormatter = { "${it.toInt()} dp" },
+            valueLabel = "Edge Rounding"
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsSliderCard(
+    title: String,
+    description: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    displayValueFormatter: (Float) -> String,
+    valueLabel: String = "Current Value",
+    steps: Int = 0
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Corner Radius", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                    Text("${cornerRadiusDp.toInt()} dp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        text = valueLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = displayValueFormatter(value),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
+
                 Slider(
-                    value = cornerRadiusDp,
-                    onValueChange = {
-                        cornerRadiusDp = it
-                        prefs.edit().putFloat("corner_radius_dp", it).apply()
+                    value = value,
+                    onValueChange = onValueChange,
+                    onValueChangeFinished = onValueChangeFinished,
+                    valueRange = valueRange,
+                    steps = steps,
+                    modifier = Modifier.fillMaxWidth(),
+                    track = { _ ->
+                        val fraction = if (valueRange.endInclusive > valueRange.start) {
+                            ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
+                        } else {
+                            0f
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(fraction)
+                                    .fillMaxHeight()
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
+                        }
                     },
-                    onValueChangeFinished = { restartOverlay(context) },
-                    valueRange = 0f..32f
+                    thumb = {
+                        Spacer(modifier = Modifier.size(0.dp))
+                    }
                 )
             }
         }
