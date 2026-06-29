@@ -8,6 +8,7 @@ import dev.auriya.shared.config.TomlParser
 import dev.auriya.shared.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -75,6 +76,21 @@ class UiViewModel : ViewModel() {
                 loadAvailableGovernors()
                 loadConfigurations()
                 initSystemInfoStatic()
+            }
+        }
+    }
+
+    fun refresh(onComplete: () -> Unit = {}) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val root = RootShell.hasRoot()
+            _hasRoot.value = root
+            if (root) {
+                loadAvailableGovernors()
+                loadConfigurations()
+                runCatching { pollOnce() }
+            }
+            withContext(Dispatchers.Main) {
+                onComplete()
             }
         }
     }

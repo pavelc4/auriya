@@ -26,6 +26,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.ui.components.MaterialShapes
 import dev.auriya.app.ui.components.StatusBadge
@@ -136,71 +139,102 @@ fun GamesScreen(
         else inactiveApps.filter { it.label.contains(searchQuery, true) || it.packageName.contains(searchQuery, true) }
     }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = AuriyaTokens.padding.normal),
-        contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.largest * 3),
+    var isRefreshing by remember { mutableStateOf(false) }
+    val state = rememberPullToRefreshState()
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            viewModel.refresh {
+                isRefreshing = false
+            }
+        },
+        state = state,
+        indicator = {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp)
+            ) {
+                val progress = state.distanceFraction.coerceIn(0f, 1f)
+                if (isRefreshing || progress > 0f) {
+                    AuriyaLoadingIndicator(
+                        size = 56.dp * if (isRefreshing) 1f else progress,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+            }
+        },
+        modifier = Modifier.fillMaxSize()
     ) {
-        if (!bannerDismissed) {
-            item {
-                HeroBanner(
-                    onDismiss = {
-                        sharedPrefs.edit().putBoolean("games_banner_dismissed", true).apply()
-                        bannerDismissed = true
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = AuriyaTokens.padding.normal),
+            contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.largest * 3),
+        ) {
+            if (!bannerDismissed) {
+                item {
+                    HeroBanner(
+                        onDismiss = {
+                            sharedPrefs.edit().putBoolean("games_banner_dismissed", true).apply()
+                            bannerDismissed = true
+                        }
+                    )
+                }
+            }
+            item { SearchPill(searchQuery, onChange = { searchQuery = it }) }
+
+            if (filteredActive.isNotEmpty()) {
+                item {
+                    SectionLabel(
+                        label = "Active profiles",
+                        count = filteredActive.size,
+                        modifier = Modifier.padding(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.smaller),
+                    )
+                }
+                itemsIndexed(
+                    items = filteredActive,
+                    key = { _, a -> "active-${a.packageName}" },
+                ) { index, app ->
+                    ContinuousRow(index = index, lastIndex = filteredActive.lastIndex) {
+                        ActiveRowContent(app, onClick = { onEditGame(app.profile) })
                     }
-                )
-            }
-        }
-        item { SearchPill(searchQuery, onChange = { searchQuery = it }) }
-
-        if (filteredActive.isNotEmpty()) {
-            item {
-                SectionLabel(
-                    label = "Active profiles",
-                    count = filteredActive.size,
-                    modifier = Modifier.padding(top = AuriyaTokens.padding.small, bottom = AuriyaTokens.padding.smaller),
-                )
-            }
-            itemsIndexed(
-                items = filteredActive,
-                key = { _, a -> "active-${a.packageName}" },
-            ) { index, app ->
-                ContinuousRow(index = index, lastIndex = filteredActive.lastIndex) {
-                    ActiveRowContent(app, onClick = { onEditGame(app.profile) })
                 }
             }
-        }
 
-        if (filteredInactive.isNotEmpty()) {
-            item {
-                SectionLabel(
-                    label = "All applications",
-                    count = filteredInactive.size,
-                    modifier = Modifier.padding(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.smaller),
-                )
-            }
-            itemsIndexed(
-                items = filteredInactive,
-                key = { _, a -> "inactive-${a.packageName}" },
-            ) { index, app ->
-                ContinuousRow(index = index, lastIndex = filteredInactive.lastIndex) {
-                    InactiveRowContent(app, onClick = {
-                        onEditGame(
-                            GameProfile(
-                                packageName = app.packageName,
-                                cpuGovernor = "performance",
-                                enableDnd = true,
-                                targetFps = 60,
+            if (filteredInactive.isNotEmpty()) {
+                item {
+                    SectionLabel(
+                        label = "Installed applications",
+                        count = filteredInactive.size,
+                        modifier = Modifier.padding(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.smaller),
+                    )
+                }
+                itemsIndexed(
+                    items = filteredInactive,
+                    key = { _, a -> "inactive-${a.packageName}" },
+                ) { index, app ->
+                    ContinuousRow(index = index, lastIndex = filteredInactive.lastIndex) {
+                        InactiveRowContent(app, onClick = {
+                            onEditGame(
+                                GameProfile(
+                                    packageName = app.packageName,
+                                    cpuGovernor = "performance",
+                                    enableDnd = true,
+                                    targetFps = 60,
+                                )
                             )
-                        )
-                    })
+                        })
+                    }
                 }
             }
-        }
 
-        if (filteredActive.isEmpty() && filteredInactive.isEmpty()) {
-            item { EmptyState() }
+            if (filteredActive.isEmpty() && filteredInactive.isEmpty()) {
+                item { EmptyState() }
+            }
         }
     }
 }

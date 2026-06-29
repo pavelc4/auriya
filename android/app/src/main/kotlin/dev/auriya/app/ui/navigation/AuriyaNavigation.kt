@@ -1,5 +1,8 @@
 package dev.auriya.app.ui.navigation
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Alignment
@@ -56,165 +59,177 @@ fun AuriyaNavigation(
     val gameList by viewModel.gameList.collectAsState()
 
     val prefs = themePrefs
-    when {
-        prefs == null -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background),
-                contentAlignment = Alignment.Center
-            ) {
-            AuriyaLoadingIndicator(size = 96.dp)
-            }
-        }
-        !prefs.isOobeCompleted -> {
-            OobeScreen(
-                viewModel = viewModel,
-                themeViewModel = themeViewModel,
-                onFinished = {
-                    themeViewModel.setOobeCompleted(true)
-                }
-            )
-        }
-        editingGameProfile != null -> {
-            val current = editingGameProfile!!
-            val isExisting = gameList.games.any { it.packageName == current.packageName }
-            GameProfileScreen(
-                game = current,
-                governorOptions = governors,
-                isExistingProfile = isExisting,
-                onDismiss = { editingGameProfile = null },
-                onSave = { updated ->
-                    viewModel.addGame(updated)
-                    editingGameProfile = null
-                },
-                onRemove = if (isExisting) {
-                    {
-                        // Pop the detail screen FIRST so the user sees
-                        // instant feedback; removeGame is dispatched on
-                        // IO and would otherwise hold the screen until
-                        // gameList.games recomposes.
-                        editingGameProfile = null
-                        viewModel.removeGame(current.packageName)
-                    }
-                } else null,
-            )
-        }
-        subScreen == SubScreen.Language -> LanguageScreen(
-            onDismiss = { subScreen = SubScreen.None },
-        )
-        subScreen == SubScreen.About -> AboutScreen(
-            onDismiss = { subScreen = SubScreen.None },
-        )
-        else -> {
-            val navItems = NavigationTab.entries.map { AuriyaNavItem(it.title, it.icon) }
-            val selectedIndex = NavigationTab.entries.indexOf(activeTab)
-            val navMode = themePrefs?.navMode ?: NavMode.STANDARD
-            val navType = themePrefs?.navType ?: NavType.LEGACY
-            val cornerRadius = themePrefs?.cornerRadius ?: 24
+    val screenState = when {
+        prefs == null -> 0
+        !prefs.isOobeCompleted -> 1
+        else -> 2
+    }
 
-            Scaffold(
-                topBar = {
-                    if (selectedGameProfile == null) {
-                        TopAppBar(
-                            title = {
-                                Text(
-                                    text = "Auriya",
-                                    fontWeight = FontWeight.ExtraBold,
-                                )
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.background,
-                            ),
-                        )
-                    }
-                },
-                bottomBar = {
-                    if (navMode == NavMode.STANDARD) {
-                        AuriyaBottomBar(
-                            items = navItems,
-                            selectedIndex = selectedIndex,
-                            onSelect = { activeTab = NavigationTab.entries[it] },
-                            mode = navMode,
-                            type = navType,
-                            cornerRadius = cornerRadius,
-                        )
-                    }
-                },
-            ) { innerPadding ->
-                val bottomPadding = if (navMode == NavMode.STANDARD) innerPadding.calculateBottomPadding() else 0.dp
+    Crossfade(
+        targetState = screenState,
+        animationSpec = tween(500, easing = EaseInOutCubic),
+        label = "AppScreenTransition"
+    ) { state ->
+        when (state) {
+            0 -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(
-                            top = innerPadding.calculateTopPadding(),
-                            bottom = bottomPadding,
-                            start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
-                            end = innerPadding.calculateEndPadding(LayoutDirection.Ltr)
-                        ),
+                        .background(MaterialTheme.colorScheme.background),
+                    contentAlignment = Alignment.Center
                 ) {
-                    when (activeTab) {
-                        NavigationTab.HOME -> HomeScreen(
-                            viewModel = viewModel,
-                            onNavigateToGames = { activeTab = NavigationTab.GAMES }
-                        )
-                        NavigationTab.GAMES -> {
-                            val current = selectedGameProfile
-                            if (current != null) {
-                                val isExisting = gameList.games.any { it.packageName == current.packageName }
-                                GameProfileScreen(
-                                    game = current,
-                                    governorOptions = governors,
-                                    isExistingProfile = isExisting,
-                                    onDismiss = { selectedGameProfile = null },
-                                    onSave = { updated ->
-                                        viewModel.addGame(updated)
-                                        selectedGameProfile = null
-                                    },
-                                    onRemove = if (isExisting) {
-                                        {
-                                            selectedGameProfile = null
-                                            viewModel.removeGame(current.packageName)
-                                        }
-                                    } else null,
-                                )
-                            } else {
-                                GamesPane(
-                                    viewModel = viewModel,
-                                    onEditGame = { selectedGameProfile = it }
-                                )
-                            }
-                        }
-                        NavigationTab.SETTINGS -> SettingsScreen(
-                            viewModel = viewModel,
-                            themePrefs = themePrefs,
-                            onSeedChange = themeViewModel::setSeedColor,
-                            onDynamicToggle = themeViewModel::setUseDynamicColor,
-                            onNavModeChange = themeViewModel::setNavMode,
-                            onNavTypeChange = themeViewModel::setNavType,
-                            onCornerRadiusChange = themeViewModel::setCornerRadius,
-                            onDarkModeChange = themeViewModel::setDarkThemeMode,
-                            onAmoledToggle = themeViewModel::setAmoled,
-                            onNavigateToLanguage = { subScreen = SubScreen.Language },
-                            onNavigateToAbout = { subScreen = SubScreen.About },
-                            onResetOobe = { themeViewModel.setOobeCompleted(false) },
+                    AuriyaLoadingIndicator(size = 96.dp)
+                }
+            }
+            1 -> {
+                OobeScreen(
+                    viewModel = viewModel,
+                    themeViewModel = themeViewModel,
+                    onFinished = {
+                        themeViewModel.setOobeCompleted(true)
+                    }
+                )
+            }
+            2 -> {
+                when {
+                    editingGameProfile != null -> {
+                        val current = editingGameProfile!!
+                        val isExisting = gameList.games.any { it.packageName == current.packageName }
+                        GameProfileScreen(
+                            game = current,
+                            governorOptions = governors,
+                            isExistingProfile = isExisting,
+                            onDismiss = { editingGameProfile = null },
+                            onSave = { updated ->
+                                viewModel.addGame(updated)
+                                editingGameProfile = null
+                            },
+                            onRemove = if (isExisting) {
+                                {
+                                    editingGameProfile = null
+                                    viewModel.removeGame(current.packageName)
+                                }
+                            } else null,
                         )
                     }
+                    subScreen == SubScreen.Language -> LanguageScreen(
+                        onDismiss = { subScreen = SubScreen.None },
+                    )
+                    subScreen == SubScreen.About -> AboutScreen(
+                        onDismiss = { subScreen = SubScreen.None },
+                    )
+                    else -> {
+                        val navItems = NavigationTab.entries.map { AuriyaNavItem(it.title, it.icon) }
+                        val selectedIndex = NavigationTab.entries.indexOf(activeTab)
+                        val navMode = themePrefs?.navMode ?: NavMode.STANDARD
+                        val navType = themePrefs?.navType ?: NavType.LEGACY
+                        val cornerRadius = themePrefs?.cornerRadius ?: 24
 
-                    if (navMode == NavMode.FLOATING) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .align(Alignment.BottomCenter)
-                        ) {
-                             AuriyaBottomBar(
-                                items = navItems,
-                                selectedIndex = selectedIndex,
-                                onSelect = { activeTab = NavigationTab.entries[it] },
-                                mode = navMode,
-                                type = navType,
-                                cornerRadius = cornerRadius,
-                            )
+                        Scaffold(
+                            topBar = {
+                                if (selectedGameProfile == null) {
+                                    TopAppBar(
+                                        title = {
+                                            Text(
+                                                text = "Auriya",
+                                                fontWeight = FontWeight.ExtraBold,
+                                            )
+                                        },
+                                        colors = TopAppBarDefaults.topAppBarColors(
+                                            containerColor = MaterialTheme.colorScheme.background,
+                                        ),
+                                    )
+                                }
+                            },
+                            bottomBar = {
+                                if (navMode == NavMode.STANDARD) {
+                                    AuriyaBottomBar(
+                                        items = navItems,
+                                        selectedIndex = selectedIndex,
+                                        onSelect = { activeTab = NavigationTab.entries[it] },
+                                        mode = navMode,
+                                        type = navType,
+                                        cornerRadius = cornerRadius,
+                                    )
+                                }
+                            },
+                        ) { innerPadding ->
+                            val bottomPadding = if (navMode == NavMode.STANDARD) innerPadding.calculateBottomPadding() else 0.dp
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(
+                                        top = innerPadding.calculateTopPadding(),
+                                        bottom = bottomPadding,
+                                        start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
+                                        end = innerPadding.calculateEndPadding(LayoutDirection.Ltr)
+                                    ),
+                            ) {
+                                when (activeTab) {
+                                    NavigationTab.HOME -> HomeScreen(
+                                        viewModel = viewModel,
+                                        onNavigateToGames = { activeTab = NavigationTab.GAMES }
+                                    )
+                                    NavigationTab.GAMES -> {
+                                        val current = selectedGameProfile
+                                        if (current != null) {
+                                            val isExisting = gameList.games.any { it.packageName == current.packageName }
+                                            GameProfileScreen(
+                                                game = current,
+                                                governorOptions = governors,
+                                                isExistingProfile = isExisting,
+                                                onDismiss = { selectedGameProfile = null },
+                                                onSave = { updated ->
+                                                    viewModel.addGame(updated)
+                                                    selectedGameProfile = null
+                                                },
+                                                onRemove = if (isExisting) {
+                                                    {
+                                                        selectedGameProfile = null
+                                                        viewModel.removeGame(current.packageName)
+                                                    }
+                                                } else null,
+                                            )
+                                        } else {
+                                            GamesPane(
+                                                viewModel = viewModel,
+                                                onEditGame = { selectedGameProfile = it }
+                                            )
+                                        }
+                                    }
+                                    NavigationTab.SETTINGS -> SettingsScreen(
+                                        viewModel = viewModel,
+                                        themePrefs = themePrefs,
+                                        onSeedChange = themeViewModel::setSeedColor,
+                                        onDynamicToggle = themeViewModel::setUseDynamicColor,
+                                        onNavModeChange = themeViewModel::setNavMode,
+                                        onNavTypeChange = themeViewModel::setNavType,
+                                        onCornerRadiusChange = themeViewModel::setCornerRadius,
+                                        onDarkModeChange = themeViewModel::setDarkThemeMode,
+                                        onAmoledToggle = themeViewModel::setAmoled,
+                                        onNavigateToLanguage = { subScreen = SubScreen.Language },
+                                        onNavigateToAbout = { subScreen = SubScreen.About },
+                                        onResetOobe = { themeViewModel.setOobeCompleted(false) },
+                                    )
+                                }
+
+                                if (navMode == NavMode.FLOATING) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .align(Alignment.BottomCenter)
+                                    ) {
+                                         AuriyaBottomBar(
+                                            items = navItems,
+                                            selectedIndex = selectedIndex,
+                                            onSelect = { activeTab = NavigationTab.entries[it] },
+                                            mode = navMode,
+                                            type = navType,
+                                            cornerRadius = cornerRadius,
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

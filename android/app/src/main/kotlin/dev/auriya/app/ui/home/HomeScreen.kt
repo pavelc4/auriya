@@ -27,6 +27,10 @@ import androidx.compose.ui.unit.sp
 import dev.auriya.app.ui.components.ExpressiveList
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
+import dev.auriya.app.ui.components.AuriyaLoadingIndicator
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import dev.auriya.app.ui.components.rememberCookie9
 import dev.auriya.app.ui.components.rememberPixelCircle
 import dev.auriya.app.ui.theme.AuriyaTokens
@@ -42,6 +46,9 @@ fun HomeScreen(viewModel: UiViewModel, onNavigateToGames: () -> Unit) {
     val context = LocalContext.current
     var showProfileDialog by remember { mutableStateOf(false) }
 
+    var isRefreshing by remember { mutableStateOf(false) }
+    val state = rememberPullToRefreshState()
+
     if (showProfileDialog) {
         ProfileSelectionDialog(
             currentProfile = systemInfo.profile,
@@ -52,45 +59,73 @@ fun HomeScreen(viewModel: UiViewModel, onNavigateToGames: () -> Unit) {
         )
     }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = AuriyaTokens.padding.normal),
-        verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
-        contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.largest * 3),
+    @OptIn(ExperimentalMaterial3Api::class)
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            viewModel.refresh {
+                isRefreshing = false
+            }
+        },
+        state = state,
+        indicator = {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp)
+            ) {
+                val progress = state.distanceFraction.coerceIn(0f, 1f)
+                if (isRefreshing || progress > 0f) {
+                    AuriyaLoadingIndicator(
+                        size = 56.dp * if (isRefreshing) 1f else progress,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+            }
+        },
+        modifier = Modifier.fillMaxSize()
     ) {
-        if (!hasRoot) {
-            item { RootDeniedBanner() }
-        }
-        item { HeroCard(isDaemonRunning = isDaemonRunning, systemInfo = systemInfo) }
-        item {
-            MiniCardRow(
-                profile = systemInfo.profile,
-                gameCount = gameList.games.size,
-                onGamesClick = onNavigateToGames,
-                onProfileClick = { showProfileDialog = true }
-            )
-        }
-        item { SystemMetricsList(systemInfo = systemInfo) }
-        item {
-            LinkRow(
-                iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_github),
-                title = "Learn more about Auriya",
-                subtitle = "github.com/Pavelc4/Auriya",
-                onClick = {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pavelc4/Auriya")))
-                },
-            )
-        }
-        item {
-            LinkRow(
-                iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_telegram),
-                title = "Join Telegram updates channel",
-                subtitle = "Latest tuner updates",
-                onClick = {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/pvlcply")))
-                },
-            )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = AuriyaTokens.padding.normal),
+            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
+            contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.largest * 3),
+        ) {
+            if (!hasRoot) {
+                item { RootDeniedBanner() }
+            }
+            item { HeroCard(isDaemonRunning = isDaemonRunning, systemInfo = systemInfo) }
+            item {
+                MiniCardRow(
+                    profile = systemInfo.profile,
+                    gameCount = gameList.games.size,
+                    onGamesClick = onNavigateToGames,
+                    onProfileClick = { showProfileDialog = true }
+                )
+            }
+            item { SystemMetricsList(systemInfo = systemInfo) }
+            item {
+                LinkRow(
+                    iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_github),
+                    title = "Learn more about Auriya",
+                    subtitle = "github.com/Pavelc4/Auriya",
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pavelc4/Auriya")))
+                    },
+                )
+            }
+            item {
+                LinkRow(
+                    iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_telegram),
+                    title = "Join Telegram updates channel",
+                    subtitle = "Latest tuner updates",
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/pvlcply")))
+                    },
+                )
+            }
         }
     }
 }
@@ -159,33 +194,6 @@ private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
         ) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(rememberPixelCircle())
-                            .background(
-                                if (isDaemonRunning) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.error,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (isDaemonRunning) {
-                            Icon(
-                                imageVector = Icons.Outlined.AutoAwesome,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(40.dp),
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Outlined.Bedtime,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onError,
-                                modifier = Modifier.size(40.dp),
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(AuriyaTokens.padding.normal))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = if (isDaemonRunning) "Auriya is working" else "Auriya is stopped",

@@ -1,6 +1,12 @@
 package dev.auriya.app.ui.oobe
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -145,11 +151,19 @@ fun OobeScreen(
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
-            Crossfade(
+            AnimatedContent(
                 targetState = step,
-                animationSpec = tween(400),
+                transitionSpec = {
+                    if (targetState > initialState) {
+                        (slideInHorizontally { width -> width } + fadeIn(animationSpec = tween(400)))
+                            .togetherWith(slideOutHorizontally { width -> -width } + fadeOut(animationSpec = tween(400)))
+                    } else {
+                        (slideInHorizontally { width -> -width } + fadeIn(animationSpec = tween(400)))
+                            .togetherWith(slideOutHorizontally { width -> width } + fadeOut(animationSpec = tween(400)))
+                    }
+                },
                 modifier = Modifier.fillMaxSize(),
-                label = "OobeStep"
+                label = "OobeStepTransition"
             ) { s ->
                 when (s) {
                     1 -> WelcomeContent(
