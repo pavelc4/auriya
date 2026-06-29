@@ -27,6 +27,11 @@ jobs:
           chat_id: ${{ secrets.CHAT_ID }}
           type: start
 
+      - name: Configure Git for Private Deps
+        run: |
+          git config --global credential.helper store
+          echo "https://pavelc4:${{ secrets.GH_PAT }}@github.com" > ~/.git-credentials
+
       - name: Setup Build Environment
         uses: ./.github/actions/setup-tools
 

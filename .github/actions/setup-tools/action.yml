@@ -18,7 +18,7 @@ runs:
         add-to-path: true
 
     - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@nightly
       with:
         targets: aarch64-linux-android
 
