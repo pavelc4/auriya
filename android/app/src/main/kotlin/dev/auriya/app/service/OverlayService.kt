@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -45,6 +47,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
     private lateinit var wm: WindowManager
     private var overlayView: ComposeView? = null
     private var pollingJob: Job? = null
+    private lateinit var params: WindowManager.LayoutParams
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
 
@@ -88,12 +91,12 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
     }
 
     private fun createOverlay() {
+        val prefs = getSharedPreferences("auriya_overlay", MODE_PRIVATE)
         overlayView = ComposeView(this).apply {
             setViewTreeLifecycleOwner(this@OverlayService)
             setViewTreeSavedStateRegistryOwner(this@OverlayService)
             setViewTreeViewModelStoreOwner(this@OverlayService)
             setContent {
-                val prefs = remember { getSharedPreferences("auriya_overlay", MODE_PRIVATE) }
                 AuriyaTheme(prefs = null) {
                     val showFps = prefs.getBoolean("show_fps", true)
                     val showCpu = prefs.getBoolean("show_cpu", true)
@@ -133,24 +136,34 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                         paddingDp = paddingDp,
                         cornerRadiusDp = cornerRadiusDp,
                         layoutStyle = layoutStyle,
-                        overlayMode = overlayMode
+                        overlayMode = overlayMode,
+                        onDrag = { dx, dy ->
+                            params.x += dx.toInt()
+                            params.y += dy.toInt()
+                            overlayView?.let { wm.updateViewLayout(it, params) }
+                        },
+                        onDragEnd = {
+                            prefs.edit().putInt("overlay_x", params.x).putInt("overlay_y", params.y).apply()
+                        }
                     )
                 }
             }
         }
 
-        val params = WindowManager.LayoutParams(
+        val posX = prefs.getInt("overlay_x", 50)
+        val posY = prefs.getInt("overlay_y", 200)
+
+        params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             android.graphics.PixelFormat.TRANSPARENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = 50
-            y = 200
+            x = posX
+            y = posY
         }
 
         wm.addView(overlayView, params)
@@ -304,7 +317,9 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
             paddingDp: Float,
             cornerRadiusDp: Float,
             layoutStyle: String,
-            overlayMode: String
+            overlayMode: String,
+            onDrag: (Float, Float) -> Unit,
+            onDragEnd: () -> Unit
         ) {
             val textSize = textSizeSp.sp
             val subTextSize = (textSizeSp - 1f).coerceAtLeast(8f).sp
@@ -376,6 +391,14 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
 
             Box(
                 modifier = Modifier
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragEnd = onDragEnd
+                        ) { change, dragAmount ->
+                            change.consume()
+                            onDrag(dragAmount.x, dragAmount.y)
+                        }
+                    }
                     .background(
                         color = Color.Black.copy(alpha = bgOpacity),
                         shape = RoundedCornerShape(cornerRadius),
