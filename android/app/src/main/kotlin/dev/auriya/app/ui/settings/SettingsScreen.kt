@@ -38,6 +38,7 @@ private enum class SettingsSubScreen {
     APP,
     APPEARANCE,
     FLOATING_OVERLAY,
+    DEVELOPER_OPTIONS,
 }
 
 @Composable
@@ -53,6 +54,7 @@ fun SettingsScreen(
     onAmoledToggle: (Boolean) -> Unit,
     onNavigateToLanguage: () -> Unit,
     onNavigateToAbout: () -> Unit,
+    onResetOobe: () -> Unit,
 ) {
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
@@ -96,6 +98,7 @@ fun SettingsScreen(
                     SettingsSubScreen.APP -> "App Settings"
                     SettingsSubScreen.APPEARANCE -> "Appearance"
                     SettingsSubScreen.FLOATING_OVERLAY -> "Floating Overlay"
+                    SettingsSubScreen.DEVELOPER_OPTIONS -> "Developer Options"
                     else -> ""
                 }
             SubScreenHeader(title = title, onBack = { activeSubScreen = SettingsSubScreen.NONE })
@@ -157,6 +160,15 @@ fun SettingsScreen(
                             title = "About",
                             subtitle = "Developer information and project specs",
                             onClick = onNavigateToAbout,
+                        )
+                    }
+
+                    item {
+                        SettingsMenuItem(
+                            icon = Icons.Filled.Code,
+                            title = "Developer Options",
+                            subtitle = "App reset, diagnostics, and debugging tools",
+                            onClick = { activeSubScreen = SettingsSubScreen.DEVELOPER_OPTIONS },
                         )
                     }
                 }
@@ -334,7 +346,100 @@ fun SettingsScreen(
                         FloatingOverlayContent(context)
                     }
                 }
+
+                SettingsSubScreen.DEVELOPER_OPTIONS -> {
+                    item {
+                        DeveloperOptionsContent(
+                            viewModel = viewModel,
+                            onResetOobe = onResetOobe
+                        )
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun DeveloperOptionsContent(
+    viewModel: UiViewModel,
+    onResetOobe: () -> Unit
+) {
+    val context = LocalContext.current
+    val hasRoot by viewModel.hasRoot.collectAsState()
+    val systemInfo by viewModel.systemInfo.collectAsState()
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
+    ) {
+        SectionCard(title = "Application State") {
+            SettingRow(
+                icon = Icons.Filled.Refresh,
+                title = "Reset Setup Wizard",
+                subtitle = "Re-enable OOBE setup flow next launch",
+                control = {
+                    Button(
+                        onClick = {
+                            onResetOobe()
+                            Toast.makeText(context, "OOBE State reset. Showing setup...", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        shape = RoundedCornerShape(AuriyaTokens.rounding.medium)
+                    ) {
+                        Text("Reset", fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
+        }
+
+        SectionCard(title = "Privileges & Diagnostics") {
+            SettingRow(
+                icon = Icons.Filled.Shield,
+                title = "Root Verified",
+                subtitle = if (hasRoot) "Privileged su access active" else "Non-root restricted execution",
+                control = {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(AuriyaTokens.rounding.small))
+                            .background(
+                                if (hasRoot) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.errorContainer
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = if (hasRoot) "ACTIVE" else "DENIED",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (hasRoot) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+
+            SettingRow(
+                icon = Icons.Filled.Info,
+                title = "Daemon Status",
+                subtitle = "Current active daemon state",
+                control = {
+                    Text(
+                        text = systemInfo.daemonStatus.uppercase(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (systemInfo.daemonStatus == "working") MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
         }
     }
 }

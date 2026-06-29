@@ -29,4 +29,5 @@ class ThemeViewModel(app: Application) : AndroidViewModel(app) {
     fun setCornerRadius(radius: Int) = viewModelScope.launch { repo.setCornerRadius(radius) }
     fun setDarkThemeMode(mode: DarkThemeMode) = viewModelScope.launch { repo.setDarkThemeMode(mode) }
     fun setAmoled(enabled: Boolean) = viewModelScope.launch { repo.setAmoled(enabled) }
+    fun setOobeCompleted(completed: Boolean) = viewModelScope.launch { repo.setOobeCompleted(completed) }
 }

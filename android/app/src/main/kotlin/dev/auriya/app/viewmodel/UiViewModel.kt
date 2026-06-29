@@ -67,10 +67,25 @@ class UiViewModel : ViewModel() {
         _isActive.value = active
     }
 
+    fun checkRoot() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val root = RootShell.hasRoot()
+            _hasRoot.value = root
+            if (root) {
+                loadAvailableGovernors()
+                loadConfigurations()
+                initSystemInfoStatic()
+            }
+        }
+    }
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            _hasRoot.value = RootShell.hasRoot()
-            loadAvailableGovernors()
+            val root = RootShell.hasRoot()
+            _hasRoot.value = root
+            if (root) {
+                loadAvailableGovernors()
+            }
         }
         loadConfigurations()
         initSystemInfoStatic()

@@ -22,6 +22,7 @@ data class ThemePrefs(
     val cornerRadius: Int,
     val darkThemeMode: DarkThemeMode,
     val isAmoled: Boolean,
+    val isOobeCompleted: Boolean,
 )
 
 class ThemeRepository(private val context: Context) {
@@ -33,6 +34,7 @@ class ThemeRepository(private val context: Context) {
         private val CORNER_RADIUS = intPreferencesKey("corner_radius")
         private val DARK_MODE = stringPreferencesKey("dark_theme_mode")
         private val AMOLED = intPreferencesKey("is_amoled")
+        private val OOBE_COMPLETED = intPreferencesKey("oobe_completed")
         const val DEFAULT_SEED = 0xFFFFB68E.toInt()
     }
 
@@ -48,6 +50,7 @@ class ThemeRepository(private val context: Context) {
             darkThemeMode = runCatching { DarkThemeMode.valueOf(p[DARK_MODE] ?: DarkThemeMode.FOLLOW_SYSTEM.name) }
                 .getOrDefault(DarkThemeMode.FOLLOW_SYSTEM),
             isAmoled = (p[AMOLED] ?: 0) == 1,
+            isOobeCompleted = (p[OOBE_COMPLETED] ?: 0) == 1,
         )
     }
 
@@ -77,5 +80,9 @@ class ThemeRepository(private val context: Context) {
 
     suspend fun setAmoled(enabled: Boolean) {
         context.themeDataStore.edit { it[AMOLED] = if (enabled) 1 else 0 }
+    }
+
+    suspend fun setOobeCompleted(completed: Boolean) {
+        context.themeDataStore.edit { it[OOBE_COMPLETED] = if (completed) 1 else 0 }
     }
 }

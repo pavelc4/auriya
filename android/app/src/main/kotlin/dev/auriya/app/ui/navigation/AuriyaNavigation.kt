@@ -1,5 +1,6 @@
 package dev.auriya.app.ui.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.LayoutDirection
@@ -26,6 +27,7 @@ import dev.auriya.app.ui.home.HomeScreen
 import dev.auriya.app.ui.settings.AboutScreen
 import dev.auriya.app.ui.settings.LanguageScreen
 import dev.auriya.app.ui.settings.SettingsScreen
+import dev.auriya.app.ui.oobe.OobeScreen
 import dev.auriya.app.viewmodel.ThemeViewModel
 import dev.auriya.app.viewmodel.UiViewModel
 import dev.auriya.shared.model.GameProfile
@@ -52,7 +54,27 @@ fun AuriyaNavigation(
     val governors by viewModel.availableGovernors.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
 
+    val prefs = themePrefs
     when {
+        prefs == null -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        !prefs.isOobeCompleted -> {
+            OobeScreen(
+                viewModel = viewModel,
+                themeViewModel = themeViewModel,
+                onFinished = {
+                    themeViewModel.setOobeCompleted(true)
+                }
+            )
+        }
         editingGameProfile != null -> {
             val current = editingGameProfile!!
             val isExisting = gameList.games.any { it.packageName == current.packageName }
@@ -174,6 +196,7 @@ fun AuriyaNavigation(
                             onAmoledToggle = themeViewModel::setAmoled,
                             onNavigateToLanguage = { subScreen = SubScreen.Language },
                             onNavigateToAbout = { subScreen = SubScreen.About },
+                            onResetOobe = { themeViewModel.setOobeCompleted(false) },
                         )
                     }
 
