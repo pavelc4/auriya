@@ -449,8 +449,19 @@ private fun FloatingOverlayContent(context: android.content.Context) {
     val prefs = remember { context.getSharedPreferences("auriya_overlay", Context.MODE_PRIVATE) }
     var enableOverlay by remember { mutableStateOf(prefs.getBoolean("enabled", false)) }
     var showFps by remember { mutableStateOf(prefs.getBoolean("show_fps", true)) }
+    var showCpu by remember { mutableStateOf(prefs.getBoolean("show_cpu", true)) }
+    var showGpu by remember { mutableStateOf(prefs.getBoolean("show_gpu", true)) }
     var showTemp by remember { mutableStateOf(prefs.getBoolean("show_temp", true)) }
-    var overlaySize by remember { mutableStateOf(prefs.getString("size", "Medium") ?: "Medium") }
+    var showBattery by remember { mutableStateOf(prefs.getBoolean("show_battery", true)) }
+    var monetEnabled by remember { mutableStateOf(prefs.getBoolean("monet_enabled", true)) }
+    
+    var layoutStyle by remember { mutableStateOf(prefs.getString("layout_style", "Horizontal") ?: "Horizontal") }
+    var updateIntervalMs by remember { mutableStateOf(prefs.getLong("update_interval_ms", 1000L)) }
+    
+    var textSizeSp by remember { mutableStateOf(prefs.getFloat("text_size_sp", 12f)) }
+    var bgOpacity by remember { mutableStateOf(prefs.getFloat("bg_opacity", 0.7f)) }
+    var paddingDp by remember { mutableStateOf(prefs.getFloat("padding_dp", 12f)) }
+    var cornerRadiusDp by remember { mutableStateOf(prefs.getFloat("corner_radius_dp", 16f)) }
 
     val hasOverlayPermission =
         remember {
@@ -472,13 +483,7 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                 context.startActivity(intent)
             } else {
                 prefs.edit().putBoolean("enabled", true).apply()
-                val i =
-                    Intent(context, dev.auriya.app.service.OverlayService::class.java).apply {
-                        putExtra("show_fps", showFps)
-                        putExtra("show_temp", showTemp)
-                        putExtra("size", overlaySize)
-                    }
-                context.startService(i)
+                context.startService(Intent(context, dev.auriya.app.service.OverlayService::class.java))
             }
         } else {
             prefs.edit().putBoolean("enabled", false).apply()
@@ -488,18 +493,12 @@ private fun FloatingOverlayContent(context: android.content.Context) {
 
     LaunchedEffect(hasOverlayPermission) {
         if (hasOverlayPermission && enableOverlay) {
-            val i =
-                Intent(context, dev.auriya.app.service.OverlayService::class.java).apply {
-                    putExtra("show_fps", showFps)
-                    putExtra("show_temp", showTemp)
-                    putExtra("size", overlaySize)
-                }
-            context.startService(i)
+            context.startService(Intent(context, dev.auriya.app.service.OverlayService::class.java))
         }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)) {
-        SectionCard(title = "Overlay Enable") {
+        SectionCard(title = "Overlay Activation") {
             SettingRow(
                 icon = Icons.Filled.Layers,
                 title = "Show Floating Overlay",
@@ -517,7 +516,8 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                 },
             )
         }
-        SectionCard(title = "Visual Configuration") {
+        
+        SectionCard(title = "Telemetry Metrics") {
             SettingRow(
                 icon = Icons.Filled.Speed,
                 title = "Show FPS Counter",
@@ -528,7 +528,45 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                         onCheckedChange = {
                             showFps = it
                             prefs.edit().putBoolean("show_fps", it).apply()
-                            restartOverlay(context, enableOverlay, hasOverlayPermission, showFps, showTemp, overlaySize)
+                            restartOverlay(context)
+                        },
+                    )
+                },
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+            SettingRow(
+                icon = Icons.Filled.Memory,
+                title = "Show CPU Clusters",
+                subtitle = "Monitor GHz speeds for Little, Medium, Big cores",
+                control = {
+                    Switch(
+                        checked = showCpu,
+                        onCheckedChange = {
+                            showCpu = it
+                            prefs.edit().putBoolean("show_cpu", it).apply()
+                            restartOverlay(context)
+                        },
+                    )
+                },
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+            SettingRow(
+                icon = Icons.Filled.DeveloperBoard,
+                title = "Show GPU Metrics",
+                subtitle = "Display GPU frequency & load percentage",
+                control = {
+                    Switch(
+                        checked = showGpu,
+                        onCheckedChange = {
+                            showGpu = it
+                            prefs.edit().putBoolean("show_gpu", it).apply()
+                            restartOverlay(context)
                         },
                     )
                 },
@@ -540,14 +578,14 @@ private fun FloatingOverlayContent(context: android.content.Context) {
             SettingRow(
                 icon = Icons.Filled.Thermostat,
                 title = "Show CPU Temperature",
-                subtitle = "Monitor real-time system core thermal metrics",
+                subtitle = "Monitor core thermal metrics in real-time",
                 control = {
                     Switch(
                         checked = showTemp,
                         onCheckedChange = {
                             showTemp = it
                             prefs.edit().putBoolean("show_temp", it).apply()
-                            restartOverlay(context, enableOverlay, hasOverlayPermission, showFps, showTemp, overlaySize)
+                            restartOverlay(context)
                         },
                     )
                 },
@@ -557,41 +595,202 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                 thickness = 1.dp,
             )
             SettingRow(
-                icon = Icons.Filled.AspectRatio,
-                title = "Overlay Size",
-                subtitle = "Scale of the floating overlay text and container",
+                icon = Icons.Filled.BatteryChargingFull,
+                title = "Show Battery Temperature",
+                subtitle = "Display current battery thermal metrics",
                 control = {
-                    SettingsDropdown(
-                        value = overlaySize,
-                        options = listOf("Small", "Medium", "Large"),
-                        onValueChange = {
-                            overlaySize = it
-                            prefs.edit().putString("size", it).apply()
-                            restartOverlay(context, enableOverlay, hasOverlayPermission, showFps, showTemp, overlaySize)
+                    Switch(
+                        checked = showBattery,
+                        onCheckedChange = {
+                            showBattery = it
+                            prefs.edit().putBoolean("show_battery", it).apply()
+                            restartOverlay(context)
                         },
                     )
                 },
             )
         }
+
+        SectionCard(title = "Visual Customization & Layout") {
+            SettingRow(
+                icon = Icons.Filled.ColorLens,
+                title = "Use Monet Theme Colors",
+                subtitle = "Match overlay colors with device style",
+                control = {
+                    Switch(
+                        checked = monetEnabled,
+                        onCheckedChange = {
+                            monetEnabled = it
+                            prefs.edit().putBoolean("monet_enabled", it).apply()
+                            restartOverlay(context)
+                        },
+                    )
+                },
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+            SettingRow(
+                icon = Icons.Filled.MenuOpen,
+                title = "Layout Orientation",
+                subtitle = "Grid orientation of telemetry elements",
+                control = {
+                    SettingsDropdown(
+                        value = layoutStyle,
+                        options = listOf("Horizontal", "Vertical"),
+                        onValueChange = {
+                            layoutStyle = it
+                            prefs.edit().putString("layout_style", it).apply()
+                            restartOverlay(context)
+                        },
+                    )
+                },
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+            SettingRow(
+                icon = Icons.Filled.HourglassEmpty,
+                title = "Refresh Interval",
+                subtitle = "Select query telemetry speed",
+                control = {
+                    val currentText = when (updateIntervalMs) {
+                        500L -> "500ms (Fast)"
+                        1000L -> "1s (Balanced)"
+                        2000L -> "2s (Battery Save)"
+                        5000L -> "5s (Minimal)"
+                        else -> "1s"
+                    }
+                    SettingsDropdown(
+                        value = currentText,
+                        options = listOf("500ms (Fast)", "1s (Balanced)", "2s (Battery Save)", "5s (Minimal)"),
+                        onValueChange = { selected ->
+                            val value = when (selected) {
+                                "500ms (Fast)" -> 500L
+                                "1s (Balanced)" -> 1000L
+                                "2s (Battery Save)" -> 2000L
+                                "5s (Minimal)" -> 5000L
+                                else -> 1000L
+                            }
+                            updateIntervalMs = value
+                            prefs.edit().putLong("update_interval_ms", value).apply()
+                            restartOverlay(context)
+                        },
+                    )
+                },
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+            
+            // Slider 1: Text Size
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Text Size", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                    Text("${textSizeSp.toInt()} sp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                }
+                Slider(
+                    value = textSizeSp,
+                    onValueChange = {
+                        textSizeSp = it
+                        prefs.edit().putFloat("text_size_sp", it).apply()
+                    },
+                    onValueChangeFinished = { restartOverlay(context) },
+                    valueRange = 8f..20f,
+                    steps = 11
+                )
+            }
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+
+            // Slider 2: Background Opacity
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Background Opacity", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                    Text("${(bgOpacity * 100).toInt()}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                }
+                Slider(
+                    value = bgOpacity,
+                    onValueChange = {
+                        bgOpacity = it
+                        prefs.edit().putFloat("bg_opacity", it).apply()
+                    },
+                    onValueChangeFinished = { restartOverlay(context) },
+                    valueRange = 0f..1f
+                )
+            }
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+
+            // Slider 3: Container Padding
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Container Padding", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                    Text("${paddingDp.toInt()} dp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                }
+                Slider(
+                    value = paddingDp,
+                    onValueChange = {
+                        paddingDp = it
+                        prefs.edit().putFloat("padding_dp", it).apply()
+                    },
+                    onValueChangeFinished = { restartOverlay(context) },
+                    valueRange = 4f..24f
+                )
+            }
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+
+            // Slider 4: Corner Radius
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Corner Radius", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                    Text("${cornerRadiusDp.toInt()} dp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                }
+                Slider(
+                    value = cornerRadiusDp,
+                    onValueChange = {
+                        cornerRadiusDp = it
+                        prefs.edit().putFloat("corner_radius_dp", it).apply()
+                    },
+                    onValueChangeFinished = { restartOverlay(context) },
+                    valueRange = 0f..32f
+                )
+            }
+        }
     }
 }
 
-private fun restartOverlay(
-    context: android.content.Context,
-    enabled: Boolean,
-    hasPermission: Boolean,
-    showFps: Boolean,
-    showTemp: Boolean,
-    size: String,
-) {
+private fun restartOverlay(context: android.content.Context) {
+    val prefs = context.getSharedPreferences("auriya_overlay", android.content.Context.MODE_PRIVATE)
+    val enabled = prefs.getBoolean("enabled", false)
+    val hasPermission = android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M ||
+            android.provider.Settings.canDrawOverlays(context)
+
     context.stopService(Intent(context, dev.auriya.app.service.OverlayService::class.java))
     if (enabled && hasPermission) {
-        val i = Intent(context, dev.auriya.app.service.OverlayService::class.java).apply {
-            putExtra("show_fps", showFps)
-            putExtra("show_temp", showTemp)
-            putExtra("size", size)
-        }
-        context.startService(i)
+        context.startService(Intent(context, dev.auriya.app.service.OverlayService::class.java))
     }
 }
 
