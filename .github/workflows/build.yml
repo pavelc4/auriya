@@ -132,6 +132,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        if: ${{ needs.package.result == 'success' }}
+        with:
+          name: auriya-aarch64
+          path: build/release/
       - uses: ./.github/actions/telegram-notify
         if: ${{ needs.package.result == 'success' && needs.setup.outputs.notify_message_id != '' }}
         with:
