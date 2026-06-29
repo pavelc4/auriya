@@ -17,10 +17,19 @@ runs:
         ndk-version: r29
         add-to-path: true
 
-    - name: Setup Rust
+    - name: Setup Rust (nightly for eBPF)
       uses: dtolnay/rust-toolchain@nightly
       with:
         targets: aarch64-linux-android
+        components: rust-src
+
+    - name: Set nightly as default (kala eBPF build script needs it)
+      run: rustup default nightly-x86_64-unknown-linux-gnu
+      shell: bash
+
+    - name: Install bpf-linker (for eBPF CO-RE)
+      run: cargo install bpf-linker
+      shell: bash
 
     - name: Install cargo-ndk
       run: cargo install cargo-ndk
