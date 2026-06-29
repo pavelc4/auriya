@@ -6,6 +6,8 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -517,7 +519,10 @@ private fun FloatingOverlayContent(context: android.content.Context) {
             )
         }
         
-        SectionCard(title = "Telemetry Metrics") {
+        SectionCard(
+            title = "Telemetry Metrics",
+            modifier = Modifier.graphicsLayer { alpha = if (enableOverlay) 1f else 0.38f }
+        ) {
             SettingRow(
                 icon = Icons.Filled.Speed,
                 title = "Show FPS Counter",
@@ -525,6 +530,7 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                 control = {
                     Switch(
                         checked = showFps,
+                        enabled = enableOverlay,
                         onCheckedChange = {
                             showFps = it
                             prefs.edit().putBoolean("show_fps", it).apply()
@@ -544,6 +550,7 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                 control = {
                     Switch(
                         checked = showCpu,
+                        enabled = enableOverlay,
                         onCheckedChange = {
                             showCpu = it
                             prefs.edit().putBoolean("show_cpu", it).apply()
@@ -563,6 +570,7 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                 control = {
                     Switch(
                         checked = showGpu,
+                        enabled = enableOverlay,
                         onCheckedChange = {
                             showGpu = it
                             prefs.edit().putBoolean("show_gpu", it).apply()
@@ -582,6 +590,7 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                 control = {
                     Switch(
                         checked = showTemp,
+                        enabled = enableOverlay,
                         onCheckedChange = {
                             showTemp = it
                             prefs.edit().putBoolean("show_temp", it).apply()
@@ -601,6 +610,7 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                 control = {
                     Switch(
                         checked = showBattery,
+                        enabled = enableOverlay,
                         onCheckedChange = {
                             showBattery = it
                             prefs.edit().putBoolean("show_battery", it).apply()
@@ -611,7 +621,10 @@ private fun FloatingOverlayContent(context: android.content.Context) {
             )
         }
 
-        SectionCard(title = "Visual Customization & Layout") {
+        SectionCard(
+            title = "Visual Customization",
+            modifier = Modifier.graphicsLayer { alpha = if (enableOverlay) 1f else 0.38f }
+        ) {
             SettingRow(
                 icon = Icons.Filled.ColorLens,
                 title = "Use Monet Theme Colors",
@@ -619,6 +632,7 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                 control = {
                     Switch(
                         checked = monetEnabled,
+                        enabled = enableOverlay,
                         onCheckedChange = {
                             monetEnabled = it
                             prefs.edit().putBoolean("monet_enabled", it).apply()
@@ -627,63 +641,166 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                     )
                 },
             )
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                thickness = 1.dp,
-            )
-            SettingRow(
-                icon = Icons.Filled.MenuOpen,
-                title = "Layout Orientation",
-                subtitle = "Grid orientation of telemetry elements",
-                control = {
-                    SettingsDropdown(
-                        value = layoutStyle,
-                        options = listOf("Horizontal", "Vertical"),
-                        onValueChange = {
-                            layoutStyle = it
-                            prefs.edit().putString("layout_style", it).apply()
-                            restartOverlay(context)
-                        },
-                    )
-                },
-            )
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                thickness = 1.dp,
-            )
-            SettingRow(
-                icon = Icons.Filled.HourglassEmpty,
-                title = "Refresh Interval",
-                subtitle = "Select query telemetry speed",
-                control = {
-                    val currentText = when (updateIntervalMs) {
-                        500L -> "500ms (Fast)"
-                        1000L -> "1s (Balanced)"
-                        2000L -> "2s (Battery Save)"
-                        5000L -> "5s (Minimal)"
-                        else -> "1s"
-                    }
-                    SettingsDropdown(
-                        value = currentText,
-                        options = listOf("500ms (Fast)", "1s (Balanced)", "2s (Battery Save)", "5s (Minimal)"),
-                        onValueChange = { selected ->
-                            val value = when (selected) {
-                                "500ms (Fast)" -> 500L
-                                "1s (Balanced)" -> 1000L
-                                "2s (Battery Save)" -> 2000L
-                                "5s (Minimal)" -> 5000L
-                                else -> 1000L
-                            }
-                            updateIntervalMs = value
-                            prefs.edit().putLong("update_interval_ms", value).apply()
-                            restartOverlay(context)
-                        },
-                    )
-                },
-            )
         }
 
-        // Standalone RV-style Slider Cards
+        Column(
+            modifier = Modifier.fillMaxWidth().graphicsLayer { alpha = if (enableOverlay) 1f else 0.38f },
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Layout",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                val isHorizontalSelected = layoutStyle == "Horizontal"
+                Card(
+                    onClick = {
+                        if (enableOverlay) {
+                            layoutStyle = "Horizontal"
+                            prefs.edit().putString("layout_style", "Horizontal").apply()
+                            restartOverlay(context)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isHorizontalSelected && enableOverlay) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                        else MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = if (isHorizontalSelected && enableOverlay) {
+                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    } else {
+                        null
+                    }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(
+                                        if (isHorizontalSelected && enableOverlay) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                    )
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(
+                                        if (isHorizontalSelected && enableOverlay) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                    )
+                            )
+                        }
+
+                        Text(
+                            text = "Horizontal",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (isHorizontalSelected && enableOverlay) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                val isVerticalSelected = layoutStyle == "Vertical"
+                Card(
+                    onClick = {
+                        if (enableOverlay) {
+                            layoutStyle = "Vertical"
+                            prefs.edit().putString("layout_style", "Vertical").apply()
+                            restartOverlay(context)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isVerticalSelected && enableOverlay) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                        else MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = if (isVerticalSelected && enableOverlay) {
+                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    } else {
+                        null
+                    }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(
+                                        if (isVerticalSelected && enableOverlay) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                    )
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(
+                                        if (isVerticalSelected && enableOverlay) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                    )
+                            )
+                        }
+
+                        Text(
+                            text = "Vertical",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (isVerticalSelected && enableOverlay) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+
+        val currentIntervalSec = updateIntervalMs / 1000f
+        SettingsSliderCard(
+            title = "Update Interval",
+            description = "Frequency of telemetry metrics query",
+            icon = Icons.Filled.HourglassEmpty,
+            value = currentIntervalSec,
+            onValueChange = {
+                val valueMs = (it * 1000).toLong()
+                updateIntervalMs = valueMs
+                prefs.edit().putLong("update_interval_ms", valueMs).apply()
+            },
+            onValueChangeFinished = { restartOverlay(context) },
+            valueRange = 0.5f..5.0f,
+            displayValueFormatter = { "%.1f s".format(it) },
+            valueLabel = "Polling Delay",
+            steps = 8,
+            enabled = enableOverlay
+        )
+
         SettingsSliderCard(
             title = "Text Size",
             description = "Scale of the floating overlay text",
@@ -697,7 +814,8 @@ private fun FloatingOverlayContent(context: android.content.Context) {
             valueRange = 8f..20f,
             displayValueFormatter = { "${it.toInt()} sp" },
             valueLabel = "Font Size",
-            steps = 11
+            steps = 11,
+            enabled = enableOverlay
         )
         
         SettingsSliderCard(
@@ -712,7 +830,8 @@ private fun FloatingOverlayContent(context: android.content.Context) {
             onValueChangeFinished = { restartOverlay(context) },
             valueRange = 0f..1f,
             displayValueFormatter = { "${(it * 100).toInt()}%" },
-            valueLabel = "Opacity Level"
+            valueLabel = "Opacity Level",
+            enabled = enableOverlay
         )
 
         SettingsSliderCard(
@@ -727,7 +846,8 @@ private fun FloatingOverlayContent(context: android.content.Context) {
             onValueChangeFinished = { restartOverlay(context) },
             valueRange = 4f..24f,
             displayValueFormatter = { "${it.toInt()} dp" },
-            valueLabel = "Internal Margin"
+            valueLabel = "Internal Margin",
+            enabled = enableOverlay
         )
 
         SettingsSliderCard(
@@ -742,7 +862,8 @@ private fun FloatingOverlayContent(context: android.content.Context) {
             onValueChangeFinished = { restartOverlay(context) },
             valueRange = 0f..32f,
             displayValueFormatter = { "${it.toInt()} dp" },
-            valueLabel = "Edge Rounding"
+            valueLabel = "Edge Rounding",
+            enabled = enableOverlay
         )
     }
 }
@@ -759,10 +880,13 @@ private fun SettingsSliderCard(
     valueRange: ClosedFloatingPointRange<Float>,
     displayValueFormatter: (Float) -> String,
     valueLabel: String = "Current Value",
-    steps: Int = 0
+    steps: Int = 0,
+    enabled: Boolean = true
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = if (enabled) 1f else 0.38f },
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -781,13 +905,17 @@ private fun SettingsSliderCard(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        .background(
+                            if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (enabled) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                     )
                 }
 
@@ -796,12 +924,14 @@ private fun SettingsSliderCard(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = if (enabled) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                     )
                     Text(
                         text = description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
                     )
                 }
             }
@@ -818,13 +948,15 @@ private fun SettingsSliderCard(
                     Text(
                         text = valueLabel,
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
                     )
                     Text(
                         text = displayValueFormatter(value),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = if (enabled) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
                     )
                 }
 
@@ -834,6 +966,7 @@ private fun SettingsSliderCard(
                     onValueChangeFinished = onValueChangeFinished,
                     valueRange = valueRange,
                     steps = steps,
+                    enabled = enabled,
                     modifier = Modifier.fillMaxWidth(),
                     track = { _ ->
                         val fraction = if (valueRange.endInclusive > valueRange.start) {
@@ -846,13 +979,19 @@ private fun SettingsSliderCard(
                                 .fillMaxWidth()
                                 .height(36.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                .background(
+                                    if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                                )
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth(fraction)
                                     .fillMaxHeight()
-                                    .background(MaterialTheme.colorScheme.primary)
+                                    .background(
+                                        if (enabled) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.24f)
+                                    )
                             )
                         }
                     },
@@ -972,10 +1111,11 @@ private fun SubScreenHeader(
 @Composable
 private fun SectionCard(
     title: String,
+    modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
