@@ -1,6 +1,8 @@
 package dev.auriya.app.service
 
+import android.app.ActivityManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.view.Gravity
@@ -58,6 +60,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
         val gpuLoad: String = "--",
         val cpuTemp: String = "--",
         val batTemp: String = "--",
+        val ram: String = "--",
         val rawFps: Float = 0f,
         val rawCpuTemp: Float = 0f,
         val rawBatTemp: Float = 0f
@@ -95,28 +98,42 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                     val showFps = prefs.getBoolean("show_fps", true)
                     val showCpu = prefs.getBoolean("show_cpu", true)
                     val showGpu = prefs.getBoolean("show_gpu", true)
+                    val showRam = prefs.getBoolean("show_ram", true)
                     val showTemp = prefs.getBoolean("show_temp", true)
                     val showBattery = prefs.getBoolean("show_battery", true)
                     val monetEnabled = prefs.getBoolean("monet_enabled", true)
+                    
+                    val overlayPreset = prefs.getString("overlay_preset", "green_default") ?: "green_default"
+                    val customPrimary = prefs.getString("custom_primary", "#AAD2A4") ?: "#AAD2A4"
+                    val customSecondary = prefs.getString("custom_secondary", "#385E38") ?: "#385E38"
+                    val customTertiary = prefs.getString("custom_tertiary", "#8A9A5B") ?: "#8A9A5B"
+
                     val textSizeSp = prefs.getFloat("text_size_sp", 12f)
                     val bgOpacity = prefs.getFloat("bg_opacity", 0.7f)
                     val paddingDp = prefs.getFloat("padding_dp", 12f)
                     val cornerRadiusDp = prefs.getFloat("corner_radius_dp", 16f)
                     val layoutStyle = prefs.getString("layout_style", "Horizontal") ?: "Horizontal"
+                    val overlayMode = prefs.getString("overlay_mode", "Full") ?: "Full"
 
                     OverlayChip(
                         data = telemetryState.value,
                         showFps = showFps,
                         showCpu = showCpu,
                         showGpu = showGpu,
+                        showRam = showRam,
                         showTemp = showTemp,
                         showBattery = showBattery,
                         monetEnabled = monetEnabled,
+                        overlayPreset = overlayPreset,
+                        customPrimary = customPrimary,
+                        customSecondary = customSecondary,
+                        customTertiary = customTertiary,
                         textSizeSp = textSizeSp,
                         bgOpacity = bgOpacity,
                         paddingDp = paddingDp,
                         cornerRadiusDp = cornerRadiusDp,
-                        layoutStyle = layoutStyle
+                        layoutStyle = layoutStyle,
+                        overlayMode = overlayMode
                     )
                 }
             }
@@ -235,6 +252,17 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
             }
         }
 
+        // 4. Query RAM usage directly from ActivityManager
+        var ramVal = "--"
+        runCatching {
+            val actManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val memInfo = ActivityManager.MemoryInfo()
+            actManager.getMemoryInfo(memInfo)
+            val usedBytes = memInfo.totalMem - memInfo.availMem
+            val usedGB = usedBytes / (1024.0 * 1024.0 * 1024.0)
+            ramVal = "%.1fG".format(usedGB)
+        }
+
         return TelemetryData(
             fps = fpsVal,
             cpuClusters = cpuClusters,
@@ -242,6 +270,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
             gpuLoad = gpuLoadVal,
             cpuTemp = cpuTempVal,
             batTemp = batTempVal,
+            ram = ramVal,
             rawFps = rawFpsNum,
             rawCpuTemp = rawCpuTempNum,
             rawBatTemp = rawBatTempNum
@@ -262,52 +291,88 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
             showFps: Boolean,
             showCpu: Boolean,
             showGpu: Boolean,
+            showRam: Boolean,
             showTemp: Boolean,
             showBattery: Boolean,
             monetEnabled: Boolean,
+            overlayPreset: String,
+            customPrimary: String,
+            customSecondary: String,
+            customTertiary: String,
             textSizeSp: Float,
             bgOpacity: Float,
             paddingDp: Float,
             cornerRadiusDp: Float,
-            layoutStyle: String
+            layoutStyle: String,
+            overlayMode: String
         ) {
             val textSize = textSizeSp.sp
             val subTextSize = (textSizeSp - 1f).coerceAtLeast(8f).sp
             val padding = paddingDp.dp
             val cornerRadius = cornerRadiusDp.dp
 
+            // Theme Preset color mapping
+            val (basePrimary, baseSecondary, baseTertiary) = remember(monetEnabled, overlayPreset, customPrimary, customSecondary, customTertiary) {
+                if (monetEnabled) {
+                    Triple(Color.Unspecified, Color.Unspecified, Color.Unspecified)
+                } else {
+                    when (overlayPreset) {
+                        "monochrome" -> Triple(Color(0xFFFFFFFF), Color(0xFFCCCCCC), Color(0xFF888888))
+                        "sage" -> Triple(Color(0xFFC2D5C6), Color(0xFF4A5D4E), Color(0xFF8FA393))
+                        "gaming" -> Triple(Color(0xFF2ECC71), Color(0xFF1B4F72), Color(0xFF00D2FF))
+                        "rust" -> Triple(Color(0xFFAAD2A4), Color(0xFF5C3A21), Color(0xFFE07A5F))
+                        "custom" -> {
+                            val prim = runCatching { Color(android.graphics.Color.parseColor(customPrimary)) }.getOrDefault(Color(0xFF2ECC71))
+                            val sec = runCatching { Color(android.graphics.Color.parseColor(customSecondary)) }.getOrDefault(Color(0xFFF1C40F))
+                            val tert = runCatching { Color(android.graphics.Color.parseColor(customTertiary)) }.getOrDefault(Color(0xFFE74C3C))
+                            Triple(prim, sec, tert)
+                        }
+                        else -> Triple(Color(0xFFAAD2A4), Color(0xFF385E38), Color(0xFF8A9A5B)) // default green_default
+                    }
+                }
+            }
+
+            // Apply dynamic warning status color or fallback to preset colors
             val fpsColor = if (monetEnabled) {
                 MaterialTheme.colorScheme.primary
+            } else if (overlayPreset == "custom" || overlayPreset != "green_default") {
+                basePrimary
             } else {
                 when {
                     data.rawFps >= 57f -> Color(0xFF2ECC71) // Green
                     data.rawFps >= 45f -> Color(0xFFF1C40F) // Yellow
                     data.rawFps > 0f -> Color(0xFFE74C3C)   // Red
-                    else -> Color.White
+                    else -> basePrimary
                 }
             }
 
             val cpuTempColor = if (monetEnabled) {
                 MaterialTheme.colorScheme.secondary
+            } else if (overlayPreset == "custom" || overlayPreset != "green_default") {
+                baseSecondary
             } else {
                 when {
                     data.rawCpuTemp >= 48f -> Color(0xFFE74C3C) // Hot Red
                     data.rawCpuTemp >= 40f -> Color(0xFFF1C40F) // Warm Yellow
                     data.rawCpuTemp > 0f -> Color(0xFF3498DB)   // Cool Blue
-                    else -> Color.White.copy(alpha = 0.7f)
+                    else -> baseSecondary
                 }
             }
 
             val batTempColor = if (monetEnabled) {
                 MaterialTheme.colorScheme.tertiary
+            } else if (overlayPreset == "custom" || overlayPreset != "green_default") {
+                baseTertiary
             } else {
                 when {
                     data.rawBatTemp >= 43f -> Color(0xFFE74C3C) // Hot Red
                     data.rawBatTemp >= 38f -> Color(0xFFF1C40F) // Warm Yellow
                     data.rawBatTemp > 0f -> Color(0xFF3498DB)   // Cool Blue
-                    else -> Color.White.copy(alpha = 0.7f)
+                    else -> baseTertiary
                 }
             }
+
+            val isMinimal = overlayMode == "Minimal"
 
             Box(
                 modifier = Modifier
@@ -326,7 +391,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
 
                         if (showFps) {
                             Text(
-                                text = "${data.fps} FPS",
+                                text = if (isMinimal) data.fps else "${data.fps} FPS",
                                 fontSize = textSize,
                                 color = fpsColor,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
@@ -339,7 +404,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                 Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f))
                             }
                             Text(
-                                text = "CPU " + data.cpuClusters.joinToString("·"),
+                                text = if (isMinimal) data.cpuClusters.joinToString("·") else "CPU " + data.cpuClusters.joinToString("·"),
                                 fontSize = subTextSize,
                                 color = if (monetEnabled) MaterialTheme.colorScheme.onSurface else Color.White.copy(alpha = 0.85f),
                             )
@@ -351,7 +416,19 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                 Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f))
                             }
                             Text(
-                                text = "GPU ${data.gpuFreq} (${data.gpuLoad})",
+                                text = if (isMinimal) "${data.gpuFreq} (${data.gpuLoad})" else "GPU ${data.gpuFreq} (${data.gpuLoad})",
+                                fontSize = subTextSize,
+                                color = if (monetEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.75f),
+                            )
+                            first = false
+                        }
+
+                        if (showRam && data.ram != "--") {
+                            if (!first) {
+                                Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f))
+                            }
+                            Text(
+                                text = if (isMinimal) data.ram else "RAM ${data.ram}",
                                 fontSize = subTextSize,
                                 color = if (monetEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.75f),
                             )
@@ -363,7 +440,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                 Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f))
                             }
                             Text(
-                                text = "CPU ${data.cpuTemp}",
+                                text = if (isMinimal) data.cpuTemp.removeSuffix("C") else "CPU ${data.cpuTemp}",
                                 fontSize = subTextSize,
                                 color = cpuTempColor,
                             )
@@ -375,7 +452,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                 Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f))
                             }
                             Text(
-                                text = "BAT ${data.batTemp}",
+                                text = if (isMinimal) data.batTemp.removeSuffix("C") else "BAT ${data.batTemp}",
                                 fontSize = subTextSize,
                                 color = batTempColor,
                             )
@@ -388,7 +465,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                     ) {
                         if (showFps) {
                             Text(
-                                text = "FPS: ${data.fps}",
+                                text = if (isMinimal) data.fps else "FPS: ${data.fps}",
                                 fontSize = textSize,
                                 color = fpsColor,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
@@ -397,7 +474,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
 
                         if (showCpu && data.cpuClusters.isNotEmpty()) {
                             Text(
-                                text = "CPU: " + data.cpuClusters.joinToString(" | "),
+                                text = if (isMinimal) data.cpuClusters.joinToString(" | ") else "CPU: " + data.cpuClusters.joinToString(" | "),
                                 fontSize = subTextSize,
                                 color = if (monetEnabled) MaterialTheme.colorScheme.onSurface else Color.White.copy(alpha = 0.85f),
                             )
@@ -405,7 +482,15 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
 
                         if (showGpu && data.gpuFreq != "--") {
                             Text(
-                                text = "GPU: ${data.gpuFreq} (${data.gpuLoad})",
+                                text = if (isMinimal) "${data.gpuFreq} (${data.gpuLoad})" else "GPU: ${data.gpuFreq} (${data.gpuLoad})",
+                                fontSize = subTextSize,
+                                color = if (monetEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.75f),
+                            )
+                        }
+
+                        if (showRam && data.ram != "--") {
+                            Text(
+                                text = if (isMinimal) data.ram else "RAM: ${data.ram}",
                                 fontSize = subTextSize,
                                 color = if (monetEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.75f),
                             )
@@ -413,7 +498,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
 
                         if (showTemp && data.cpuTemp != "--") {
                             Text(
-                                text = "CPU Temp: ${data.cpuTemp}",
+                                text = if (isMinimal) data.cpuTemp.removeSuffix("C") else "CPU Temp: ${data.cpuTemp}",
                                 fontSize = subTextSize,
                                 color = cpuTempColor,
                             )
@@ -421,7 +506,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
 
                         if (showBattery && data.batTemp != "--") {
                             Text(
-                                text = "BAT Temp: ${data.batTemp}",
+                                text = if (isMinimal) data.batTemp.removeSuffix("C") else "BAT Temp: ${data.batTemp}",
                                 fontSize = subTextSize,
                                 color = batTempColor,
                             )

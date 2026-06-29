@@ -6,10 +6,14 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -453,11 +457,18 @@ private fun FloatingOverlayContent(context: android.content.Context) {
     var showFps by remember { mutableStateOf(prefs.getBoolean("show_fps", true)) }
     var showCpu by remember { mutableStateOf(prefs.getBoolean("show_cpu", true)) }
     var showGpu by remember { mutableStateOf(prefs.getBoolean("show_gpu", true)) }
+    var showRam by remember { mutableStateOf(prefs.getBoolean("show_ram", true)) }
     var showTemp by remember { mutableStateOf(prefs.getBoolean("show_temp", true)) }
     var showBattery by remember { mutableStateOf(prefs.getBoolean("show_battery", true)) }
     var monetEnabled by remember { mutableStateOf(prefs.getBoolean("monet_enabled", true)) }
     
+    var overlayPreset by remember { mutableStateOf(prefs.getString("overlay_preset", "green_default") ?: "green_default") }
+    var customPrimary by remember { mutableStateOf(prefs.getString("custom_primary", "#AAD2A4") ?: "#AAD2A4") }
+    var customSecondary by remember { mutableStateOf(prefs.getString("custom_secondary", "#385E38") ?: "#385E38") }
+    var customTertiary by remember { mutableStateOf(prefs.getString("custom_tertiary", "#8A9A5B") ?: "#8A9A5B") }
+
     var layoutStyle by remember { mutableStateOf(prefs.getString("layout_style", "Horizontal") ?: "Horizontal") }
+    var overlayMode by remember { mutableStateOf(prefs.getString("overlay_mode", "Full") ?: "Full") }
     var updateIntervalMs by remember { mutableStateOf(prefs.getLong("update_interval_ms", 1000L)) }
     
     var textSizeSp by remember { mutableStateOf(prefs.getFloat("text_size_sp", 12f)) }
@@ -473,6 +484,16 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                 true
             }
         }
+
+    val colorPresets = remember {
+        listOf(
+            ColorPreset("green_default", Color(0xFFAAD2A4), Color(0xFF385E38), Color(0xFF8A9A5B)),
+            ColorPreset("monochrome", Color(0xFFFFFFFF), Color(0xFF333333), Color(0xFF888888)),
+            ColorPreset("sage", Color(0xFFC2D5C6), Color(0xFF4A5D4E), Color(0xFF8FA393)),
+            ColorPreset("gaming", Color(0xFF2ECC71), Color(0xFF1B4F72), Color(0xFF00D2FF)),
+            ColorPreset("rust", Color(0xFFAAD2A4), Color(0xFF5C3A21), Color(0xFFE07A5F))
+        )
+    }
 
     LaunchedEffect(enableOverlay) {
         if (enableOverlay) {
@@ -584,6 +605,26 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                 thickness = 1.dp,
             )
             SettingRow(
+                icon = Icons.Filled.FlipToFront,
+                title = "Show RAM Usage",
+                subtitle = "Display active memory usage statistics",
+                control = {
+                    Switch(
+                        checked = showRam,
+                        enabled = enableOverlay,
+                        onCheckedChange = {
+                            showRam = it
+                            prefs.edit().putBoolean("show_ram", it).apply()
+                            restartOverlay(context)
+                        },
+                    )
+                },
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                thickness = 1.dp,
+            )
+            SettingRow(
                 icon = Icons.Filled.Thermostat,
                 title = "Show CPU Temperature",
                 subtitle = "Monitor core thermal metrics in real-time",
@@ -614,6 +655,134 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                         onCheckedChange = {
                             showBattery = it
                             prefs.edit().putBoolean("show_battery", it).apply()
+                            restartOverlay(context)
+                        },
+                    )
+                },
+            )
+            
+            if (!monetEnabled && enableOverlay) {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(vertical = 12.dp)
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Color Presets",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        colorPresets.forEach { preset ->
+                            val isPresetSelected = overlayPreset == preset.id
+                            ColorPresetCircle(
+                                preset = preset,
+                                isSelected = isPresetSelected,
+                                onClick = {
+                                    overlayPreset = preset.id
+                                    prefs.edit().putString("overlay_preset", preset.id).apply()
+                                    restartOverlay(context)
+                                }
+                            )
+                        }
+
+                        val isCustomSelected = overlayPreset == "custom"
+                        val customPreset = remember(customPrimary, customSecondary, customTertiary) {
+                            val prim = runCatching { Color(android.graphics.Color.parseColor(customPrimary)) }.getOrDefault(Color(0xFF2ECC71))
+                            val sec = runCatching { Color(android.graphics.Color.parseColor(customSecondary)) }.getOrDefault(Color(0xFFF1C40F))
+                            val tert = runCatching { Color(android.graphics.Color.parseColor(customTertiary)) }.getOrDefault(Color(0xFFE74C3C))
+                            ColorPreset("custom", prim, sec, tert)
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    overlayPreset = "custom"
+                                    prefs.edit().putString("overlay_preset", "custom").apply()
+                                    restartOverlay(context)
+                                }
+                                .then(
+                                    if (isCustomSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape) else Modifier
+                                )
+                                .padding(4.dp)
+                        ) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                drawArc(color = customPreset.primary, startAngle = 180f, sweepAngle = 180f, useCenter = true)
+                                drawArc(color = customPreset.secondary, startAngle = 90f, sweepAngle = 90f, useCenter = true)
+                                drawArc(color = customPreset.tertiary, startAngle = 0f, sweepAngle = 90f, useCenter = true)
+                            }
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = null,
+                                tint = Color.Black.copy(alpha = 0.5f),
+                                modifier = Modifier.size(16.dp).align(Alignment.Center)
+                            )
+                        }
+                    }
+
+                    if (overlayPreset == "custom") {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        CustomColorPickerRow(
+                            label = "Primary Color (FPS)",
+                            selectedColor = customPrimary,
+                            onColorSelected = { hex ->
+                                customPrimary = hex
+                                prefs.edit().putString("custom_primary", hex).apply()
+                                restartOverlay(context)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        CustomColorPickerRow(
+                            label = "Secondary Color (CPU/Temps)",
+                            selectedColor = customSecondary,
+                            onColorSelected = { hex ->
+                                customSecondary = hex
+                                prefs.edit().putString("custom_secondary", hex).apply()
+                                restartOverlay(context)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        CustomColorPickerRow(
+                            label = "Tertiary Color (GPU/Battery)",
+                            selectedColor = customTertiary,
+                            onColorSelected = { hex ->
+                                customTertiary = hex
+                                prefs.edit().putString("custom_tertiary", hex).apply()
+                                restartOverlay(context)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        SectionCard(
+            title = "HUD Mode & Info Detail",
+            modifier = Modifier.graphicsLayer { alpha = if (enableOverlay) 1f else 0.38f }
+        ) {
+            SettingRow(
+                icon = Icons.Filled.Info,
+                title = "HUD Format Mode",
+                subtitle = "Choose full labels or minimal values",
+                control = {
+                    val modeText = if (overlayMode == "Minimal") "Minimal (Numbers Only)" else "Full Info (Labels)"
+                    SettingsDropdown(
+                        value = modeText,
+                        options = listOf("Full Info (Labels)", "Minimal (Numbers Only)"),
+                        enabled = enableOverlay,
+                        onValueChange = { selected ->
+                            val value = if (selected == "Minimal (Numbers Only)") "Minimal" else "Full"
+                            overlayMode = value
+                            prefs.edit().putString("overlay_mode", value).apply()
                             restartOverlay(context)
                         },
                     )
@@ -1133,20 +1302,19 @@ private fun SectionCard(
             content()
         }
     }
-}
-
-@Composable
+}@Composable
 fun SettingsDropdown(
     value: String,
     options: List<String>,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     accentColor: androidx.compose.ui.graphics.Color? = null,
+    enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
+    Box(modifier = modifier.graphicsLayer { alpha = if (enabled) 1f else 0.38f }) {
         Surface(
-            onClick = { expanded = true },
+            onClick = { if (enabled) expanded = true },
             shape = RoundedCornerShape(AuriyaTokens.rounding.full),
             color = accentColor ?: MaterialTheme.colorScheme.surfaceVariant,
             modifier = Modifier.wrapContentSize(),
@@ -1274,8 +1442,6 @@ fun SettingRow(
     }
 }
 
-
-
 private fun saveSettingsChange(
     viewModel: UiViewModel,
     settings: Settings,
@@ -1288,4 +1454,96 @@ private fun saveSettingsChange(
             daemon = settings.daemon.copy(defaultMode = globalPreset),
         )
     viewModel.saveSettings(updated)
+}
+
+data class ColorPreset(
+    val id: String,
+    val primary: Color,
+    val secondary: Color,
+    val tertiary: Color
+)
+
+@Composable
+private fun ColorPresetCircle(
+    preset: ColorPreset,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .then(
+                if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape) else Modifier
+            )
+            .padding(4.dp)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawArc(
+                color = preset.primary,
+                startAngle = 180f,
+                sweepAngle = 180f,
+                useCenter = true
+            )
+            drawArc(
+                color = preset.secondary,
+                startAngle = 90f,
+                sweepAngle = 90f,
+                useCenter = true
+            )
+            drawArc(
+                color = preset.tertiary,
+                startAngle = 0f,
+                sweepAngle = 90f,
+                useCenter = true
+            )
+        }
+    }
+}
+
+@Composable
+private fun CustomColorPickerRow(
+    label: String,
+    selectedColor: String,
+    onColorSelected: (String) -> Unit
+) {
+    val colors = listOf(
+        "#E74C3C", // Red
+        "#2ECC71", // Green
+        "#3498DB", // Blue
+        "#00D2FF", // Cyan
+        "#E67E22", // Orange
+        "#9B59B6", // Purple
+        "#FFFFFF", // White
+        "#F1C40F"  // Yellow
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            colors.forEach { hex ->
+                val isSelected = selectedColor.equals(hex, ignoreCase = true)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color(android.graphics.Color.parseColor(hex)))
+                        .clickable { onColorSelected(hex) }
+                        .border(
+                            width = 2.dp,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            shape = CircleShape
+                        )
+                )
+            }
+        }
+    }
 }
