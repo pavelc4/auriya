@@ -287,17 +287,33 @@ class UiViewModel : ViewModel() {
 
     fun updateProfile(mode: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            RootShell.exec("echo 'SET_PROFILE ${getProfileString(mode)}' | nc -U /dev/socket/auriya.sock")
-            RootShell.writeText(ConfigPaths.CURRENT_PROFILE_FILE, mode)
-            _currentProfile.value = mode
-        }
-    }
+            val modeString = when (mode) {
+                "1" -> "performance"
+                "2" -> "balance"
+                "3" -> "powersave"
+                else -> "balance"
+            }
 
-    private fun getProfileString(mode: String): String = when (mode) {
-        "1" -> "PERFORMANCE"
-        "2" -> "BALANCE"
-        "3" -> "POWERSAVE"
-        else -> "BALANCE"
+            // 1. Notify the daemon immediately via UDS Unix Socket
+            RootShell.exec("echo 'SET_PROFILE ${modeString.uppercase()}' | nc -U /dev/socket/auriya.sock")
+
+            // 2. Persist profile choice directly to settings.toml
+            val current = _settings.value
+            val updated = current.copy(
+                daemon = current.daemon.copy(defaultMode = modeString),
+                fas = current.fas.copy(defaultMode = modeString)
+            )
+            val content = TomlParser.serializeSettings(updated)
+            if (RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)) {
+                _settings.value = updated
+            }
+
+            // 3. Keep current profile state updated in UI
+            _currentProfile.value = mode
+
+            // 4. Poll immediately to update systemInfo profile state on the UI
+            runCatching { pollOnce() }
+        }
     }
 
     fun saveSettings(newSettings: Settings) {

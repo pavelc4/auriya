@@ -1,5 +1,6 @@
 package dev.auriya.app.ui.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.tween
@@ -57,6 +58,22 @@ fun AuriyaNavigation(
     val themePrefs by themeViewModel.prefs.collectAsState()
     val governors by viewModel.availableGovernors.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
+
+    if (editingGameProfile != null) {
+        BackHandler {
+            editingGameProfile = null
+        }
+    }
+    if (selectedGameProfile != null) {
+        BackHandler {
+            selectedGameProfile = null
+        }
+    }
+    if (subScreen != SubScreen.None) {
+        BackHandler {
+            subScreen = SubScreen.None
+        }
+    }
 
     val prefs = themePrefs
     val screenState = when {
@@ -125,7 +142,22 @@ fun AuriyaNavigation(
                         val navType = themePrefs?.navType ?: NavType.LEGACY
                         val cornerRadius = themePrefs?.cornerRadius ?: 24
 
-                        Scaffold(
+                         Scaffold(
+                            topBar = {
+                                if (activeTab == NavigationTab.HOME && selectedGameProfile == null && editingGameProfile == null && subScreen == SubScreen.None) {
+                                    TopAppBar(
+                                        title = {
+                                            Text(
+                                                text = "Auriya",
+                                                fontWeight = FontWeight.ExtraBold,
+                                            )
+                                        },
+                                        colors = TopAppBarDefaults.topAppBarColors(
+                                            containerColor = MaterialTheme.colorScheme.background,
+                                        ),
+                                    )
+                                }
+                            },
                             bottomBar = {
                                 if (navMode == NavMode.STANDARD) {
                                     AuriyaBottomBar(
@@ -145,6 +177,7 @@ fun AuriyaNavigation(
                                     .fillMaxSize()
                                     .statusBarsPadding()
                                     .padding(
+                                        top = innerPadding.calculateTopPadding(),
                                         bottom = bottomPadding,
                                         start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
                                         end = innerPadding.calculateEndPadding(LayoutDirection.Ltr)
