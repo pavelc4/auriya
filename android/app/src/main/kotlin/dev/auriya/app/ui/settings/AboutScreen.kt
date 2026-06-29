@@ -30,6 +30,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import dev.auriya.app.ui.theme.AuriyaTokens
+import dev.auriya.app.ui.components.AuriyaLoadingIndicator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -413,10 +414,8 @@ private fun ContributorsCard(
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.primary
+                                AuriyaLoadingIndicator(
+                                    size = 20.dp
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(

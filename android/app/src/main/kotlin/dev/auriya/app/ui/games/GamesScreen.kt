@@ -30,6 +30,7 @@ import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.ui.components.MaterialShapes
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
+import dev.auriya.app.ui.components.AuriyaLoadingIndicator
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.viewmodel.UiViewModel
 import dev.auriya.shared.model.GameProfile
@@ -211,7 +212,7 @@ private fun LoadingState() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small),
         ) {
-            CircularProgressIndicator(strokeWidth = 3.dp, modifier = Modifier.size(48.dp))
+            AuriyaLoadingIndicator(size = 56.dp)
             Text("Resolving applications…", style = MaterialTheme.typography.bodyMedium)
         }
     }

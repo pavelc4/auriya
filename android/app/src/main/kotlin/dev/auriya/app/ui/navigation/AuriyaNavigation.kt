@@ -20,6 +20,7 @@ import dev.auriya.app.data.NavType
 import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.ui.components.AuriyaBottomBar
 import dev.auriya.app.ui.components.AuriyaNavItem
+import dev.auriya.app.ui.components.AuriyaLoadingIndicator
 import dev.auriya.app.ui.games.GameProfileScreen
 import dev.auriya.app.ui.games.GamesPane
 import dev.auriya.app.ui.games.GamesScreen
@@ -63,7 +64,7 @@ fun AuriyaNavigation(
                     .background(MaterialTheme.colorScheme.background),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+            AuriyaLoadingIndicator(size = 96.dp)
             }
         }
         !prefs.isOobeCompleted -> {
