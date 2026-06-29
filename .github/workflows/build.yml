@@ -5,6 +5,8 @@ on:
   workflow_dispatch:
 env:
   CARGO_TERM_COLOR: always
+  BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+  CHAT_ID: ${{ secrets.CHAT_ID }}
 
 jobs:
   setup:
