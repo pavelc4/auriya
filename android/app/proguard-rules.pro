@@ -17,11 +17,10 @@
 -keep class dev.auriya.app.AuriyaApplication
 -keep class dev.auriya.app.MainActivity
 -keep class dev.auriya.app.widget.AuriyaWidgetReceiver
+-keep class dev.auriya.app.service.OverlayService
 
-# Keep Auriya's own data classes so reflection-based serialization
-# (if and when it lands) still works.
--keep class dev.auriya.app.** { *; }
--keep class dev.auriya.shared.** { *; }
+# Keep Glance app widget action callbacks from being stripped or renamed
+-keep class * implements androidx.glance.appwidget.action.ActionCallback { *; }
 
 # kotlinx.serialization (shared module uses it)
 -keepattributes *Annotation*, InnerClasses

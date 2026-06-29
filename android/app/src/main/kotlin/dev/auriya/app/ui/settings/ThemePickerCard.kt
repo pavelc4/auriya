@@ -31,6 +31,7 @@ import dev.auriya.app.data.NavType
 import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.ui.components.AuriyaBottomBar
 import dev.auriya.app.ui.components.AuriyaNavItem
+import dev.auriya.app.ui.components.SegmentedControl
 import dev.auriya.app.ui.theme.AuriyaTokens
 
 private val PALETTE = listOf(
@@ -154,7 +155,14 @@ fun ThemePickerCard(
                         else -> DarkThemeMode.FOLLOW_SYSTEM
                     }
                     onDarkModeChange(mode)
-                }
+                },
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                activeColor = MaterialTheme.colorScheme.surface,
+                activeTextColor = MaterialTheme.colorScheme.onSurface,
+                inactiveTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                cornerRadius = 16,
+                itemCornerRadius = 12,
+                verticalPadding = 12
             )
 
             val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
@@ -331,44 +339,6 @@ private fun SwatchDot(seedColor: Color, selected: Boolean, onClick: () -> Unit) 
                     contentDescription = "Selected",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun SegmentedControl(
-    items: List<String>,
-    selectedIndex: Int,
-    onItemSelected: (Int) -> Unit,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.3f),
-    activeColor: Color = MaterialTheme.colorScheme.surface,
-    inactiveColor: Color = Color.Transparent
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(containerColor)
-            .padding(4.dp)
-    ) {
-        items.forEachIndexed { index, title ->
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (selectedIndex == index) activeColor else inactiveColor)
-                    .clickable { onItemSelected(index) }
-                    .padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium
-                    ),
-                    color = if (selectedIndex == index) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
