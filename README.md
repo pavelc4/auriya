@@ -12,7 +12,7 @@
 - **Per-App Refresh Rate** - Different refresh rate for each app
 - **Per-Game Profile** - FPS target and mode configuration
 - **System Tweaks** - CPU and Memory optimization
-- **WebUI** - Configuration interface
+- **Native App Configuration** - Jetpack Compose Material Expresive
 
 ## Supported Root Managers
 - [Magisk](https://github.com/topjohnwu/Magisk)
