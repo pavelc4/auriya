@@ -93,6 +93,15 @@ fun HomeScreen(viewModel: UiViewModel, onNavigateToGames: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
             contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.largest * 3),
         ) {
+            item {
+                Text(
+                    text = "Auriya",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(bottom = AuriyaTokens.padding.smaller)
+                )
+            }
             if (!hasRoot) {
                 item { RootDeniedBanner() }
             }
@@ -201,8 +210,14 @@ private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
+                        val cleanVersion = systemInfo.version.removePrefix("v").removePrefix("V")
+                        val cleanArch = when (val arch = systemInfo.deviceArch.uppercase()) {
+                            "V8A" -> "ARM64-V8A"
+                            "V7A" -> "ARM-V7A"
+                            else -> arch
+                        }
                         Text(
-                            text = "v${systemInfo.version} (${systemInfo.commit}) · ${systemInfo.deviceArch.uppercase()}",
+                            text = "Version $cleanVersion (${systemInfo.commit}) · $cleanArch",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

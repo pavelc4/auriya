@@ -143,21 +143,6 @@ fun AuriyaNavigation(
                         val cornerRadius = themePrefs?.cornerRadius ?: 24
 
                          Scaffold(
-                            topBar = {
-                                if (activeTab == NavigationTab.HOME && selectedGameProfile == null && editingGameProfile == null && subScreen == SubScreen.None) {
-                                    TopAppBar(
-                                        title = {
-                                            Text(
-                                                text = "Auriya",
-                                                fontWeight = FontWeight.ExtraBold,
-                                            )
-                                        },
-                                        colors = TopAppBarDefaults.topAppBarColors(
-                                            containerColor = MaterialTheme.colorScheme.background,
-                                        ),
-                                    )
-                                }
-                            },
                             bottomBar = {
                                 if (navMode == NavMode.STANDARD) {
                                     AuriyaBottomBar(
@@ -177,7 +162,6 @@ fun AuriyaNavigation(
                                     .fillMaxSize()
                                     .statusBarsPadding()
                                     .padding(
-                                        top = innerPadding.calculateTopPadding(),
                                         bottom = bottomPadding,
                                         start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
                                         end = innerPadding.calculateEndPadding(LayoutDirection.Ltr)
