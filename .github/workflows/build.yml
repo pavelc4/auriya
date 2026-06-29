@@ -58,6 +58,28 @@ jobs:
           sha256sum "$BINARY" > "${BINARY}.sha256"
           sha256sum "$CLI_BINARY" > "${CLI_BINARY}.sha256"
 
+      - name: Checkout Keystores (Private)
+        uses: actions/checkout@v7
+        with:
+          repository: pavelc4/keystores
+          ssh-key: ${{ secrets.KEYSTORES_SSH_KEY }}
+          path: keystores-private
+
+      - name: Setup Signing Config
+        run: |
+          cat > android/signing.properties << EOF
+          KEYSTORE_PATH=${{ github.workspace }}/keystores-private/auriya.keystore
+          KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS=${{ secrets.KEYSTORE_ALIAS }}
+          KEY_PASSWORD=${{ secrets.KEYSTORE_KEY_PASSWORD }}
+          EOF
+
+      - name: Build Android APKs
+        working-directory: ./android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease :service:assembleRelease
+
       - name: Package Module
         id: package
         uses: ./.github/actions/package-module

@@ -1,8 +1,28 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
 }
 
+val signingPropertiesFile = rootProject.file("signing.properties")
+val signingProperties = Properties().apply {
+    if (signingPropertiesFile.exists()) {
+        signingPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
 android {
+
+    signingConfigs {
+        if (signingProperties.isNotEmpty()) {
+            create("release") {
+                storeFile = signingProperties.getProperty("KEYSTORE_PATH")?.let { rootProject.file(it) }
+                storePassword = signingProperties.getProperty("KEYSTORE_PASSWORD")
+                keyAlias = signingProperties.getProperty("KEY_ALIAS")
+                keyPassword = signingProperties.getProperty("KEY_PASSWORD")
+            }
+        }
+    }
     namespace = "dev.auriya.service"
     compileSdk = 36
 
@@ -17,6 +37,11 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            signingConfig = if (signingProperties.isNotEmpty()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isShrinkResources = false   // no resources to shrink
             vcsInfo.include = false
             proguardFiles(

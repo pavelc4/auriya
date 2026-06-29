@@ -44,7 +44,28 @@ runs:
             cp -r webui/dist/* "$BUILD_DIR/module/webroot/"
         fi
 
-        # 3. Binary (aarch64 only)
+        # 3. APKs (companion service + UI app)
+        APPS_DIR="$BUILD_DIR/module/libs/companion"
+        mkdir -p "$APPS_DIR"
+
+        APP_APK="android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
+        SERVICE_APK="android/service/build/outputs/apk/release/service-release.apk"
+
+        if [ -f "$APP_APK" ]; then
+            cp "$APP_APK" "$APPS_DIR/auriya-app.apk"
+            echo "Packaged app APK ($(du -h "$APP_APK" | cut -f1))"
+        else
+            echo "Warning: App APK not found at $APP_APK"
+        fi
+
+        if [ -f "$SERVICE_APK" ]; then
+            cp "$SERVICE_APK" "$APPS_DIR/service.apk"
+            echo "Packaged service APK ($(du -h "$SERVICE_APK" | cut -f1))"
+        else
+            echo "Warning: Service APK not found at $SERVICE_APK"
+        fi
+
+        # 4. Binary (aarch64 only)
         TARGET="aarch64-linux-android"
         ARCH="aarch64"
 

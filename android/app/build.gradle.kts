@@ -29,13 +29,9 @@ android {
         versionCode = 1
         versionName = "2.0.0-scaffold"
 
-        ndk {
-            // We ship arm64 only by default. armeabi-v7a stays in the
-            // filter so users on 32-bit ROMs get a build that runs,
-            // even though Auriya's daemon is arm64-only — the UI app
-            // works on both.
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
-        }
+        // ABI filtering is handled by splits.abi below; the ndk block
+        // is intentionally empty to avoid a conflict with the splits
+        // DSL in AGP 9+.
 
         vectorDrawables.useSupportLibrary = true
     }
@@ -72,15 +68,14 @@ android {
         }
     }
 
-    // Optional per-ABI APK splits keep each artifact below 5 MB once
-    // the UI lands. The universal APK stays available so users who
-    // sideload manually never have to pick the right ABI.
+    // Target-only split: Auriya's daemon is arm64, so that's all we
+    // ship.  No universal APK needed — one arch, one APK.
     splits {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a", "armeabi-v7a")
-            isUniversalApk = true
+            include("arm64-v8a")
+            isUniversalApk = false
         }
     }
 

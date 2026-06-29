@@ -4,6 +4,12 @@ description: Setup all required tools for building Auriya
 runs:
   using: composite
   steps:
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 26
+
     - name: Setup Bun
       uses: oven-sh/setup-bun@v1
       with:
@@ -13,7 +19,7 @@ runs:
       uses: nttld/setup-ndk@v1
       id: setup-ndk
       with:
-        ndk-version: r26b
+        ndk-version: r29
         add-to-path: true
 
     - name: Setup Rust
