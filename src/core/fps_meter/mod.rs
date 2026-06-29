@@ -1,11 +1,12 @@
 // FpsMeter — dual-source FPS reader, fully independent from FAS.
 //
 // Sources (priority order):
-//   1. eBPF (broadcast::Receiver from EbpfFrameStream) — per-frame deltas
-//   2. Sysfs (fallback, via measured_fps paths)
+//   1. Sysfs (via measured_fps paths) — always read first if available
+//   2. eBPF (broadcast::Receiver from EbpfFrameStream) — fallback per-frame deltas
 //
-// Each source maintains its own frame buffer and FPS calculation.
-// When eBPF frames are flowing, sysfs is never queried.
+// Sysfs is the primary source because it reports the actual display refresh,
+// which is more reliable than eBPF frame deltas (which can be noisy on
+// triple-buffering, vsync lock, or when the app isn't actively rendering).
 
 use std::collections::VecDeque;
 use std::fs;
@@ -86,26 +87,34 @@ impl FpsMeter {
     }
 
     /// Read the current FPS from the best available source.
-    /// Drains eBPF frames first, falls back to sysfs if stale.
+    /// Tries sysfs first, falls back to eBPF if unavailable.
     pub fn read(&mut self) -> Option<FpsReading> {
-        self.drain_ebpf();
-
-        if !self.frametimes.is_empty() && self.last_ebpf_frame.elapsed() < self.ebpf_timeout {
-            let avg: Duration = self.frametimes.iter().sum();
-            let n = self.frametimes.len() as f64;
-            let avg_secs = avg.as_secs_f64() / n;
-            if avg_secs > 0.0 {
-                let fps = 1.0 / avg_secs;
-                if fps > 0.0 && fps < 500.0 {
-                    return Some(FpsReading {
-                        fps,
-                        source: FpsSource::Ebpf,
-                    });
-                }
-            }
+        if let Some(sysfs) = self.read_sysfs() {
+            return Some(sysfs);
         }
 
-        self.read_sysfs()
+        self.drain_ebpf();
+
+        if self.frametimes.is_empty() || self.last_ebpf_frame.elapsed() >= self.ebpf_timeout {
+            return None;
+        }
+
+        let avg: Duration = self.frametimes.iter().sum();
+        let n = self.frametimes.len() as f64;
+        let avg_secs = avg.as_secs_f64() / n;
+        if avg_secs <= 0.0 {
+            return None;
+        }
+
+        let fps = 1.0 / avg_secs;
+        if fps <= 0.0 || fps > 500.0 {
+            return None;
+        }
+
+        Some(FpsReading {
+            fps,
+            source: FpsSource::Ebpf,
+        })
     }
 
     fn drain_ebpf(&mut self) {
