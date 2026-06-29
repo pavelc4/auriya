@@ -1,45 +1,52 @@
 name: Build Auriya
 permissions:
   contents: read
-
 on:
   workflow_dispatch:
-
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  setup:
     runs-on: ubuntu-latest
-
+    outputs:
+      notify_message_id: ${{ steps.notify_start.outputs.message_id }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-
       - name: Notify Build Start
-        id: notify_start
         if: ${{ env.BOT_TOKEN != '' }}
+        id: notify_start
         uses: ./.github/actions/telegram-notify
         with:
           bot_token: ${{ secrets.BOT_TOKEN }}
           chat_id: ${{ secrets.CHAT_ID }}
           type: start
-
       - name: Configure Git for Private Deps
         run: |
           git config --global credential.helper store
           echo "https://pavelc4:${{ secrets.GH_PAT }}@github.com" > ~/.git-credentials
+      - uses: ./.github/actions/setup-tools
 
-      - name: Setup Build Environment
-        uses: ./.github/actions/setup-tools
-
+  rust-binary:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-tools
+      - name: Cache Cargo Registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-
       - name: Build Rust Binary (aarch64)
         run: |
           TARGET="aarch64-linux-android"
-
           sed -i "s|/opt/android-ndk|${ANDROID_NDK_HOME}|g" .cargo/config.toml
-
           echo "Building for $TARGET..."
           cargo ndk -t "$TARGET" --platform 26 -- build --release --bin auriya --bin auriyactl
 
@@ -56,14 +63,22 @@ jobs:
           fi
           sha256sum "$BINARY" > "${BINARY}.sha256"
           sha256sum "$CLI_BINARY" > "${CLI_BINARY}.sha256"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rust-binary
+          path: target/aarch64-linux-android/release/auriya*
 
-      - name: Checkout Keystores (Private)
-        uses: actions/checkout@v7
+  android-apk:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-tools
+      - uses: actions/checkout@v7
         with:
           repository: pavelc4/keystores
-          ssh-key: ${{ secrets.KEYSTORES_SSH_KEY }}
+          token: ${{ secrets.KEYSTORES_SSH_KEY }}
           path: keystores-private
-
       - name: Setup Signing Config
         run: |
           cat > android/signing.properties << EOF
@@ -72,41 +87,61 @@ jobs:
           KEY_ALIAS=${{ secrets.KEYSTORE_ALIAS }}
           KEY_PASSWORD=${{ secrets.KEYSTORE_KEY_PASSWORD }}
           EOF
-
       - name: Build Android APKs
         working-directory: ./android
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleRelease :service:assembleRelease
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android-apks
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/service/build/outputs/apk/release/*.apk
 
-      - name: Package Module
+  package:
+    needs: [rust-binary, android-apk]
+    runs-on: ubuntu-latest
+    outputs:
+      zip_name: ${{ steps.package.outputs.zip_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          name: rust-binary
+          path: target/aarch64-linux-android/release/
+      - uses: actions/download-artifact@v7
+        with:
+          name: android-apks
+          path: .
+      - uses: ./.github/actions/package-module
         id: package
-        uses: ./.github/actions/package-module
         with:
           build_type: debug
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         with:
           name: auriya-aarch64
           path: build/release/*.zip
           compression-level: 0
 
-      - name: Notify Build Complete
-        if: ${{ env.BOT_TOKEN != '' }}
-        uses: ./.github/actions/telegram-notify
+  notify:
+    if: ${{ !cancelled() }}
+    needs: [setup, package]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/telegram-notify
+        if: ${{ needs.package.result == 'success' && needs.setup.outputs.notify_message_id != '' }}
         with:
           bot_token: ${{ secrets.BOT_TOKEN }}
           chat_id: ${{ secrets.CHAT_ID }}
           type: complete
-          zip_file: build/release/${{ steps.package.outputs.zip_name }}
-          delete_message_id: ${{ steps.notify_start.outputs.message_id }}
-
-      - name: Notify Build Failure
-        if: failure() && env.BOT_TOKEN != ''
-        uses: ./.github/actions/telegram-notify
+          zip_file: build/release/${{ needs.package.outputs.zip_name }}
+          delete_message_id: ${{ needs.setup.outputs.notify_message_id }}
+      - uses: ./.github/actions/telegram-notify
+        if: ${{ needs.package.result != 'success' && needs.setup.outputs.notify_message_id != '' }}
         with:
           bot_token: ${{ secrets.BOT_TOKEN }}
           chat_id: ${{ secrets.CHAT_ID }}
           type: failure
-          delete_message_id: ${{ steps.notify_start.outputs.message_id }}
+          delete_message_id: ${{ needs.setup.outputs.notify_message_id }}
