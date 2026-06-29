@@ -62,17 +62,6 @@ kala = { git = "https://github.com/pavelc4/kala", branch = "main" }
 dhat = "0.3"
 tempfile = "3"
 
-[target.'cfg(not(target_os = "android"))'.dev-dependencies]
-criterion = { version = "0.8", features = [] }
-
-[[bench]]
-name = "parser"
-harness = false
-
-[[bench]]
-name = "profile"
-harness = false
-
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 unused_must_use = "deny"
