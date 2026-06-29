@@ -38,13 +38,7 @@ runs:
         cp gamelist.toml "$BUILD_DIR/module/" 2>/dev/null || true
         cp -r module/system "$BUILD_DIR/module/" 2>/dev/null || true
 
-        # 2. WebUI
-        if [ -d "webui/dist" ]; then
-            mkdir -p "$BUILD_DIR/module/webroot"
-            cp -r webui/dist/* "$BUILD_DIR/module/webroot/"
-        fi
-
-        # 3. APKs (companion service + UI app)
+        # 2. APKs (companion service + UI app)
         APPS_DIR="$BUILD_DIR/module/libs/companion"
         mkdir -p "$APPS_DIR"
 

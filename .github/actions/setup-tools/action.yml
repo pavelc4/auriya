@@ -10,11 +10,6 @@ runs:
         distribution: temurin
         java-version: 26
 
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v1
-      with:
-        bun-version: latest
-
     - name: Setup Android NDK
       uses: nttld/setup-ndk@v1
       id: setup-ndk

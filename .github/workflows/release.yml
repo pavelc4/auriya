@@ -30,12 +30,6 @@ jobs:
       - name: Setup Build Environment
         uses: ./.github/actions/setup-tools
 
-      - name: Build WebUI
-        working-directory: ./webui
-        run: |
-          bun install
-          bun run build
-
       - name: Build Rust Binary (aarch64)
         run: |
           TARGET="aarch64-linux-android"
