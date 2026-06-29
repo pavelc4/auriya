@@ -395,66 +395,78 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                 fontSize = textSize,
                                 color = fpsColor,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false
                             )
                             first = false
                         }
 
                         if (showCpu && data.cpuClusters.isNotEmpty()) {
                             if (!first) {
-                                Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f))
+                                Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f), maxLines = 1, softWrap = false)
                             }
                             Text(
                                 text = if (isMinimal) data.cpuClusters.joinToString("·") else "CPU " + data.cpuClusters.joinToString("·"),
                                 fontSize = subTextSize,
                                 color = if (monetEnabled) MaterialTheme.colorScheme.onSurface else Color.White.copy(alpha = 0.85f),
+                                maxLines = 1,
+                                softWrap = false
                             )
                             first = false
                         }
 
                         if (showGpu && data.gpuFreq != "--") {
                             if (!first) {
-                                Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f))
+                                Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f), maxLines = 1, softWrap = false)
                             }
                             Text(
                                 text = if (isMinimal) "${data.gpuFreq} (${data.gpuLoad})" else "GPU ${data.gpuFreq} (${data.gpuLoad})",
                                 fontSize = subTextSize,
                                 color = if (monetEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.75f),
+                                maxLines = 1,
+                                softWrap = false
                             )
                             first = false
                         }
 
                         if (showRam && data.ram != "--") {
                             if (!first) {
-                                Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f))
+                                Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f), maxLines = 1, softWrap = false)
                             }
                             Text(
                                 text = if (isMinimal) data.ram else "RAM ${data.ram}",
                                 fontSize = subTextSize,
                                 color = if (monetEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.75f),
+                                maxLines = 1,
+                                softWrap = false
                             )
                             first = false
                         }
 
                         if (showTemp && data.cpuTemp != "--") {
                             if (!first) {
-                                Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f))
+                                Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f), maxLines = 1, softWrap = false)
                             }
                             Text(
                                 text = if (isMinimal) data.cpuTemp.removeSuffix("C") else "CPU ${data.cpuTemp}",
                                 fontSize = subTextSize,
                                 color = cpuTempColor,
+                                maxLines = 1,
+                                softWrap = false
                             )
                             first = false
                         }
 
                         if (showBattery && data.batTemp != "--") {
                             if (!first) {
-                                Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f))
+                                Text("|", fontSize = subTextSize, color = Color.White.copy(alpha = 0.2f), maxLines = 1, softWrap = false)
                             }
                             Text(
                                 text = if (isMinimal) data.batTemp.removeSuffix("C") else "BAT ${data.batTemp}",
                                 fontSize = subTextSize,
                                 color = batTempColor,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -469,6 +481,8 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                 fontSize = textSize,
                                 color = fpsColor,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
@@ -477,6 +491,8 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                 text = if (isMinimal) data.cpuClusters.joinToString(" | ") else "CPU: " + data.cpuClusters.joinToString(" | "),
                                 fontSize = subTextSize,
                                 color = if (monetEnabled) MaterialTheme.colorScheme.onSurface else Color.White.copy(alpha = 0.85f),
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
@@ -485,6 +501,8 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                 text = if (isMinimal) "${data.gpuFreq} (${data.gpuLoad})" else "GPU: ${data.gpuFreq} (${data.gpuLoad})",
                                 fontSize = subTextSize,
                                 color = if (monetEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.75f),
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
@@ -493,6 +511,8 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                 text = if (isMinimal) data.ram else "RAM: ${data.ram}",
                                 fontSize = subTextSize,
                                 color = if (monetEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.75f),
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
@@ -501,6 +521,8 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                 text = if (isMinimal) data.cpuTemp.removeSuffix("C") else "CPU Temp: ${data.cpuTemp}",
                                 fontSize = subTextSize,
                                 color = cpuTempColor,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
@@ -509,6 +531,8 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                 text = if (isMinimal) data.batTemp.removeSuffix("C") else "BAT Temp: ${data.batTemp}",
                                 fontSize = subTextSize,
                                 color = batTempColor,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }

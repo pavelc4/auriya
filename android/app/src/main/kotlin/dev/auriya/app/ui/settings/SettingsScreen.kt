@@ -660,6 +660,28 @@ private fun FloatingOverlayContent(context: android.content.Context) {
                     )
                 },
             )
+        }
+
+        SectionCard(
+            title = "Visual Customization",
+            modifier = Modifier.graphicsLayer { alpha = if (enableOverlay) 1f else 0.38f }
+        ) {
+            SettingRow(
+                icon = Icons.Filled.ColorLens,
+                title = "Use Monet Theme Colors",
+                subtitle = "Match overlay colors with device style",
+                control = {
+                    Switch(
+                        checked = monetEnabled,
+                        enabled = enableOverlay,
+                        onCheckedChange = {
+                            monetEnabled = it
+                            prefs.edit().putBoolean("monet_enabled", it).apply()
+                            restartOverlay(context)
+                        },
+                    )
+                },
+            )
             
             if (!monetEnabled && enableOverlay) {
                 HorizontalDivider(
@@ -765,51 +787,107 @@ private fun FloatingOverlayContent(context: android.content.Context) {
             }
         }
 
-        SectionCard(
-            title = "HUD Mode & Info Detail",
-            modifier = Modifier.graphicsLayer { alpha = if (enableOverlay) 1f else 0.38f }
+        Column(
+            modifier = Modifier.fillMaxWidth().graphicsLayer { alpha = if (enableOverlay) 1f else 0.38f },
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            SettingRow(
-                icon = Icons.Filled.Info,
-                title = "HUD Format Mode",
-                subtitle = "Choose full labels or minimal values",
-                control = {
-                    val modeText = if (overlayMode == "Minimal") "Minimal (Numbers Only)" else "Full Info (Labels)"
-                    SettingsDropdown(
-                        value = modeText,
-                        options = listOf("Full Info (Labels)", "Minimal (Numbers Only)"),
-                        enabled = enableOverlay,
-                        onValueChange = { selected ->
-                            val value = if (selected == "Minimal (Numbers Only)") "Minimal" else "Full"
-                            overlayMode = value
-                            prefs.edit().putString("overlay_mode", value).apply()
-                            restartOverlay(context)
-                        },
-                    )
-                },
+            Text(
+                text = "HUD Format Mode",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 8.dp)
             )
-        }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                val isFullSelected = overlayMode == "Full"
+                Card(
+                    onClick = {
+                        if (enableOverlay) {
+                            overlayMode = "Full"
+                            prefs.edit().putString("overlay_mode", "Full").apply()
+                            restartOverlay(context)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isFullSelected && enableOverlay) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                        else MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = if (isFullSelected && enableOverlay) {
+                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    } else {
+                        null
+                    }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 20.dp, horizontal = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Full Info",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (isFullSelected && enableOverlay) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "With labels (e.g. FPS: 60)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
 
-        SectionCard(
-            title = "Visual Customization",
-            modifier = Modifier.graphicsLayer { alpha = if (enableOverlay) 1f else 0.38f }
-        ) {
-            SettingRow(
-                icon = Icons.Filled.ColorLens,
-                title = "Use Monet Theme Colors",
-                subtitle = "Match overlay colors with device style",
-                control = {
-                    Switch(
-                        checked = monetEnabled,
-                        enabled = enableOverlay,
-                        onCheckedChange = {
-                            monetEnabled = it
-                            prefs.edit().putBoolean("monet_enabled", it).apply()
+                val isMinimalSelected = overlayMode == "Minimal"
+                Card(
+                    onClick = {
+                        if (enableOverlay) {
+                            overlayMode = "Minimal"
+                            prefs.edit().putString("overlay_mode", "Minimal").apply()
                             restartOverlay(context)
-                        },
-                    )
-                },
-            )
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isMinimalSelected && enableOverlay) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                        else MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = if (isMinimalSelected && enableOverlay) {
+                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    } else {
+                        null
+                    }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 20.dp, horizontal = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Minimalist",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (isMinimalSelected && enableOverlay) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Numbers only (e.g. 60.0)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+            }
         }
 
         Column(
