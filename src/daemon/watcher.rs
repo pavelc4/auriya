@@ -21,8 +21,11 @@ pub fn start_config_watcher(
 
         let mut watcher = match notify::recommended_watcher(
             move |res: Result<notify::Event, notify::Error>| {
+                // Catch both in-place edits (Modify) and atomic renames
+                // (Create — write-tmp-then-rename produces a Create event
+                // for the target path, not Modify).
                 if let Ok(event) = res
-                    && matches!(event.kind, EventKind::Modify(_))
+                    && matches!(event.kind, EventKind::Modify(_) | EventKind::Create(_))
                 {
                     let path_str = event
                         .paths
