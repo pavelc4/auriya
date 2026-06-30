@@ -38,6 +38,15 @@ pub fn start_config_watcher(
                         return;
                     }
 
+                    // Ignore events for temporary/swap files — only react
+                    // when the actual gamelist file is touched.
+                    if !path_str.contains("gamelist") {
+                        return;
+                    }
+                    if path_str.contains(".tmp") || path_str.ends_with('~') || path_str.contains(".swp") {
+                        return;
+                    }
+
                     debug!(target: "auriya::daemon", "Gamelist file changed, reloading...");
                     let max_retries = 3;
                     let mut retry_count = 0;
