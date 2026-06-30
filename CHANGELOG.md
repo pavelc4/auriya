@@ -1,5 +1,50 @@
 # Changelog
 
+## v2.0.0
+
+### New Features
+
+*   **Native Jetpack Compose UI**: Replaced the Svelte WebUI with a native Android application built with Jetpack Compose and Material 3 `[3544041]`, `[5de50c2]`, `[2627857]`.
+*   **Quick Settings Profile Switcher**: Added a Quick Settings tile to cycle performance profiles directly from the status bar, featuring dynamic icons (🎮/⚙️/🔋) and instant toast feedback `[71349df]`.
+*   **Game Launch Toast**: Triggers an Android Toast notification whenever a registered game starts and tweaks are applied `[71349df]`.
+*   **Draggable HUD Overlay**: Implemented drag gestures for the floating telemetry HUD and persisted its screen coordinates `[009368a]`.
+*   **Customization Options**: Added RAM telemetry, split-circle color presets, custom hex color picker, minimalist HUD layout, Montserrat typography, and AMOLED dark mode `[7a537b2]`, `[ac72068]`, `[583fccc]`.
+*   **Jetpack Glance App Widget**: Implemented a responsive Material 3 dashboard app widget displaying system metrics `[1bee126]`.
+*   **Ceiling Power Caps**: Added a ceiling CPU power cap override per-game with Material 3 Expressive dropdown selectors `[d86f42b]`, `[de6e4d8]`.
+*   **Heartbeat & Liveness Watcher**: Added an fcntl lock-based liveness watcher on `companion.lock` to instantly auto-restart the companion if it dies `[12841f6]`, `[f9c0407]`.
+*   **Automated ADB Unit Tests**: Added a cargo adb runner (`adb-runner.sh`) to execute native tests directly on connected Android hardware `[ce078bf]`, `[d5ffe21]`.
+*   **Magisk/KernelSU APK Installer**: Bundles and installs the companion user APK automatically during module flash `[7994024]`.
+*   **Dynamic GPU/Mali Power Policies**: Added touchpanel game mode (Oppo/OnePlus), Mali power_policy configurations, and OEM battery saver disable tweaks `[9df5251]`.
+
+### Performance Optimizations
+
+*   **eBPF-Only Frame Timing (Toru)**: Replaced SurfaceFlinger dumpsys fallback with 100% eBPF-based frame stream probe to achieve zero-overhead monitoring `[0485b0c]`, `[9f11e5d]`, `[ccafd78]`.
+*   **Bottleneck-Aware Dynamic Governor**: Implemented a CV-based bottleneck classifier (CPU vs GPU) for dynamic per-domain scaling via single eBPF probe `[969c13c]`, `[0ff45ea]`.
+*   **Zero-Overhead Exit Detection**: Migrated to kernel `pidfd_open` + `poll` exit tracking for <1ms response latency `[5d65581]`, `[9731bf4]`.
+*   **Zero-Allocation Tick Loop**: Replaced per-tick `GameList` deep-clones with an atomic `Arc` refcount swap `[3e64889]`.
+*   **APK Size Shrunk 57%**: Shrunk release companion APK size from 9.4MB to 4.0MB with full R8 ProGuard code shrinking, obfuscation, and dependency cleanup `[61d43a6]`, `[5641e84]`.
+*   **AppIconCache Scroll Jank Fix**: Pre-warms and caches launcher icons off-thread, rendering games list scroll at smooth 60-120fps `[d9e31da]`, `[5bc0bc6]`.
+*   **Vendor-Lock Mounts**: Mount-binds sysfs nodes to disable background vendor CPU/GPU limits during game sessions `[9b1a2bf]`.
+
+### Bug Fixes
+
+*   **Android 16 Compatibility**:
+    *   Replaced `FileObserver` in `CmdReader` with a 200ms main-looper Handler poll to avoid GKI 6.12 SIGSEGV crashes `[425e263]`.
+    *   Wired Zen Mode interruption filters on Android 16 via reflection and Settings.Global fallback `[9554c8b]`.
+    *   Removed `ActivityThread.systemMain()` to drop background service RSS memory overhead by ~16MB `[d7bda76]`.
+*   **Stateful CmdWriter**: Fixed clobbering where DND and refresh rate commands dropped each other by batching fields sequentially `[aaa5b7d]`, `[a1f9e36]`.
+*   **Multi-Tier CPU Classification**: Corrected cpufreq policy classification for complex CPU topologies (e.g., 4+3+1) to prevent capping little cores `[0e726c2]`, `[376b58b]`.
+*   **Startup Self-Healing**: Automatically unmounts stale binds and resets freq nodes left read-only on daemon restart `[376b58b]`.
+*   **Uninstall Auto-Cleanup**: Rebuilt `uninstall.sh` to properly kill processes, remove config dirs, and clean up APatch/KernelSU bin symlinks `[8e2e585]`.
+
+### Credits & Acknowledgments
+
+Special thanks to the following projects for UI design inspiration:
+*   [RvSystem-Monitor](https://github.com/Rve27/RvSystem-Monitor) — Inspired the modern bottom navigation layout.
+*   [PixelPlayer](https://github.com/PixelPlayerHQ/PixelPlayer) — Inspired the Glance App Widget layout references and typography styles.
+
+---
+
 ## v1.0.4
 
 ### Bug Fixes
