@@ -64,7 +64,6 @@ fun GameProfileScreen(
     var targetFps by remember { mutableStateOf(game.targetFps?.toFloat() ?: 60f) }
     var refreshRate by remember { mutableStateOf(game.refreshRate?.toFloat() ?: 0f) }
     var enableDnd by remember { mutableStateOf(game.enableDnd) }
-    var killBackground by remember { mutableStateOf(false) }
     var selectedCeiling by remember { mutableStateOf(game.ceiling ?: "default") }
 
     val ceilingOptions = remember { listOf("default", "low", "balance", "high") }
@@ -107,7 +106,6 @@ fun GameProfileScreen(
                                     targetFps = 60f
                                     refreshRate = 0f
                                     enableDnd = true
-                                    killBackground = false
                                 },
                             )
                             if (isExistingProfile && onRemove != null) {
@@ -214,7 +212,7 @@ fun GameProfileScreen(
             }
 
             SectionLabel("System triggers")
-            ExpressiveList(count = 4) { index ->
+            ExpressiveList(count = 1) { index ->
                 when (index) {
                     0 -> {
                         SwitchRow(
@@ -222,15 +220,6 @@ fun GameProfileScreen(
                             subtitle = "Priority notifications on launch",
                             checked = enableDnd,
                             onCheck = { enableDnd = it },
-                        )
-                    }
-
-                    1 -> {
-                        SwitchRow(
-                            title = "Kill background apps",
-                            subtitle = "Free RAM before launch",
-                            checked = killBackground,
-                            onCheck = { killBackground = it },
                         )
                     }
                 }
