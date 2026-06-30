@@ -29,6 +29,25 @@
             android:stopWithTask="false" />
 
         <receiver
+            android:name=".receiver.AuriyaActionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="dev.auriya.app.ACTION_SHOW_TOAST" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".service.AuriyaTileService"
+            android:label="Auriya Profile"
+            android:icon="@drawable/ic_gamepad"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <receiver
             android:name=".widget.AuriyaWidgetReceiver"
             android:exported="true">
             <intent-filter>

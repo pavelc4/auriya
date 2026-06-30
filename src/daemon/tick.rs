@@ -236,6 +236,25 @@ impl Daemon {
                 let entering_game = self.last.pkg.as_deref() != Some(pkg);
                 if entering_game {
                     self.vendor_lock.lock_all();
+
+                    let mode_str = match target_mode {
+                        ProfileMode::Performance => "Performance",
+                        ProfileMode::Balance => "Balance",
+                        ProfileMode::Powersave => "Powersave",
+                    };
+                    let msg = format!("Auriya: Tweaks applied ({})", mode_str);
+                    debug!(target: "auriya::daemon", "Sending toast broadcast for game launch: {}", msg);
+                    let _ = std::process::Command::new("am")
+                        .args(&[
+                            "broadcast",
+                            "-a",
+                            "dev.auriya.app.ACTION_SHOW_TOAST",
+                            "--es",
+                            "message",
+                            &msg,
+                            "dev.auriya.app/.receiver.AuriyaActionReceiver",
+                        ])
+                        .spawn();
                 }
 
                 if self.last.profile_mode != Some(target_mode) {
