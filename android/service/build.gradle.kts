@@ -11,6 +11,29 @@ val signingProperties = Properties().apply {
     }
 }
 
+// ── Version from Cargo.toml ─────────────────────────────────────
+val cargoFile = rootProject.file("../Cargo.toml")
+
+val auriyaVersionName: String by lazy {
+    val explicit = project.findProperty("cargoVersion") as? String
+    if (explicit != null) return@lazy explicit
+    if (!cargoFile.exists()) return@lazy "0.0.0"
+    val match = Regex("""^version\s*=\s*"([^"]+)"""").find(cargoFile.readText())
+    match?.groupValues?.get(1) ?: "0.0.0"
+}
+
+val auriyaVersionCode: Int by lazy {
+    val explicit = project.findProperty("versionCode") as? String
+    if (explicit != null) return@lazy explicit.toIntOrNull() ?: 1
+    val parts = auriyaVersionName.split(".").map { it.toIntOrNull() ?: 0 }
+    when (parts.size) {
+        3 -> parts[0] * 10000 + parts[1] * 100 + parts[2]
+        2 -> parts[0] * 10000 + parts[1] * 100
+        1 -> parts[0] * 10000
+        else -> 1
+    }
+}
+
 android {
 
     signingConfigs {
@@ -30,8 +53,8 @@ android {
         applicationId = "dev.auriya.service"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = auriyaVersionCode
+        versionName = auriyaVersionName
     }
 
     buildTypes {

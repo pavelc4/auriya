@@ -18,6 +18,33 @@ val signingProperties = Properties().apply {
     }
 }
 
+// ── Version from Cargo.toml ─────────────────────────────────────
+// Manager version follows the daemon version automatically so the
+// two never drift.  Override via -PcargoVersion=X.Y.Z and
+// -PversionCode=N from CI.
+val cargoFile = rootProject.file("../Cargo.toml")
+
+val auriyaVersionName: String by lazy {
+    val explicit = project.findProperty("cargoVersion") as? String
+    if (explicit != null) return@lazy explicit
+    if (!cargoFile.exists()) return@lazy "0.0.0"
+    val match = Regex("""^version\s*=\s*"([^"]+)"""").find(cargoFile.readText())
+    match?.groupValues?.get(1) ?: "0.0.0"
+}
+
+val auriyaVersionCode: Int by lazy {
+    val explicit = project.findProperty("versionCode") as? String
+    if (explicit != null) return@lazy explicit.toIntOrNull() ?: 1
+    // Encode semver into an integer: MAJOR * 10000 + MINOR * 100 + PATCH
+    val parts = auriyaVersionName.split(".").map { it.toIntOrNull() ?: 0 }
+    when (parts.size) {
+        3 -> parts[0] * 10000 + parts[1] * 100 + parts[2]
+        2 -> parts[0] * 10000 + parts[1] * 100
+        1 -> parts[0] * 10000
+        else -> 1
+    }
+}
+
 android {
     namespace = "dev.auriya.app"
     compileSdk = 37
@@ -26,8 +53,8 @@ android {
         applicationId = "dev.auriya.app"
         minSdk = 30
         targetSdk = 37
-        versionCode = 1
-        versionName = "2.0.0-scaffold"
+        versionCode = auriyaVersionCode
+        versionName = auriyaVersionName
 
         // ABI filtering is handled by splits.abi below; the ndk block
         // is intentionally empty to avoid a conflict with the splits
