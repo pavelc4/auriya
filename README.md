@@ -1,7 +1,7 @@
 <p align="center">
 <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
 <a href="https://github.com/pavelc4/auriya/releases"><img src="https://img.shields.io/github/v/release/pavelc4/auriya?label=Release&style=for-the-badge&logo=github&logoColor=white&labelColor=222" alt="Latest Release"></a>
-<a href="LICENSE"><img src="https://img.shields.io/badge/MIT-white?style=for-the-badge&logo=andela&logoColor=white&label=License&labelColor=222" alt="License"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/GPLv3-white?style=for-the-badge&logo=gnu&logoColor=white&label=License&labelColor=222" alt="License"></a>
 </p>
 
 ## About Auriya
@@ -35,5 +35,4 @@
 
 
 ## License
-Auriya is open-sourced software licensed under the [MIT license](LICENSE).
-
+Auriya is open-sourced software licensed under the [GNU General Public License v3.0](LICENSE).
