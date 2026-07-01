@@ -18,7 +18,7 @@ val auriyaVersionName: String by lazy {
     val explicit = project.findProperty("cargoVersion") as? String
     if (explicit != null) return@lazy explicit
     if (!cargoFile.exists()) return@lazy "0.0.0"
-    val match = Regex("""^version\s*=\s*"([^"]+)"""").find(cargoFile.readText())
+    val match = Regex("""^version\s*=\s*"([^"]+)"""", RegexOption.MULTILINE).find(cargoFile.readText())
     match?.groupValues?.get(1) ?: "0.0.0"
 }
 
