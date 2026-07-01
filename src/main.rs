@@ -6,7 +6,12 @@ mod daemon;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
-    let base_filter = EnvFilter::new("info");
+    // Load settings before initialising tracing so the user-configured
+    // log_level actually takes effect.  Early errors go to stderr raw.
+    let (settings, gamelist) = core::config::load_all()?;
+
+    let level = &settings.daemon.log_level;
+    let base_filter = EnvFilter::new(level);
     let (filter_layer, filter_handle) = reload::Layer::new(base_filter);
     let timer = tracing_subscriber::fmt::time::UtcTime::new(
         time::format_description::parse_borrowed::<2>("[hour]:[minute]:[second]").unwrap(),
@@ -23,8 +28,6 @@ async fn main() -> Result<()> {
                 .with_writer(std::io::stderr),
         )
         .init();
-
-    let (settings, gamelist) = core::config::load_all()?;
 
     tracing::info!("Daemon | Auriya v{} started", env!("CARGO_PKG_VERSION"));
     tracing::info!(

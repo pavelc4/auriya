@@ -199,7 +199,7 @@ impl FasController {
         let frametimes = self.buffer.recent_frametimes(60);
         let bottleneck = self.bottleneck.classify(&frametimes, target_fps);
 
-        tracing::info!(
+        tracing::debug!(
             target: "auriya::fas",
             "fps_long={:.1} fps_short={:.1} target={} adj_target={:.2} jank={} ctl={:.0}kHz off={:.2} bneck={}",
             self.buffer.current_fps_long,
@@ -220,7 +220,7 @@ impl FasController {
         let mut action = decide_action(control_khz, is_janked, bottleneck);
         let raw_action = action;
         action = self.caps.fallback_action(action);
-        tracing::info!(
+        tracing::debug!(
             target: "auriya::fas",
             "decision={}{}",
             match action {
