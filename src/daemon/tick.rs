@@ -245,7 +245,7 @@ impl Daemon {
                     let msg = format!("Auriya: Tweaks applied ({})", mode_str);
                     debug!(target: "auriya::daemon", "Sending toast broadcast for game launch: {}", msg);
                     let _ = std::process::Command::new("am")
-                        .args(&[
+                        .args([
                             "broadcast",
                             "-a",
                             "dev.auriya.app.ACTION_SHOW_TOAST",
