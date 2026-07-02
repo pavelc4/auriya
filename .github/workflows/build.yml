@@ -108,11 +108,11 @@ jobs:
       zip_name: ${{ steps.package.outputs.zip_name }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: rust-binary
           path: target/aarch64-linux-android/release/
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: android-apks
           path: .
@@ -132,7 +132,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         if: ${{ needs.package.result == 'success' }}
         with:
           name: auriya-aarch64
