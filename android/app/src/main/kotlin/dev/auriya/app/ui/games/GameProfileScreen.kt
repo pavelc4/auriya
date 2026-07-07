@@ -364,7 +364,10 @@ private fun HeroHeader(
                         )
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest),
+                    verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)
+                ) {
                     StatusBadge(label = "Active", tone = StatusTone.SUCCESS)
                     StatusBadge(label = "$targetFps FPS", tone = StatusTone.SECONDARY)
                     if (dnd) StatusBadge(label = "DnD", tone = StatusTone.WARNING)

@@ -432,7 +432,10 @@ private fun ActiveRowContent(app: ActiveAppItem, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(AuriyaTokens.padding.smallest))
-                Row(horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest),
+                    verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)
+                ) {
                     app.profile.targetFps?.let {
                         StatusBadge(label = "$it FPS", tone = StatusTone.SUCCESS)
                     }
