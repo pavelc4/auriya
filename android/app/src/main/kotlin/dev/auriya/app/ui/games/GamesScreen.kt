@@ -3,18 +3,25 @@ package dev.auriya.app.ui.games
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,14 +33,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.pulltorefresh.PullToRefreshState
+import androidx.compose.ui.unit.sp
 import dev.auriya.app.data.AppIconCache
+import dev.auriya.app.ui.components.AuriyaLoadingIndicator
 import dev.auriya.app.ui.components.MaterialShapes
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
-import dev.auriya.app.ui.components.AuriyaLoadingIndicator
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.viewmodel.UiViewModel
 import dev.auriya.shared.model.GameProfile
@@ -43,6 +48,17 @@ import kotlinx.coroutines.withContext
 
 data class AppInfoItem(val packageName: String, val label: String)
 data class ActiveAppItem(val packageName: String, val label: String, val profile: GameProfile)
+
+enum class GameTab(val title: String) {
+    ALL("All"),
+    ACTIVE("Active"),
+    INSTALLED("Installed"),
+}
+
+enum class SortMode {
+    NAME_ASC,
+    NAME_DESC,
+}
 
 private val rowShapes = arrayOf(
     MaterialShapes.Cookie9,
@@ -80,6 +96,9 @@ fun GamesScreen(
 
     val gameList by viewModel.gameList.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var isSearchVisible by remember { mutableStateOf(false) }
+    var sortMode by remember { mutableStateOf(SortMode.NAME_ASC) }
+    var selectedTab by remember { mutableStateOf(GameTab.ALL) }
     var installedApps by remember { mutableStateOf<List<AppInfoItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -110,7 +129,7 @@ fun GamesScreen(
     val activeProfilesMap = remember(gameList.games) {
         gameList.games.associateBy { it.packageName }
     }
-    val (activeApps, inactiveApps) = remember(installedApps, gameList.games) {
+    val (activeApps, inactiveApps) = remember(installedApps, gameList.games, sortMode) {
         val active = mutableListOf<ActiveAppItem>()
         val inactive = mutableListOf<AppInfoItem>()
         installedApps.forEach { app ->
@@ -126,7 +145,13 @@ fun GamesScreen(
                 active += ActiveAppItem(game.packageName, label, game)
             }
         }
-        active.sortBy { it.label.lowercase() }
+        if (sortMode == SortMode.NAME_ASC) {
+            active.sortBy { it.label.lowercase() }
+            inactive.sortBy { it.label.lowercase() }
+        } else {
+            active.sortByDescending { it.label.lowercase() }
+            inactive.sortByDescending { it.label.lowercase() }
+        }
         active to inactive
     }
 
@@ -142,98 +167,335 @@ fun GamesScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     val state = rememberPullToRefreshState()
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = {
-            isRefreshing = true
-            viewModel.refresh {
-                isRefreshing = false
-            }
-        },
-        state = state,
-        indicator = {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 12.dp)
-            ) {
-                val progress = state.distanceFraction.coerceIn(0f, 1f)
-                if (isRefreshing || progress > 0f) {
-                    AuriyaLoadingIndicator(
-                        size = 56.dp * if (isRefreshing) 1f else progress,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-            }
-        },
-        modifier = Modifier.fillMaxSize()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
     ) {
-        LazyColumn(
+        // --- 1. TOP PINNED HEADER (Backdrop layer) ---
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = AuriyaTokens.padding.normal),
-            contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.largest * 3),
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            if (!bannerDismissed) {
-                item {
-                    HeroBanner(
-                        onDismiss = {
-                            sharedPrefs.edit().putBoolean("games_banner_dismissed", true).apply()
-                            bannerDismissed = true
-                        }
-                    )
-                }
-            }
-            item { SearchPill(searchQuery, onChange = { searchQuery = it }) }
+            Text(
+                text = "Games",
+                style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                    fontWeight = FontWeight.Black,
+                    fontSize = 36.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        }
 
-            if (filteredActive.isNotEmpty()) {
-                item {
-                    SectionLabel(
-                        label = "Active profiles",
-                        count = filteredActive.size,
-                        modifier = Modifier.padding(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.smaller),
-                    )
+        // --- 2. PINNED FILTER PILLS ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            GameTab.entries.forEach { tab ->
+                val isSelected = selectedTab == tab
+                val count = when (tab) {
+                    GameTab.ALL -> filteredActive.size + filteredInactive.size
+                    GameTab.ACTIVE -> filteredActive.size
+                    GameTab.INSTALLED -> filteredInactive.size
                 }
-                itemsIndexed(
-                    items = filteredActive,
-                    key = { _, a -> "active-${a.packageName}" },
-                ) { index, app ->
-                    ContinuousRow(index = index, lastIndex = filteredActive.lastIndex) {
-                        ActiveRowContent(app, onClick = { onEditGame(app.profile) })
-                    }
-                }
-            }
+                val pillBg by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    label = "tab_bg"
+                )
+                val pillTextColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    label = "tab_text"
+                )
 
-            if (filteredInactive.isNotEmpty()) {
-                item {
-                    SectionLabel(
-                        label = "Installed applications",
-                        count = filteredInactive.size,
-                        modifier = Modifier.padding(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.smaller),
-                    )
-                }
-                itemsIndexed(
-                    items = filteredInactive,
-                    key = { _, a -> "inactive-${a.packageName}" },
-                ) { index, app ->
-                    ContinuousRow(index = index, lastIndex = filteredInactive.lastIndex) {
-                        InactiveRowContent(app, onClick = {
-                            onEditGame(
-                                GameProfile(
-                                    packageName = app.packageName,
-                                    cpuGovernor = "performance",
-                                    enableDnd = true,
-                                    targetFps = 60,
-                                )
+                Surface(
+                    onClick = { selectedTab = tab },
+                    shape = RoundedCornerShape(24.dp),
+                    color = pillBg,
+                    modifier = Modifier.height(38.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = tab.title.uppercase(),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = pillTextColor
+                        )
+                        if (count > 0) {
+                            Text(
+                                text = "($count)",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = pillTextColor.copy(alpha = 0.8f)
                             )
-                        })
+                        }
                     }
                 }
             }
+        }
 
-            if (filteredActive.isEmpty() && filteredInactive.isEmpty()) {
-                item { EmptyState() }
+        // --- 3. FOREGROUND STACKED CARD SHEET ---
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Top Action Row (Actions / Sort / Search)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Left Action Pill: Add Custom Game
+                    FilledTonalButton(
+                        onClick = {
+                            if (filteredInactive.isNotEmpty()) {
+                                onEditGame(
+                                    GameProfile(
+                                        packageName = filteredInactive.first().packageName,
+                                        cpuGovernor = "performance",
+                                        enableDnd = true,
+                                        targetFps = 60,
+                                    )
+                                )
+                            }
+                        },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.height(40.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Add Profile",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Right Segmented Action Buttons: Search & Sort
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        FilledTonalIconButton(
+                            onClick = { isSearchVisible = !isSearchVisible },
+                            shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp, topEnd = 6.dp, bottomEnd = 6.dp),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = if (isSearchVisible || searchQuery.isNotEmpty()) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = if (isSearchVisible || searchQuery.isNotEmpty()) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Search",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        FilledTonalIconButton(
+                            onClick = {
+                                sortMode = if (sortMode == SortMode.NAME_ASC) SortMode.NAME_DESC else SortMode.NAME_ASC
+                            },
+                            shape = RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 16.dp, bottomEnd = 16.dp),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = if (sortMode == SortMode.NAME_DESC) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = if (sortMode == SortMode.NAME_DESC) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Sort,
+                                contentDescription = "Sort",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Expandable Search Bar
+                AnimatedVisibility(
+                    visible = isSearchVisible || searchQuery.isNotEmpty(),
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                        SearchPill(searchQuery, onChange = { searchQuery = it })
+                    }
+                }
+
+                // Scrollable List
+                @OptIn(ExperimentalMaterial3Api::class)
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        isRefreshing = true
+                        viewModel.refresh {
+                            isRefreshing = false
+                        }
+                    },
+                    state = state,
+                    indicator = {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 12.dp)
+                        ) {
+                            val progress = state.distanceFraction.coerceIn(0f, 1f)
+                            if (isRefreshing || progress > 0f) {
+                                AuriyaLoadingIndicator(
+                                    size = 56.dp * if (isRefreshing) 1f else progress,
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 100.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (!bannerDismissed && selectedTab != GameTab.INSTALLED) {
+                            item {
+                                HeroBanner(
+                                    onDismiss = {
+                                        sharedPrefs.edit().putBoolean("games_banner_dismissed", true).apply()
+                                        bannerDismissed = true
+                                    }
+                                )
+                            }
+                        }
+
+                        when (selectedTab) {
+                            GameTab.ALL -> {
+                                if (filteredActive.isNotEmpty()) {
+                                    item {
+                                        SectionLabel(
+                                            label = "Active profiles",
+                                            count = filteredActive.size,
+                                            modifier = Modifier.padding(top = AuriyaTokens.padding.small, bottom = AuriyaTokens.padding.smaller),
+                                        )
+                                    }
+                                    itemsIndexed(
+                                        items = filteredActive,
+                                        key = { _, a -> "active-${a.packageName}" },
+                                    ) { index, app ->
+                                        ContinuousRow(index = index, lastIndex = filteredActive.lastIndex) {
+                                            ActiveRowContent(app, onClick = { onEditGame(app.profile) })
+                                        }
+                                    }
+                                }
+
+                                if (filteredInactive.isNotEmpty()) {
+                                    item {
+                                        SectionLabel(
+                                            label = "Installed applications",
+                                            count = filteredInactive.size,
+                                            modifier = Modifier.padding(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.smaller),
+                                        )
+                                    }
+                                    itemsIndexed(
+                                        items = filteredInactive,
+                                        key = { _, a -> "inactive-${a.packageName}" },
+                                    ) { index, app ->
+                                        ContinuousRow(index = index, lastIndex = filteredInactive.lastIndex) {
+                                            InactiveRowContent(app, onClick = {
+                                                onEditGame(
+                                                    GameProfile(
+                                                        packageName = app.packageName,
+                                                        cpuGovernor = "performance",
+                                                        enableDnd = true,
+                                                        targetFps = 60,
+                                                    )
+                                                )
+                                            })
+                                        }
+                                    }
+                                }
+                            }
+                            GameTab.ACTIVE -> {
+                                if (filteredActive.isNotEmpty()) {
+                                    itemsIndexed(
+                                        items = filteredActive,
+                                        key = { _, a -> "active-${a.packageName}" },
+                                    ) { index, app ->
+                                        ContinuousRow(index = index, lastIndex = filteredActive.lastIndex) {
+                                            ActiveRowContent(app, onClick = { onEditGame(app.profile) })
+                                        }
+                                    }
+                                }
+                            }
+                            GameTab.INSTALLED -> {
+                                if (filteredInactive.isNotEmpty()) {
+                                    itemsIndexed(
+                                        items = filteredInactive,
+                                        key = { _, a -> "inactive-${a.packageName}" },
+                                    ) { index, app ->
+                                        ContinuousRow(index = index, lastIndex = filteredInactive.lastIndex) {
+                                            InactiveRowContent(app, onClick = {
+                                                onEditGame(
+                                                    GameProfile(
+                                                        packageName = app.packageName,
+                                                        cpuGovernor = "performance",
+                                                        enableDnd = true,
+                                                        targetFps = 60,
+                                                    )
+                                                )
+                                            })
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        val isTabEmpty = when (selectedTab) {
+                            GameTab.ALL -> filteredActive.isEmpty() && filteredInactive.isEmpty()
+                            GameTab.ACTIVE -> filteredActive.isEmpty()
+                            GameTab.INSTALLED -> filteredInactive.isEmpty()
+                        }
+                        if (isTabEmpty) {
+                            item { EmptyState(tab = selectedTab) }
+                        }
+                    }
+                }
             }
         }
     }
@@ -355,22 +617,20 @@ private fun SectionLabel(label: String, count: Int, modifier: Modifier = Modifie
     ) {
         Text(
             text = label.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.ExtraBold,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = AuriyaTokens.padding.small),
         )
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(AuriyaTokens.rounding.full))
-                .background(MaterialTheme.colorScheme.secondaryContainer)
-                .padding(horizontal = 10.dp, vertical = 2.dp),
+        Surface(
+            shape = RoundedCornerShape(AuriyaTokens.rounding.full),
+            color = MaterialTheme.colorScheme.primaryContainer,
         ) {
             Text(
                 text = count.toString(),
                 style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(horizontal = AuriyaTokens.padding.smaller, vertical = 2.dp),
             )
         }
     }
@@ -420,7 +680,8 @@ private fun ActiveRowContent(app: ActiveAppItem, onClick: () -> Unit) {
                 Text(
                     text = app.label,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -431,25 +692,14 @@ private fun ActiveRowContent(app: ActiveAppItem, onClick: () -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(AuriyaTokens.padding.smallest))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest),
-                    verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)
-                ) {
-                    app.profile.targetFps?.let {
-                        StatusBadge(label = "$it FPS", tone = StatusTone.SUCCESS)
-                    }
-                    if (app.profile.enableDnd) {
-                        StatusBadge(label = "DnD", tone = StatusTone.WARNING)
-                    }
-                    StatusBadge(label = app.profile.cpuGovernor, tone = StatusTone.OUTLINE)
-                }
             }
-            Text(
-                text = "›",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Spacer(Modifier.width(AuriyaTokens.padding.small))
+            val (badgeText, badgeTone) = when (app.profile.cpuGovernor.lowercase()) {
+                "performance" -> "Performance" to StatusTone.PRIMARY
+                "powersave" -> "Powersave" to StatusTone.WARNING
+                else -> app.profile.cpuGovernor to StatusTone.SECONDARY
+            }
+            StatusBadge(label = badgeText, tone = badgeTone)
         }
     }
 }
@@ -467,13 +717,14 @@ private fun InactiveRowContent(app: AppInfoItem, onClick: () -> Unit) {
                 .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AppIconBox(packageName = app.packageName, shape = RoundedCornerShape(AuriyaTokens.rounding.large))
+            AppIconBox(packageName = app.packageName, shape = shapeFor(app.packageName))
             Spacer(Modifier.width(AuriyaTokens.padding.normal))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = app.label,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -513,17 +764,50 @@ private fun AppIconBox(packageName: String, shape: Shape) {
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyState(tab: GameTab = GameTab.ALL) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = AuriyaTokens.padding.largest * 2),
+            .padding(vertical = 48.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = "No apps match your search.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.size(64.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.SportsEsports,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+            Text(
+                text = when (tab) {
+                    GameTab.ALL -> "No games found"
+                    GameTab.ACTIVE -> "No active game profiles yet"
+                    GameTab.INSTALLED -> "No installed apps found"
+                },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = when (tab) {
+                    GameTab.ALL -> "Try searching with a different term."
+                    GameTab.ACTIVE -> "Select an installed app below to configure its profile."
+                    GameTab.INSTALLED -> "All installed apps are currently tuned."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
