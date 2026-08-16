@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -96,58 +97,97 @@ fun AboutScreen(onDismiss: () -> Unit) {
         }
     }
 
-    // Filter out pavelc4 from the dynamic contributors list, per your request
     val filteredContributors = remember(contributors) {
         contributors.filter { it.login.lowercase() != OWNER_LOGIN.lowercase() }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("About", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        LazyColumn(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .statusBarsPadding()
+    ) {
+        // --- 1. TOP PINNED HEADER AREA ---
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = AuriyaTokens.padding.normal),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
-            contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = 80.dp)
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 20.dp, top = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Support Card
-            item {
-                SupportCard(
-                    onCoffeeClick = {
-                        val url = "https://github.com/sponsors/$OWNER_LOGIN"
-                        runCatching {
-                            context.startActivity(
-                                android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(url)
-                                )
-                            )
-                        }
-                    }
+            FilledIconButton(
+                onClick = onDismiss,
+                shape = CircleShape,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.size(42.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
-            // 2. Contributors Card (Creator pavelc4 + Dynamic Expandable Contributor list)
-            item {
-                ContributorsCard(
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column {
+                Text(
+                    text = "About",
+                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Developer information and project specs",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // --- 2. FOREGROUND STACKED CARD SHEET ---
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp)
+            ) {
+                // App Hero Card
+                item {
+                    AppInfoHeroCard(repoInfo = repoInfo, isLoading = isLoadingInfo)
+                }
+
+                // 1. Support Card
+                item {
+                    SupportCard(
+                        onCoffeeClick = {
+                            val url = "https://github.com/sponsors/$OWNER_LOGIN"
+                            runCatching {
+                                context.startActivity(
+                                    android.content.Intent(
+                                        android.content.Intent.ACTION_VIEW,
+                                        android.net.Uri.parse(url)
+                                    )
+                                )
+                            }
+                        }
+                    )
+                }
+
+                // 2. Contributors Card
+                item {
+                    ContributorsCard(
                     owner = ownerInfo,
                     isLoadingOwner = isLoadingOwner,
                     contributors = filteredContributors,
@@ -203,6 +243,68 @@ fun AboutScreen(onDismiss: () -> Unit) {
                     }
                 )
             }
+        }
+    }
+}
+}
+
+@Composable
+private fun AppInfoHeroCard(repoInfo: RepoInfo?, isLoading: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(64.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Filled.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = "Auriya",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+            ) {
+                Text(
+                    text = if (isLoading || repoInfo == null) "v2.0.0 Expressive" else "v${repoInfo.version}",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                )
+            }
+
+            Text(
+                text = repoInfo?.description ?: "Rust-powered intelligent performance daemon and frame pacing module for Android.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }

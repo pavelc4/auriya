@@ -77,59 +77,70 @@ fun AppearanceScreen(
 
     val isFloating = currentPrefs.navMode == NavMode.FLOATING
 
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(top = 14.dp, bottom = 48.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .statusBarsPadding()
     ) {
-        // --- TOP HEADER AREA ---
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp, bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
+        // --- 1. TOP PINNED HEADER AREA ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 20.dp, top = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FilledIconButton(
+                onClick = onDismiss,
+                shape = CircleShape,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.size(42.dp)
             ) {
-                FilledIconButton(
-                    onClick = onDismiss,
-                    shape = CircleShape,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    modifier = Modifier.size(42.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
 
-                Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
-                Column {
-                    Text(
-                        text = "Appearance",
-                        fontFamily = GoogleSansRounded,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 28.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Theme mode, colors, and navigation layout",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            Column {
+                Text(
+                    text = "Appearance",
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Theme mode, colors, and navigation layout",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
-        // --- 1. GLOBAL THEME SUBSECTION ---
-        item {
+        // --- 2. FOREGROUND STACKED CARD SHEET ---
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp)
+            ) {
+                // --- 1. GLOBAL THEME SUBSECTION ---
+                item {
                     SettingsSubsection(title = "GLOBAL THEME") {
                         val themeItemCount = 2 + (if (isDarkActive) 1 else 0) + (if (!currentPrefs.useDynamicColor) 1 else 0)
                         var currentIndex = 0
@@ -199,6 +210,8 @@ fun AppearanceScreen(
                         )
                     }
                 }
+            }
+        }
     }
 }
 
