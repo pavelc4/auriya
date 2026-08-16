@@ -53,7 +53,7 @@ fun AuriyaTheme(
             seedColor = Color(seedColor),
             isDark = isDark,
             isAmoled = isDark && isAmoled,
-            style = PaletteStyle.TonalSpot,
+            style = PaletteStyle.Expressive,
         )
     }
 
@@ -63,6 +63,7 @@ fun AuriyaTheme(
         MaterialTheme(
             colorScheme = colorScheme,
             typography = AuriyaTypography,
+            shapes = Shapes,
             content = content,
         )
     }
