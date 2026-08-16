@@ -136,7 +136,6 @@ private fun FloatingPillBar(
         Surface(
             shape = RoundedCornerShape(AuriyaTokens.rounding.full),
             color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
             tonalElevation = 2.dp,
             shadowElevation = 12.dp,
         ) {
@@ -295,7 +294,6 @@ private fun ModernFloatingBar(
         Surface(
             shape = RoundedCornerShape(cornerRadius.dp),
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
             tonalElevation = 4.dp,
             shadowElevation = 16.dp,
             modifier = Modifier.padding(horizontal = 16.dp)

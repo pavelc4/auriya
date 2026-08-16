@@ -30,6 +30,7 @@ import dev.auriya.app.ui.games.GamesPane
 import dev.auriya.app.ui.games.GamesScreen
 import dev.auriya.app.ui.home.HomeScreen
 import dev.auriya.app.ui.settings.AboutScreen
+import dev.auriya.app.ui.settings.AppearanceScreen
 import dev.auriya.app.ui.settings.LanguageScreen
 import dev.auriya.app.ui.settings.SettingsScreen
 import dev.auriya.app.ui.oobe.OobeScreen
@@ -43,7 +44,7 @@ enum class NavigationTab(val title: String, val icon: ImageVector) {
     SETTINGS("Settings", Icons.Filled.Settings),
 }
 
-private enum class SubScreen { None, Language, About }
+private enum class SubScreen { None, Language, About, Appearance }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +73,11 @@ fun AuriyaNavigation(
     if (subScreen != SubScreen.None) {
         BackHandler {
             subScreen = SubScreen.None
+        }
+    }
+    if (activeTab == NavigationTab.SETTINGS && subScreen == SubScreen.None) {
+        BackHandler {
+            activeTab = NavigationTab.HOME
         }
     }
 
@@ -129,6 +135,10 @@ fun AuriyaNavigation(
                             } else null,
                         )
                     }
+                    subScreen == SubScreen.Appearance -> AppearanceScreen(
+                        themeViewModel = themeViewModel,
+                        onDismiss = { subScreen = SubScreen.None },
+                    )
                     subScreen == SubScreen.Language -> LanguageScreen(
                         onDismiss = { subScreen = SubScreen.None },
                     )
@@ -141,10 +151,11 @@ fun AuriyaNavigation(
                         val navMode = themePrefs?.navMode ?: NavMode.STANDARD
                         val navType = themePrefs?.navType ?: NavType.LEGACY
                         val cornerRadius = themePrefs?.cornerRadius ?: 24
+                        val showBottomBar = activeTab != NavigationTab.SETTINGS && editingGameProfile == null && selectedGameProfile == null && subScreen == SubScreen.None
 
                          Scaffold(
                             bottomBar = {
-                                if (navMode == NavMode.STANDARD) {
+                                if (showBottomBar && navMode == NavMode.STANDARD) {
                                     AuriyaBottomBar(
                                         items = navItems,
                                         selectedIndex = selectedIndex,
@@ -156,7 +167,7 @@ fun AuriyaNavigation(
                                 }
                             },
                         ) { innerPadding ->
-                            val bottomPadding = if (navMode == NavMode.STANDARD) innerPadding.calculateBottomPadding() else 0.dp
+                            val bottomPadding = if (showBottomBar && navMode == NavMode.STANDARD) innerPadding.calculateBottomPadding() else 0.dp
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -201,21 +212,15 @@ fun AuriyaNavigation(
                                     }
                                     NavigationTab.SETTINGS -> SettingsScreen(
                                         viewModel = viewModel,
-                                        themePrefs = themePrefs,
-                                        onSeedChange = themeViewModel::setSeedColor,
-                                        onDynamicToggle = themeViewModel::setUseDynamicColor,
-                                        onNavModeChange = themeViewModel::setNavMode,
-                                        onNavTypeChange = themeViewModel::setNavType,
-                                        onCornerRadiusChange = themeViewModel::setCornerRadius,
-                                        onDarkModeChange = themeViewModel::setDarkThemeMode,
-                                        onAmoledToggle = themeViewModel::setAmoled,
+                                        onNavigateBack = { activeTab = NavigationTab.HOME },
+                                        onNavigateToAppearance = { subScreen = SubScreen.Appearance },
                                         onNavigateToLanguage = { subScreen = SubScreen.Language },
                                         onNavigateToAbout = { subScreen = SubScreen.About },
                                         onResetOobe = { themeViewModel.setOobeCompleted(false) },
                                     )
                                 }
 
-                                if (navMode == NavMode.FLOATING) {
+                                if (showBottomBar && navMode == NavMode.FLOATING) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
