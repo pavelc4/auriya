@@ -1,43 +1,59 @@
 package dev.auriya.app.ui.settings
 
-import androidx.compose.animation.AnimatedVisibility
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.LocalCafe
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Timeline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import dev.auriya.app.ui.theme.AuriyaTokens
+import dev.auriya.app.R
 import dev.auriya.app.ui.components.AuriyaLoadingIndicator
+import dev.auriya.app.ui.components.itemShapeFor
+import dev.auriya.app.ui.theme.AuriyaTokens
+import dev.auriya.app.ui.theme.GoogleSansRounded
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val OWNER_LOGIN = "Pavelc4"
 private const val REPO_NAME = "Auriya"
+private const val APP_TAGLINE = "An experimental learning project — Magisk/KernelSU performance tuning for Android."
 
 data class RepoInfo(
     val name: String,
@@ -58,47 +74,75 @@ data class Contributor(
     val avatarUrl: String,
     val htmlUrl: String,
     val contributions: Int,
+    val role: String = "Community Contributor",
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    var repoInfo by remember { mutableStateOf<RepoInfo?>(null) }
-    var ownerInfo by remember { mutableStateOf<OwnerInfo?>(null) }
-    var contributors by remember { mutableStateOf<List<Contributor>>(emptyList()) }
-    var isLoadingInfo by remember { mutableStateOf(true) }
-    var isLoadingOwner by remember { mutableStateOf(true) }
-    var isLoadingContributors by remember { mutableStateOf(true) }
+    val fallbackContributors = remember {
+        listOf(
+            Contributor(
+                login = "Btema2",
+                avatarUrl = "https://github.com/Btema2.png",
+                htmlUrl = "https://github.com/Btema2",
+                contributions = 1,
+                role = "Community Contributor"
+            )
+        )
+    }
+
+    var repoInfo by remember { mutableStateOf<RepoInfo?>(RepoInfo(REPO_NAME, APP_TAGLINE, "2.0.0")) }
+    var ownerInfo by remember { mutableStateOf<OwnerInfo?>(AboutCache.getCachedOwner(context)) }
+    var contributors by remember {
+        val cached = AboutCache.getCachedContributors(context)
+        mutableStateOf(if (cached.isNotEmpty()) cached else fallbackContributors)
+    }
+    var isLoadingInfo by remember { mutableStateOf(false) }
+    var isLoadingOwner by remember { mutableStateOf(false) }
+    var isLoadingContributors by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        coroutineScope.launch(Dispatchers.IO) {
-            val info = fetchRepoInfo()
-            withContext(Dispatchers.Main) {
-                repoInfo = info
-                isLoadingInfo = false
+        if (AboutCache.shouldRefresh(context)) {
+            coroutineScope.launch(Dispatchers.IO) {
+                val info = fetchRepoInfo()
+                withContext(Dispatchers.Main) {
+                    repoInfo = info
+                }
             }
-        }
-        coroutineScope.launch(Dispatchers.IO) {
-            val owner = fetchOwnerInfo()
-            withContext(Dispatchers.Main) {
-                ownerInfo = owner
-                isLoadingOwner = false
+            coroutineScope.launch(Dispatchers.IO) {
+                val owner = fetchOwnerInfo()
+                AboutCache.saveOwner(context, owner)
+                withContext(Dispatchers.Main) {
+                    ownerInfo = owner
+                }
             }
-        }
-        coroutineScope.launch(Dispatchers.IO) {
-            val list = fetchContributors()
-            withContext(Dispatchers.Main) {
-                contributors = list
-                isLoadingContributors = false
+            coroutineScope.launch(Dispatchers.IO) {
+                val list = fetchContributors()
+                if (list.isNotEmpty()) {
+                    AboutCache.saveContributors(context, list)
+                    withContext(Dispatchers.Main) {
+                        contributors = list
+                    }
+                }
             }
         }
     }
 
+    // Filter out repo owner and automated bot accounts
     val filteredContributors = remember(contributors) {
-        contributors.filter { it.login.lowercase() != OWNER_LOGIN.lowercase() }
+        val raw = if (contributors.isNotEmpty()) contributors else fallbackContributors
+        raw.filter { contributor ->
+            val login = contributor.login.lowercase()
+            login != OWNER_LOGIN.lowercase() &&
+                    !login.endsWith("[bot]") &&
+                    !login.contains("[bot]") &&
+                    login != "github-actions" &&
+                    login != "dependabot" &&
+                    !login.contains("actions-user")
+        }
     }
 
     Column(
@@ -135,9 +179,9 @@ fun AboutScreen(onDismiss: () -> Unit) {
             Column {
                 Text(
                     text = "About",
-                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                    fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp,
+                    fontSize = 26.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
@@ -163,585 +207,592 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp)
             ) {
-                // App Hero Card
-                item {
-                    AppInfoHeroCard(repoInfo = repoInfo, isLoading = isLoadingInfo)
+                // 1. Clean App Hero Card
+                item(key = "hero_card") {
+                    AuriyaHeroCard(
+                        repoInfo = repoInfo,
+                        isLoading = isLoadingInfo
+                    )
                 }
 
-                // 1. Support Card
-                item {
+                // 2. Maintainer Section
+                item(key = "maintainer_header") {
+                    SectionHeader(
+                        title = "Maintainer",
+                        subtitle = "The person behind Auriya."
+                    )
+                }
+
+                item(key = "maintainer_card") {
+                    MaintainerCard(
+                        owner = ownerInfo,
+                        isLoading = isLoadingOwner,
+                        onCardClick = { openUrl(context, ownerInfo?.htmlUrl ?: "https://github.com/$OWNER_LOGIN") }
+                    )
+                }
+
+                // 3. Support Section (Directly under Maintainer)
+                item(key = "support_header") {
+                    SectionHeader(
+                        title = "Support",
+                        subtitle = "Help fuel ongoing development and updates."
+                    )
+                }
+
+                item(key = "support_card") {
                     SupportCard(
                         onCoffeeClick = {
-                            val url = "https://github.com/sponsors/$OWNER_LOGIN"
-                            runCatching {
-                                context.startActivity(
-                                    android.content.Intent(
-                                        android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse(url)
-                                    )
-                                )
-                            }
+                            openUrl(context, "https://github.com/sponsors/$OWNER_LOGIN")
                         }
                     )
                 }
 
-                // 2. Contributors Card
-                item {
-                    ContributorsCard(
-                    owner = ownerInfo,
-                    isLoadingOwner = isLoadingOwner,
-                    contributors = filteredContributors,
-                    isLoadingContributors = isLoadingContributors,
-                    onCreatorClick = {
-                        val url = ownerInfo?.htmlUrl ?: "https://github.com/$OWNER_LOGIN"
-                        runCatching {
-                            context.startActivity(
-                                android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(url)
-                                )
-                            )
-                        }
-                    },
-                    onContributorClick = { url ->
-                        runCatching {
-                            context.startActivity(
-                                android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(url)
-                                )
-                            )
-                        }
-                    }
-                )
-            }
+                // 4. Community Contributors Section
+                item(key = "spotlight_header") {
+                    SectionHeader(
+                        title = "Contributors",
+                        subtitle = "Collaborators and contributors to the project."
+                    )
+                }
 
-            // 3. Community & License Double Cards
-            item {
-                CommunityAndLicenseRow(
-                    onTelegramClick = {
-                        val url = "https://t.me/auriya_chat"
-                        runCatching {
-                            context.startActivity(
-                                android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(url)
+                if (isLoadingContributors) {
+                    item(key = "contributors_loading") {
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 20.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AuriyaLoadingIndicator(size = 20.dp)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Fetching contributors...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = GoogleSansRounded,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            )
+                            }
                         }
-                    },
-                    onLicenseClick = {
-                        val url = "https://github.com/$OWNER_LOGIN/$REPO_NAME/blob/main/LICENSE"
-                        runCatching {
-                            context.startActivity(
-                                android.content.Intent(
-                                    android.content.Intent.ACTION_VIEW,
-                                    android.net.Uri.parse(url)
-                                )
+                    }
+                } else if (filteredContributors.isEmpty()) {
+                    item(key = "contributors_empty") {
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "No other contributors found yet.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(16.dp)
                             )
                         }
                     }
-                )
+                } else {
+                    item(key = "contributors_list") {
+                        ContributorsBlock(
+                            contributors = filteredContributors,
+                            onContributorClick = { url -> openUrl(context, url) }
+                        )
+                    }
+                }
+
+                // 5. Licenses Section
+                item(key = "license_header") {
+                    SectionHeader(
+                        title = "License",
+                        subtitle = "Open source license and terms."
+                    )
+                }
+
+                item(key = "license_card") {
+                    LicenseAndSpecsCard(
+                        onLicenseClick = {
+                            openUrl(context, "https://github.com/$OWNER_LOGIN/$REPO_NAME/blob/main/LICENSE")
+                        }
+                    )
+                }
             }
         }
     }
 }
-}
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AppInfoHeroCard(repoInfo: RepoInfo?, isLoading: Boolean) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+private fun AuriyaHeroCard(
+    repoInfo: RepoInfo?,
+    isLoading: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val cleanVersion = remember(repoInfo) {
+        val raw = repoInfo?.version ?: "2.0.0"
+        raw.trimStart('v')
+    }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(64.dp)
+            // Top Row: App Icon + App Name & Tagline
+            val context = LocalContext.current
+            val appIconBitmap = remember(context) {
+                try {
+                    val drawable = context.packageManager.getApplicationIcon(context.packageName)
+                    val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 128
+                    val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 128
+                    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bitmap)
+                    drawable.setBounds(0, 0, canvas.width, canvas.height)
+                    drawable.draw(canvas)
+                    bitmap.asImageBitmap()
+                } catch (e: Exception) {
+                    null
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Filled.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(32.dp)
+                Surface(
+                    shape = dev.auriya.app.ui.components.MaterialShapes.PixelCircle,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(54.dp)
+                ) {
+                    if (appIconBitmap != null) {
+                        Image(
+                            bitmap = appIconBitmap,
+                            contentDescription = "Auriya",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(dev.auriya.app.ui.components.MaterialShapes.PixelCircle)
+                        )
+                    } else {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Filled.Speed,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "Auriya",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = APP_TAGLINE,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            Text(
-                text = "Auriya",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
+            // Version Capsule Pill (Prominent left-aligned, compact)
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                color = MaterialTheme.colorScheme.tertiaryContainer
             ) {
                 Text(
-                    text = if (isLoading || repoInfo == null) "v2.0.0 Expressive" else "v${repoInfo.version}",
-                    style = MaterialTheme.typography.labelMedium,
+                    text = if (isLoading || repoInfo == null) "Version v2.0.0-expressive" else "Version v$cleanVersion-expressive",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                 )
             }
 
+            // Compact Technology Capsule Pills (Sleek FlowRow)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                HeroSignalPill(label = "Kotlin")
+                HeroSignalPill(label = "Rust")
+                HeroSignalPill(label = "MDE3")
+                HeroSignalPill(label = "GPL-3.0")
+                HeroSignalPill(label = "Open source")
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroSignalPill(
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        modifier = modifier.height(28.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(horizontal = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
             Text(
-                text = repoInfo?.description ?: "Rust-powered intelligent performance daemon and frame pacing module for Android.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = GoogleSansRounded,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontFamily = GoogleSansRounded,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun MaintainerCard(
+    owner: OwnerInfo?,
+    isLoading: Boolean,
+    onCardClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onCardClick,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            AvatarImage(
+                url = owner?.avatarUrl,
+                fallbackInitial = (owner?.login ?: OWNER_LOGIN).take(1).uppercase(),
+                modifier = Modifier.size(48.dp)
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = if (isLoading) "Loading..." else (owner?.name ?: OWNER_LOGIN),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = "maintainer",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Text(
+                    text = "Maintainer",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun SupportCard(
-    onCoffeeClick: () -> Unit
+    onCoffeeClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(AuriyaTokens.padding.larger),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
-        ) {
-            Text(
-                text = "Support",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Text(
-                text = "If Auriya saves your time when updating or tuning, consider buying me a coffee to keep the development going.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-            )
-
-            Button(
-                onClick = onCoffeeClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(AuriyaTokens.rounding.large),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFE8C39E), // warm light peach/sand tone
-                    contentColor = Color(0xFF2E1C0C) // dark wood/brown tone
-                )
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.LocalCafe,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = "Buy a Coffee",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ContributorsCard(
-    owner: OwnerInfo?,
-    isLoadingOwner: Boolean,
-    contributors: List<Contributor>,
-    isLoadingContributors: Boolean,
-    onCreatorClick: () -> Unit,
-    onContributorClick: (String) -> Unit
-) {
-    var isExpanded by remember { mutableStateOf(false) }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(AuriyaTokens.padding.larger),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
-        ) {
-            // Header
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.People,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Text(
-                    text = "Contributors",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            // Creator Sub-Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onCreatorClick),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = AuriyaTokens.padding.normal, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AvatarImage(
-                            url = owner?.avatarUrl,
-                            fallbackInitial = (owner?.login ?: OWNER_LOGIN).take(1).uppercase(),
-                            fallbackContent = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        if (isLoadingOwner) {
-                            Text(
-                                text = "Loading owner...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        } else {
-                            Text(
-                                text = owner?.name ?: OWNER_LOGIN,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Creator & Lead Developer",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                    Icon(
-                        imageVector = Icons.Filled.ChevronRight,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        contentDescription = null
-                    )
-                }
-            }
-
-            // Expandable link to view all other contributors
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { isExpanded = !isExpanded }
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.AutoMirrored.Filled.ArrowForward,
-                        tint = MaterialTheme.colorScheme.primary,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (isExpanded) "Hide Contributors" else "View All Contributors",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                AnimatedVisibility(visible = isExpanded) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = AuriyaTokens.padding.small),
-                        verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smaller)
-                    ) {
-                        if (isLoadingContributors) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                AuriyaLoadingIndicator(
-                                    size = 20.dp
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Fetching contributors...",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        } else if (contributors.isEmpty()) {
-                            Text(
-                                text = "No other contributors found.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        } else {
-                            contributors.forEach { contributor ->
-                                ContributorRow(
-                                    contributor = contributor,
-                                    onClick = { onContributorClick(contributor.htmlUrl) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ContributorRow(contributor: Contributor, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(AuriyaTokens.rounding.full),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
+    Surface(
+        onClick = onCoffeeClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = 8.dp),
+                .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
+            Surface(
+                shape = dev.auriya.app.ui.components.MaterialShapes.PixelCircle,
+                color = Color(0xFFE8C39E),
+                modifier = Modifier.size(48.dp)
             ) {
-                AvatarImage(
-                    url = contributor.avatarUrl,
-                    fallbackInitial = contributor.login.take(1).uppercase(),
-                    fallbackContent = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Filled.LocalCafe,
+                        contentDescription = null,
+                        tint = Color(0xFF3E2713),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
-            Column(modifier = Modifier.weight(1f)) {
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 Text(
-                    text = contributor.login,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "Buy a Coffee ?",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "${contributor.contributions} contributions",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    text = "Support development and show your appreciation",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Icon(
-                imageVector = Icons.Filled.ChevronRight,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                contentDescription = null,
-                modifier = Modifier.size(AuriyaTokens.iconSize.small)
-            )
         }
     }
 }
 
 @Composable
-private fun CommunityAndLicenseRow(
-    onTelegramClick: () -> Unit,
-    onLicenseClick: () -> Unit
+private fun ContributorsBlock(
+    contributors: List<Contributor>,
+    onContributorClick: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal)
+    var isExpanded by remember { mutableStateOf(false) }
+    val visibleContributors = if (isExpanded) contributors else contributors.take(3)
+    val showToggle = contributors.size > 3
+    val totalCount = visibleContributors.size + (if (showToggle) 1 else 0)
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        // Community Card
-        Card(
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        visibleContributors.forEachIndexed { index, contributor ->
+            ContributorCard(
+                contributor = contributor,
+                shape = itemShapeFor(index, totalCount),
+                onCardClick = { onContributorClick(contributor.htmlUrl) }
             )
-        ) {
-            Column(
-                modifier = Modifier.padding(AuriyaTokens.padding.normal),
-                verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small)
+        }
+
+        if (showToggle) {
+            Surface(
+                onClick = { isExpanded = !isExpanded },
+                shape = itemShapeFor(visibleContributors.size, totalCount),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFFECE4D8)), // warm soft accent background
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Forum,
-                        tint = Color(0xFF6B4E2B),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                Text(
-                    text = "Community",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Text(
-                    text = "Join the discussion about Auriya.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    minLines = 2
-                )
-
-                Button(
-                    onClick = onTelegramClick,
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(36.dp),
-                    shape = RoundedCornerShape(AuriyaTokens.rounding.large),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF5A442E), // premium dark warm tone
-                        contentColor = Color.White
-                    ),
-                    contentPadding = PaddingValues(0.dp)
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Telegram Group",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
+                        text = if (isExpanded) "Show Less" else "View All (${contributors.size}) Contributors",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
         }
+    }
+}
 
-        // License Card
-        Card(
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            )
+@Composable
+private fun ContributorCard(
+    contributor: Contributor,
+    shape: RoundedCornerShape,
+    onCardClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onCardClick,
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            AvatarImage(
+                url = contributor.avatarUrl,
+                fallbackInitial = contributor.login.take(1).uppercase(),
+                modifier = Modifier.size(44.dp)
+            )
+
             Column(
-                modifier = Modifier.padding(AuriyaTokens.padding.normal),
-                verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
+                Text(
+                    text = "@${contributor.login}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = contributor.role,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Text(
+                    text = "${contributor.contributions} contrib.",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LicenseAndSpecsCard(
+    onLicenseClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onLicenseClick,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Filled.Info,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        imageVector = Icons.Filled.Gavel,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
+            }
 
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "License",
+                    text = "GPL-3.0 License",
                     style = MaterialTheme.typography.titleMedium,
+                    fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-
                 Text(
-                    text = "Open Source Software.",
+                    text = "Free & Open Source Software • © 2026 Pavelc4",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    minLines = 2
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                Button(
-                    onClick = onLicenseClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(36.dp),
-                    shape = RoundedCornerShape(AuriyaTokens.rounding.large),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Code,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = "2026 pavelc4",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
             }
         }
     }
@@ -751,24 +802,44 @@ private fun CommunityAndLicenseRow(
 private fun AvatarImage(
     url: String?,
     fallbackInitial: String,
-    fallbackContent: Color,
+    modifier: Modifier = Modifier
 ) {
-    if (url.isNullOrBlank()) {
-        Text(
-            text = fallbackInitial,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = fallbackContent,
-        )
-    } else {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(url)
-                .crossfade(true)
-                .build(),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize().clip(CircleShape),
-        )
+    Surface(
+        modifier = modifier,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.primaryContainer
+    ) {
+        if (!url.isNullOrBlank()) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(url)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape),
+            )
+        } else {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = fallbackInitial,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+    }
+}
+
+private fun openUrl(context: Context, url: String) {
+    runCatching {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
     }
 }
 
@@ -792,33 +863,121 @@ private suspend fun fetchJson(url: String): String? = withContext(Dispatchers.IO
     }
 }
 
+private object AboutCache {
+    private const val PREFS_NAME = "auriya_about_cache"
+    private const val KEY_OWNER_NAME = "owner_name"
+    private const val KEY_OWNER_BIO = "owner_bio"
+    private const val KEY_OWNER_AVATAR = "owner_avatar"
+    private const val KEY_CONTRIBUTORS_JSON = "contributors_json"
+    private const val KEY_LAST_FETCH = "last_fetch_time"
+    private const val CACHE_TTL_MS = 24 * 60 * 60 * 1000L // 24 hours
+
+    fun getCachedOwner(context: Context): OwnerInfo {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val name = prefs.getString(KEY_OWNER_NAME, "Pavel") ?: "Pavel"
+        val bio = prefs.getString(KEY_OWNER_BIO, "Rust daemon, eBPF telemetry, and Android Kotlin UI")
+            ?: "Rust daemon, eBPF telemetry, and Android Kotlin UI"
+        val avatar = prefs.getString(KEY_OWNER_AVATAR, "https://github.com/$OWNER_LOGIN.png")
+            ?: "https://github.com/$OWNER_LOGIN.png"
+        return OwnerInfo(
+            login = OWNER_LOGIN,
+            name = name,
+            bio = bio,
+            htmlUrl = "https://github.com/$OWNER_LOGIN",
+            avatarUrl = avatar
+        )
+    }
+
+    fun saveOwner(context: Context, owner: OwnerInfo) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString(KEY_OWNER_NAME, owner.name)
+            .putString(KEY_OWNER_BIO, owner.bio)
+            .putString(KEY_OWNER_AVATAR, owner.avatarUrl)
+            .putLong(KEY_LAST_FETCH, System.currentTimeMillis())
+            .apply()
+    }
+
+    fun getCachedContributors(context: Context): List<Contributor> {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val json = prefs.getString(KEY_CONTRIBUTORS_JSON, null) ?: return emptyList()
+        return try {
+            val array = org.json.JSONArray(json)
+            List(array.length()) { i ->
+                val obj = array.getJSONObject(i)
+                Contributor(
+                    login = obj.getString("login"),
+                    avatarUrl = obj.getString("avatar_url"),
+                    htmlUrl = obj.getString("html_url"),
+                    contributions = obj.getInt("contributions"),
+                    role = "Community Contributor"
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun saveContributors(context: Context, list: List<Contributor>) {
+        if (list.isEmpty()) return
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        try {
+            val array = org.json.JSONArray()
+            for (c in list) {
+                val obj = org.json.JSONObject().apply {
+                    put("login", c.login)
+                    put("avatar_url", c.avatarUrl)
+                    put("html_url", c.htmlUrl)
+                    put("contributions", c.contributions)
+                }
+                array.put(obj)
+            }
+            prefs.edit().putString(KEY_CONTRIBUTORS_JSON, array.toString()).apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun shouldRefresh(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val lastFetch = prefs.getLong(KEY_LAST_FETCH, 0L)
+        return (System.currentTimeMillis() - lastFetch) > CACHE_TTL_MS
+    }
+}
+
 suspend fun fetchRepoInfo(): RepoInfo {
     val body = fetchJson("https://api.github.com/repos/$OWNER_LOGIN/$REPO_NAME")
-        ?: return RepoInfo(REPO_NAME, "eBPF-based game optimizer for Android", "v2.0.0")
+        ?: return RepoInfo(REPO_NAME, APP_TAGLINE, "2.0.0")
     return try {
         val obj = org.json.JSONObject(body)
         RepoInfo(
             name = obj.getString("name"),
-            description = obj.optString("description", "eBPF-based game optimizer for Android"),
-            version = "v2.0.0",
+            description = APP_TAGLINE,
+            version = "2.0.0",
         )
     } catch (e: Exception) {
         e.printStackTrace()
-        RepoInfo(REPO_NAME, "eBPF-based game optimizer for Android", "v2.0.0")
+        RepoInfo(REPO_NAME, APP_TAGLINE, "2.0.0")
     }
 }
 
 suspend fun fetchOwnerInfo(): OwnerInfo {
-    val fallback = OwnerInfo(OWNER_LOGIN, null, null, "https://github.com/$OWNER_LOGIN", null)
+    val fallback = OwnerInfo(
+        login = OWNER_LOGIN,
+        name = "Pavel",
+        bio = "Rust daemon, eBPF telemetry, and Android Kotlin UI",
+        htmlUrl = "https://github.com/$OWNER_LOGIN",
+        avatarUrl = "https://github.com/$OWNER_LOGIN.png"
+    )
     val body = fetchJson("https://api.github.com/users/$OWNER_LOGIN") ?: return fallback
     return try {
         val obj = org.json.JSONObject(body)
         OwnerInfo(
             login = obj.getString("login"),
-            name = obj.optString("name").takeIf { it.isNotBlank() },
-            bio = obj.optString("bio").takeIf { it.isNotBlank() },
+            name = obj.optString("name").takeIf { it.isNotBlank() } ?: "Pavel",
+            bio = obj.optString("bio").takeIf { it.isNotBlank() } ?: fallback.bio,
             htmlUrl = obj.optString("html_url", "https://github.com/$OWNER_LOGIN"),
-            avatarUrl = obj.optString("avatar_url").takeIf { it.isNotBlank() },
+            avatarUrl = obj.optString("avatar_url").takeIf { it.isNotBlank() } ?: fallback.avatarUrl,
         )
     } catch (e: Exception) {
         e.printStackTrace()
@@ -838,6 +997,7 @@ suspend fun fetchContributors(): List<Contributor> {
                 avatarUrl = obj.getString("avatar_url"),
                 htmlUrl = obj.getString("html_url"),
                 contributions = obj.getInt("contributions"),
+                role = "Community Contributor"
             )
         }
     } catch (e: Exception) {
