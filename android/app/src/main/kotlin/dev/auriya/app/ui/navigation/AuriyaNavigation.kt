@@ -125,7 +125,6 @@ fun AuriyaNavigation(
                             onDismiss = { editingGameProfile = null },
                             onSave = { updated ->
                                 viewModel.addGame(updated)
-                                editingGameProfile = null
                             },
                             onRemove = if (isExisting) {
                                 {
@@ -194,7 +193,6 @@ fun AuriyaNavigation(
                                                 onDismiss = { selectedGameProfile = null },
                                                 onSave = { updated ->
                                                     viewModel.addGame(updated)
-                                                    selectedGameProfile = null
                                                 },
                                                 onRemove = if (isExisting) {
                                                     {
