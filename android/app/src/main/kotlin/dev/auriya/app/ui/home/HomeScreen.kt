@@ -4,137 +4,192 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.ui.components.AuriyaLoadingIndicator
 import dev.auriya.app.ui.components.ExpressiveList
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
-import dev.auriya.app.ui.components.AuriyaLoadingIndicator
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.pulltorefresh.PullToRefreshState
-import dev.auriya.app.ui.components.rememberCookie9
-import dev.auriya.app.ui.components.rememberPixelCircle
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.viewmodel.SystemInfo
 import dev.auriya.app.viewmodel.UiViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: UiViewModel, onNavigateToGames: () -> Unit) {
+fun HomeScreen(
+    viewModel: UiViewModel,
+    onNavigateToGames: () -> Unit
+) {
     val systemInfo by viewModel.systemInfo.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
     val hasRoot by viewModel.hasRoot.collectAsState()
     val isDaemonRunning = systemInfo.pid != null && systemInfo.pid != "null"
     val context = LocalContext.current
-    var showProfileDialog by remember { mutableStateOf(false) }
+    var showProfileSheet by remember { mutableStateOf(false) }
+    val profileSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     var isRefreshing by remember { mutableStateOf(false) }
-    val state = rememberPullToRefreshState()
+    val refreshState = rememberPullToRefreshState()
+    var showInfoSheet by remember { mutableStateOf(false) }
+    val infoSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
-    if (showProfileDialog) {
-        ProfileSelectionDialog(
+    val currentProfile = systemInfo.profile.lowercase()
+
+    val topBackdropColor = MaterialTheme.colorScheme.surfaceContainer
+    val sheetColor = MaterialTheme.colorScheme.surfaceContainerLowest
+
+    if (showProfileSheet) {
+        ProfileSelectionBottomSheet(
             currentProfile = systemInfo.profile,
             onSelect = { mode ->
                 viewModel.updateProfile(mode)
             },
-            onDismiss = { showProfileDialog = false }
+            onDismiss = { showProfileSheet = false },
+            sheetState = profileSheetState,
         )
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = {
-            isRefreshing = true
-            viewModel.refresh {
-                isRefreshing = false
-            }
-        },
-        state = state,
-        indicator = {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 12.dp)
-            ) {
-                val progress = state.distanceFraction.coerceIn(0f, 1f)
-                if (isRefreshing || progress > 0f) {
-                    AuriyaLoadingIndicator(
-                        size = 56.dp * if (isRefreshing) 1f else progress,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-            }
-        },
-        modifier = Modifier.fillMaxSize()
+    if (showInfoSheet) {
+        AuriyaInfoBottomSheet(
+            systemInfo = systemInfo,
+            onDismiss = { showInfoSheet = false },
+            sheetState = infoSheetState
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
     ) {
-        LazyColumn(
+        // --- 1. TOP PINNED HEADER AREA ---
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = AuriyaTokens.padding.normal),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
-            contentPadding = PaddingValues(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.largest * 3),
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            item {
-                Text(
-                    text = "Auriya",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(bottom = AuriyaTokens.padding.smaller)
+            Text(
+                text = "Auriya",
+                style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                    fontWeight = FontWeight.Black,
+                    fontSize = 36.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            )
+
+            FilledIconButton(
+                onClick = { showInfoSheet = true },
+                shape = CircleShape,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.size(42.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = "Version & App Info",
+                    modifier = Modifier.size(22.dp)
                 )
             }
-            if (!hasRoot) {
-                item { RootDeniedBanner() }
-            }
-            item { HeroCard(isDaemonRunning = isDaemonRunning, systemInfo = systemInfo) }
-            item {
-                MiniCardRow(
-                    profile = systemInfo.profile,
-                    gameCount = gameList.games.size,
-                    onGamesClick = onNavigateToGames,
-                    onProfileClick = { showProfileDialog = true }
-                )
-            }
-            item { SystemMetricsList(systemInfo = systemInfo) }
-            item {
-                LinkRow(
-                    iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_github),
-                    title = "Learn more about Auriya",
-                    subtitle = "github.com/Pavelc4/Auriya",
-                    onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pavelc4/Auriya")))
-                    },
-                )
-            }
-            item {
-                LinkRow(
-                    iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_telegram),
-                    title = "Join Telegram updates channel",
-                    subtitle = "Latest tuner updates",
-                    onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/pvlcply")))
-                    },
-                )
+        }
+
+        // --- 2. FOREGROUND STACKED CARD SHEET ---
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest
+        ) {
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    isRefreshing = true
+                    viewModel.refresh { isRefreshing = false }
+                },
+                state = refreshState,
+                indicator = {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 12.dp)
+                    ) {
+                        val progress = refreshState.distanceFraction.coerceIn(0f, 1f)
+                        if (isRefreshing || progress > 0f) {
+                            AuriyaLoadingIndicator(
+                                size = 56.dp * if (isRefreshing) 1f else progress,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
+                ) {
+                    if (!hasRoot) {
+                        item { RootDeniedBanner() }
+                    }
+                    item { HeroCard(isDaemonRunning = isDaemonRunning, systemInfo = systemInfo) }
+                    item {
+                        MiniCardRow(
+                            profile = systemInfo.profile,
+                            gameCount = gameList.games.size,
+                            onGamesClick = onNavigateToGames,
+                            onProfileClick = { showProfileSheet = true }
+                        )
+                    }
+                    item { SystemMetricsList(systemInfo = systemInfo) }
+                    item {
+                        LinkRow(
+                            iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_github),
+                            title = "Learn more about Auriya",
+                            subtitle = "github.com/Pavelc4/Auriya",
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pavelc4/Auriya")))
+                            },
+                        )
+                    }
+                    item {
+                        LinkRow(
+                            iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_telegram),
+                            title = "Join Telegram updates channel",
+                            subtitle = "Latest tuner updates",
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/pvlcply")))
+                            },
+                        )
+                    }
+                }
             }
         }
     }
@@ -179,58 +234,46 @@ private fun RootDeniedBanner() {
 
 @Composable
 private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
-    val workingBg = Brush.linearGradient(
-        listOf(
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-    )
-    val stoppedBg = Brush.linearGradient(
-        listOf(
-            MaterialTheme.colorScheme.errorContainer,
-            MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-    )
+    val cardBg = if (isDaemonRunning) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer
+    val onCardBg = if (isDaemonRunning) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+
     Surface(
-        shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(24.dp),
+        color = cardBg,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(if (isDaemonRunning) workingBg else stoppedBg)
-                .padding(AuriyaTokens.padding.larger),
+                .padding(20.dp),
         ) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (isDaemonRunning) "Auriya is working" else "Auriya is stopped",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        val cleanVersion = systemInfo.version.removePrefix("v").removePrefix("V")
-                        val cleanArch = when (val arch = systemInfo.deviceArch.uppercase()) {
-                            "V8A" -> "ARM64-V8A"
-                            "V7A" -> "ARM-V7A"
-                            else -> arch
-                        }
-                        Text(
-                            text = "Version $cleanVersion (${systemInfo.commit}) · $cleanArch",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isDaemonRunning) "Auriya is working" else "Auriya is stopped",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = onCardBg,
+                    )
+                    val cleanVersion = systemInfo.version.removePrefix("v").removePrefix("V")
+                    val cleanArch = when (val arch = systemInfo.deviceArch.uppercase()) {
+                        "V8A" -> "ARM64-V8A"
+                        "V7A" -> "ARM-V7A"
+                        else -> arch
                     }
+                    Text(
+                        text = "Version $cleanVersion (${systemInfo.commit}) · $cleanArch",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = onCardBg.copy(alpha = 0.8f),
+                    )
                 }
-                Spacer(Modifier.height(AuriyaTokens.padding.normal))
-                Row(horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)) {
-                    if (isDaemonRunning) {
-                        StatusBadge(label = "PID ${systemInfo.pid}", tone = StatusTone.SUCCESS)
-                    } else {
-                        StatusBadge(label = "Stopped", tone = StatusTone.ERROR)
-                    }
+            }
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)) {
+                if (isDaemonRunning) {
+                    StatusBadge(label = "PID ${systemInfo.pid}", tone = StatusTone.SUCCESS)
+                } else {
+                    StatusBadge(label = "Stopped", tone = StatusTone.ERROR)
                 }
             }
         }
@@ -244,13 +287,10 @@ private fun MiniCardRow(
     onGamesClick: () -> Unit,
     onProfileClick: () -> Unit
 ) {
-    // Profile names like "Performance" / "Powersave" overflow the
-    // narrow MiniCard. Show a compact label instead — full value lives
-    // in the Settings screen anyway.
     val profileShort = when (profile.lowercase()) {
-        "performance" -> "Perf"
-        "balance" -> "Balance"
-        "powersave" -> "Saver"
+        "performance", "1" -> "Perf"
+        "balance", "2" -> "Balance"
+        "powersave", "3" -> "Saver"
         "fast" -> "Fast"
         else -> profile
     }
@@ -300,7 +340,6 @@ private fun MiniCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Header Row: Icon Box (small rounded square) + Label
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -330,10 +369,9 @@ private fun MiniCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            // Value text below (Large)
+
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium,
@@ -458,126 +496,449 @@ private fun LinkRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProfileSelectionDialog(
+private fun ProfileSelectionBottomSheet(
     currentProfile: String,
     onSelect: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    sheetState: SheetState
 ) {
-    AlertDialog(
+    val normProfile = currentProfile.lowercase()
+    val displayProfile = when (normProfile) {
+        "powersave", "3" -> "Power Save"
+        "performance", "1" -> "Performance"
+        else -> "Balance"
+    }
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Select Performance Preset",
-                fontWeight = FontWeight.ExtraBold,
-                style = MaterialTheme.typography.titleMedium
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ProfileDialogItem(
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+        ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Performance Profile",
+                        style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 30.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Active: $displayProfile",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            // Power Save Card
+            item {
+                val isSelected = normProfile == "powersave" || normProfile == "3"
+                ProfileCard(
                     title = "Power Save",
-                    description = "Limits frequencies to maximize battery life.",
+                    subtitle = "Profile 3 • Battery Preservation",
+                    description = "Limits clock frequencies and aggressively throttles background tasks to maximize battery life.",
                     icon = Icons.Outlined.Eco,
-                    color = MaterialTheme.colorScheme.primary,
-                    selected = currentProfile.lowercase() == "powersave" || currentProfile == "3",
+                    iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    selected = isSelected,
                     onClick = {
                         onSelect("3")
                         onDismiss()
                     }
                 )
-                ProfileDialogItem(
+            }
+
+            // Balance Card
+            item {
+                val isSelected = normProfile == "balance" || normProfile == "2" || normProfile.isEmpty() || normProfile == "unknown"
+                ProfileCard(
                     title = "Balance",
-                    description = "Dynamic optimization for everyday use.",
+                    subtitle = "Profile 2 • Daily Dynamic Tuning",
+                    description = "Dynamic optimization and adaptive frequency scaling for smooth daily responsiveness and efficiency.",
                     icon = Icons.Outlined.Tune,
-                    color = MaterialTheme.colorScheme.secondary,
-                    selected = currentProfile.lowercase() == "balance" || currentProfile == "2" || currentProfile.isEmpty() || currentProfile == "unknown",
+                    iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    selected = isSelected,
                     onClick = {
                         onSelect("2")
                         onDismiss()
                     }
                 )
-                ProfileDialogItem(
+            }
+
+            // Performance Card
+            item {
+                val isSelected = normProfile == "performance" || normProfile == "1"
+                ProfileCard(
                     title = "Performance",
-                    description = "Enables full potential for heavy gaming.",
+                    subtitle = "Profile 1 • Maximum Power",
+                    description = "Unlocks high clock frequencies and unthrottled rendering for demanding gaming sessions.",
                     icon = Icons.Outlined.Bolt,
-                    color = MaterialTheme.colorScheme.error,
-                    selected = currentProfile.lowercase() == "performance" || currentProfile == "1",
+                    iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    selected = isSelected,
                     onClick = {
                         onSelect("1")
                         onDismiss()
                     }
                 )
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close", fontWeight = FontWeight.Bold)
-            }
         }
-    )
+    }
 }
 
 @Composable
-private fun ProfileDialogItem(
+private fun ProfileCard(
     title: String,
+    subtitle: String,
     description: String,
     icon: ImageVector,
-    color: androidx.compose.ui.graphics.Color,
+    iconContainerColor: Color,
+    iconTint: Color,
     selected: Boolean,
     onClick: () -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = if (selected) color.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainerLow,
-        border = if (selected) BorderStroke(1.5.dp, color) else null,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+        onClick = onClick,
+        shape = RoundedCornerShape(24.dp),
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(color.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
+            Surface(
+                shape = CircleShape,
+                color = iconContainerColor,
+                modifier = Modifier.size(44.dp)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(20.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
-            Spacer(Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = if (selected) color else MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                    )
+                    if (selected) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                        ) {
+                            Text(
+                                text = "ACTIVE",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(2.dp))
                 Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
                     text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.sp
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(20.dp)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AuriyaInfoBottomSheet(
+    systemInfo: SystemInfo,
+    onDismiss: () -> Unit,
+    sheetState: SheetState
+) {
+    val context = LocalContext.current
+    val cleanVersion = systemInfo.version.removePrefix("v").removePrefix("V")
+    val cleanArch = when (val arch = systemInfo.deviceArch.uppercase()) {
+        "V8A" -> "ARM64-V8A"
+        "V7A" -> "ARM-V7A"
+        else -> arch
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 48.dp)
+        ) {
+            item {
+                Text(
+                    text = "Auriya $cleanVersion",
+                    style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 30.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
                 )
+            }
+
+            // Card 1: Build Info
+            item {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "α",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Auriya Daemon $cleanVersion",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "Running daemon build (${systemInfo.commit}) optimized for $cleanArch architecture. eBPF kernel tracing engine active.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Card 2: GitHub issue shortcut
+            item {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                modifier = Modifier.size(44.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        painter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_github),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "GitHub issue shortcut",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Search first, then open a focused report for bugs, crashes, requests, or questions.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        FilledTonalButton(
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pavelc4/Auriya/issues")))
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            contentPadding = PaddingValues(vertical = 12.dp)
+                        ) {
+                            Text("Open existing issues", fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Button(
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pavelc4/Auriya/issues/new")))
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            contentPadding = PaddingValues(vertical = 12.dp)
+                        ) {
+                            Text("Report issue or crash", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            // Card 3: What to expect
+            item {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                modifier = Modifier.size(44.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "What to expect",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Kernel daemon features and optimizations:",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.padding(start = 6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "• Low-overhead eBPF render thread monitoring",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "• Dynamic governor frequency scaling per frame load",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "• Per-app thermal throttle & FPS cap optimization",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "• Pure native Rust daemon with zero battery waste",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
         }
     }
