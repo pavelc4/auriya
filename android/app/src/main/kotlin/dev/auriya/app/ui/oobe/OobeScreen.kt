@@ -44,7 +44,7 @@ fun OobeScreen(
         step -= 1
     }
 
-    val pageCount = 5
+    val pageCount = 6
     val isNextButtonEnabled = when (step) {
         1 -> hasRoot
         else -> true
@@ -96,15 +96,18 @@ fun OobeScreen(
                         viewModel = viewModel,
                         hasRoot = hasRoot
                     )
-                    2 -> ColoringContent(
+                    2 -> OverlayContent(
+                        isDark = isDark
+                    )
+                    3 -> ColoringContent(
                         isDark = isDark,
                         themeViewModel = themeViewModel
                     )
-                    3 -> NavbarContent(
+                    4 -> NavbarContent(
                         isDark = isDark,
                         themeViewModel = themeViewModel
                     )
-                    4 -> DoneContent(
+                    5 -> DoneContent(
                         isDark = isDark,
                         themeViewModel = themeViewModel
                     )

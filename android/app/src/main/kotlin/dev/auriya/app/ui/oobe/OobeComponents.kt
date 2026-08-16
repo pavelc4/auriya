@@ -1095,39 +1095,185 @@ fun PermissionPageLayout(
 }
 
 @Composable
+fun SineWaveLine(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary,
+    alpha: Float = 0.9f,
+    strokeWidth: Dp = 2.dp,
+    amplitude: Dp = 5.dp,
+    waves: Float = 2.5f,
+    animationDurationMillis: Int = 1600,
+    samples: Int = 100,
+) {
+    val density = LocalDensity.current
+    val infiniteTransition = rememberInfiniteTransition(label = "SineWaveAnimation")
+    val animatedPhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2f * Math.PI.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = animationDurationMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "phaseAnimation"
+    )
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val centerY = h / 2f
+        val strokePx = with(density) { strokeWidth.toPx() }
+        val ampPx = with(density) { amplitude.toPx() }
+
+        if (w <= 0f || samples < 2) return@Canvas
+
+        val path = Path().apply {
+            val step = w / (samples - 1)
+            moveTo(0f, centerY + (ampPx * kotlin.math.sin(animatedPhase)))
+            for (i in 1 until samples) {
+                val x = i * step
+                val theta = (x / w) * (2f * Math.PI.toFloat() * waves) + animatedPhase
+                val y = centerY + ampPx * kotlin.math.sin(theta)
+                lineTo(x, y)
+            }
+        }
+
+        drawPath(
+            path = path,
+            color = color,
+            style = Stroke(width = strokePx, cap = StrokeCap.Round, join = StrokeJoin.Round),
+            alpha = alpha
+        )
+    }
+}
+
+@Composable
 fun NavBarPreview(isFloating: Boolean) {
     Surface(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp)
+            .height(210.dp)
             .padding(horizontal = 8.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                repeat(3) {
+                // Mock App Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(if (it == 1) 0.65f else 1f)
-                            .height(12.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                            .size(36.dp, 8.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
                     )
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                    )
+                }
+
+                // Mock Content Card
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                        )
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.7f)
+                                    .height(8.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.45f)
+                                    .height(6.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                            )
+                        }
+                    }
+                }
+
+                // Mock secondary card
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                        )
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.55f)
+                                    .height(8.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.35f)
+                                    .height(6.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                            )
+                        }
+                    }
                 }
             }
 
+            // Animated Navigation Bar
             Box(modifier = Modifier.align(Alignment.BottomCenter)) {
                 AnimatedContent(
                     targetState = isFloating,
                     transitionSpec = {
-                        (fadeIn(animationSpec = tween(400)) + slideInVertically { it })
+                        (fadeIn(animationSpec = tween(350)) + slideInVertically { it })
                             .togetherWith(fadeOut(animationSpec = tween(200)) + slideOutVertically { it })
                     },
                     label = "NavbarPreviewAnim"
@@ -1135,40 +1281,86 @@ fun NavBarPreview(isFloating: Boolean) {
                     if (floating) {
                         Surface(
                             modifier = Modifier
-                                .padding(16.dp)
-                                .width(180.dp)
-                                .height(44.dp),
-                            shape = RoundedCornerShape(22.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                            tonalElevation = 4.dp
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                                .width(190.dp)
+                                .height(46.dp),
+                            shape = RoundedCornerShape(23.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            tonalElevation = 6.dp
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(modifier = Modifier.size(24.dp, 8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
-                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)))
-                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)))
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.size(38.dp, 26.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(16.dp, 5.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.onPrimaryContainer)
+                                        )
+                                    }
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                )
                             }
                         }
                     } else {
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                            tonalElevation = 4.dp
+                                .height(48.dp),
+                            shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            tonalElevation = 6.dp
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(modifier = Modifier.size(28.dp, 8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
-                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)))
-                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)))
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.size(44.dp, 26.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(18.dp, 5.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.onPrimaryContainer)
+                                        )
+                                    }
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                )
                             }
                         }
                     }
