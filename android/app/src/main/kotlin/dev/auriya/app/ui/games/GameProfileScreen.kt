@@ -3,13 +3,12 @@ package dev.auriya.app.ui.games
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Refresh
@@ -19,11 +18,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.auriya.app.ui.components.ExpressiveList
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
@@ -31,7 +30,7 @@ import dev.auriya.app.ui.components.rememberCookie9
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.shared.model.GameProfile
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GameProfileScreen(
     game: GameProfile,
@@ -51,9 +50,6 @@ fun GameProfileScreen(
         }
     val iconBitmap = rememberAppIcon(game.packageName)
 
-    // Default to whatever the daemon already wrote into the profile;
-    // fall back to the first available governor if that value is gone
-    // from this kernel (e.g. profile carried over from a different ROM).
     val initialGov =
         if (game.cpuGovernor in governorOptions) {
             game.cpuGovernor
@@ -73,200 +69,238 @@ fun GameProfileScreen(
     var menuExpanded by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf(false) }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("Profile Tuning", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Box {
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "More options")
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Reset to defaults") },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Outlined.Refresh,
-                                        contentDescription = null,
-                                    )
-                                },
-                                onClick = {
-                                    menuExpanded = false
-                                    selectedGov = governorOptions.firstOrNull() ?: game.cpuGovernor
-                                    targetFps = 60f
-                                    refreshRate = 0f
-                                    enableDnd = true
-                                },
-                            )
-                            if (isExistingProfile && onRemove != null) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            "Remove profile",
-                                            color = MaterialTheme.colorScheme.error,
-                                        )
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Outlined.DeleteOutline,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error,
-                                        )
-                                    },
-                                    onClick = {
-                                        menuExpanded = false
-                                        pendingDelete = true
-                                    },
-                                )
-                            }
-                        }
-                    }
-                },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                    ),
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = AuriyaTokens.padding.normal),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
-        ) {
-            HeroHeader(
-                label = appLabel,
+    fun updateAndSave(
+        gov: String = selectedGov,
+        ceiling: String = selectedCeiling,
+        fps: Float = targetFps,
+        refresh: Float = refreshRate,
+        dnd: Boolean = enableDnd,
+    ) {
+        selectedGov = gov
+        selectedCeiling = ceiling
+        targetFps = fps
+        refreshRate = refresh
+        enableDnd = dnd
+        onSave(
+            GameProfile(
                 packageName = game.packageName,
-                iconBitmap = iconBitmap,
-                targetFps = targetFps.toInt(),
-                dnd = enableDnd,
-                gov = selectedGov,
-                ceiling = selectedCeiling,
+                cpuGovernor = gov,
+                enableDnd = dnd,
+                targetFps = fps.toInt(),
+                refreshRate = if (refresh.toInt() == 0) null else refresh.toInt(),
+                ceiling = if (ceiling == "default") null else ceiling,
             )
+        )
+    }
 
-            SectionLabel("Performance")
-            ExpressiveList(count = 4) { index ->
-                when (index) {
-                    0 -> {
-                        GovernorRow(
-                            selected = selectedGov,
-                            expanded = govDropdownExpanded,
-                            onExpand = { govDropdownExpanded = it },
-                            onSelect = {
-                                selectedGov = it
-                                govDropdownExpanded = false
-                            },
-                            options = governorOptions,
-                        )
-                    }
-
-                    1 -> {
-                        CeilingRow(
-                            selected = selectedCeiling,
-                            expanded = ceilingDropdownExpanded,
-                            onExpand = { ceilingDropdownExpanded = it },
-                            onSelect = {
-                                selectedCeiling = it
-                                ceilingDropdownExpanded = false
-                            },
-                            options = ceilingOptions,
-                        )
-                    }
-
-                    2 -> {
-                        SliderRow(
-                            title = "Target FPS limit",
-                            value = targetFps,
-                            onChange = { targetFps = it },
-                            range = 30f..120f,
-                            steps = 5,
-                            valueLabel = "${targetFps.toInt()} FPS",
-                        )
-                    }
-
-                    3 -> {
-                        SliderRow(
-                            title = "Screen refresh rate",
-                            value = refreshRate,
-                            onChange = { refreshRate = it },
-                            range = 0f..120f,
-                            steps = 3,
-                            valueLabel = if (refreshRate.toInt() == 0) "System default" else "${refreshRate.toInt()} Hz",
-                        )
-                    }
-                }
-            }
-
-            SectionLabel("System triggers")
-            ExpressiveList(count = 1) { index ->
-                when (index) {
-                    0 -> {
-                        SwitchRow(
-                            title = "Do Not Disturb",
-                            subtitle = "Priority notifications on launch",
-                            checked = enableDnd,
-                            onCheck = { enableDnd = it },
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(AuriyaTokens.padding.normal))
-
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .statusBarsPadding()
+    ) {
+        // --- 1. TOP PINNED HEADER (Backdrop layer) ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.weight(1f)
             ) {
-                Button(
-                    onClick = {
-                        onSave(
-                            GameProfile(
-                                packageName = game.packageName,
-                                cpuGovernor = selectedGov,
-                                enableDnd = enableDnd,
-                                targetFps = targetFps.toInt(),
-                                refreshRate = if (refreshRate.toInt() == 0) null else refreshRate.toInt(),
-                                ceiling = if (selectedCeiling == "default") null else selectedCeiling,
-                            ),
-                        )
-                    },
-                    shape = RoundedCornerShape(AuriyaTokens.rounding.large),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    contentPadding = PaddingValues(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+                FilledIconButton(
+                    onClick = onDismiss,
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    modifier = Modifier.size(42.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(AuriyaTokens.iconSize.medium),
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(Modifier.width(AuriyaTokens.padding.smaller))
+                }
+
+                Column {
                     Text(
-                        text = "Save & Apply",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
+                        text = "Profile Tuning",
+                        style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 24.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+                    Text(
+                        text = "Per-game optimization settings",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(Modifier.height(180.dp))
+            Box {
+                FilledIconButton(
+                    onClick = { menuExpanded = true },
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = "More options",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    shape = RoundedCornerShape(16.dp),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Reset to defaults") },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.Refresh, contentDescription = null)
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            val defaultGov = governorOptions.firstOrNull() ?: game.cpuGovernor
+                            updateAndSave(
+                                gov = defaultGov,
+                                ceiling = "default",
+                                fps = 60f,
+                                refresh = 0f,
+                                dnd = true
+                            )
+                        }
+                    )
+                    if (isExistingProfile && onRemove != null) {
+                        DropdownMenuItem(
+                            text = { Text("Remove profile", color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Outlined.DeleteOutline,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                pendingDelete = true
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // --- 2. FOREGROUND STACKED CARD SHEET ---
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Hero Header Card
+                item {
+                    HeroHeader(
+                        label = appLabel,
+                        packageName = game.packageName,
+                        iconBitmap = iconBitmap,
+                        targetFps = targetFps.toInt(),
+                        dnd = enableDnd,
+                        gov = selectedGov,
+                        ceiling = selectedCeiling,
+                    )
+                }
+
+                // Section 1: Performance
+                item {
+                    SectionLabel("Performance")
+                }
+
+                item {
+                    ExpressiveList(count = 4) { index ->
+                        when (index) {
+                            0 -> GovernorRow(
+                                selected = selectedGov,
+                                expanded = govDropdownExpanded,
+                                onExpand = { govDropdownExpanded = it },
+                                onSelect = {
+                                    govDropdownExpanded = false
+                                    updateAndSave(gov = it)
+                                },
+                                options = governorOptions,
+                            )
+                            1 -> CeilingRow(
+                                selected = selectedCeiling,
+                                expanded = ceilingDropdownExpanded,
+                                onExpand = { ceilingDropdownExpanded = it },
+                                onSelect = {
+                                    ceilingDropdownExpanded = false
+                                    updateAndSave(ceiling = it)
+                                },
+                                options = ceilingOptions,
+                            )
+                            2 -> SliderRow(
+                                title = "Target FPS limit",
+                                value = targetFps,
+                                onChange = { targetFps = it },
+                                onValueChangeFinished = { updateAndSave(fps = targetFps) },
+                                range = 30f..120f,
+                                steps = 5,
+                                valueLabel = "${targetFps.toInt()} FPS",
+                            )
+                            3 -> SliderRow(
+                                title = "Screen refresh rate",
+                                value = refreshRate,
+                                onChange = { refreshRate = it },
+                                onValueChangeFinished = { updateAndSave(refresh = refreshRate) },
+                                range = 0f..120f,
+                                steps = 3,
+                                valueLabel = if (refreshRate.toInt() == 0) "System default" else "${refreshRate.toInt()} Hz",
+                            )
+                        }
+                    }
+                }
+
+                // Section 2: System Triggers
+                item {
+                    SectionLabel("System triggers")
+                }
+
+                item {
+                    ExpressiveList(count = 1) { index ->
+                        when (index) {
+                            0 -> SwitchRow(
+                                title = "Do Not Disturb",
+                                subtitle = "Priority notifications on launch",
+                                checked = enableDnd,
+                                onCheck = { updateAndSave(dnd = it) },
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -279,10 +313,6 @@ fun GameProfileScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    // Hide the dialog instantly so it does not linger
-                    // while the parent recomposes; onRemove is expected
-                    // to also pop this screen (see call sites in
-                    // GamesPane / AuriyaNavigation).
                     pendingDelete = false
                     onRemove()
                 }) {
@@ -296,6 +326,7 @@ fun GameProfileScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HeroHeader(
     label: String,
@@ -307,73 +338,65 @@ private fun HeroHeader(
     ceiling: String,
 ) {
     Surface(
-        shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                MaterialTheme.colorScheme.surfaceContainerHigh,
-                            ),
-                        ),
-                    ).padding(AuriyaTokens.padding.larger),
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(64.dp)
-                                .clip(rememberCookie9())
-                                .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (iconBitmap != null) {
-                            Image(bitmap = iconBitmap, contentDescription = null, modifier = Modifier.fillMaxSize())
-                        } else {
-                            Icon(
-                                imageVector = Icons.Outlined.SportsEsports,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(AuriyaTokens.iconSize.large),
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(AuriyaTokens.padding.normal))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = packageName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest),
-                    verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(rememberCookie9())
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    StatusBadge(label = "Active", tone = StatusTone.SUCCESS)
-                    StatusBadge(label = "$targetFps FPS", tone = StatusTone.SECONDARY)
-                    if (dnd) StatusBadge(label = "DnD", tone = StatusTone.WARNING)
-                    StatusBadge(label = gov, tone = StatusTone.OUTLINE)
-                    if (ceiling != "default") StatusBadge(label = ceiling.replaceFirstChar { it.uppercase() }, tone = StatusTone.PRIMARY)
+                    if (iconBitmap != null) {
+                        Image(bitmap = iconBitmap, contentDescription = null, modifier = Modifier.fillMaxSize())
+                    } else {
+                        Icon(
+                            imageVector = Icons.Outlined.SportsEsports,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
                 }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = packageName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                StatusBadge(label = "Active", tone = StatusTone.SUCCESS)
+                StatusBadge(label = "$targetFps FPS", tone = StatusTone.SECONDARY)
+                if (dnd) StatusBadge(label = "DnD", tone = StatusTone.WARNING)
+                StatusBadge(label = gov.uppercase(), tone = StatusTone.PRIMARY)
+                if (ceiling != "default") StatusBadge(label = ceiling.replaceFirstChar { it.uppercase() }, tone = StatusTone.PRIMARY)
             }
         }
     }
@@ -383,10 +406,10 @@ private fun HeroHeader(
 private fun SectionLabel(label: String) {
     Text(
         text = label.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.ExtraBold,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = AuriyaTokens.padding.small),
+        modifier = Modifier.padding(start = AuriyaTokens.padding.small, top = 4.dp),
     )
 }
 
@@ -399,10 +422,9 @@ private fun GovernorRow(
     options: List<String>,
 ) {
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -469,10 +491,9 @@ private fun CeilingRow(
     options: List<String>,
 ) {
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -535,15 +556,15 @@ private fun SliderRow(
     title: String,
     value: Float,
     onChange: (Float) -> Unit,
+    onValueChangeFinished: (() -> Unit)? = null,
     range: ClosedFloatingPointRange<Float>,
     steps: Int,
     valueLabel: String,
 ) {
     Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest),
     ) {
         Row(
@@ -561,13 +582,13 @@ private fun SliderRow(
         Slider(
             value = value,
             onValueChange = onChange,
+            onValueChangeFinished = onValueChangeFinished,
             valueRange = range,
             steps = steps,
-            colors =
-                SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                ),
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+            ),
         )
     }
 }
@@ -580,10 +601,9 @@ private fun SwitchRow(
     onCheck: (Boolean) -> Unit,
 ) {
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
