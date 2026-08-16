@@ -3,8 +3,6 @@ package dev.auriya.app.ui.games
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import androidx.compose.animation.*
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -14,7 +12,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Android
@@ -43,17 +40,10 @@ import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.viewmodel.UiViewModel
 import dev.auriya.shared.model.GameProfile
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class AppInfoItem(val packageName: String, val label: String)
 data class ActiveAppItem(val packageName: String, val label: String, val profile: GameProfile)
-
-enum class GameTab(val title: String) {
-    ALL("All"),
-    ACTIVE("Active"),
-    INSTALLED("Installed"),
-}
 
 enum class SortMode {
     NAME_ASC,
@@ -96,9 +86,7 @@ fun GamesScreen(
 
     val gameList by viewModel.gameList.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
-    var isSearchVisible by remember { mutableStateOf(false) }
     var sortMode by remember { mutableStateOf(SortMode.NAME_ASC) }
-    var selectedTab by remember { mutableStateOf(GameTab.ALL) }
     var installedApps by remember { mutableStateOf<List<AppInfoItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -173,12 +161,10 @@ fun GamesScreen(
             .background(MaterialTheme.colorScheme.surfaceContainer)
     ) {
         // --- 1. TOP PINNED HEADER (Backdrop layer) ---
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 14.dp)
         ) {
             Text(
                 text = "Games",
@@ -188,65 +174,15 @@ fun GamesScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = "Configure per-game performance profiles and options",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
-        // --- 2. PINNED FILTER PILLS ---
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            GameTab.entries.forEach { tab ->
-                val isSelected = selectedTab == tab
-                val count = when (tab) {
-                    GameTab.ALL -> filteredActive.size + filteredInactive.size
-                    GameTab.ACTIVE -> filteredActive.size
-                    GameTab.INSTALLED -> filteredInactive.size
-                }
-                val pillBg by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surfaceContainerHighest,
-                    label = "tab_bg"
-                )
-                val pillTextColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    label = "tab_text"
-                )
-
-                Surface(
-                    onClick = { selectedTab = tab },
-                    shape = RoundedCornerShape(24.dp),
-                    color = pillBg,
-                    modifier = Modifier.height(38.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = tab.title.uppercase(),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = pillTextColor
-                        )
-                        if (count > 0) {
-                            Text(
-                                text = "($count)",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = pillTextColor.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // --- 3. FOREGROUND STACKED CARD SHEET ---
+        // --- 2. FOREGROUND STACKED CARD SHEET ---
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -255,106 +191,76 @@ fun GamesScreen(
             color = MaterialTheme.colorScheme.surfaceContainerLowest
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Top Action Row (Actions / Sort / Search)
+                // Top Search & Sort Row (Full width elongated search bar + Sort icon button)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Left Action Pill: Add Custom Game
-                    FilledTonalButton(
-                        onClick = {
-                            if (filteredInactive.isNotEmpty()) {
-                                onEditGame(
-                                    GameProfile(
-                                        packageName = filteredInactive.first().packageName,
-                                        cpuGovernor = "performance",
-                                        enableDnd = true,
-                                        targetFps = 60,
-                                    )
-                                )
-                            }
-                        },
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        modifier = Modifier.height(40.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
+                    TextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = {
                             Text(
-                                text = "Add Profile",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold
+                                "Search apps or package…",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                style = MaterialTheme.typography.bodyMedium
                             )
-                        }
-                    }
-
-                    // Right Segmented Action Buttons: Search & Sort
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        FilledTonalIconButton(
-                            onClick = { isSearchVisible = !isSearchVisible },
-                            shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp, topEnd = 6.dp, bottomEnd = 6.dp),
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = if (isSearchVisible || searchQuery.isNotEmpty()) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                contentColor = if (isSearchVisible || searchQuery.isNotEmpty()) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            modifier = Modifier.size(40.dp)
-                        ) {
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(26.dp),
+                        leadingIcon = {
                             Icon(
                                 imageVector = Icons.Filled.Search,
-                                contentDescription = "Search",
-                                modifier = Modifier.size(18.dp)
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
                             )
-                        }
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Close,
+                                        contentDescription = "Clear",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                        ),
+                    )
 
-                        FilledTonalIconButton(
-                            onClick = {
-                                sortMode = if (sortMode == SortMode.NAME_ASC) SortMode.NAME_DESC else SortMode.NAME_ASC
-                            },
-                            shape = RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 16.dp, bottomEnd = 16.dp),
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = if (sortMode == SortMode.NAME_DESC) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                contentColor = if (sortMode == SortMode.NAME_DESC) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Sort,
-                                contentDescription = "Sort",
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-
-                // Expandable Search Bar
-                AnimatedVisibility(
-                    visible = isSearchVisible || searchQuery.isNotEmpty(),
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                        SearchPill(searchQuery, onChange = { searchQuery = it })
+                    FilledTonalIconButton(
+                        onClick = {
+                            sortMode = if (sortMode == SortMode.NAME_ASC) SortMode.NAME_DESC else SortMode.NAME_ASC
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = if (sortMode == SortMode.NAME_DESC) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = if (sortMode == SortMode.NAME_DESC) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        modifier = Modifier.size(52.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                            contentDescription = "Sort",
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
 
@@ -393,7 +299,7 @@ fun GamesScreen(
                         contentPadding = PaddingValues(top = 8.dp, bottom = 100.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        if (!bannerDismissed && selectedTab != GameTab.INSTALLED) {
+                        if (!bannerDismissed) {
                             item {
                                 HeroBanner(
                                     onDismiss = {
@@ -404,95 +310,53 @@ fun GamesScreen(
                             }
                         }
 
-                        when (selectedTab) {
-                            GameTab.ALL -> {
-                                if (filteredActive.isNotEmpty()) {
-                                    item {
-                                        SectionLabel(
-                                            label = "Active profiles",
-                                            count = filteredActive.size,
-                                            modifier = Modifier.padding(top = AuriyaTokens.padding.small, bottom = AuriyaTokens.padding.smaller),
-                                        )
-                                    }
-                                    itemsIndexed(
-                                        items = filteredActive,
-                                        key = { _, a -> "active-${a.packageName}" },
-                                    ) { index, app ->
-                                        ContinuousRow(index = index, lastIndex = filteredActive.lastIndex) {
-                                            ActiveRowContent(app, onClick = { onEditGame(app.profile) })
-                                        }
-                                    }
-                                }
-
-                                if (filteredInactive.isNotEmpty()) {
-                                    item {
-                                        SectionLabel(
-                                            label = "Installed applications",
-                                            count = filteredInactive.size,
-                                            modifier = Modifier.padding(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.smaller),
-                                        )
-                                    }
-                                    itemsIndexed(
-                                        items = filteredInactive,
-                                        key = { _, a -> "inactive-${a.packageName}" },
-                                    ) { index, app ->
-                                        ContinuousRow(index = index, lastIndex = filteredInactive.lastIndex) {
-                                            InactiveRowContent(app, onClick = {
-                                                onEditGame(
-                                                    GameProfile(
-                                                        packageName = app.packageName,
-                                                        cpuGovernor = "performance",
-                                                        enableDnd = true,
-                                                        targetFps = 60,
-                                                    )
-                                                )
-                                            })
-                                        }
-                                    }
-                                }
+                        if (filteredActive.isNotEmpty()) {
+                            item {
+                                SectionLabel(
+                                    label = "Active profiles",
+                                    count = filteredActive.size,
+                                    modifier = Modifier.padding(top = AuriyaTokens.padding.small, bottom = AuriyaTokens.padding.smaller),
+                                )
                             }
-                            GameTab.ACTIVE -> {
-                                if (filteredActive.isNotEmpty()) {
-                                    itemsIndexed(
-                                        items = filteredActive,
-                                        key = { _, a -> "active-${a.packageName}" },
-                                    ) { index, app ->
-                                        ContinuousRow(index = index, lastIndex = filteredActive.lastIndex) {
-                                            ActiveRowContent(app, onClick = { onEditGame(app.profile) })
-                                        }
-                                    }
-                                }
-                            }
-                            GameTab.INSTALLED -> {
-                                if (filteredInactive.isNotEmpty()) {
-                                    itemsIndexed(
-                                        items = filteredInactive,
-                                        key = { _, a -> "inactive-${a.packageName}" },
-                                    ) { index, app ->
-                                        ContinuousRow(index = index, lastIndex = filteredInactive.lastIndex) {
-                                            InactiveRowContent(app, onClick = {
-                                                onEditGame(
-                                                    GameProfile(
-                                                        packageName = app.packageName,
-                                                        cpuGovernor = "performance",
-                                                        enableDnd = true,
-                                                        targetFps = 60,
-                                                    )
-                                                )
-                                            })
-                                        }
-                                    }
+                            itemsIndexed(
+                                items = filteredActive,
+                                key = { _, a -> "active-${a.packageName}" },
+                            ) { index, app ->
+                                ContinuousRow(index = index, lastIndex = filteredActive.lastIndex) {
+                                    ActiveRowContent(app, onClick = { onEditGame(app.profile) })
                                 }
                             }
                         }
 
-                        val isTabEmpty = when (selectedTab) {
-                            GameTab.ALL -> filteredActive.isEmpty() && filteredInactive.isEmpty()
-                            GameTab.ACTIVE -> filteredActive.isEmpty()
-                            GameTab.INSTALLED -> filteredInactive.isEmpty()
+                        if (filteredInactive.isNotEmpty()) {
+                            item {
+                                SectionLabel(
+                                    label = "Installed applications",
+                                    count = filteredInactive.size,
+                                    modifier = Modifier.padding(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.smaller),
+                                )
+                            }
+                            itemsIndexed(
+                                items = filteredInactive,
+                                key = { _, a -> "inactive-${a.packageName}" },
+                            ) { index, app ->
+                                ContinuousRow(index = index, lastIndex = filteredInactive.lastIndex) {
+                                    InactiveRowContent(app, onClick = {
+                                        onEditGame(
+                                            GameProfile(
+                                                packageName = app.packageName,
+                                                cpuGovernor = "performance",
+                                                enableDnd = true,
+                                                targetFps = 60,
+                                            )
+                                        )
+                                    })
+                                }
+                            }
                         }
-                        if (isTabEmpty) {
-                            item { EmptyState(tab = selectedTab) }
+
+                        if (filteredActive.isEmpty() && filteredInactive.isEmpty()) {
+                            item { EmptyState() }
                         }
                     }
                 }
@@ -570,42 +434,6 @@ private fun HeroBanner(onDismiss: () -> Unit) {
             }
         }
     }
-}
-
-@Composable
-private fun SearchPill(value: String, onChange: (String) -> Unit) {
-    TextField(
-        value = value,
-        onValueChange = onChange,
-        placeholder = {
-            Text(
-                "Search apps or package…",
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            )
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = AuriyaTokens.padding.small),
-        singleLine = true,
-        shape = RoundedCornerShape(AuriyaTokens.rounding.full),
-        leadingIcon = {
-            Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        },
-        trailingIcon = {
-            if (value.isNotEmpty()) {
-                IconButton(onClick = { onChange("") }) {
-                    Icon(Icons.Filled.Close, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        },
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-        ),
-    )
 }
 
 @Composable
@@ -764,7 +592,7 @@ private fun AppIconBox(packageName: String, shape: Shape) {
 }
 
 @Composable
-private fun EmptyState(tab: GameTab = GameTab.ALL) {
+private fun EmptyState() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -790,21 +618,13 @@ private fun EmptyState(tab: GameTab = GameTab.ALL) {
                 }
             }
             Text(
-                text = when (tab) {
-                    GameTab.ALL -> "No games found"
-                    GameTab.ACTIVE -> "No active game profiles yet"
-                    GameTab.INSTALLED -> "No installed apps found"
-                },
+                text = "No applications found",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = when (tab) {
-                    GameTab.ALL -> "Try searching with a different term."
-                    GameTab.ACTIVE -> "Select an installed app below to configure its profile."
-                    GameTab.INSTALLED -> "All installed apps are currently tuned."
-                },
+                text = "Try searching with a different term.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
