@@ -16,7 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import dev.auriya.app.viewmodel.ThemeViewModel
 import dev.auriya.app.viewmodel.UiViewModel
-import kotlinx.coroutines.delay
+
 
 @Composable
 fun OobeScreen(
@@ -30,15 +30,11 @@ fun OobeScreen(
     val prefs by themeViewModel.prefs.collectAsState()
     val isDark = isThemeDark(prefs)
 
-    // Root polling only on step 1 (RootCheck)
-    LaunchedEffect(step, hasRoot) {
-        if (step == 1 && !hasRoot) {
-            while (!hasRoot) {
-                viewModel.checkRoot()
-                delay(1500)
-            }
-        }
-    }
+    // Root check is driven exclusively by the "Grant Root Permission" button in
+    // RootCheckContent — no background polling here. Polling every 2s was causing
+    // a race condition: Shell.getShell() blocks up to 20s, so 10+ concurrent IO
+    // coroutines ended up fighting over the libsu shell cache, leaving it stuck
+    // in a non-root state.
 
     BackHandler(enabled = step > 0) {
         step -= 1
@@ -91,22 +87,27 @@ fun OobeScreen(
                         isDark = isDark,
                         themeViewModel = themeViewModel
                     )
+
                     1 -> RootCheckContent(
                         isDark = isDark,
                         viewModel = viewModel,
                         hasRoot = hasRoot
                     )
+
                     2 -> OverlayContent(
                         isDark = isDark
                     )
+
                     3 -> ColoringContent(
                         isDark = isDark,
                         themeViewModel = themeViewModel
                     )
+
                     4 -> NavbarContent(
                         isDark = isDark,
                         themeViewModel = themeViewModel
                     )
+
                     5 -> DoneContent(
                         isDark = isDark,
                         themeViewModel = themeViewModel
@@ -116,4 +117,3 @@ fun OobeScreen(
         }
     }
 }
-

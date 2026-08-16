@@ -18,10 +18,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import java.util.concurrent.atomic.AtomicBoolean
 import dev.auriya.app.ui.theme.AuriyaFontFamily
 import dev.auriya.app.viewmodel.UiViewModel
 
@@ -32,8 +36,41 @@ fun RootCheckContent(
     hasRoot: Boolean,
     modifier: Modifier = Modifier
 ) {
-    var isRequesting by remember { mutableStateOf(false) }
-    LaunchedEffect(hasRoot) { if (hasRoot) isRequesting = false }
+    // Driven by ViewModel so the "Requesting..." spinner reflects the actual
+    // blocking Shell.getShell() call and resets automatically on both success
+    // and failure — letting the user retry without restarting the app.
+    val isRequesting by viewModel.isCheckingRoot.collectAsState()
+
+    // Auto-trigger the SU prompt the moment this screen is first composed.
+    // isCheckingRoot guard in the ViewModel prevents a double-call if the
+    // user also taps the button before the first check completes.
+    LaunchedEffect(Unit) {
+        viewModel.checkRoot()
+    }
+
+    // Re-check when the app returns from background (ON_RESUME).
+    // hasEverPaused guards against the synthetic ON_RESUME that some lifecycle
+    // versions fire when the observer is first registered — without it, both
+    // this observer AND LaunchedEffect(Unit) above would call checkRoot() at
+    // the same time on the main thread, both passing the isCheckingRoot guard
+    // before either IO coroutine has set it to true, reintroducing the
+    // concurrent Shell.getShell() race condition.
+    val hasEverPaused = remember { AtomicBoolean(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> hasEverPaused.set(true)
+                Lifecycle.Event.ON_RESUME -> if (hasEverPaused.get() && !viewModel.hasRoot.value) {
+                    viewModel.checkRoot()
+                }
+
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val rootIcons = remember {
         listOf(
@@ -98,7 +135,7 @@ fun RootCheckContent(
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = if (hasRoot) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                        else MaterialTheme.colorScheme.surfaceContainerHigh,
+                else MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -144,7 +181,6 @@ fun RootCheckContent(
             Button(
                 onClick = {
                     if (!hasRoot) {
-                        isRequesting = true
                         viewModel.checkRoot()
                     }
                 },
@@ -162,13 +198,25 @@ fun RootCheckContent(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.Check, null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Permission Granted", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Permission Granted",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     } else if (isRequesting) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text("Requesting Root...", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Requesting Root...",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     } else {
                         Text(
@@ -182,5 +230,3 @@ fun RootCheckContent(
         }
     }
 }
-
-

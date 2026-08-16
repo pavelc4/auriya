@@ -6,6 +6,7 @@ import dev.auriya.app.data.RootShell
 import dev.auriya.shared.config.ConfigPaths
 import dev.auriya.shared.config.TomlParser
 import dev.auriya.shared.model.*
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -61,6 +62,15 @@ class UiViewModel : ViewModel() {
     private val _hasRoot = MutableStateFlow(false)
     val hasRoot: StateFlow<Boolean> = _hasRoot.asStateFlow()
 
+    private val _isCheckingRoot = MutableStateFlow(false)
+    val isCheckingRoot: StateFlow<Boolean> = _isCheckingRoot.asStateFlow()
+
+    // Set to true when checkRoot() is called while a check is already in flight.
+    // The running coroutine reads this in its finally block and immediately
+    // fires one more check — covering the "press button → go to manager →
+    // grant → come back" workflow without needing a polling loop.
+    private val _pendingRootRetry = AtomicBoolean(false)
+
     private val _availableGovernors = MutableStateFlow<List<String>>(emptyList())
     val availableGovernors: StateFlow<List<String>> = _availableGovernors.asStateFlow()
 
@@ -69,10 +79,43 @@ class UiViewModel : ViewModel() {
     }
 
     fun checkRoot() {
+        if (_isCheckingRoot.value) {
+            // A check is already blocking in Shell.getShell(). Schedule a retry
+            // so it fires the moment that check finishes. This covers the common
+            // workflow: user presses Grant → switches to SU manager → grants
+            // always-allow → returns to app (ON_RESUME) while the original
+            // Shell.getShell() is still waiting for its 10-second timeout.
+            _pendingRootRetry.set(true)
+            return
+        }
         viewModelScope.launch(Dispatchers.IO) {
-            val root = RootShell.hasRoot()
-            _hasRoot.value = root
-            if (root) {
+            _isCheckingRoot.value = true
+            try {
+                val root = RootShell.hasRoot()
+                _hasRoot.value = root
+                if (root) {
+                    loadAvailableGovernors()
+                    loadConfigurations()
+                    initSystemInfoStatic()
+                }
+            } finally {
+                _isCheckingRoot.value = false
+                // If a retry was queued (e.g. ON_RESUME fired while we were
+                // blocked), run one more check now. Root may be already granted
+                // in the manager so Shell.getShell() will return instantly.
+                if (_pendingRootRetry.getAndSet(false) && !_hasRoot.value) {
+                    checkRoot()
+                }
+            }
+        }
+    }
+
+    /** Passive poll — checks only the cached shell, never triggers a new SU prompt. */
+    fun checkRootPassive() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val root = RootShell.hasCachedRoot()
+            if (root && !_hasRoot.value) {
+                _hasRoot.value = true
                 loadAvailableGovernors()
                 loadConfigurations()
                 initSystemInfoStatic()
@@ -97,7 +140,9 @@ class UiViewModel : ViewModel() {
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            val root = RootShell.hasRoot()
+            // Only check the *cached* shell on startup — never trigger a SU prompt here.
+            // The OOBE step is responsible for the explicit root request.
+            val root = RootShell.hasCachedRoot()
             _hasRoot.value = root
             if (root) {
                 loadAvailableGovernors()

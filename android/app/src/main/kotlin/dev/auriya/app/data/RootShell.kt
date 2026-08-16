@@ -1,5 +1,6 @@
 package dev.auriya.app.data
 
+import android.util.Log
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.io.SuFile
 import com.topjohnwu.superuser.io.SuFileInputStream
@@ -11,9 +12,36 @@ import com.topjohnwu.superuser.io.SuFileOutputStream
  * "what runs as root" surface small and reviewable.
  */
 object RootShell {
-    fun hasRoot(): Boolean = Shell.getShell().isRoot
+    private const val TAG = "AuriyaRoot"
 
-    /** Run a shell command and return its stdout (joined with \n). */
+    /** Active check — closes any cached non-root shell first, then opens a fresh
+     *  root shell (may show SU prompt). Avoids getting stuck with a cached non-root shell. */
+    fun hasRoot(): Boolean {
+        val cached = Shell.getCachedShell()
+        Log.d(TAG, "hasRoot() called | cached=$cached | cachedIsRoot=${cached?.isRoot}")
+        // If there's a cached shell that isn't root, close it so libsu builds a fresh one.
+        if (cached != null && !cached.isRoot) {
+            Log.d(TAG, "hasRoot() closing non-root cached shell")
+            cached.close()
+        }
+        return try {
+            val shell = Shell.getShell()
+            val result = shell.isRoot
+            Log.d(TAG, "hasRoot() Shell.getShell() returned isRoot=$result shell=$shell")
+            result
+        } catch (e: Throwable) {
+            Log.e(TAG, "hasRoot() exception: ${e.javaClass.simpleName}: ${e.message}")
+            false
+        }
+    }
+
+    /** Passive check — only reads the already-open cached shell, never prompts. */
+    fun hasCachedRoot(): Boolean {
+        val cached = Shell.getCachedShell()
+        val result = cached?.isRoot ?: false
+        Log.d(TAG, "hasCachedRoot() cached=$cached isRoot=$result")
+        return result
+    }
     fun run(cmd: String): String {
         val res = Shell.cmd(cmd).exec()
         return res.out.joinToString("\n").trim()

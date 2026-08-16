@@ -210,29 +210,64 @@ fun AuriyaIconCollage(
         val onSurf = MaterialTheme.colorScheme.onSurfaceVariant
 
         val configs = listOf(
-            OobeIconPlacement(size = minDim * 0.72f, color = secCol, align = Alignment.Center, rot = -12f, shape = RoundedCornerShape(24.dp), offsetX = 0.dp, offsetY = 0.dp),
-            OobeIconPlacement(size = minDim * 0.42f, color = onSurf, align = Alignment.TopStart, rot = 16f, shape = CircleShape, offsetX = 18.dp, offsetY = 6.dp),
-            OobeIconPlacement(size = minDim * 0.44f, color = primaryCol, align = Alignment.BottomEnd, rot = 8f, shape = CircleShape, offsetX = (-18).dp, offsetY = (-6).dp),
-            OobeIconPlacement(size = minDim * 0.48f, color = tertCol, align = Alignment.TopEnd, rot = -18f, shape = RoundedCornerShape(20.dp), offsetX = (-22).dp, offsetY = 8.dp),
-            OobeIconPlacement(size = minDim * 0.38f, color = secCol, align = Alignment.BottomStart, rot = 12f, shape = MaterialShapes.Clover6, offsetX = 24.dp, offsetY = (-8).dp)
+            OobeIconPlacement(
+                size = minDim * 0.72f,
+                color = secCol,
+                align = Alignment.Center,
+                rot = -12f,
+                shape = RoundedCornerShape(24.dp),
+                offsetX = 0.dp,
+                offsetY = 0.dp
+            ),
+            OobeIconPlacement(
+                size = minDim * 0.42f,
+                color = onSurf,
+                align = Alignment.TopStart,
+                rot = 16f,
+                shape = CircleShape,
+                offsetX = 18.dp,
+                offsetY = 6.dp
+            ),
+            OobeIconPlacement(
+                size = minDim * 0.44f,
+                color = primaryCol,
+                align = Alignment.BottomEnd,
+                rot = 8f,
+                shape = CircleShape,
+                offsetX = (-18).dp,
+                offsetY = (-6).dp
+            ),
+            OobeIconPlacement(
+                size = minDim * 0.48f,
+                color = tertCol,
+                align = Alignment.TopEnd,
+                rot = -18f,
+                shape = RoundedCornerShape(20.dp),
+                offsetX = (-22).dp,
+                offsetY = 8.dp
+            ),
+            OobeIconPlacement(
+                size = minDim * 0.38f,
+                color = secCol,
+                align = Alignment.BottomStart,
+                rot = 12f,
+                shape = MaterialShapes.Clover6,
+                offsetX = 24.dp,
+                offsetY = (-8).dp
+            )
         )
 
         icons.take(5).forEachIndexed { index, icon ->
             val cfg = configs.getOrElse(index) { configs[0] }
-            Surface(
-                modifier = Modifier
-                    .size(cfg.size)
-                    .align(cfg.align)
-                    .offset(cfg.offsetX, cfg.offsetY)
-                    .graphicsLayer { rotationZ = cfg.rot },
-                shape = cfg.shape,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 4.dp,
-                shadowElevation = 2.dp
-            ) {
+            if (index == 0) {
+                // Center element: render as a plain floating icon with no card
+                // backing so it doesn't appear as a large card behind the group.
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .size(cfg.size)
+                        .align(cfg.align)
+                        .offset(cfg.offsetX, cfg.offsetY)
+                        .graphicsLayer { rotationZ = cfg.rot }
                         .padding(14.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -242,6 +277,32 @@ fun AuriyaIconCollage(
                         tint = cfg.color,
                         modifier = Modifier.fillMaxSize()
                     )
+                }
+            } else {
+                Surface(
+                    modifier = Modifier
+                        .size(cfg.size)
+                        .align(cfg.align)
+                        .offset(cfg.offsetX, cfg.offsetY)
+                        .graphicsLayer { rotationZ = cfg.rot },
+                    shape = cfg.shape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    tonalElevation = 4.dp,
+                    shadowElevation = 2.dp
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = cfg.color,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
@@ -267,7 +328,12 @@ fun SummaryItem(label: String, value: String, isDark: Boolean) {
             Spacer(modifier = Modifier.width(8.dp))
             Text(label, style = MaterialTheme.typography.bodyMedium, color = labelColor)
         }
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 
@@ -360,9 +426,15 @@ fun LiveUiPreviewCard(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Box(modifier = Modifier.size(width = 80.dp, height = 8.dp).clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)))
+                            Box(
+                                modifier = Modifier.size(width = 80.dp, height = 8.dp).clip(RoundedCornerShape(4.dp))
+                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f))
+                            )
                             Spacer(modifier = Modifier.height(4.dp))
-                            Box(modifier = Modifier.size(width = 50.dp, height = 5.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.13f)))
+                            Box(
+                                modifier = Modifier.size(width = 50.dp, height = 5.dp).clip(RoundedCornerShape(2.dp))
+                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.13f))
+                            )
                         }
                     }
 
@@ -419,62 +491,65 @@ fun LiveUiPreviewCard(
                                     .size(18.dp)
                                     .clip(RoundedCornerShape(miniRadius))
                                     .background(MaterialTheme.colorScheme.primary)
-                              )
-                              Spacer(modifier = Modifier.width(8.dp))
-                              Box(
-                                  modifier = Modifier
-                                      .size(width = 72.dp, height = 7.dp)
-                                      .clip(RoundedCornerShape(3.dp))
-                                      .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-                              )
-                          }
-                          // Mock switch shape
-                          Box(
-                              modifier = Modifier
-                                  .size(width = 28.dp, height = 16.dp)
-                                  .clip(RoundedCornerShape(8.dp))
-                                  .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
-                          )
-                      }
-                  }
-              }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 72.dp, height = 7.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                            )
+                        }
+                        // Mock switch shape
+                        Box(
+                            modifier = Modifier
+                                .size(width = 28.dp, height = 16.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                        )
+                    }
+                }
+            }
 
-              // 4. System Bottom Navigation Bar
-              Box(
-                  modifier = Modifier
-                      .fillMaxWidth()
-                      .align(Alignment.BottomCenter)
-                      .padding(bottom = if (navMode == NavMode.FLOATING) 6.dp else 0.dp),
-                  contentAlignment = Alignment.Center
-              ) {
-                  val capsule = RoundedCornerShape(cornerRadius.dp / 2f)
-                  Box(
-                      modifier = Modifier
-                          .fillMaxWidth(if (navMode == NavMode.FLOATING) 0.65f else 1f)
-                          .height(24.dp)
-                          .clip(capsule)
-                          .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                      contentAlignment = Alignment.Center
-                  ) {
-                      Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                          repeat(3) { index ->
-                              val sel = index == 0
-                              Box(
-                                  modifier = Modifier
-                                      .size(if (sel) 10.dp else 6.dp)
-                                      .clip(if (navType == NavType.MODERN) RoundedCornerShape(2.dp) else CircleShape)
-                                      .background(
-                                          if (sel) MaterialTheme.colorScheme.primary
-                                          else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
-                                      )
-                              )
-                          }
-                      }
-                  }
-              }
-          }
-      }
-  }
+            // 4. System Bottom Navigation Bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = if (navMode == NavMode.FLOATING) 6.dp else 0.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                val capsule = RoundedCornerShape(cornerRadius.dp / 2f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(if (navMode == NavMode.FLOATING) 0.65f else 1f)
+                        .height(24.dp)
+                        .clip(capsule)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        repeat(3) { index ->
+                            val sel = index == 0
+                            Box(
+                                modifier = Modifier
+                                    .size(if (sel) 10.dp else 6.dp)
+                                    .clip(if (navType == NavType.MODERN) RoundedCornerShape(2.dp) else CircleShape)
+                                    .background(
+                                        if (sel) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                                    )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun ThemeColorWidgetCompositionCard(
@@ -486,15 +561,51 @@ fun ThemeColorWidgetCompositionCard(
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
 
     // 600ms smooth transition color states
-    val animPrimary by animateColorAsState(targetValue = primaryColor, animationSpec = tween(600), label = "animPrimary")
-    val animOnPrimary by animateColorAsState(targetValue = MaterialTheme.colorScheme.onPrimary, animationSpec = tween(600), label = "animOnPrimary")
-    val animSecondary by animateColorAsState(targetValue = secondaryColor, animationSpec = tween(600), label = "animSecondary")
-    val animOnSecondary by animateColorAsState(targetValue = MaterialTheme.colorScheme.onSecondary, animationSpec = tween(600), label = "animOnSecondary")
-    val animSecondaryContainer by animateColorAsState(targetValue = MaterialTheme.colorScheme.secondaryContainer, animationSpec = tween(600), label = "animSecondaryContainer")
-    val animTertiary by animateColorAsState(targetValue = tertiaryColor, animationSpec = tween(600), label = "animTertiary")
-    val animOnTertiary by animateColorAsState(targetValue = MaterialTheme.colorScheme.onTertiary, animationSpec = tween(600), label = "animOnTertiary")
-    val animSurfaceContainer by animateColorAsState(targetValue = MaterialTheme.colorScheme.surfaceContainer, animationSpec = tween(600), label = "animSurfaceContainer")
-    val animOutlineVariant by animateColorAsState(targetValue = MaterialTheme.colorScheme.outlineVariant, animationSpec = tween(600), label = "animOutlineVariant")
+    val animPrimary by animateColorAsState(
+        targetValue = primaryColor,
+        animationSpec = tween(600),
+        label = "animPrimary"
+    )
+    val animOnPrimary by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.onPrimary,
+        animationSpec = tween(600),
+        label = "animOnPrimary"
+    )
+    val animSecondary by animateColorAsState(
+        targetValue = secondaryColor,
+        animationSpec = tween(600),
+        label = "animSecondary"
+    )
+    val animOnSecondary by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.onSecondary,
+        animationSpec = tween(600),
+        label = "animOnSecondary"
+    )
+    val animSecondaryContainer by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.secondaryContainer,
+        animationSpec = tween(600),
+        label = "animSecondaryContainer"
+    )
+    val animTertiary by animateColorAsState(
+        targetValue = tertiaryColor,
+        animationSpec = tween(600),
+        label = "animTertiary"
+    )
+    val animOnTertiary by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.onTertiary,
+        animationSpec = tween(600),
+        label = "animOnTertiary"
+    )
+    val animSurfaceContainer by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.surfaceContainer,
+        animationSpec = tween(600),
+        label = "animSurfaceContainer"
+    )
+    val animOutlineVariant by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.outlineVariant,
+        animationSpec = tween(600),
+        label = "animOutlineVariant"
+    )
 
     // Micro-animations infinite transition
     val infiniteTransition = rememberInfiniteTransition(label = "microAnims")
@@ -582,7 +693,8 @@ fun ThemeColorWidgetCompositionCard(
                         val t = (i * Math.PI.toFloat() / 180f)
                         val sinT = sin(t)
                         val x = heartCenterX + (16f * sinT * sinT * sinT) * heartScale
-                        val y = heartCenterY - (13f * cos(t) - 5f * cos(2f * t) - 2f * cos(3f * t) - cos(4f * t)) * heartScale
+                        val y =
+                            heartCenterY - (13f * cos(t) - 5f * cos(2f * t) - 2f * cos(3f * t) - cos(4f * t)) * heartScale
                         if (i == 0) heartPath.moveTo(x, y) else heartPath.lineTo(x, y)
                     }
                     heartPath.close()
@@ -626,7 +738,12 @@ fun ThemeColorWidgetCompositionCard(
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Text("Optimizing", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = animPrimary)
-                        Text("${(progressVal * 100).toInt()}%", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = animPrimary)
+                        Text(
+                            "${(progressVal * 100).toInt()}%",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = animPrimary
+                        )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     LinearProgressIndicator(
@@ -695,7 +812,12 @@ fun ThemeColorWidgetCompositionCard(
                     modifier = Modifier.fillMaxWidth().height(26.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 8.dp)) {
-                        Text("Auriya core active", color = animOnTertiary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Auriya core active",
+                            color = animOnTertiary,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 
@@ -1369,4 +1491,3 @@ fun NavBarPreview(isFloating: Boolean) {
         }
     }
 }
-
