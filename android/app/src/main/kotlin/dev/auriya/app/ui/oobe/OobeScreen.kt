@@ -1,15 +1,17 @@
 package dev.auriya.app.ui.oobe
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import dev.auriya.app.viewmodel.ThemeViewModel
@@ -22,16 +24,15 @@ fun OobeScreen(
     themeViewModel: ThemeViewModel,
     onFinished: () -> Unit,
 ) {
-    var step by remember { mutableStateOf(1) }
+    var step by remember { mutableStateOf(0) }
     val hasRoot by viewModel.hasRoot.collectAsState()
 
     val prefs by themeViewModel.prefs.collectAsState()
-    val currentPrefs = prefs
-    val isDark = isThemeDark(currentPrefs)
+    val isDark = isThemeDark(prefs)
 
-    // Root polling only on step 2
+    // Root polling only on step 1 (RootCheck)
     LaunchedEffect(step, hasRoot) {
-        if (step == 2 && !hasRoot) {
+        if (step == 1 && !hasRoot) {
             while (!hasRoot) {
                 viewModel.checkRoot()
                 delay(1500)
@@ -39,14 +40,37 @@ fun OobeScreen(
         }
     }
 
-    val bg = MaterialTheme.colorScheme.background
+    BackHandler(enabled = step > 0) {
+        step -= 1
+    }
 
-    Box(modifier = Modifier.fillMaxSize().background(bg)) {
+    val pageCount = 5
+    val isNextButtonEnabled = when (step) {
+        1 -> hasRoot
+        else -> true
+    }
+
+    Scaffold(
+        bottomBar = {
+            SetupBottomBar(
+                currentPage = step,
+                pageCount = pageCount,
+                onNextClicked = {
+                    if (step < pageCount - 1) {
+                        step += 1
+                    }
+                },
+                onFinishClicked = onFinished,
+                isNextButtonEnabled = isNextButtonEnabled,
+                isFinishButtonEnabled = true
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .padding(paddingValues)
         ) {
             AnimatedContent(
                 targetState = step,
@@ -63,44 +87,30 @@ fun OobeScreen(
                 label = "OobeStepTransition"
             ) { s ->
                 when (s) {
-                    1 -> WelcomeContent(
+                    0 -> WelcomeContent(
                         isDark = isDark,
-                        themeViewModel = themeViewModel,
-                        onNext = { step = 2 }
+                        themeViewModel = themeViewModel
                     )
-                    2 -> RootCheckContent(
+                    1 -> RootCheckContent(
                         isDark = isDark,
                         viewModel = viewModel,
-                        hasRoot = hasRoot,
-                        onBack = { step = 1 },
-                        onNext = { step = 3 }
+                        hasRoot = hasRoot
                     )
-                    3 -> ColoringContent(
+                    2 -> ColoringContent(
                         isDark = isDark,
-                        themeViewModel = themeViewModel,
-                        onBack = { step = 2 },
-                        onNext = { step = 4 }
+                        themeViewModel = themeViewModel
                     )
-                    4 -> NavbarContent(
+                    3 -> NavbarContent(
                         isDark = isDark,
-                        themeViewModel = themeViewModel,
-                        onBack = { step = 3 },
-                        onNext = { step = 5 }
+                        themeViewModel = themeViewModel
                     )
-                    5 -> CorneringContent(
+                    4 -> DoneContent(
                         isDark = isDark,
-                        themeViewModel = themeViewModel,
-                        onBack = { step = 4 },
-                        onNext = { step = 6 }
-                    )
-                    6 -> DoneContent(
-                        isDark = isDark,
-                        themeViewModel = themeViewModel,
-                        onBack = { step = 5 },
-                        onFinished = onFinished
+                        themeViewModel = themeViewModel
                     )
                 }
             }
         }
     }
 }
+

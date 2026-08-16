@@ -1,126 +1,141 @@
 package dev.auriya.app.ui.oobe
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.Dock
+import androidx.compose.material.icons.rounded.RoundedCorner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.auriya.app.data.NavMode
 import dev.auriya.app.data.NavType
-import dev.auriya.app.ui.components.SegmentedControl
+import dev.auriya.app.ui.theme.AuriyaFontFamily
 import dev.auriya.app.viewmodel.ThemeViewModel
 
 @Composable
 fun NavbarContent(
     isDark: Boolean,
     themeViewModel: ThemeViewModel,
-    onBack: () -> Unit,
-    onNext: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val titleColor = if (isDark) Color.White else Color(0xFF1C1B1F)
-    val descColor = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF49454F)
-
     val prefs by themeViewModel.prefs.collectAsState()
     val currentPrefs = prefs ?: return
+    val isFloating = currentPrefs.navMode == NavMode.FLOATING
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Spacer(modifier = Modifier.height(36.dp)) // push down content
-
-        Text(
-            "NAVIGATION",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 3.sp
-            ),
-            color = titleColor
-        )
-        Text(
-            "Select placement styles for your system bottom navigation.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = descColor
-        )
-        Spacer(modifier = Modifier.height(20.dp))
-
-        LiveUiPreviewCard(
-            seedColor = currentPrefs.seedColor,
-            useDynamicColor = currentPrefs.useDynamicColor,
-            navMode = currentPrefs.navMode,
-            navType = currentPrefs.navType,
-            cornerRadius = currentPrefs.cornerRadius
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
         Column(
-            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(top = 8.dp)
         ) {
-            Column {
-                Text("Navigation Layout", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = titleColor)
-                Spacer(modifier = Modifier.height(8.dp))
-                SegmentedControl(
-                    items = listOf("Standard", "Floating"),
-                    selectedIndex = if (currentPrefs.navMode == NavMode.STANDARD) 0 else 1,
-                    onItemSelected = { themeViewModel.setNavMode(if (it == 0) NavMode.STANDARD else NavMode.FLOATING) },
-                    inactiveTextColor = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF49454F)
-                )
-            }
-
-            Column {
-                Text("Navigation Type", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = titleColor)
-                Spacer(modifier = Modifier.height(8.dp))
-                SegmentedControl(
-                    items = listOf("Legacy (Dots)", "Modern (Squircles)"),
-                    selectedIndex = if (currentPrefs.navType == NavType.LEGACY) 0 else 1,
-                    onItemSelected = { themeViewModel.setNavType(if (it == 0) NavType.LEGACY else NavType.MODERN) },
-                    inactiveTextColor = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF49454F)
-                )
-            }
+            Text(
+                text = "Navigation Bar Style",
+                style = MaterialTheme.typography.displayMedium.copy(
+                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+            Text(
+                text = "Customize bottom navigation geometry and floating behavior.",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
+        // Preview Section
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .weight(1f),
+            contentAlignment = Alignment.Center
         ) {
-            TextButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Back", color = MaterialTheme.colorScheme.primary)
-            }
+            NavBarPreview(isFloating = isFloating)
+        }
 
-            Button(
-                onClick = onNext,
-                shape = CircleShape,
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
+        // Controls Section
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Floating Pill Card
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Continue", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
+                Column(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Dock,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Floating Island Layout",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (isFloating) "Floating pill capsule with rounded edges" else "Docked full-width standard navigation bar",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isFloating,
+                            onCheckedChange = { checked ->
+                                themeViewModel.setNavMode(if (checked) NavMode.FLOATING else NavMode.STANDARD)
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+                }
             }
         }
     }
 }
+
+
+
