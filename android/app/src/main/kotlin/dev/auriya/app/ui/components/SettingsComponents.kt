@@ -18,7 +18,19 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.CircleShape
 import dev.auriya.app.ui.theme.AuriyaTokens
+
+@Composable
+fun AuriyaDragHandle(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .padding(vertical = 12.dp)
+            .size(width = 36.dp, height = 4.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
+    )
+}
 
 @Composable
 fun SettingsMenuItem(
