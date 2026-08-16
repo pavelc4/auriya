@@ -35,9 +35,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.ui.components.AuriyaLoadingIndicator
-import dev.auriya.app.ui.components.MaterialShapes
-import dev.auriya.app.ui.components.StatusBadge
-import dev.auriya.app.ui.components.StatusTone
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.viewmodel.UiViewModel
 import dev.auriya.shared.model.GameProfile
@@ -52,17 +49,9 @@ enum class SortMode {
     NAME_DESC,
 }
 
-private val rowShapes = arrayOf(
-    MaterialShapes.Cookie9,
-    MaterialShapes.Scallop12,
-    MaterialShapes.Clover6,
-    MaterialShapes.Puffy,
-)
+private val appIconShape = RoundedCornerShape(14.dp)
 
-private fun shapeFor(packageName: String): Shape {
-    val hash = packageName.hashCode().let { it xor (it ushr 16) }
-    return rowShapes[hash and 0x3]
-}
+private fun shapeFor(packageName: String): Shape = appIconShape
 
 @Composable
 fun rememberAppIcon(packageName: String): ImageBitmap? {
@@ -329,7 +318,7 @@ fun GamesScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
                         contentPadding = PaddingValues(top = 8.dp, bottom = 100.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         if (!bannerDismissed) {
                             item {
@@ -347,7 +336,7 @@ fun GamesScreen(
                                 SectionLabel(
                                     label = "Active profiles",
                                     count = filteredActive.size,
-                                    modifier = Modifier.padding(top = AuriyaTokens.padding.small, bottom = AuriyaTokens.padding.smaller),
+                                    modifier = Modifier.padding(top = 12.dp, bottom = 6.dp),
                                 )
                             }
                             itemsIndexed(
@@ -365,7 +354,7 @@ fun GamesScreen(
                                 SectionLabel(
                                     label = "Installed applications",
                                     count = filteredInactive.size,
-                                    modifier = Modifier.padding(top = AuriyaTokens.padding.normal, bottom = AuriyaTokens.padding.smaller),
+                                    modifier = Modifier.padding(top = 16.dp, bottom = 6.dp),
                                 )
                             }
                             itemsIndexed(
@@ -407,7 +396,7 @@ private fun GamesInfoBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
+        dragHandle = { dev.auriya.app.ui.components.AuriyaDragHandle() },
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
         LazyColumn(
@@ -649,8 +638,8 @@ private fun ContinuousRow(
     lastIndex: Int,
     content: @Composable () -> Unit,
 ) {
-    val large = AuriyaTokens.rounding.extraLarge
-    val small = AuriyaTokens.rounding.extraSmall
+    val large = 20.dp
+    val small = 4.dp
     val shape = when {
         lastIndex == 0 -> RoundedCornerShape(large)
         index == 0 -> RoundedCornerShape(topStart = large, topEnd = large, bottomStart = small, bottomEnd = small)
@@ -660,9 +649,7 @@ private fun ContinuousRow(
     Surface(
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 2.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         content()
     }
@@ -678,35 +665,22 @@ private fun ActiveRowContent(app: ActiveAppItem, onClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+                .padding(horizontal = 14.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             AppIconBox(packageName = app.packageName, shape = shapeFor(app.packageName))
-            Spacer(Modifier.width(AuriyaTokens.padding.normal))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = app.label,
-                    style = MaterialTheme.typography.bodyLarge,
+            Text(
+                text = app.label,
+                style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = app.packageName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Spacer(Modifier.width(AuriyaTokens.padding.small))
-            val (badgeText, badgeTone) = when (app.profile.cpuGovernor.lowercase()) {
-                "performance" -> "Performance" to StatusTone.PRIMARY
-                "powersave" -> "Powersave" to StatusTone.WARNING
-                else -> app.profile.cpuGovernor to StatusTone.SECONDARY
-            }
-            StatusBadge(label = badgeText, tone = badgeTone)
+                    fontSize = 15.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
@@ -721,28 +695,22 @@ private fun InactiveRowContent(app: AppInfoItem, onClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+                .padding(horizontal = 14.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             AppIconBox(packageName = app.packageName, shape = shapeFor(app.packageName))
-            Spacer(Modifier.width(AuriyaTokens.padding.normal))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = app.label,
-                    style = MaterialTheme.typography.bodyLarge,
+            Text(
+                text = app.label,
+                style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = app.packageName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+                    fontSize = 15.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
@@ -752,7 +720,7 @@ private fun AppIconBox(packageName: String, shape: Shape) {
     val bitmap = rememberAppIcon(packageName)
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(40.dp)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh),
         contentAlignment = Alignment.Center,
@@ -764,7 +732,7 @@ private fun AppIconBox(packageName: String, shape: Shape) {
                 imageVector = Icons.Outlined.Android,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(AuriyaTokens.iconSize.normal),
+                modifier = Modifier.size(22.dp),
             )
         }
     }
