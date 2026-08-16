@@ -47,15 +47,7 @@ _kill_companion() {
 _cleanup_all() {
   log -t auriya "Remove flag detected; cleaning up..."
   echo "[$(date)] Remove flag detected; cleaning up..." >>"$AURIYA_LOG"
-  _kill_daemon
-  _kill_companion
-  rm -f /dev/socket/auriya.sock
-  rm -rf /data/adb/.config/auriya
-  rm -rf /data/adb/auriya
-  rm -f /data/adb/ksu/bin/auriya /data/adb/ap/bin/auriya
-  rm -f /data/adb/ksu/bin/auriyactl /data/adb/ap/bin/auriyactl
-  pm uninstall dev.auriya.app 2>/dev/null
-  pm uninstall dev.auriya.app.debug 2>/dev/null
+  sh "$MODPATH/uninstall.sh"
 }
 
 [ -f "$_REMOVE_FLAG" ] && { _cleanup_all; exit 0; }

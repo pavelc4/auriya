@@ -41,7 +41,6 @@ ui_print " / ___ |/ /_/ / /  / / /_/ / /_/ /    "
 ui_print '/_/  |_|\__,_/_/  /_/\__, /\__,_/     '
 ui_print "                    /____/            "
 ui_print ""
-ui_print "- Auriya Performance Optimizer"
 ui_print ""
 
 ui_print "Device: $(getprop ro.product.model) ($ARCH)"
