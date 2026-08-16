@@ -53,7 +53,6 @@ fun SettingsScreen(
 
     var defaultGov by remember(settings) { mutableStateOf(settings.cpu.defaultGovernor) }
     var globalPreset by remember(settings) { mutableStateOf(settings.daemon.defaultMode) }
-    var debugMode by remember { mutableStateOf(false) }
 
     val availableGovernors = remember {
         try {
@@ -254,95 +253,6 @@ fun SettingsScreen(
                                 title = "App Language",
                                 subtitle = "English (System Default)",
                                 onClick = onNavigateToLanguage,
-                            )
-                        }
-                    }
-
-                    item {
-                        SectionCard(title = "System & Operations") {
-                            SettingRow(
-                                icon = Icons.AutoMirrored.Filled.Send,
-                                title = "Export System Logs",
-                                subtitle = "Saves logs to Download/AuriyaLogs.tar.gz",
-                                onClick = {
-                                    coroutineScope.launch(Dispatchers.IO) {
-                                        val cmd = """
-                                            mkdir -p /sdcard/Download/AuriyaLogs &&
-                                            cp /data/adb/auriya/daemon.log /sdcard/Download/AuriyaLogs/auriya.log 2>/dev/null;
-                                            dmesg > /sdcard/Download/AuriyaLogs/kernel.log 2>/dev/null;
-                                            tar -czf /sdcard/Download/AuriyaLogs.tar.gz -C /sdcard/Download AuriyaLogs
-                                        """.trimIndent()
-                                        val rc = RootShell.exec(cmd)
-                                        launch(Dispatchers.Main) {
-                                            Toast.makeText(
-                                                context,
-                                                if (rc == 0) {
-                                                    "Logs exported to Downloads/AuriyaLogs.tar.gz"
-                                                } else {
-                                                    "Export failed (rc=$rc); check root grant"
-                                                },
-                                                Toast.LENGTH_LONG,
-                                            ).show()
-                                        }
-                                    }
-                                },
-                            )
-
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp,
-                            )
-                            SettingRow(
-                                icon = Icons.Filled.BugReport,
-                                title = "Debug Logs Mode",
-                                subtitle = "Increase log verbosity for troubleshooting",
-                                control = {
-                                    Switch(
-                                        checked = debugMode,
-                                        onCheckedChange = {
-                                            debugMode = it
-                                            coroutineScope.launch(Dispatchers.IO) {
-                                                val cmd = if (debugMode) "SETLOG DEBUG" else "SETLOG INFO"
-                                                RootShell.exec("echo \"$cmd\" | nc -U /dev/socket/auriya.sock")
-                                            }
-                                            Toast.makeText(
-                                                context,
-                                                "Debug logs ${if (debugMode) "enabled" else "disabled"}",
-                                                Toast.LENGTH_SHORT,
-                                            ).show()
-                                        },
-                                    )
-                                },
-                            )
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                thickness = 1.dp,
-                            )
-                            SettingRow(
-                                icon = Icons.Filled.Refresh,
-                                title = "Restart Tuner Daemon",
-                                subtitle = "Force restart background eBPF daemon",
-                                control = {
-                                    Button(
-                                        onClick = {
-                                            viewModel.restartDaemon()
-                                            Toast.makeText(context, "Restarting Auriya daemon...", Toast.LENGTH_SHORT).show()
-                                        },
-                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(AuriyaTokens.rounding.full),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                        ),
-                                        contentPadding = PaddingValues(horizontal = AuriyaTokens.padding.normal, vertical = 6.dp),
-                                        modifier = Modifier.wrapContentSize(),
-                                    ) {
-                                        Text(
-                                            text = "Restart",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
-                                },
                             )
                         }
                     }

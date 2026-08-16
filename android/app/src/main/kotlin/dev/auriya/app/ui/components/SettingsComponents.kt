@@ -307,6 +307,252 @@ fun SwitchSettingItem(
 }
 
 @Composable
+fun ActionSettingItem(
+    title: String,
+    subtitle: String,
+    actionText: String,
+    onAction: () -> Unit,
+    icon: ImageVector,
+    shape: RoundedCornerShape,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    actionContainerColor: Color = MaterialTheme.colorScheme.errorContainer,
+    actionContentColor: Color = MaterialTheme.colorScheme.onErrorContainer,
+    iconContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    iconTint: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = shape,
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = if (enabled) 1f else 0.38f }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = iconContainerColor,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Button(
+                onClick = onAction,
+                enabled = enabled,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = actionContainerColor,
+                    contentColor = actionContentColor
+                ),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = actionText,
+                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ClickableSettingItem(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    icon: ImageVector,
+    shape: RoundedCornerShape,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    iconContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    iconTint: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    showChevron: Boolean = true
+) {
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = shape,
+        enabled = enabled,
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = if (enabled) 1f else 0.38f }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = iconContainerColor,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (showChevron) {
+                Icon(
+                    imageVector = Icons.Filled.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun InfoSettingItem(
+    title: String,
+    subtitle: String,
+    valueText: String,
+    icon: ImageVector,
+    shape: RoundedCornerShape,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    valueBadge: Boolean = false,
+    valueContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    valueContentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    iconContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    iconTint: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = shape,
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = if (enabled) 1f else 0.38f }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = iconContainerColor,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (valueBadge) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = valueContainerColor
+                ) {
+                    Text(
+                        text = valueText,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                        fontWeight = FontWeight.Bold,
+                        color = valueContentColor,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
+            } else {
+                Text(
+                    text = valueText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    color = valueContentColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun SegmentedSettingItem(
     title: String,
     subtitle: String,
