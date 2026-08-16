@@ -55,7 +55,6 @@ pub fn calculate_lmk_for_ram(total_ram_mb: u64, profile: &str) -> LmkConfig {
     let (fg_pct, vis_pct, sec_pct, hid_pct, con_pct, emp_pct) = match profile {
         "gaming" => (5, 8, 12, 45, 70, 95),
         "balanced" => (10, 15, 20, 50, 75, 95),
-        "powersave" => (15, 25, 35, 60, 80, 95),
         _ => (5, 8, 12, 45, 70, 95),
     };
 
@@ -221,27 +220,6 @@ pub fn restore_balanced() -> Result<()> {
         debug!("vfs_cache_pressure set to 100 for balanced");
     }
 
-    Ok(())
-}
-pub fn apply_powersave_lmk() -> Result<()> {
-    let total_ram = get_total_ram_mb().unwrap_or(4096);
-
-    if !should_apply_lmk(total_ram) {
-        debug!("Skipping LMK for {}MB RAM", total_ram);
-        return Ok(());
-    }
-
-    debug!("Applying powersave LMK profile for {}MB RAM", total_ram);
-    let config = calculate_lmk_for_ram(total_ram, "powersave");
-
-    match apply_lmk(&config) {
-        Ok(_) => debug!("Powersave LMK applied successfully"),
-        Err(e) => warn!("Failed to apply powersave LMK: {}", e),
-    }
-
-    if let Err(e) = set_swappiness(60) {
-        warn!("Failed to set powersave swappiness: {}", e);
-    }
     Ok(())
 }
 

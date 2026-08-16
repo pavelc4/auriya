@@ -242,7 +242,7 @@ pub fn apply_powersave_with_dnd(enable_dnd: bool) -> Result<()> {
     );
 
     paths::set_governor_cached("powersave");
-    warn_on_err(memory::apply_powersave_lmk(), "apply LMK");
+    warn_on_err(memory::set_swappiness(60), "set powersave swappiness");
 
     // DnD is owned by the daemon lifecycle (Daemon::sync_dnd).
     let _ = enable_dnd;
