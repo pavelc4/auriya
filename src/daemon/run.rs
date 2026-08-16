@@ -406,6 +406,7 @@ impl Daemon {
             set_log_level,
             set_fps,
             get_fps,
+            profile_lock: Arc::new(std::sync::Mutex::new(())),
             current_state: current_state.clone(),
             balance_governor: cfg.settings.cpu.default_governor.clone(),
             current_log_level,

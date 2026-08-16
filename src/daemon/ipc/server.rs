@@ -6,7 +6,7 @@ use anyhow::Result;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use tokio::net::UnixListener;
 
 type AsyncFpsCallback = Arc<
@@ -29,6 +29,7 @@ pub struct IpcHandles {
     pub set_log_level: Arc<dyn Fn(LogLevelCmd) + Send + Sync>,
     pub set_fps: AsyncFpsCallback,
     pub get_fps: AsyncGetFpsCallback,
+    pub profile_lock: Arc<Mutex<()>>,
 
     pub current_state: Arc<RwLock<CurrentState>>,
     pub balance_governor: String,
@@ -53,6 +54,7 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
             set_log_level: h.set_log_level.clone(),
             set_fps: h.set_fps.clone(),
             get_fps: h.get_fps.clone(),
+            profile_lock: h.profile_lock.clone(),
             current_state: h.current_state.clone(),
             balance_governor: h.balance_governor.clone(),
             current_log_level: h.current_log_level.clone(),
