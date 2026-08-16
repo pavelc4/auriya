@@ -58,6 +58,8 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.graphics.graphicsLayer
 
+import dev.auriya.app.ui.theme.GoogleSansRounded
+
 data class AuriyaNavItem(
     val label: String,
     val icon: ImageVector,
@@ -76,7 +78,7 @@ fun AuriyaBottomBar(
         ModernBar(items, selectedIndex, onSelect, mode, cornerRadius)
     } else {
         when (mode) {
-            NavMode.STANDARD -> StandardBar(items, selectedIndex, onSelect)
+            NavMode.STANDARD -> StandardBar(items, selectedIndex, onSelect, cornerRadius)
             NavMode.FLOATING -> FloatingPillBar(items, selectedIndex, onSelect)
         }
     }
@@ -87,16 +89,18 @@ private fun StandardBar(
     items: List<AuriyaNavItem>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
+    cornerRadius: Int = 24,
 ) {
     Surface(
         shape = RoundedCornerShape(
-            topStart = AuriyaTokens.rounding.xl,
-            topEnd = AuriyaTokens.rounding.xl,
+            topStart = cornerRadius.dp,
+            topEnd = cornerRadius.dp,
             bottomStart = 0.dp,
             bottomEnd = 0.dp
         ),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
     ) {
         NavigationBar(
             containerColor = Color.Transparent,
@@ -106,7 +110,7 @@ private fun StandardBar(
                 NavigationBarItem(
                     selected = selectedIndex == index,
                     onClick = { onSelect(index) },
-                    label = { Text(item.label) },
+                    label = { Text(item.label, fontFamily = GoogleSansRounded, fontWeight = FontWeight.SemiBold) },
                     icon = { Icon(item.icon, contentDescription = item.label) },
                     colors = NavigationBarItemDefaults.colors(
                         indicatorColor = MaterialTheme.colorScheme.primaryContainer,
@@ -251,8 +255,8 @@ private fun ModernStandardBar(
             bottomStart = 0.dp,
             bottomEnd = 0.dp
         ),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 4.dp,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 2.dp,
         shadowElevation = 8.dp,
         modifier = Modifier.fillMaxWidth()
     ) {

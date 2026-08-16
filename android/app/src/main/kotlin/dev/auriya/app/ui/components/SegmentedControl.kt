@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.auriya.app.ui.theme.GoogleSansRounded
 
 @Composable
 fun SegmentedControl(
@@ -20,12 +21,12 @@ fun SegmentedControl(
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLowest,
     activeColor: Color = MaterialTheme.colorScheme.primary,
     activeTextColor: Color = MaterialTheme.colorScheme.onPrimary,
     inactiveTextColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    cornerRadius: Int = 12,
-    itemCornerRadius: Int = 8,
+    cornerRadius: Int = 14,
+    itemCornerRadius: Int = 10,
     verticalPadding: Int = 10
 ) {
     Row(
@@ -48,6 +49,7 @@ fun SegmentedControl(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelLarge.copy(
+                        fontFamily = GoogleSansRounded,
                         fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium
                     ),
                     color = if (selectedIndex == index) activeTextColor else inactiveTextColor

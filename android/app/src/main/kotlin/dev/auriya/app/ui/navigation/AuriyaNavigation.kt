@@ -152,9 +152,58 @@ fun AuriyaNavigation(
                         val cornerRadius = themePrefs?.cornerRadius ?: 24
                         val showBottomBar = activeTab != NavigationTab.SETTINGS && editingGameProfile == null && selectedGameProfile == null && subScreen == SubScreen.None
 
-                         Scaffold(
-                            bottomBar = {
-                                if (showBottomBar && navMode == NavMode.STANDARD) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .statusBarsPadding()
+                        ) {
+                            when (activeTab) {
+                                NavigationTab.HOME -> HomeScreen(
+                                    viewModel = viewModel,
+                                    onNavigateToGames = { activeTab = NavigationTab.GAMES }
+                                )
+                                NavigationTab.GAMES -> {
+                                    val current = selectedGameProfile
+                                    if (current != null) {
+                                        val isExisting = gameList.games.any { it.packageName == current.packageName }
+                                        GameProfileScreen(
+                                            game = current,
+                                            governorOptions = governors,
+                                            isExistingProfile = isExisting,
+                                            onDismiss = { selectedGameProfile = null },
+                                            onSave = { updated ->
+                                                viewModel.addGame(updated)
+                                            },
+                                            onRemove = if (isExisting) {
+                                                {
+                                                    selectedGameProfile = null
+                                                    viewModel.removeGame(current.packageName)
+                                                }
+                                            } else null,
+                                        )
+                                    } else {
+                                        GamesPane(
+                                            viewModel = viewModel,
+                                            onEditGame = { selectedGameProfile = it }
+                                        )
+                                    }
+                                }
+                                NavigationTab.SETTINGS -> SettingsScreen(
+                                    viewModel = viewModel,
+                                    onNavigateBack = { activeTab = NavigationTab.HOME },
+                                    onNavigateToAppearance = { subScreen = SubScreen.Appearance },
+                                    onNavigateToLanguage = { subScreen = SubScreen.Language },
+                                    onNavigateToAbout = { subScreen = SubScreen.About },
+                                    onResetOobe = { themeViewModel.setOobeCompleted(false) },
+                                )
+                            }
+
+                            if (showBottomBar) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .align(Alignment.BottomCenter)
+                                ) {
                                     AuriyaBottomBar(
                                         items = navItems,
                                         selectedIndex = selectedIndex,
@@ -163,76 +212,6 @@ fun AuriyaNavigation(
                                         type = navType,
                                         cornerRadius = cornerRadius,
                                     )
-                                }
-                            },
-                        ) { innerPadding ->
-                            val bottomPadding = if (showBottomBar && navMode == NavMode.STANDARD) innerPadding.calculateBottomPadding() else 0.dp
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .statusBarsPadding()
-                                    .padding(
-                                        bottom = bottomPadding,
-                                        start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
-                                        end = innerPadding.calculateEndPadding(LayoutDirection.Ltr)
-                                    ),
-                            ) {
-                                when (activeTab) {
-                                    NavigationTab.HOME -> HomeScreen(
-                                        viewModel = viewModel,
-                                        onNavigateToGames = { activeTab = NavigationTab.GAMES }
-                                    )
-                                    NavigationTab.GAMES -> {
-                                        val current = selectedGameProfile
-                                        if (current != null) {
-                                            val isExisting = gameList.games.any { it.packageName == current.packageName }
-                                            GameProfileScreen(
-                                                game = current,
-                                                governorOptions = governors,
-                                                isExistingProfile = isExisting,
-                                                onDismiss = { selectedGameProfile = null },
-                                                onSave = { updated ->
-                                                    viewModel.addGame(updated)
-                                                },
-                                                onRemove = if (isExisting) {
-                                                    {
-                                                        selectedGameProfile = null
-                                                        viewModel.removeGame(current.packageName)
-                                                    }
-                                                } else null,
-                                            )
-                                        } else {
-                                            GamesPane(
-                                                viewModel = viewModel,
-                                                onEditGame = { selectedGameProfile = it }
-                                            )
-                                        }
-                                    }
-                                    NavigationTab.SETTINGS -> SettingsScreen(
-                                        viewModel = viewModel,
-                                        onNavigateBack = { activeTab = NavigationTab.HOME },
-                                        onNavigateToAppearance = { subScreen = SubScreen.Appearance },
-                                        onNavigateToLanguage = { subScreen = SubScreen.Language },
-                                        onNavigateToAbout = { subScreen = SubScreen.About },
-                                        onResetOobe = { themeViewModel.setOobeCompleted(false) },
-                                    )
-                                }
-
-                                if (showBottomBar && navMode == NavMode.FLOATING) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .align(Alignment.BottomCenter)
-                                    ) {
-                                         AuriyaBottomBar(
-                                            items = navItems,
-                                            selectedIndex = selectedIndex,
-                                            onSelect = { activeTab = NavigationTab.entries[it] },
-                                            mode = navMode,
-                                            type = navType,
-                                            cornerRadius = cornerRadius,
-                                        )
-                                    }
                                 }
                             }
                         }
