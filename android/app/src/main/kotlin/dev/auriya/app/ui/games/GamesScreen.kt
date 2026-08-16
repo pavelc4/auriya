@@ -11,11 +11,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Android
-import androidx.compose.material.icons.outlined.SportsEsports
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -26,8 +26,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -74,6 +76,7 @@ fun rememberAppIcon(packageName: String): ImageBitmap? {
     }.value
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GamesScreen(
     viewModel: UiViewModel,
@@ -89,6 +92,16 @@ fun GamesScreen(
     var sortMode by remember { mutableStateOf(SortMode.NAME_ASC) }
     var installedApps by remember { mutableStateOf<List<AppInfoItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+
+    var showGamesInfoSheet by remember { mutableStateOf(false) }
+    val gamesInfoSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+    if (showGamesInfoSheet) {
+        GamesInfoBottomSheet(
+            onDismiss = { showGamesInfoSheet = false },
+            sheetState = gamesInfoSheetState
+        )
+    }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -160,26 +173,46 @@ fun GamesScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceContainer)
     ) {
-        // --- 1. TOP PINNED HEADER (Backdrop layer) ---
-        Column(
+        // --- 1. TOP PINNED HEADER (Backdrop layer with question icon) ---
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 14.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Games",
-                style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
-                    fontWeight = FontWeight.Black,
-                    fontSize = 36.sp,
-                    color = MaterialTheme.colorScheme.onSurface
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Games",
+                    style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                        fontWeight = FontWeight.Black,
+                        fontSize = 36.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 )
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = "Configure per-game performance profiles and options",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "Configure per-game performance profiles and options",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            FilledIconButton(
+                onClick = { showGamesInfoSheet = true },
+                shape = CircleShape,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.size(42.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.HelpOutline,
+                    contentDescription = "Games Info & Help",
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         }
 
         // --- 2. FOREGROUND STACKED CARD SHEET ---
@@ -265,7 +298,6 @@ fun GamesScreen(
                 }
 
                 // Scrollable List
-                @OptIn(ExperimentalMaterial3Api::class)
                 PullToRefreshBox(
                     isRefreshing = isRefreshing,
                     onRefresh = {
@@ -360,6 +392,153 @@ fun GamesScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GamesInfoBottomSheet(
+    onDismiss: () -> Unit,
+    sheetState: SheetState
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+        ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Games Tuner",
+                        style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 30.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Per-game optimization features and tuning parameters",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            // Card 1: Per-App Governor
+            item {
+                InfoFeatureCard(
+                    title = "Dynamic CPU Governor",
+                    subtitle = "Performance, schedutil, or powersave",
+                    description = "Sets the kernel CPU governor when the game is in foreground to ensure maximum smoothness without excessive heat.",
+                    icon = Icons.Outlined.Tune,
+                    iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+
+            // Card 2: Target FPS & Refresh Rate
+            item {
+                InfoFeatureCard(
+                    title = "Target FPS & Display Rate",
+                    subtitle = "Frame pacing and display sync",
+                    description = "Configures targeted framerates and switches display refresh rate dynamically to eliminate stutter and tearing.",
+                    icon = Icons.Outlined.Speed,
+                    iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+
+            // Card 3: Do Not Disturb
+            item {
+                InfoFeatureCard(
+                    title = "Do Not Disturb (DnD)",
+                    subtitle = "Automatic notification silence",
+                    description = "Automatically blocks intrusive heads-up notifications and alerts while your gaming session is ongoing.",
+                    icon = Icons.Outlined.NotificationsOff,
+                    iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoFeatureCard(
+    title: String,
+    subtitle: String,
+    description: String,
+    icon: ImageVector,
+    iconContainerColor: Color,
+    iconTint: Color,
+) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = iconContainerColor,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
