@@ -156,50 +156,54 @@ fun SettingsScreen(
                 when (activeSubScreen) {
                     SettingsSubScreen.NONE -> {
                         item {
-                            SettingsMenuItem(
-                                icon = Icons.Filled.Build,
-                                title = "App",
-                                subtitle = "General application and performance settings",
-                                onClick = { activeSubScreen = SettingsSubScreen.APP },
-                            )
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                val totalItems = 5
+
+                                SettingsMenuItem(
+                                    icon = Icons.Filled.Build,
+                                    title = "App",
+                                    subtitle = "General application and performance settings",
+                                    onClick = { activeSubScreen = SettingsSubScreen.APP },
+                                    shape = itemShapeFor(0, totalItems),
+                                )
+
+                                SettingsMenuItem(
+                                    icon = Icons.Filled.Palette,
+                                    title = "Appearance",
+                                    subtitle = "Theme, seed colors, and navigation style",
+                                    onClick = onNavigateToAppearance,
+                                    shape = itemShapeFor(1, totalItems),
+                                )
+
+                                SettingsMenuItem(
+                                    icon = Icons.Filled.Layers,
+                                    title = "Floating Overlay",
+                                    subtitle = "Global system monitor floating overlay settings",
+                                    onClick = { activeSubScreen = SettingsSubScreen.FLOATING_OVERLAY },
+                                    shape = itemShapeFor(2, totalItems),
+                                )
+
+                                SettingsMenuItem(
+                                    icon = Icons.Filled.Info,
+                                    title = "About",
+                                    subtitle = "Developer information and project specs",
+                                    onClick = onNavigateToAbout,
+                                    shape = itemShapeFor(3, totalItems),
+                                )
+
+                                SettingsMenuItem(
+                                    icon = Icons.Filled.Code,
+                                    title = "Developer Options",
+                                    subtitle = "App reset, diagnostics, and debugging tools",
+                                    onClick = { activeSubScreen = SettingsSubScreen.DEVELOPER_OPTIONS },
+                                    shape = itemShapeFor(4, totalItems),
+                                )
+                            }
                         }
-
-                    item {
-                        SettingsMenuItem(
-                            icon = Icons.Filled.Palette,
-                            title = "Appearance",
-                            subtitle = "Theme, seed colors, and navigation style",
-                            onClick = onNavigateToAppearance,
-                        )
                     }
-
-                    item {
-                        SettingsMenuItem(
-                            icon = Icons.Filled.Layers,
-                            title = "Floating Overlay",
-                            subtitle = "Global system monitor floating overlay settings",
-                            onClick = { activeSubScreen = SettingsSubScreen.FLOATING_OVERLAY },
-                        )
-                    }
-
-                    item {
-                        SettingsMenuItem(
-                            icon = Icons.Filled.Info,
-                            title = "About",
-                            subtitle = "Developer information and project specs",
-                            onClick = onNavigateToAbout,
-                        )
-                    }
-
-                    item {
-                        SettingsMenuItem(
-                            icon = Icons.Filled.Code,
-                            title = "Developer Options",
-                            subtitle = "App reset, diagnostics, and debugging tools",
-                            onClick = { activeSubScreen = SettingsSubScreen.DEVELOPER_OPTIONS },
-                        )
-                    }
-                }
 
                 SettingsSubScreen.APP -> {
                     item {
