@@ -27,10 +27,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.ui.components.AnimatedTickerText
 import dev.auriya.app.ui.components.AuriyaLoadingIndicator
 import dev.auriya.app.ui.components.ExpressiveList
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
+import dev.auriya.app.ui.components.bouncyClickable
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.viewmodel.SystemInfo
 import dev.auriya.app.viewmodel.UiViewModel
@@ -304,7 +306,7 @@ private fun MiniCard(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier
             .clip(RoundedCornerShape(24.dp))
-            .clickable(onClick = onClick)
+            .bouncyClickable(onClick = onClick)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -341,13 +343,11 @@ private fun MiniCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
+            AnimatedTickerText(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -430,10 +430,12 @@ private fun LinkRow(
     onClick: () -> Unit,
 ) {
     Surface(
-        onClick = onClick,
         shape = RoundedCornerShape(AuriyaTokens.rounding.xl),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(AuriyaTokens.rounding.xl))
+            .bouncyClickable(onClick = onClick),
     ) {
         Row(
             modifier = Modifier

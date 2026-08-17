@@ -38,6 +38,7 @@ import dev.auriya.app.data.NavMode
 import dev.auriya.app.data.NavType
 import dev.auriya.app.data.ThemePrefs
 import dev.auriya.app.ui.components.MaterialShapes
+import dev.auriya.app.ui.components.bouncyClickable
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -901,6 +902,21 @@ fun SetupBottomBar(
         label = "Rotation"
     )
 
+    var errorTrigger by remember { mutableStateOf(0L) }
+    val shakeOffset = remember { Animatable(0f) }
+
+    LaunchedEffect(errorTrigger) {
+        if (errorTrigger > 0L) {
+            for (i in 0 until 2) {
+                shakeOffset.animateTo(-10f, tween(40, easing = LinearEasing))
+                shakeOffset.animateTo(10f, tween(40, easing = LinearEasing))
+            }
+            shakeOffset.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+            kotlinx.coroutines.delay(1000)
+            errorTrigger = 0L
+        }
+    }
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -946,16 +962,26 @@ fun SetupBottomBar(
 
             val isLastPage = currentPage == pageCount - 1
             val isPrimaryButtonEnabled = if (isLastPage) isFinishButtonEnabled else isNextButtonEnabled
-            val containerColor = if (!isPrimaryButtonEnabled) {
-                MaterialTheme.colorScheme.surfaceContainerHighest
-            } else {
-                MaterialTheme.colorScheme.primaryContainer
-            }
-            val contentColor = if (!isPrimaryButtonEnabled) {
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-            } else {
-                MaterialTheme.colorScheme.onPrimaryContainer
-            }
+            val isErrorActive = errorTrigger > 0L
+
+            val containerColor by animateColorAsState(
+                targetValue = when {
+                    isErrorActive -> MaterialTheme.colorScheme.errorContainer
+                    !isPrimaryButtonEnabled -> MaterialTheme.colorScheme.surfaceContainerHighest
+                    else -> MaterialTheme.colorScheme.primaryContainer
+                },
+                animationSpec = tween(200),
+                label = "fab-container-color"
+            )
+            val contentColor by animateColorAsState(
+                targetValue = when {
+                    isErrorActive -> MaterialTheme.colorScheme.onErrorContainer
+                    !isPrimaryButtonEnabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                    else -> MaterialTheme.colorScheme.onPrimaryContainer
+                },
+                animationSpec = tween(200),
+                label = "fab-content-color"
+            )
 
             val dynamicShape = RoundedCornerShape(
                 topStartPercent = animatedTopStart.toInt(),
@@ -965,13 +991,19 @@ fun SetupBottomBar(
             )
 
             Surface(
-                onClick = if (isLastPage) onFinishClicked else onNextClicked,
-                enabled = isPrimaryButtonEnabled,
                 shape = dynamicShape,
                 color = containerColor,
                 contentColor = contentColor,
                 modifier = Modifier
+                    .offset(x = shakeOffset.value.dp)
                     .size(width = 84.dp, height = 56.dp)
+                    .bouncyClickable(onClick = {
+                        if (isPrimaryButtonEnabled) {
+                            if (isLastPage) onFinishClicked() else onNextClicked()
+                        } else {
+                            errorTrigger = System.currentTimeMillis()
+                        }
+                    })
                     .rotate(animatedRotation)
             ) {
                 Box(
@@ -980,17 +1012,29 @@ fun SetupBottomBar(
                 ) {
                     AnimatedContent(
                         modifier = Modifier.rotate(-animatedRotation),
-                        targetState = currentPage < pageCount - 1,
+                        targetState = when {
+                            isErrorActive -> 2 // X Error
+                            currentPage < pageCount - 1 -> 0 // Arrow Forward
+                            else -> 1 // Checkmark Finish
+                        },
+                        transitionSpec = {
+                            (scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn())
+                            .togetherWith(scaleOut() + fadeOut())
+                        },
                         label = "AnimatedFabIcon"
-                    ) { isNextPage ->
-                        if (isNextPage) {
-                            Icon(
+                    ) { iconState ->
+                        when (iconState) {
+                            2 -> Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = "Permission Required",
+                                modifier = Modifier.size(26.dp)
+                            )
+                            0 -> Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = "Next",
                                 modifier = Modifier.size(26.dp)
                             )
-                        } else {
-                            Icon(
+                            else -> Icon(
                                 imageVector = Icons.Filled.Check,
                                 contentDescription = "Finish",
                                 modifier = Modifier.size(26.dp)

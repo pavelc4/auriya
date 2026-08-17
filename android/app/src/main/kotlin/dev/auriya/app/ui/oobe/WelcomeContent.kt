@@ -69,9 +69,7 @@ fun WelcomeContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(240.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerLow),
+                .height(240.dp),
             contentAlignment = Alignment.Center
         ) {
             AuriyaIconCollage(

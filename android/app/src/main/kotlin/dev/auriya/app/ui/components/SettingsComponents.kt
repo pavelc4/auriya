@@ -414,13 +414,13 @@ fun ClickableSettingItem(
     showChevron: Boolean = true
 ) {
     Surface(
-        onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer { alpha = if (enabled) 1f else 0.38f }
+            .clip(shape)
+            .bouncyClickable(enabled = enabled, onClick = onClick)
+            .graphicsLayer { alpha = if (enabled) 1f else 0.5f }
     ) {
         Row(
             modifier = Modifier

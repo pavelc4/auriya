@@ -34,8 +34,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.ui.components.AuriyaLoadingIndicator
+import dev.auriya.app.ui.components.bouncyClickable
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.viewmodel.AppInfoItem
 import dev.auriya.app.viewmodel.UiViewModel
@@ -277,11 +280,20 @@ fun GamesScreen(
                         ),
                         modifier = Modifier.size(52.dp)
                     ) {
-                        Icon(
-                            imageVector = sortIcon,
-                            contentDescription = "Sort: ${sortMode.title}",
-                            modifier = Modifier.size(20.dp)
-                        )
+                        AnimatedContent(
+                            targetState = sortIcon,
+                            transitionSpec = {
+                                (scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn())
+                                .togetherWith(scaleOut() + fadeOut())
+                            },
+                            label = "sort-icon-anim"
+                        ) { targetIcon ->
+                            Icon(
+                                imageVector = targetIcon,
+                                contentDescription = "Sort: ${sortMode.title}",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
 
@@ -668,15 +680,14 @@ private fun ContinuousRow(
 
 @Composable
 private fun ActiveRowContent(app: ActiveAppItem, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        color = Color.Transparent,
-        modifier = Modifier.fillMaxWidth(),
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bouncyClickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 7.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 7.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -698,15 +709,14 @@ private fun ActiveRowContent(app: ActiveAppItem, onClick: () -> Unit) {
 
 @Composable
 private fun InactiveRowContent(app: AppInfoItem, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        color = Color.Transparent,
-        modifier = Modifier.fillMaxWidth(),
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bouncyClickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 7.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 7.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {

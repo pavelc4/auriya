@@ -1,9 +1,8 @@
 package dev.auriya.app.ui.navigation
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.EaseInOutCubic
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Alignment
@@ -46,6 +45,14 @@ enum class NavigationTab(val title: String, val icon: ImageVector) {
 }
 
 private enum class SubScreen { None, Language, About, Appearance }
+
+private sealed interface AppRoute {
+    data object Main : AppRoute
+    data class GameDetail(val profile: GameProfile) : AppRoute
+    data object Appearance : AppRoute
+    data object Language : AppRoute
+    data object About : AppRoute
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,106 +123,165 @@ fun AuriyaNavigation(
                 )
             }
             2 -> {
-                when {
-                    editingGameProfile != null -> {
-                        val current = editingGameProfile!!
-                        val isExisting = gameList.games.any { it.packageName == current.packageName }
-                        GameProfileScreen(
-                            game = current,
-                            governorOptions = governors,
-                            isExistingProfile = isExisting,
-                            onDismiss = { editingGameProfile = null },
-                            onSave = { updated ->
-                                viewModel.addGame(updated)
-                            },
-                            onRemove = if (isExisting) {
-                                {
-                                    editingGameProfile = null
-                                    viewModel.removeGame(current.packageName)
-                                }
-                            } else null,
-                        )
-                    }
-                    subScreen == SubScreen.Appearance -> AppearanceScreen(
-                        themeViewModel = themeViewModel,
-                        onDismiss = { subScreen = SubScreen.None },
-                    )
-                    subScreen == SubScreen.Language -> LanguageScreen(
-                        onDismiss = { subScreen = SubScreen.None },
-                    )
-                    subScreen == SubScreen.About -> AboutScreen(
-                        onDismiss = { subScreen = SubScreen.None },
-                    )
-                    else -> {
-                        val navItems = NavigationTab.entries.map { AuriyaNavItem(it.title, it.icon) }
-                        val selectedIndex = NavigationTab.entries.indexOf(activeTab)
-                        val navMode = themePrefs?.navMode ?: NavMode.STANDARD
-                        val navType = themePrefs?.navType ?: NavType.LEGACY
-                        val cornerRadius = themePrefs?.cornerRadius ?: 24
-                        val showBottomBar = activeTab != NavigationTab.SETTINGS && editingGameProfile == null && selectedGameProfile == null && subScreen == SubScreen.None
+                val currentRoute = when {
+                    editingGameProfile != null -> AppRoute.GameDetail(editingGameProfile!!)
+                    subScreen == SubScreen.Appearance -> AppRoute.Appearance
+                    subScreen == SubScreen.Language -> AppRoute.Language
+                    subScreen == SubScreen.About -> AppRoute.About
+                    else -> AppRoute.Main
+                }
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .statusBarsPadding()
-                        ) {
-                            saveableStateHolder.SaveableStateProvider(activeTab) {
-                                when (activeTab) {
-                                    NavigationTab.HOME -> HomeScreen(
-                                        viewModel = viewModel,
-                                        onNavigateToGames = { activeTab = NavigationTab.GAMES }
-                                    )
-                                    NavigationTab.GAMES -> {
-                                        val current = selectedGameProfile
-                                        if (current != null) {
-                                            val isExisting = gameList.games.any { it.packageName == current.packageName }
-                                            GameProfileScreen(
-                                                game = current,
-                                                governorOptions = governors,
-                                                isExistingProfile = isExisting,
-                                                onDismiss = { selectedGameProfile = null },
-                                                onSave = { updated ->
-                                                    viewModel.addGame(updated)
-                                                },
-                                                onRemove = if (isExisting) {
-                                                    {
-                                                        selectedGameProfile = null
-                                                        viewModel.removeGame(current.packageName)
-                                                    }
-                                                } else null,
+                AnimatedContent(
+                    targetState = currentRoute,
+                    transitionSpec = {
+                        if (targetState is AppRoute.Main) {
+                            (scaleIn(initialScale = 0.94f, animationSpec = tween(220, easing = EaseOutCubic)) + fadeIn(animationSpec = tween(200)))
+                            .togetherWith(
+                                (slideOutHorizontally(targetOffsetX = { it }) + fadeOut(animationSpec = tween(180, easing = EaseInCubic)))
+                            )
+                        } else {
+                            (slideInHorizontally(initialOffsetX = { it }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)) + fadeIn(animationSpec = tween(220)))
+                            .togetherWith(
+                                (scaleOut(targetScale = 0.94f, animationSpec = tween(180, easing = EaseInCubic)) + fadeOut(animationSpec = tween(180)))
+                            )
+                        }
+                    },
+                    label = "SubScreenForwardDepthTransition"
+                ) { route ->
+                    when (route) {
+                        is AppRoute.GameDetail -> {
+                            val current = route.profile
+                            val isExisting = gameList.games.any { it.packageName == current.packageName }
+                            GameProfileScreen(
+                                game = current,
+                                governorOptions = governors,
+                                isExistingProfile = isExisting,
+                                onDismiss = { editingGameProfile = null },
+                                onSave = { updated ->
+                                    viewModel.addGame(updated)
+                                },
+                                onRemove = if (isExisting) {
+                                    {
+                                        editingGameProfile = null
+                                        viewModel.removeGame(current.packageName)
+                                    }
+                                } else null,
+                            )
+                        }
+                        AppRoute.Appearance -> AppearanceScreen(
+                            themeViewModel = themeViewModel,
+                            onDismiss = { subScreen = SubScreen.None },
+                        )
+                        AppRoute.Language -> LanguageScreen(
+                            onDismiss = { subScreen = SubScreen.None },
+                        )
+                        AppRoute.About -> AboutScreen(
+                            onDismiss = { subScreen = SubScreen.None },
+                        )
+                        AppRoute.Main -> {
+                            val navItems = NavigationTab.entries.map { AuriyaNavItem(it.title, it.icon) }
+                            val selectedIndex = NavigationTab.entries.indexOf(activeTab)
+                            val navMode = themePrefs?.navMode ?: NavMode.STANDARD
+                            val navType = themePrefs?.navType ?: NavType.LEGACY
+                            val cornerRadius = themePrefs?.cornerRadius ?: 24
+                            val showBottomBar = activeTab != NavigationTab.SETTINGS && editingGameProfile == null && selectedGameProfile == null && subScreen == SubScreen.None
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .statusBarsPadding()
+                            ) {
+                                AnimatedContent(
+                                    targetState = activeTab,
+                                    transitionSpec = {
+                                        val targetIndex = NavigationTab.entries.indexOf(targetState)
+                                        val initialIndex = NavigationTab.entries.indexOf(initialState)
+                                        val isForward = targetIndex > initialIndex
+                                        if (isForward) {
+                                            (slideInHorizontally(
+                                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy),
+                                                initialOffsetX = { fullWidth -> (fullWidth * 0.2f).toInt() }
+                                            ) + fadeIn(animationSpec = tween(200, easing = EaseOutCubic)))
+                                            .togetherWith(
+                                                slideOutHorizontally(
+                                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy),
+                                                    targetOffsetX = { fullWidth -> -(fullWidth * 0.2f).toInt() }
+                                                ) + fadeOut(animationSpec = tween(160, easing = EaseInCubic))
                                             )
                                         } else {
-                                            GamesPane(
+                                            (slideInHorizontally(
+                                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy),
+                                                initialOffsetX = { fullWidth -> -(fullWidth * 0.2f).toInt() }
+                                            ) + fadeIn(animationSpec = tween(200, easing = EaseOutCubic)))
+                                            .togetherWith(
+                                                slideOutHorizontally(
+                                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy),
+                                                    targetOffsetX = { fullWidth -> (fullWidth * 0.2f).toInt() }
+                                                ) + fadeOut(animationSpec = tween(160, easing = EaseInCubic))
+                                            )
+                                        }
+                                    },
+                                    label = "TabSharedAxisTransition"
+                                ) { currentTab ->
+                                    saveableStateHolder.SaveableStateProvider(currentTab) {
+                                        when (currentTab) {
+                                            NavigationTab.HOME -> HomeScreen(
                                                 viewModel = viewModel,
-                                                onEditGame = { selectedGameProfile = it }
+                                                onNavigateToGames = { activeTab = NavigationTab.GAMES }
+                                            )
+                                            NavigationTab.GAMES -> {
+                                                val current = selectedGameProfile
+                                                if (current != null) {
+                                                    val isExisting = gameList.games.any { it.packageName == current.packageName }
+                                                    GameProfileScreen(
+                                                        game = current,
+                                                        governorOptions = governors,
+                                                        isExistingProfile = isExisting,
+                                                        onDismiss = { selectedGameProfile = null },
+                                                        onSave = { updated ->
+                                                            viewModel.addGame(updated)
+                                                        },
+                                                        onRemove = if (isExisting) {
+                                                            {
+                                                                selectedGameProfile = null
+                                                                viewModel.removeGame(current.packageName)
+                                                            }
+                                                        } else null,
+                                                    )
+                                                } else {
+                                                    GamesPane(
+                                                        viewModel = viewModel,
+                                                        onEditGame = { selectedGameProfile = it }
+                                                    )
+                                                }
+                                            }
+                                            NavigationTab.SETTINGS -> SettingsScreen(
+                                                viewModel = viewModel,
+                                                onNavigateBack = { activeTab = NavigationTab.HOME },
+                                                onNavigateToAppearance = { subScreen = SubScreen.Appearance },
+                                                onNavigateToLanguage = { subScreen = SubScreen.Language },
+                                                onNavigateToAbout = { subScreen = SubScreen.About },
+                                                onResetOobe = { themeViewModel.setOobeCompleted(false) },
                                             )
                                         }
                                     }
-                                    NavigationTab.SETTINGS -> SettingsScreen(
-                                        viewModel = viewModel,
-                                        onNavigateBack = { activeTab = NavigationTab.HOME },
-                                        onNavigateToAppearance = { subScreen = SubScreen.Appearance },
-                                        onNavigateToLanguage = { subScreen = SubScreen.Language },
-                                        onNavigateToAbout = { subScreen = SubScreen.About },
-                                        onResetOobe = { themeViewModel.setOobeCompleted(false) },
-                                    )
                                 }
-                            }
 
-                            if (showBottomBar) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .align(Alignment.BottomCenter)
-                                ) {
-                                    AuriyaBottomBar(
-                                        items = navItems,
-                                        selectedIndex = selectedIndex,
-                                        onSelect = { activeTab = NavigationTab.entries[it] },
-                                        mode = navMode,
-                                        type = navType,
-                                        cornerRadius = cornerRadius,
-                                    )
+                                if (showBottomBar) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .align(Alignment.BottomCenter)
+                                    ) {
+                                        AuriyaBottomBar(
+                                            items = navItems,
+                                            selectedIndex = selectedIndex,
+                                            onSelect = { activeTab = NavigationTab.entries[it] },
+                                            mode = navMode,
+                                            type = navType,
+                                            cornerRadius = cornerRadius,
+                                        )
+                                    }
                                 }
                             }
                         }
