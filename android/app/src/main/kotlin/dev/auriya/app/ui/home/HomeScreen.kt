@@ -232,9 +232,17 @@ private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)) {
                 if (isDaemonRunning) {
-                    StatusBadge(label = "PID ${systemInfo.pid}", tone = StatusTone.SUCCESS)
+                    StatusBadge(
+                        label = "PID ${systemInfo.pid}",
+                        containerColor = onCardBg.copy(alpha = 0.16f),
+                        contentColor = onCardBg,
+                    )
                 } else {
-                    StatusBadge(label = "Stopped", tone = StatusTone.ERROR)
+                    StatusBadge(
+                        label = "Stopped",
+                        containerColor = onCardBg.copy(alpha = 0.16f),
+                        contentColor = onCardBg,
+                    )
                 }
             }
         }
@@ -276,7 +284,7 @@ private fun MiniCardRow(
             icon = Icons.Outlined.Tune,
             value = profileShort,
             label = "Profile",
-            accentColor = MaterialTheme.colorScheme.tertiary,
+            accentColor = MaterialTheme.colorScheme.primary,
             onClick = onProfileClick,
         )
     }
@@ -293,7 +301,7 @@ private fun MiniCard(
 ) {
     Surface(
         shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier
             .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick)
@@ -424,7 +432,7 @@ private fun LinkRow(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(AuriyaTokens.rounding.xl),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(

@@ -179,8 +179,8 @@ fun AppearanceScreen(
                             checked = currentPrefs.useDynamicColor,
                             onCheckedChange = themeViewModel::setUseDynamicColor,
                             icon = Icons.Rounded.Palette,
-                            iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                             shape = shapeFor(currentIndex++, themeItemCount)
                         )
 
@@ -203,8 +203,8 @@ fun AppearanceScreen(
                                 checked = currentPrefs.isAmoled,
                                 onCheckedChange = themeViewModel::setAmoled,
                                 icon = Icons.Rounded.DarkMode,
-                                iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 shape = shapeFor(currentIndex++, themeItemCount)
                             )
                         }
@@ -239,8 +239,8 @@ fun AppearanceScreen(
                                 subtitle = "Adjust the corner radius of the navigation bar.",
                                 onClick = { showCornerRadiusScreen = true },
                                 icon = Icons.Rounded.RoundedCorner,
-                                iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 shape = shapeFor(navIndex++, navItemCount)
                             )
                         }
@@ -348,7 +348,11 @@ private fun SwitchSettingItem(
                 onCheckedChange = onCheckedChange,
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primary
+                    checkedTrackColor = MaterialTheme.colorScheme.primary,
+                    checkedBorderColor = Color.Transparent,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
                 )
             )
         }
@@ -450,14 +454,14 @@ private fun PalettePickerSettingItem(
             ) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(44.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Rounded.ColorLens,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(22.dp)
                         )
                     }

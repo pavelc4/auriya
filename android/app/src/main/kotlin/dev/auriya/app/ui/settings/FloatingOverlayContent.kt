@@ -159,8 +159,6 @@ fun FloatingOverlayContent(
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.Memory,
-                iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
                 shape = itemShapeFor(1, totalMetrics)
             )
 
@@ -175,8 +173,6 @@ fun FloatingOverlayContent(
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.DeveloperBoard,
-                iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
                 shape = itemShapeFor(2, totalMetrics)
             )
 
@@ -205,8 +201,6 @@ fun FloatingOverlayContent(
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.Thermostat,
-                iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
                 shape = itemShapeFor(4, totalMetrics)
             )
 
@@ -221,8 +215,6 @@ fun FloatingOverlayContent(
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.BatteryChargingFull,
-                iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
                 shape = itemShapeFor(5, totalMetrics)
             )
         }
@@ -396,9 +388,7 @@ fun FloatingOverlayContent(
                 displayValueFormatter = { "${it.toInt()} sp" },
                 shape = itemShapeFor(1, totalTuningItems),
                 steps = 11,
-                enabled = enableOverlay,
-                iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                iconTint = MaterialTheme.colorScheme.onSecondaryContainer
+                enabled = enableOverlay
             )
 
             SliderSettingItem(
@@ -414,9 +404,7 @@ fun FloatingOverlayContent(
                 valueRange = 0f..1f,
                 displayValueFormatter = { "${(it * 100).toInt()}%" },
                 shape = itemShapeFor(2, totalTuningItems),
-                enabled = enableOverlay,
-                iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                iconTint = MaterialTheme.colorScheme.onTertiaryContainer
+                enabled = enableOverlay
             )
 
             SliderSettingItem(
@@ -448,9 +436,7 @@ fun FloatingOverlayContent(
                 valueRange = 0f..32f,
                 displayValueFormatter = { "${it.toInt()} dp" },
                 shape = itemShapeFor(4, totalTuningItems),
-                enabled = enableOverlay,
-                iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                iconTint = MaterialTheme.colorScheme.onSecondaryContainer
+                enabled = enableOverlay
             )
         }
     }

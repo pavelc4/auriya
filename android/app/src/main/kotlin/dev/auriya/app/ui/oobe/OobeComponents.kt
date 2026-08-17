@@ -122,17 +122,17 @@ data class PaletteItem(
 )
 
 val PALETTE_ITEMS = listOf(
-    // Greenish theme (Monet template 1)
+    // Green theme (Monet template 1)
     PaletteItem(
-        seed = 0xFFA7E0A2.toInt(),
-        primary = Color(0xFF388E3C),
+        seed = 0xFF2E7D32.toInt(),
+        primary = Color(0xFF2E7D32),
         secondary = Color(0xFF81C784),
         tertiary = Color(0xFFC8E6C9),
         neutral = Color(0xFFE8F5E9)
     ),
-    // Blueish/gray theme (Monet template 2)
+    // Blue theme (Monet template 2)
     PaletteItem(
-        seed = 0xFF9ECAFF.toInt(),
+        seed = 0xFF1976D2.toInt(),
         primary = Color(0xFF1976D2),
         secondary = Color(0xFF64B5F6),
         tertiary = Color(0xFFBBDEFB),
@@ -140,7 +140,7 @@ val PALETTE_ITEMS = listOf(
     ),
     // Purple theme (Monet template 3)
     PaletteItem(
-        seed = 0xFFD0BCFF.toInt(),
+        seed = 0xFF7B1FA2.toInt(),
         primary = Color(0xFF7B1FA2),
         secondary = Color(0xFFBA68C8),
         tertiary = Color(0xFFE1BEE7),
@@ -148,7 +148,7 @@ val PALETTE_ITEMS = listOf(
     ),
     // Pinkish/orange theme (Monet template 4)
     PaletteItem(
-        seed = 0xFFFFB68E.toInt(),
+        seed = 0xFFE64A19.toInt(),
         primary = Color(0xFFE64A19),
         secondary = Color(0xFFFF8A65),
         tertiary = Color(0xFFFFCCBC),
@@ -156,7 +156,7 @@ val PALETTE_ITEMS = listOf(
     ),
     // Yellow/sand theme (Monet template 5)
     PaletteItem(
-        seed = 0xFFFFD188.toInt(),
+        seed = 0xFFFBC02D.toInt(),
         primary = Color(0xFFFBC02D),
         secondary = Color(0xFFFFF176),
         tertiary = Color(0xFFFFF9C4),

@@ -153,7 +153,7 @@ fun CollapsibleCommonTopBar(
                     .zIndex(1f),
                 onClick = onBackClick,
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = MaterialTheme.colorScheme.onSurface
                 )
             ) {

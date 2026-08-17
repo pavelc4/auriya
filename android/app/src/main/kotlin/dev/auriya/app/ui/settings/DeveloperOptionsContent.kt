@@ -73,8 +73,8 @@ fun DeveloperOptionsContent(
                     ).show()
                 },
                 icon = Icons.Rounded.BugReport,
-                iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                 shape = itemShapeFor(1, totalOps)
             )
 
@@ -104,8 +104,8 @@ fun DeveloperOptionsContent(
                     }
                 },
                 icon = Icons.Rounded.UploadFile,
-                iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                 shape = itemShapeFor(2, totalOps)
             )
         }
@@ -132,11 +132,11 @@ fun DeveloperOptionsContent(
                 subtitle = "Current active daemon state",
                 valueText = systemInfo.daemonStatus.uppercase(),
                 valueBadge = true,
-                valueContainerColor = if (systemInfo.daemonStatus == "working") MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                valueContentColor = if (systemInfo.daemonStatus == "working") MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                valueContainerColor = if (systemInfo.daemonStatus == "working") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                valueContentColor = if (systemInfo.daemonStatus == "working") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 icon = Icons.Rounded.Info,
-                iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                 shape = itemShapeFor(1, totalDiag)
             )
         }

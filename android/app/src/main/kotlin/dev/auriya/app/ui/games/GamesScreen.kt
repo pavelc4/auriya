@@ -476,8 +476,8 @@ private fun GamesInfoBottomSheet(
                     subtitle = "Frame pacing and display sync",
                     description = "Configures targeted framerates and switches display refresh rate dynamically to eliminate stutter and tearing.",
                     icon = Icons.Outlined.Speed,
-                    iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
 
@@ -488,8 +488,8 @@ private fun GamesInfoBottomSheet(
                     subtitle = "Automatic notification silence",
                     description = "Automatically blocks intrusive heads-up notifications and alerts while your gaming session is ongoing.",
                     icon = Icons.Outlined.NotificationsOff,
-                    iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
         }
@@ -659,7 +659,7 @@ private fun ContinuousRow(
     }
     Surface(
         shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth(),
     ) {
         content()

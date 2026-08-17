@@ -20,7 +20,7 @@ fun ExpressiveList(
     cornerLarge: Dp = AuriyaTokens.rounding.xl + 2.dp,
     cornerSmall: Dp = AuriyaTokens.rounding.extraSmall,
     gap: Dp = 2.dp,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     item: @Composable (index: Int) -> Unit,
 ) {
     if (count == 0) return

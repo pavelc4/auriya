@@ -252,7 +252,7 @@ fun SwitchSettingItem(
         shape = shape,
         modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer { alpha = if (enabled) 1f else 0.38f }
+            .graphicsLayer { alpha = if (enabled) 1f else 0.55f }
     ) {
         Row(
             modifier = Modifier
@@ -300,7 +300,17 @@ fun SwitchSettingItem(
                 onCheckedChange = onCheckedChange,
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primary
+                    checkedTrackColor = MaterialTheme.colorScheme.primary,
+                    checkedBorderColor = Color.Transparent,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+                    disabledUncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    disabledUncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    disabledUncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                    disabledCheckedThumbColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                    disabledCheckedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                    disabledCheckedBorderColor = Color.Transparent,
                 )
             )
         }
