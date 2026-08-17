@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.*
@@ -36,17 +37,18 @@ import androidx.compose.ui.unit.sp
 import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.ui.components.AuriyaLoadingIndicator
 import dev.auriya.app.ui.theme.AuriyaTokens
+import dev.auriya.app.viewmodel.AppInfoItem
 import dev.auriya.app.viewmodel.UiViewModel
 import dev.auriya.shared.model.GameProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-data class AppInfoItem(val packageName: String, val label: String)
 data class ActiveAppItem(val packageName: String, val label: String, val profile: GameProfile)
 
-enum class SortMode {
-    NAME_ASC,
-    NAME_DESC,
+enum class SortMode(val title: String) {
+    NAME_ASC("Name (A → Z)"),
+    NAME_DESC("Name (Z → A)"),
+    PACKAGE_ASC("Package (A → Z)"),
 }
 
 private val appIconShape = RoundedCornerShape(14.dp)
@@ -77,10 +79,10 @@ fun GamesScreen(
     var bannerDismissed by remember { mutableStateOf(sharedPrefs.getBoolean("games_banner_dismissed", false)) }
 
     val gameList by viewModel.gameList.collectAsState()
+    val installedApps by viewModel.installedApps.collectAsState()
+    val isAppsLoading by viewModel.isAppsLoading.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     var sortMode by remember { mutableStateOf(SortMode.NAME_ASC) }
-    var installedApps by remember { mutableStateOf<List<AppInfoItem>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
 
     var showGamesInfoSheet by remember { mutableStateOf(false) }
     val gamesInfoSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
@@ -93,27 +95,7 @@ fun GamesScreen(
     }
 
     LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-                .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
-                .map { appInfo ->
-                    val label = runCatching {
-                        pm.getApplicationLabel(appInfo).toString()
-                    }.getOrDefault(appInfo.packageName)
-                    AppIconCache.load(pm, appInfo.packageName)
-                    AppInfoItem(packageName = appInfo.packageName, label = label)
-                }
-                .sortedBy { it.label.lowercase() }
-            withContext(Dispatchers.Main) {
-                installedApps = apps
-                isLoading = false
-            }
-        }
-    }
-
-    if (isLoading) {
-        LoadingState()
-        return
+        viewModel.loadInstalledApps(pm)
     }
 
     val activeProfilesMap = remember(gameList.games) {
@@ -135,12 +117,19 @@ fun GamesScreen(
                 active += ActiveAppItem(game.packageName, label, game)
             }
         }
-        if (sortMode == SortMode.NAME_ASC) {
-            active.sortBy { it.label.lowercase() }
-            inactive.sortBy { it.label.lowercase() }
-        } else {
-            active.sortByDescending { it.label.lowercase() }
-            inactive.sortByDescending { it.label.lowercase() }
+        when (sortMode) {
+            SortMode.NAME_ASC -> {
+                active.sortBy { it.label.lowercase() }
+                inactive.sortBy { it.label.lowercase() }
+            }
+            SortMode.NAME_DESC -> {
+                active.sortByDescending { it.label.lowercase() }
+                inactive.sortByDescending { it.label.lowercase() }
+            }
+            SortMode.PACKAGE_ASC -> {
+                active.sortBy { it.packageName.lowercase() }
+                inactive.sortBy { it.packageName.lowercase() }
+            }
         }
         active to inactive
     }
@@ -265,22 +254,32 @@ fun GamesScreen(
                         ),
                     )
 
+                    val sortIcon = when (sortMode) {
+                        SortMode.NAME_ASC -> Icons.AutoMirrored.Filled.Sort
+                        SortMode.NAME_DESC -> Icons.Outlined.SwapVert
+                        SortMode.PACKAGE_ASC -> Icons.Outlined.Apps
+                    }
+
                     FilledTonalIconButton(
                         onClick = {
-                            sortMode = if (sortMode == SortMode.NAME_ASC) SortMode.NAME_DESC else SortMode.NAME_ASC
+                            sortMode = when (sortMode) {
+                                SortMode.NAME_ASC -> SortMode.NAME_DESC
+                                SortMode.NAME_DESC -> SortMode.PACKAGE_ASC
+                                SortMode.PACKAGE_ASC -> SortMode.NAME_ASC
+                            }
                         },
                         shape = RoundedCornerShape(16.dp),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = if (sortMode == SortMode.NAME_DESC) MaterialTheme.colorScheme.primaryContainer
+                            containerColor = if (sortMode != SortMode.NAME_ASC) MaterialTheme.colorScheme.primaryContainer
                             else MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = if (sortMode == SortMode.NAME_DESC) MaterialTheme.colorScheme.onPrimaryContainer
+                            contentColor = if (sortMode != SortMode.NAME_ASC) MaterialTheme.colorScheme.onPrimaryContainer
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         modifier = Modifier.size(52.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Sort,
-                            contentDescription = "Sort",
+                            imageVector = sortIcon,
+                            contentDescription = "Sort: ${sortMode.title}",
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -330,6 +329,29 @@ fun GamesScreen(
                                         bannerDismissed = true
                                     }
                                 )
+                            }
+                        }
+
+                        if (isAppsLoading && installedApps.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 48.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small),
+                                    ) {
+                                        AuriyaLoadingIndicator(size = 48.dp)
+                                        Text(
+                                            "Resolving applications…",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -531,19 +553,6 @@ private fun InfoFeatureCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun LoadingState() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small),
-        ) {
-            AuriyaLoadingIndicator(size = 56.dp)
-            Text("Resolving applications…", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

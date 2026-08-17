@@ -1,7 +1,10 @@
 package dev.auriya.app.viewmodel
 
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.data.RootShell
 import dev.auriya.shared.config.ConfigPaths
 import dev.auriya.shared.config.TomlParser
@@ -14,6 +17,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+data class AppInfoItem(val packageName: String, val label: String)
 
 data class SystemInfo(
     val version: String = "...",
@@ -73,6 +78,40 @@ class UiViewModel : ViewModel() {
 
     private val _availableGovernors = MutableStateFlow<List<String>>(emptyList())
     val availableGovernors: StateFlow<List<String>> = _availableGovernors.asStateFlow()
+
+    private val _installedApps = MutableStateFlow<List<AppInfoItem>>(emptyList())
+    val installedApps: StateFlow<List<AppInfoItem>> = _installedApps.asStateFlow()
+
+    private val _isAppsLoading = MutableStateFlow(false)
+    val isAppsLoading: StateFlow<Boolean> = _isAppsLoading.asStateFlow()
+
+    fun loadInstalledApps(pm: PackageManager) {
+        if (_installedApps.value.isNotEmpty() || _isAppsLoading.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isAppsLoading.value = true
+            try {
+                val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+                    .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
+                    .map { appInfo ->
+                        val label = runCatching {
+                            pm.getApplicationLabel(appInfo).toString()
+                        }.getOrDefault(appInfo.packageName)
+                        AppInfoItem(packageName = appInfo.packageName, label = label)
+                    }
+                    .sortedBy { it.label.lowercase() }
+                _installedApps.value = apps
+                _isAppsLoading.value = false
+
+                // Pre-cache all icons in RAM in background so every icon renders instantly
+                for (app in apps) {
+                    AppIconCache.load(pm, app.packageName)
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
+                _isAppsLoading.value = false
+            }
+        }
+    }
 
     fun setActive(active: Boolean) {
         _isActive.value = active

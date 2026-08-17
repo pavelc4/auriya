@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +57,7 @@ fun AuriyaNavigation(
     var editingGameProfile by remember { mutableStateOf<GameProfile?>(null) }
     var selectedGameProfile by remember { mutableStateOf<GameProfile?>(null) }
     var subScreen by remember { mutableStateOf(SubScreen.None) }
+    val saveableStateHolder = rememberSaveableStateHolder()
     val themePrefs by themeViewModel.prefs.collectAsState()
     val governors by viewModel.availableGovernors.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
@@ -157,45 +159,47 @@ fun AuriyaNavigation(
                                 .fillMaxSize()
                                 .statusBarsPadding()
                         ) {
-                            when (activeTab) {
-                                NavigationTab.HOME -> HomeScreen(
-                                    viewModel = viewModel,
-                                    onNavigateToGames = { activeTab = NavigationTab.GAMES }
-                                )
-                                NavigationTab.GAMES -> {
-                                    val current = selectedGameProfile
-                                    if (current != null) {
-                                        val isExisting = gameList.games.any { it.packageName == current.packageName }
-                                        GameProfileScreen(
-                                            game = current,
-                                            governorOptions = governors,
-                                            isExistingProfile = isExisting,
-                                            onDismiss = { selectedGameProfile = null },
-                                            onSave = { updated ->
-                                                viewModel.addGame(updated)
-                                            },
-                                            onRemove = if (isExisting) {
-                                                {
-                                                    selectedGameProfile = null
-                                                    viewModel.removeGame(current.packageName)
-                                                }
-                                            } else null,
-                                        )
-                                    } else {
-                                        GamesPane(
-                                            viewModel = viewModel,
-                                            onEditGame = { selectedGameProfile = it }
-                                        )
+                            saveableStateHolder.SaveableStateProvider(activeTab) {
+                                when (activeTab) {
+                                    NavigationTab.HOME -> HomeScreen(
+                                        viewModel = viewModel,
+                                        onNavigateToGames = { activeTab = NavigationTab.GAMES }
+                                    )
+                                    NavigationTab.GAMES -> {
+                                        val current = selectedGameProfile
+                                        if (current != null) {
+                                            val isExisting = gameList.games.any { it.packageName == current.packageName }
+                                            GameProfileScreen(
+                                                game = current,
+                                                governorOptions = governors,
+                                                isExistingProfile = isExisting,
+                                                onDismiss = { selectedGameProfile = null },
+                                                onSave = { updated ->
+                                                    viewModel.addGame(updated)
+                                                },
+                                                onRemove = if (isExisting) {
+                                                    {
+                                                        selectedGameProfile = null
+                                                        viewModel.removeGame(current.packageName)
+                                                    }
+                                                } else null,
+                                            )
+                                        } else {
+                                            GamesPane(
+                                                viewModel = viewModel,
+                                                onEditGame = { selectedGameProfile = it }
+                                            )
+                                        }
                                     }
+                                    NavigationTab.SETTINGS -> SettingsScreen(
+                                        viewModel = viewModel,
+                                        onNavigateBack = { activeTab = NavigationTab.HOME },
+                                        onNavigateToAppearance = { subScreen = SubScreen.Appearance },
+                                        onNavigateToLanguage = { subScreen = SubScreen.Language },
+                                        onNavigateToAbout = { subScreen = SubScreen.About },
+                                        onResetOobe = { themeViewModel.setOobeCompleted(false) },
+                                    )
                                 }
-                                NavigationTab.SETTINGS -> SettingsScreen(
-                                    viewModel = viewModel,
-                                    onNavigateBack = { activeTab = NavigationTab.HOME },
-                                    onNavigateToAppearance = { subScreen = SubScreen.Appearance },
-                                    onNavigateToLanguage = { subScreen = SubScreen.Language },
-                                    onNavigateToAbout = { subScreen = SubScreen.About },
-                                    onResetOobe = { themeViewModel.setOobeCompleted(false) },
-                                )
                             }
 
                             if (showBottomBar) {
