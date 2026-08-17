@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -304,6 +305,107 @@ fun AuriyaIconCollage(
                             modifier = Modifier.fillMaxSize()
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AuriyaDrawableCollage(
+    drawables: List<Int>,
+    modifier: Modifier = Modifier,
+    height: Dp = 190.dp
+) {
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+    ) {
+        val minDim = minOf(180.dp, maxHeight)
+        val primaryCol = MaterialTheme.colorScheme.primary
+        val secCol = MaterialTheme.colorScheme.secondary
+        val tertCol = MaterialTheme.colorScheme.tertiary
+        val onSurf = MaterialTheme.colorScheme.onSurfaceVariant
+
+        val configs = listOf(
+            // 0. Magisk (Center - Smooth Capsule Stadium)
+            OobeIconPlacement(
+                size = minDim * 0.68f,
+                color = primaryCol,
+                align = Alignment.Center,
+                rot = -8f,
+                shape = RoundedCornerShape(32.dp),
+                offsetX = 0.dp,
+                offsetY = 0.dp
+            ),
+            // 1. KernelSU (TopStart - Asymmetric Diamond Leaf / Gem)
+            OobeIconPlacement(
+                size = minDim * 0.46f,
+                color = secCol,
+                align = Alignment.TopStart,
+                rot = 12f,
+                shape = RoundedCornerShape(topStart = 26.dp, bottomEnd = 26.dp, topEnd = 8.dp, bottomStart = 8.dp),
+                offsetX = 16.dp,
+                offsetY = 4.dp
+            ),
+            // 2. APatch (BottomEnd - Clean Geometric Circle)
+            OobeIconPlacement(
+                size = minDim * 0.46f,
+                color = tertCol,
+                align = Alignment.BottomEnd,
+                rot = 8f,
+                shape = CircleShape,
+                offsetX = (-18).dp,
+                offsetY = (-6).dp
+            ),
+            // 3. KernelSU Next (TopEnd - 12-sided Scallop Flower Badge)
+            OobeIconPlacement(
+                size = minDim * 0.48f,
+                color = secCol,
+                align = Alignment.TopEnd,
+                rot = -14f,
+                shape = MaterialShapes.Scallop12,
+                offsetX = (-20).dp,
+                offsetY = 6.dp
+            ),
+            // 4. KowSU (BottomStart - Material PixelCircle)
+            OobeIconPlacement(
+                size = minDim * 0.48f,
+                color = primaryCol,
+                align = Alignment.BottomStart,
+                rot = 10f,
+                shape = MaterialShapes.PixelCircle,
+                offsetX = 18.dp,
+                offsetY = (-6).dp
+            )
+        )
+
+        drawables.take(5).forEachIndexed { index, resId ->
+            val cfg = configs.getOrElse(index) { configs[0] }
+            Surface(
+                modifier = Modifier
+                    .size(cfg.size)
+                    .align(cfg.align)
+                    .offset(cfg.offsetX, cfg.offsetY)
+                    .graphicsLayer { rotationZ = cfg.rot },
+                shape = cfg.shape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = if (index == 0) 6.dp else 4.dp,
+                shadowElevation = if (index == 0) 4.dp else 2.dp
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(if (index == 0) 14.dp else 11.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = resId),
+                        contentDescription = null,
+                        tint = cfg.color,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
         }

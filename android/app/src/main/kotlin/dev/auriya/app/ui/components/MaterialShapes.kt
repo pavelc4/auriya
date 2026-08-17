@@ -25,9 +25,57 @@ object MaterialShapes {
     val Clover6: Shape by lazy { polygonShape { RoundedPolygon.star(6, innerRadius = 0.48f, rounding = CornerRounding(0.95f), innerRounding = CornerRounding(0.7f)) } }
     val Puffy: Shape by lazy { polygonShape { RoundedPolygon.star(6, innerRadius = 0.72f, rounding = CornerRounding(0.85f), innerRounding = CornerRounding(0.4f)) } }
 
-    // PixelCircle approximation: a regular 128-gon that looks like a
-    // circle at all display densities. No M3E dependency needed.
-    val PixelCircle: Shape by lazy { polygonShape { RoundedPolygon.star(128, innerRadius = 0.999f, rounding = CornerRounding(1.0f)) } }
+    // Authentic 8-bit stepped pixel art circle shape
+    val PixelCircle: Shape = object : Shape {
+        override fun createOutline(
+            size: Size,
+            layoutDirection: LayoutDirection,
+            density: Density
+        ): Outline {
+            val path = Path().apply {
+                val w = size.width
+                val h = size.height
+                moveTo(w * 0.3125f, h * 0.0f)
+                lineTo(w * 0.6875f, h * 0.0f)
+                lineTo(w * 0.6875f, h * 0.0625f)
+                lineTo(w * 0.8125f, h * 0.0625f)
+                lineTo(w * 0.8125f, h * 0.125f)
+                lineTo(w * 0.875f, h * 0.125f)
+                lineTo(w * 0.875f, h * 0.1875f)
+                lineTo(w * 0.9375f, h * 0.1875f)
+                lineTo(w * 0.9375f, h * 0.3125f)
+                lineTo(w * 1.0f, h * 0.3125f)
+                lineTo(w * 1.0f, h * 0.6875f)
+                lineTo(w * 0.9375f, h * 0.6875f)
+                lineTo(w * 0.9375f, h * 0.8125f)
+                lineTo(w * 0.875f, h * 0.8125f)
+                lineTo(w * 0.875f, h * 0.875f)
+                lineTo(w * 0.8125f, h * 0.875f)
+                lineTo(w * 0.8125f, h * 0.9375f)
+                lineTo(w * 0.6875f, h * 0.9375f)
+                lineTo(w * 0.6875f, h * 1.0f)
+                lineTo(w * 0.3125f, h * 1.0f)
+                lineTo(w * 0.3125f, h * 0.9375f)
+                lineTo(w * 0.1875f, h * 0.9375f)
+                lineTo(w * 0.1875f, h * 0.875f)
+                lineTo(w * 0.125f, h * 0.875f)
+                lineTo(w * 0.125f, h * 0.8125f)
+                lineTo(w * 0.0625f, h * 0.8125f)
+                lineTo(w * 0.0625f, h * 0.6875f)
+                lineTo(w * 0.0f, h * 0.6875f)
+                lineTo(w * 0.0f, h * 0.3125f)
+                lineTo(w * 0.0625f, h * 0.3125f)
+                lineTo(w * 0.0625f, h * 0.1875f)
+                lineTo(w * 0.125f, h * 0.1875f)
+                lineTo(w * 0.125f, h * 0.125f)
+                lineTo(w * 0.1875f, h * 0.125f)
+                lineTo(w * 0.1875f, h * 0.0625f)
+                lineTo(w * 0.3125f, h * 0.0625f)
+                close()
+            }
+            return Outline.Generic(path)
+        }
+    }
 
     fun cookie9(): Shape = Cookie9
     fun scallop12(): Shape = Scallop12

@@ -276,7 +276,12 @@ mod tests {
 
     #[test]
     fn classifies_single_tier_all_big() {
-        let freqs = [(0, 2_000_000), (1, 2_000_000), (2, 2_000_000), (3, 2_000_000)];
+        let freqs = [
+            (0, 2_000_000),
+            (1, 2_000_000),
+            (2, 2_000_000),
+            (3, 2_000_000),
+        ];
         let (little, big, prime) = classify_from_freqs(&freqs);
         assert_eq!(ids(little), Vec::<usize>::new());
         assert_eq!(ids(big), vec![0, 1, 2, 3]);

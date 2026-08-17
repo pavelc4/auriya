@@ -174,6 +174,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.coil.gif)
     implementation(libs.material.kolor)
     implementation(libs.androidx.graphics.shapes)
     implementation(libs.androidx.datastore.preferences)

@@ -18,13 +18,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.util.concurrent.atomic.AtomicBoolean
 import dev.auriya.app.ui.theme.AuriyaFontFamily
 import dev.auriya.app.viewmodel.UiViewModel
@@ -72,13 +72,13 @@ fun RootCheckContent(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val rootIcons = remember {
+    val rootDrawables = remember {
         listOf(
-            Icons.Rounded.Security,
-            Icons.Rounded.CheckCircle,
-            Icons.Rounded.Speed,
-            Icons.Rounded.Memory,
-            Icons.Rounded.Bolt
+            dev.auriya.app.R.drawable.ic_magisk,
+            dev.auriya.app.R.drawable.ic_kernelsu,
+            dev.auriya.app.R.drawable.ic_apatch,
+            dev.auriya.app.R.drawable.ic_kernelsu_next,
+            dev.auriya.app.R.drawable.ic_kowsu
         )
     }
 
@@ -113,15 +113,15 @@ fun RootCheckContent(
             )
         }
 
-        // Center Icon Collage
+        // Center Icon Collage with Root Manager Logos (Magisk, KernelSU, APatch, KernelSU Next, KowSU)
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            AuriyaIconCollage(
-                icons = rootIcons,
+            AuriyaDrawableCollage(
+                drawables = rootDrawables,
                 height = 220.dp
             )
         }

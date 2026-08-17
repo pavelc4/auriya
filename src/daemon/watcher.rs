@@ -7,9 +7,7 @@ use tokio::sync::mpsc;
 use tracing::{debug, error, warn};
 const MODULE_PATH: &str = "/data/adb/modules/auriya";
 
-pub fn start_config_watcher(
-    shared_gamelist: Arc<RwLock<Arc<GameList>>>,
-) -> mpsc::Receiver<String> {
+pub fn start_config_watcher(shared_gamelist: Arc<RwLock<Arc<GameList>>>) -> mpsc::Receiver<String> {
     let (watch_tx, watch_rx) = mpsc::channel::<String>(10);
     let gamelist_path = Arc::new(gamelist_path());
     let settings_path = Arc::new(settings_path());
@@ -43,7 +41,10 @@ pub fn start_config_watcher(
                     if !path_str.contains("gamelist") {
                         return;
                     }
-                    if path_str.contains(".tmp") || path_str.ends_with('~') || path_str.contains(".swp") {
+                    if path_str.contains(".tmp")
+                        || path_str.ends_with('~')
+                        || path_str.contains(".swp")
+                    {
                         return;
                     }
 

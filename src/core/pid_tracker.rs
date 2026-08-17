@@ -245,7 +245,10 @@ mod tests {
         let pid = child.id() as i32;
 
         let tracker = PidTracker::spawn(pid, tx);
-        assert!(tracker.is_alive(), "child should be alive immediately after spawn");
+        assert!(
+            tracker.is_alive(),
+            "child should be alive immediately after spawn"
+        );
 
         child.kill().expect("kill child");
         let _ = child.wait();
@@ -261,7 +264,10 @@ mod tests {
         }
 
         assert_eq!(got, Some(DaemonEvent::PidExited(pid)));
-        assert!(!tracker.is_alive(), "tracker should report the child as dead");
+        assert!(
+            !tracker.is_alive(),
+            "tracker should report the child as dead"
+        );
     }
 
     /// Real-device latency: time from process death to the PidExited
@@ -296,7 +302,10 @@ mod tests {
         }
 
         let latency = latency.expect("no PidExited event within 5s");
-        eprintln!("pidfd exit→event latency: {:.3} ms", latency.as_secs_f64() * 1000.0);
+        eprintln!(
+            "pidfd exit→event latency: {:.3} ms",
+            latency.as_secs_f64() * 1000.0
+        );
         // Generous bound to stay non-flaky on a busy device; the typical
         // value is well under 5 ms.
         assert!(

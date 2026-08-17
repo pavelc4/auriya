@@ -1,25 +1,27 @@
 package dev.auriya.app.ui.oobe
 
-import androidx.compose.foundation.BorderStroke
+import android.os.Build
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.RocketLaunch
-import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.auriya.app.data.NavMode
-import dev.auriya.app.data.NavType
-import dev.auriya.app.ui.theme.AuriyaFontFamily
+import coil3.ImageLoader
+import coil3.compose.AsyncImage
+import coil3.gif.AnimatedImageDecoder
+import coil3.gif.GifDecoder
+import dev.auriya.app.R
 import dev.auriya.app.viewmodel.ThemeViewModel
 
 @Composable
@@ -28,17 +30,23 @@ fun DoneContent(
     themeViewModel: ThemeViewModel,
     modifier: Modifier = Modifier
 ) {
-    val prefs by themeViewModel.prefs.collectAsState()
-    val currentPrefs = prefs ?: return
+    val context = LocalContext.current
+    val imageLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components {
+                if (Build.VERSION.SDK_INT >= 28) {
+                    add(AnimatedImageDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
+            }
+            .build()
+    }
 
-    val finishIcons = remember {
-        listOf(
-            Icons.Rounded.CheckCircle,
-            Icons.Rounded.RocketLaunch,
-            Icons.Rounded.Speed,
-            Icons.Rounded.Bolt,
-            Icons.Rounded.Favorite
-        )
+    val platformColor = if (isDark) {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHighest
     }
 
     Column(
@@ -72,20 +80,71 @@ fun DoneContent(
             )
         }
 
-        // Celebration Icon Collage
+        // Center Stage with Distinct Solid Pedestal Platform & Character
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            AuriyaIconCollage(
-                icons = finishIcons,
-                height = 240.dp
-            )
+            Box(
+                modifier = Modifier
+                    .size(width = 280.dp, height = 230.dp),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                // 1. Single Solid Floor Platform Oval (No inner circle, no border)
+                Canvas(
+                    modifier = Modifier
+                        .width(280.dp)
+                        .height(56.dp)
+                        .align(Alignment.BottomCenter)
+                ) {
+                    drawOval(
+                        color = platformColor,
+                        topLeft = Offset(0f, 0f),
+                        size = Size(size.width, size.height)
+                    )
+                }
+
+                // 2. Kuru Kuru GIF Character (Base rests right on the center of the pedestal)
+                AsyncImage(
+                    model = R.drawable.kurukuru,
+                    imageLoader = imageLoader,
+                    contentDescription = "Kuru Kuru Spinning",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .size(200.dp)
+                        .padding(bottom = 16.dp)
+                        .align(Alignment.BottomCenter)
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        // Bottom Clean Text (No Card)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp)
+        ) {
+            Text(
+                text = "Let's explore Auriya",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                ),
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Tap the checkmark button below to get started.",
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
