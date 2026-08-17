@@ -27,12 +27,13 @@ runs:
       run: rustup default nightly-x86_64-unknown-linux-gnu
       shell: bash
 
-    - name: Install bpf-linker (for eBPF CO-RE)
-      run: cargo install bpf-linker
+    - name: Install bpf-linker (prebuilt binary)
+      run: |
+        curl -sL "https://github.com/aya-rs/bpf-linker/releases/latest/download/bpf-linker-x86_64-unknown-linux-gnu.tar.gz" | tar -xz -C "${HOME}/.cargo/bin" || true
       shell: bash
 
     - name: Install cargo-ndk
-      run: cargo install cargo-ndk
+      run: cargo install cargo-ndk --locked || true
       shell: bash
 
     - name: Install Compression Tools
