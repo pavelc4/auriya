@@ -91,7 +91,6 @@ impl CoreLayout {
             big_freqs_khz,
         }
     }
-
 }
 
 fn read_available_freqs(core_ids: &[usize]) -> Vec<u64> {
@@ -277,7 +276,7 @@ impl CeilingController {
     }
 
     fn apply_low(&mut self, config: &CeilingConfig) -> Result<()> {
-            let prime_ids = &self.layout.prime_ids;
+        let prime_ids = &self.layout.prime_ids;
         let big_ids = self.layout.big_ids.clone();
         let little_ids = self.layout.little_ids.clone();
         let little_freq = config
@@ -531,8 +530,16 @@ mod tests {
                 continue;
             }
             let p = format!("/sys/devices/system/cpu/cpu{core}/cpufreq/scaling_max_freq");
-            assert_eq!(read_u64(&p), hw_max(core), "{name} max not restored after LOW");
-            assert_ne!(mode(&p) & 0o222, 0, "{name} scaling_max_freq still read-only after LOW");
+            assert_eq!(
+                read_u64(&p),
+                hw_max(core),
+                "{name} max not restored after LOW"
+            );
+            assert_ne!(
+                mode(&p) & 0o222,
+                0,
+                "{name} scaling_max_freq still read-only after LOW"
+            );
         }
 
         // IN-GAME → High ceiling locks min = max on every core.
@@ -550,8 +557,16 @@ mod tests {
         snapshot("BALANCE after HIGH (restore)", &cores);
         for &(name, core) in &cores {
             let p = format!("/sys/devices/system/cpu/cpu{core}/cpufreq/scaling_min_freq");
-            assert_eq!(read_u64(&p), hw_min(core), "{name} min not restored after HIGH");
-            assert_ne!(mode(&p) & 0o222, 0, "{name} scaling_min_freq still read-only after HIGH");
+            assert_eq!(
+                read_u64(&p),
+                hw_min(core),
+                "{name} min not restored after HIGH"
+            );
+            assert_ne!(
+                mode(&p) & 0o222,
+                0,
+                "{name} scaling_min_freq still read-only after HIGH"
+            );
         }
 
         // Drop restores + onlines everything, leaving the device clean.

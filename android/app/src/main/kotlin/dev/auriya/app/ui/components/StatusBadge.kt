@@ -21,8 +21,10 @@ fun StatusBadge(
     label: String,
     tone: StatusTone = StatusTone.SECONDARY,
     modifier: Modifier = Modifier,
+    containerColor: Color? = null,
+    contentColor: Color? = null,
 ) {
-    val (bg, fg) = when (tone) {
+    val (defaultBg, defaultFg) = when (tone) {
         StatusTone.PRIMARY -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
         StatusTone.SECONDARY -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         StatusTone.SUCCESS -> AuriyaTheme.semantic.successContainer to AuriyaTheme.semantic.onSuccessContainer
@@ -30,6 +32,8 @@ fun StatusBadge(
         StatusTone.ERROR -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
         StatusTone.OUTLINE -> Color.Transparent to MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val bg = containerColor ?: defaultBg
+    val fg = contentColor ?: defaultFg
     Text(
         text = label.uppercase(),
         style = MaterialTheme.typography.labelSmall,

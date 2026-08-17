@@ -187,6 +187,12 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
             }
             Ok(Command::SetProfile(mode)) => {
                 use crate::core::profile;
+                // Profile application writes several kernel controls; serialize
+                // concurrent IPC requests so rapid switches cannot interleave.
+                let _profile_guard = h
+                    .profile_lock
+                    .lock()
+                    .map_err(|_| anyhow::anyhow!("profile lock poisoned"))?;
                 let r = match mode {
                     ProfileMode::Performance => profile::apply_performance(),
                     ProfileMode::Balance => profile::apply_balance(&h.balance_governor),

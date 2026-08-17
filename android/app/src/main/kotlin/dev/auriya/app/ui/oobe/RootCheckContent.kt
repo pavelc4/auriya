@@ -1,24 +1,32 @@
 package dev.auriya.app.ui.oobe
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import java.util.concurrent.atomic.AtomicBoolean
+import dev.auriya.app.ui.theme.AuriyaFontFamily
 import dev.auriya.app.viewmodel.UiViewModel
 
 @Composable
@@ -26,141 +34,198 @@ fun RootCheckContent(
     isDark: Boolean,
     viewModel: UiViewModel,
     hasRoot: Boolean,
-    onBack: () -> Unit,
-    onNext: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val titleColor = if (isDark) Color.White else Color(0xFF1C1B1F)
-    val descColor = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF49454F)
+    // Driven by ViewModel so the "Requesting..." spinner reflects the actual
+    // blocking Shell.getShell() call and resets automatically on both success
+    // and failure — letting the user retry without restarting the app.
+    val isRequesting by viewModel.isCheckingRoot.collectAsState()
 
-    var isRequesting by remember { mutableStateOf(false) }
-    LaunchedEffect(hasRoot) { if (hasRoot) isRequesting = false }
+    // Auto-trigger the SU prompt the moment this screen is first composed.
+    // isCheckingRoot guard in the ViewModel prevents a double-call if the
+    // user also taps the button before the first check completes.
+    LaunchedEffect(Unit) {
+        viewModel.checkRoot()
+    }
+
+    // Re-check when the app returns from background (ON_RESUME).
+    // hasEverPaused guards against the synthetic ON_RESUME that some lifecycle
+    // versions fire when the observer is first registered — without it, both
+    // this observer AND LaunchedEffect(Unit) above would call checkRoot() at
+    // the same time on the main thread, both passing the isCheckingRoot guard
+    // before either IO coroutine has set it to true, reintroducing the
+    // concurrent Shell.getShell() race condition.
+    val hasEverPaused = remember { AtomicBoolean(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> hasEverPaused.set(true)
+                Lifecycle.Event.ON_RESUME -> if (hasEverPaused.get() && !viewModel.hasRoot.value) {
+                    viewModel.checkRoot()
+                }
+
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val rootDrawables = remember {
+        listOf(
+            dev.auriya.app.R.drawable.ic_magisk,
+            dev.auriya.app.R.drawable.ic_kernelsu,
+            dev.auriya.app.R.drawable.ic_apatch,
+            dev.auriya.app.R.drawable.ic_kernelsu_next,
+            dev.auriya.app.R.drawable.ic_kowsu
+        )
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Spacer(modifier = Modifier.height(36.dp)) // push down content
-
-        Icon(
-            imageVector = Icons.Outlined.Shield,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(48.dp)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "SUPERUSER",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 3.sp
-            ),
-            color = titleColor
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Auriya needs root authorization to optimize kernel governors, cores, and frequencies in real-time.",
-            style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
-            color = descColor
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = if (hasRoot) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f)
-                    else MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(top = 8.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (hasRoot) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                            else MaterialTheme.colorScheme.error.copy(alpha = 0.12f)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        if (hasRoot) Icons.Outlined.CheckCircle else Icons.Outlined.Shield,
-                        null,
-                        tint = if (hasRoot) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        if (hasRoot) "Root verified" else "Waiting for authorization",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = titleColor
-                    )
-                    Text(
-                        if (hasRoot) "Auriya daemon initialized successfully." else "Grant Magisk / KSU / APatch prompt.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = descColor
-                    )
-                }
-            }
+            Text(
+                text = "Superuser Access",
+                style = MaterialTheme.typography.displayMedium.copy(
+                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = "Auriya requires root permissions to optimize CPU/GPU governors, set thread affinities, and manage daemon scheduling.",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (!hasRoot) {
-            OutlinedButton(
-                onClick = { isRequesting = true; viewModel.checkRoot() },
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isRequesting,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-            ) {
-                if (isRequesting) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text(if (isRequesting) "Checking root..." else "Request permission", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Row(
+        // Center Icon Collage with Root Manager Logos (Magisk, KernelSU, APatch, KernelSU Next, KowSU)
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
         ) {
-            TextButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Back", color = MaterialTheme.colorScheme.primary)
+            AuriyaDrawableCollage(
+                drawables = rootDrawables,
+                height = 220.dp
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Status Card
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = if (hasRoot) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (hasRoot) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                else MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (hasRoot) Icons.Rounded.CheckCircle else Icons.Rounded.Security,
+                            contentDescription = null,
+                            tint = if (hasRoot) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (hasRoot) "Root Privilege Granted" else "Awaiting Authorization",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (hasRoot) "Daemon communication established" else "Grant Magisk / KernelSU / APatch prompt",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
+            // Action Button
             Button(
-                onClick = onNext,
-                shape = CircleShape,
-                enabled = hasRoot,
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                onClick = {
+                    if (!hasRoot) {
+                        viewModel.checkRoot()
+                    }
+                },
+                enabled = !hasRoot && !isRequesting,
+                shape = RoundedCornerShape(20.dp),
+                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                    containerColor = if (hasRoot) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
+                    contentColor = if (hasRoot) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
+                ),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Continue", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
+                AnimatedContent(targetState = hasRoot, label = "RootButtonAnim") { isGranted ->
+                    if (isGranted) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Check, null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Permission Granted",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else if (isRequesting) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                "Requesting Root...",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "Grant Root Permission",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
     }

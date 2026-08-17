@@ -36,25 +36,55 @@ fun AuriyaTheme(
             val context = LocalContext.current
             val baseScheme = if (isDark) dynamicDarkColorScheme(context)
                              else dynamicLightColorScheme(context)
-            if (isDark && isAmoled) {
-                baseScheme.copy(
-                    background = Color.Black,
-                    surface = Color.Black,
-                    surfaceContainer = Color.Black,
-                    surfaceContainerLow = Color(0xFF0F0F0F),
-                    surfaceContainerHigh = Color(0xFF1F1F1F),
-                    surfaceContainerLowest = Color.Black,
-                )
+            if (isDark) {
+                if (isAmoled) {
+                    baseScheme.copy(
+                        background = Color.Black,
+                        surface = Color.Black,
+                        surfaceContainerLowest = Color.Black,
+                        surfaceContainerLow = Color(0xFF101010),
+                        surfaceContainer = Color(0xFF181818),
+                        surfaceContainerHigh = Color(0xFF222222),
+                        surfaceContainerHighest = Color(0xFF2E2E2E),
+                    )
+                } else {
+                    // Standard Dynamic Dark Mode:
+                    // Avoid pitch-black surfaceContainerLowest; use rich tinted dark surface
+                    baseScheme.copy(
+                        surfaceContainerLowest = baseScheme.surfaceContainerLow,
+                    )
+                }
             } else {
                 baseScheme
             }
         }
-        else -> rememberDynamicColorScheme(
-            seedColor = Color(seedColor),
-            isDark = isDark,
-            isAmoled = isDark && isAmoled,
-            style = PaletteStyle.TonalSpot,
-        )
+        else -> {
+            val baseScheme = rememberDynamicColorScheme(
+                seedColor = Color(seedColor),
+                isDark = isDark,
+                isAmoled = false,
+                style = PaletteStyle.TonalSpot,
+            )
+            if (isDark) {
+                if (isAmoled) {
+                    baseScheme.copy(
+                        background = Color.Black,
+                        surface = Color.Black,
+                        surfaceContainerLowest = Color.Black,
+                        surfaceContainerLow = Color(0xFF101010),
+                        surfaceContainer = Color(0xFF181818),
+                        surfaceContainerHigh = Color(0xFF222222),
+                        surfaceContainerHighest = Color(0xFF2E2E2E),
+                    )
+                } else {
+                    baseScheme.copy(
+                        surfaceContainerLowest = baseScheme.surfaceContainerLow,
+                    )
+                }
+            } else {
+                baseScheme
+            }
+        }
     }
 
     val semanticColors = if (isDark) DarkSemanticColors else LightSemanticColors
@@ -63,6 +93,7 @@ fun AuriyaTheme(
         MaterialTheme(
             colorScheme = colorScheme,
             typography = AuriyaTypography,
+            shapes = Shapes,
             content = content,
         )
     }

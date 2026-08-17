@@ -1,11 +1,15 @@
 package dev.auriya.app.viewmodel
 
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.data.RootShell
 import dev.auriya.shared.config.ConfigPaths
 import dev.auriya.shared.config.TomlParser
 import dev.auriya.shared.model.*
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -13,6 +17,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+data class AppInfoItem(val packageName: String, val label: String)
 
 data class SystemInfo(
     val version: String = "...",
@@ -61,18 +67,94 @@ class UiViewModel : ViewModel() {
     private val _hasRoot = MutableStateFlow(false)
     val hasRoot: StateFlow<Boolean> = _hasRoot.asStateFlow()
 
+    private val _isCheckingRoot = MutableStateFlow(false)
+    val isCheckingRoot: StateFlow<Boolean> = _isCheckingRoot.asStateFlow()
+
+    // Set to true when checkRoot() is called while a check is already in flight.
+    // The running coroutine reads this in its finally block and immediately
+    // fires one more check — covering the "press button → go to manager →
+    // grant → come back" workflow without needing a polling loop.
+    private val _pendingRootRetry = AtomicBoolean(false)
+
     private val _availableGovernors = MutableStateFlow<List<String>>(emptyList())
     val availableGovernors: StateFlow<List<String>> = _availableGovernors.asStateFlow()
+
+    private val _installedApps = MutableStateFlow<List<AppInfoItem>>(emptyList())
+    val installedApps: StateFlow<List<AppInfoItem>> = _installedApps.asStateFlow()
+
+    private val _isAppsLoading = MutableStateFlow(false)
+    val isAppsLoading: StateFlow<Boolean> = _isAppsLoading.asStateFlow()
+
+    fun loadInstalledApps(pm: PackageManager) {
+        if (_installedApps.value.isNotEmpty() || _isAppsLoading.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isAppsLoading.value = true
+            try {
+                val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+                    .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
+                    .map { appInfo ->
+                        val label = runCatching {
+                            pm.getApplicationLabel(appInfo).toString()
+                        }.getOrDefault(appInfo.packageName)
+                        AppInfoItem(packageName = appInfo.packageName, label = label)
+                    }
+                    .sortedBy { it.label.lowercase() }
+                _installedApps.value = apps
+                _isAppsLoading.value = false
+
+                // Pre-cache all icons in RAM in background so every icon renders instantly
+                for (app in apps) {
+                    AppIconCache.load(pm, app.packageName)
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
+                _isAppsLoading.value = false
+            }
+        }
+    }
 
     fun setActive(active: Boolean) {
         _isActive.value = active
     }
 
     fun checkRoot() {
+        if (_isCheckingRoot.value) {
+            // A check is already blocking in Shell.getShell(). Schedule a retry
+            // so it fires the moment that check finishes. This covers the common
+            // workflow: user presses Grant → switches to SU manager → grants
+            // always-allow → returns to app (ON_RESUME) while the original
+            // Shell.getShell() is still waiting for its 10-second timeout.
+            _pendingRootRetry.set(true)
+            return
+        }
         viewModelScope.launch(Dispatchers.IO) {
-            val root = RootShell.hasRoot()
-            _hasRoot.value = root
-            if (root) {
+            _isCheckingRoot.value = true
+            try {
+                val root = RootShell.hasRoot()
+                _hasRoot.value = root
+                if (root) {
+                    loadAvailableGovernors()
+                    loadConfigurations()
+                    initSystemInfoStatic()
+                }
+            } finally {
+                _isCheckingRoot.value = false
+                // If a retry was queued (e.g. ON_RESUME fired while we were
+                // blocked), run one more check now. Root may be already granted
+                // in the manager so Shell.getShell() will return instantly.
+                if (_pendingRootRetry.getAndSet(false) && !_hasRoot.value) {
+                    checkRoot()
+                }
+            }
+        }
+    }
+
+    /** Passive poll — checks only the cached shell, never triggers a new SU prompt. */
+    fun checkRootPassive() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val root = RootShell.hasCachedRoot()
+            if (root && !_hasRoot.value) {
+                _hasRoot.value = true
                 loadAvailableGovernors()
                 loadConfigurations()
                 initSystemInfoStatic()
@@ -96,13 +178,7 @@ class UiViewModel : ViewModel() {
     }
 
     init {
-        viewModelScope.launch(Dispatchers.IO) {
-            val root = RootShell.hasRoot()
-            _hasRoot.value = root
-            if (root) {
-                loadAvailableGovernors()
-            }
-        }
+        checkRoot()
         loadConfigurations()
         initSystemInfoStatic()
         startMonitoring()
@@ -182,6 +258,13 @@ class UiViewModel : ViewModel() {
                 if (!_isActive.value) {
                     delay(500)
                     continue
+                }
+                val cachedRoot = RootShell.hasCachedRoot()
+                if (cachedRoot && !_hasRoot.value) {
+                    _hasRoot.value = true
+                    loadAvailableGovernors()
+                    loadConfigurations()
+                    initSystemInfoStatic()
                 }
                 runCatching { pollOnce() }.onFailure { it.printStackTrace() }
                 delay(2000)

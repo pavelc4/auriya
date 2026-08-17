@@ -3,35 +3,37 @@ package dev.auriya.app.ui.games
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.SportsEsports
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.auriya.app.ui.components.AuriyaDragHandle
 import dev.auriya.app.ui.components.ExpressiveList
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
-import dev.auriya.app.ui.components.rememberCookie9
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.shared.model.GameProfile
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun GameProfileScreen(
     game: GameProfile,
@@ -51,9 +53,6 @@ fun GameProfileScreen(
         }
     val iconBitmap = rememberAppIcon(game.packageName)
 
-    // Default to whatever the daemon already wrote into the profile;
-    // fall back to the first available governor if that value is gone
-    // from this kernel (e.g. profile carried over from a different ROM).
     val initialGov =
         if (game.cpuGovernor in governorOptions) {
             game.cpuGovernor
@@ -68,205 +67,234 @@ fun GameProfileScreen(
 
     val ceilingOptions = remember { listOf("default", "low", "balance", "high") }
 
-    var govDropdownExpanded by remember { mutableStateOf(false) }
-    var ceilingDropdownExpanded by remember { mutableStateOf(false) }
-    var menuExpanded by remember { mutableStateOf(false) }
+    var showGovSheet by remember { mutableStateOf(false) }
+    var showCeilingSheet by remember { mutableStateOf(false) }
+    var showActionsSheet by remember { mutableStateOf(false) }
+
+    val govSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val ceilingSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val actionsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     var pendingDelete by remember { mutableStateOf(false) }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("Profile Tuning", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Box {
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "More options")
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Reset to defaults") },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Outlined.Refresh,
-                                        contentDescription = null,
-                                    )
-                                },
-                                onClick = {
-                                    menuExpanded = false
-                                    selectedGov = governorOptions.firstOrNull() ?: game.cpuGovernor
-                                    targetFps = 60f
-                                    refreshRate = 0f
-                                    enableDnd = true
-                                },
-                            )
-                            if (isExistingProfile && onRemove != null) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            "Remove profile",
-                                            color = MaterialTheme.colorScheme.error,
-                                        )
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Outlined.DeleteOutline,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error,
-                                        )
-                                    },
-                                    onClick = {
-                                        menuExpanded = false
-                                        pendingDelete = true
-                                    },
-                                )
-                            }
-                        }
-                    }
-                },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                    ),
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = AuriyaTokens.padding.normal),
-            verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.normal),
-        ) {
-            HeroHeader(
-                label = appLabel,
+    fun updateAndSave(
+        gov: String = selectedGov,
+        ceiling: String = selectedCeiling,
+        fps: Float = targetFps,
+        refresh: Float = refreshRate,
+        dnd: Boolean = enableDnd,
+    ) {
+        selectedGov = gov
+        selectedCeiling = ceiling
+        targetFps = fps
+        refreshRate = refresh
+        enableDnd = dnd
+        onSave(
+            GameProfile(
                 packageName = game.packageName,
-                iconBitmap = iconBitmap,
-                targetFps = targetFps.toInt(),
-                dnd = enableDnd,
-                gov = selectedGov,
-                ceiling = selectedCeiling,
+                cpuGovernor = gov,
+                enableDnd = dnd,
+                targetFps = fps.toInt(),
+                refreshRate = if (refresh.toInt() == 0) null else refresh.toInt(),
+                ceiling = if (ceiling == "default") null else ceiling,
             )
+        )
+    }
 
-            SectionLabel("Performance")
-            ExpressiveList(count = 4) { index ->
-                when (index) {
-                    0 -> {
-                        GovernorRow(
-                            selected = selectedGov,
-                            expanded = govDropdownExpanded,
-                            onExpand = { govDropdownExpanded = it },
-                            onSelect = {
-                                selectedGov = it
-                                govDropdownExpanded = false
-                            },
-                            options = governorOptions,
-                        )
-                    }
+    if (showGovSheet) {
+        GovernorSelectionBottomSheet(
+            selectedGov = selectedGov,
+            options = governorOptions,
+            onSelect = { updateAndSave(gov = it) },
+            onDismiss = { showGovSheet = false },
+            sheetState = govSheetState,
+        )
+    }
 
-                    1 -> {
-                        CeilingRow(
-                            selected = selectedCeiling,
-                            expanded = ceilingDropdownExpanded,
-                            onExpand = { ceilingDropdownExpanded = it },
-                            onSelect = {
-                                selectedCeiling = it
-                                ceilingDropdownExpanded = false
-                            },
-                            options = ceilingOptions,
-                        )
-                    }
+    if (showCeilingSheet) {
+        CeilingSelectionBottomSheet(
+            selectedCeiling = selectedCeiling,
+            options = ceilingOptions,
+            onSelect = { updateAndSave(ceiling = it) },
+            onDismiss = { showCeilingSheet = false },
+            sheetState = ceilingSheetState,
+        )
+    }
 
-                    2 -> {
-                        SliderRow(
-                            title = "Target FPS limit",
-                            value = targetFps,
-                            onChange = { targetFps = it },
-                            range = 30f..120f,
-                            steps = 5,
-                            valueLabel = "${targetFps.toInt()} FPS",
-                        )
-                    }
+    if (showActionsSheet) {
+        ProfileActionsBottomSheet(
+            appLabel = appLabel,
+            isExistingProfile = isExistingProfile,
+            onReset = {
+                val defaultGov = governorOptions.firstOrNull() ?: game.cpuGovernor
+                updateAndSave(
+                    gov = defaultGov,
+                    ceiling = "default",
+                    fps = 60f,
+                    refresh = 0f,
+                    dnd = true
+                )
+            },
+            onRemove = if (isExistingProfile && onRemove != null) {
+                { pendingDelete = true }
+            } else null,
+            onDismiss = { showActionsSheet = false },
+            sheetState = actionsSheetState,
+        )
+    }
 
-                    3 -> {
-                        SliderRow(
-                            title = "Screen refresh rate",
-                            value = refreshRate,
-                            onChange = { refreshRate = it },
-                            range = 0f..120f,
-                            steps = 3,
-                            valueLabel = if (refreshRate.toInt() == 0) "System default" else "${refreshRate.toInt()} Hz",
-                        )
-                    }
-                }
-            }
-
-            SectionLabel("System triggers")
-            ExpressiveList(count = 1) { index ->
-                when (index) {
-                    0 -> {
-                        SwitchRow(
-                            title = "Do Not Disturb",
-                            subtitle = "Priority notifications on launch",
-                            checked = enableDnd,
-                            onCheck = { enableDnd = it },
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(AuriyaTokens.padding.normal))
-
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .statusBarsPadding()
+    ) {
+        // --- 1. TOP PINNED HEADER (Backdrop layer) ---
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.weight(1f)
             ) {
-                Button(
-                    onClick = {
-                        onSave(
-                            GameProfile(
-                                packageName = game.packageName,
-                                cpuGovernor = selectedGov,
-                                enableDnd = enableDnd,
-                                targetFps = targetFps.toInt(),
-                                refreshRate = if (refreshRate.toInt() == 0) null else refreshRate.toInt(),
-                                ceiling = if (selectedCeiling == "default") null else selectedCeiling,
-                            ),
-                        )
-                    },
-                    shape = RoundedCornerShape(AuriyaTokens.rounding.large),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    contentPadding = PaddingValues(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+                FilledIconButton(
+                    onClick = onDismiss,
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    modifier = Modifier.size(42.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(AuriyaTokens.iconSize.medium),
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(Modifier.width(AuriyaTokens.padding.smaller))
+                }
+
+                Column {
                     Text(
-                        text = "Save & Apply",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
+                        text = "Profile Tuning",
+                        style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 24.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+                    Text(
+                        text = "Per-game optimization settings",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(Modifier.height(180.dp))
+            FilledIconButton(
+                onClick = { showActionsSheet = true },
+                shape = CircleShape,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.size(42.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = "Profile Actions",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        // --- 2. FOREGROUND STACKED CARD SHEET ---
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Hero Header Card
+                item {
+                    HeroHeader(
+                        label = appLabel,
+                        iconBitmap = iconBitmap,
+                        targetFps = targetFps.toInt(),
+                        dnd = enableDnd,
+                        gov = selectedGov,
+                        ceiling = selectedCeiling,
+                    )
+                }
+
+                // Section 1: Performance
+                item {
+                    SectionLabel("Performance")
+                }
+
+                item {
+                    ExpressiveList(count = 4) { index ->
+                        when (index) {
+                            0 -> GovernorRow(
+                                selected = selectedGov,
+                                onClick = { showGovSheet = true },
+                            )
+                            1 -> CeilingRow(
+                                selected = selectedCeiling,
+                                onClick = { showCeilingSheet = true },
+                            )
+                            2 -> SliderRow(
+                                title = "Target FPS limit",
+                                value = targetFps,
+                                onChange = { targetFps = it },
+                                onValueChangeFinished = { updateAndSave(fps = targetFps) },
+                                range = 30f..120f,
+                                steps = 5,
+                                valueLabel = "${targetFps.toInt()} FPS",
+                            )
+                            3 -> SliderRow(
+                                title = "Screen refresh rate",
+                                value = refreshRate,
+                                onChange = { refreshRate = it },
+                                onValueChangeFinished = { updateAndSave(refresh = refreshRate) },
+                                range = 0f..120f,
+                                steps = 3,
+                                valueLabel = if (refreshRate.toInt() == 0) "System default" else "${refreshRate.toInt()} Hz",
+                            )
+                        }
+                    }
+                }
+
+                // Section 2: System Triggers
+                item {
+                    SectionLabel("System triggers")
+                }
+
+                item {
+                    ExpressiveList(count = 1) { index ->
+                        when (index) {
+                            0 -> SwitchRow(
+                                title = "Do Not Disturb",
+                                subtitle = "Priority notifications on launch",
+                                checked = enableDnd,
+                                onCheck = { updateAndSave(dnd = it) },
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -279,10 +307,6 @@ fun GameProfileScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    // Hide the dialog instantly so it does not linger
-                    // while the parent recomposes; onRemove is expected
-                    // to also pop this screen (see call sites in
-                    // GamesPane / AuriyaNavigation).
                     pendingDelete = false
                     onRemove()
                 }) {
@@ -296,10 +320,442 @@ fun GameProfileScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileActionsBottomSheet(
+    appLabel: String,
+    isExistingProfile: Boolean,
+    onReset: () -> Unit,
+    onRemove: (() -> Unit)?,
+    onDismiss: () -> Unit,
+    sheetState: SheetState,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { AuriyaDragHandle() },
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+        ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Profile Actions",
+                        style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 28.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Manage configurations for $appLabel",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            // Card 1: Reset to Defaults
+            item {
+                Surface(
+                    onClick = {
+                        onReset()
+                        onDismiss()
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Refresh,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Reset to Defaults",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = "Restore default governor, 60 FPS cap, and system defaults.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Card 2: Delete / Remove Profile
+            if (isExistingProfile && onRemove != null) {
+                item {
+                    Surface(
+                        onClick = {
+                            onDismiss()
+                            onRemove()
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(44.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.DeleteOutline,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onError,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Remove Profile",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "Delete saved tuning profile and revert to global policy.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GovernorSelectionBottomSheet(
+    selectedGov: String,
+    options: List<String>,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+    sheetState: SheetState,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { AuriyaDragHandle() },
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+        ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "CPU Governor",
+                        style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 28.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Select scheduling frequency policy for this app",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            items(options) { opt ->
+                val isSelected = opt.equals(selectedGov, ignoreCase = true)
+                val (icon, subtitle) = getGovernorInfo(opt)
+
+                Surface(
+                    onClick = {
+                        onSelect(opt)
+                        onDismiss()
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.size(42.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = opt.uppercase(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurface
+                                )
+                                if (isSelected) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                    ) {
+                                        Text(
+                                            text = "ACTIVE",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CeilingSelectionBottomSheet(
+    selectedCeiling: String,
+    options: List<String>,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+    sheetState: SheetState,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { AuriyaDragHandle() },
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+        ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "CPU Ceiling",
+                        style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 28.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Set max power cap and thermal throttling threshold",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            items(options) { opt ->
+                val isSelected = opt.equals(selectedCeiling, ignoreCase = true)
+                val (icon, subtitle) = getCeilingInfo(opt)
+
+                Surface(
+                    onClick = {
+                        onSelect(opt)
+                        onDismiss()
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.tertiaryContainer
+                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isSelected) MaterialTheme.colorScheme.tertiary
+                            else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.size(42.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = if (isSelected) MaterialTheme.colorScheme.onTertiary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = opt.uppercase(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onTertiaryContainer
+                                    else MaterialTheme.colorScheme.onSurface
+                                )
+                                if (isSelected) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                    ) {
+                                        Text(
+                                            text = "ACTIVE",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onTertiary,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isSelected) MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f)
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun HeroHeader(
     label: String,
-    packageName: String,
     iconBitmap: androidx.compose.ui.graphics.ImageBitmap?,
     targetFps: Int,
     dnd: Boolean,
@@ -307,74 +763,121 @@ private fun HeroHeader(
     ceiling: String,
 ) {
     Surface(
-        shape = RoundedCornerShape(AuriyaTokens.rounding.extraLarge),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                MaterialTheme.colorScheme.surfaceContainerHigh,
-                            ),
-                        ),
-                    ).padding(AuriyaTokens.padding.larger),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(64.dp)
-                                .clip(rememberCookie9())
-                                .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (iconBitmap != null) {
-                            Image(bitmap = iconBitmap, contentDescription = null, modifier = Modifier.fillMaxSize())
-                        } else {
-                            Icon(
-                                imageVector = Icons.Outlined.SportsEsports,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(AuriyaTokens.iconSize.large),
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(AuriyaTokens.padding.normal))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = packageName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest),
-                    verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)
-                ) {
-                    StatusBadge(label = "Active", tone = StatusTone.SUCCESS)
-                    StatusBadge(label = "$targetFps FPS", tone = StatusTone.SECONDARY)
-                    if (dnd) StatusBadge(label = "DnD", tone = StatusTone.WARNING)
-                    StatusBadge(label = gov, tone = StatusTone.OUTLINE)
-                    if (ceiling != "default") StatusBadge(label = ceiling.replaceFirstChar { it.uppercase() }, tone = StatusTone.PRIMARY)
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (iconBitmap != null) {
+                    Image(bitmap = iconBitmap, contentDescription = null, modifier = Modifier.fillMaxSize())
+                } else {
+                    Icon(
+                        imageVector = Icons.Outlined.SportsEsports,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(30.dp),
+                    )
                 }
             }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    CompactMetricChip(
+                        icon = Icons.Outlined.Speed,
+                        text = "$targetFps FPS",
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    CompactMetricChip(
+                        icon = Icons.Outlined.Tune,
+                        text = gov.uppercase(),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+
+                    if (ceiling != "default") {
+                        CompactMetricChip(
+                            icon = Icons.Outlined.LocalFireDepartment,
+                            text = ceiling.uppercase(),
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+
+                    if (dnd) {
+                        CompactMetricChip(
+                            icon = Icons.Outlined.DoNotDisturbOn,
+                            text = "DnD",
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactMetricChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    containerColor: androidx.compose.ui.graphics.Color,
+    contentColor: androidx.compose.ui.graphics.Color
+) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = containerColor
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(11.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = contentColor,
+                fontSize = 10.sp
+            )
         }
     }
 }
@@ -383,26 +886,22 @@ private fun HeroHeader(
 private fun SectionLabel(label: String) {
     Text(
         text = label.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.ExtraBold,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = AuriyaTokens.padding.small),
+        modifier = Modifier.padding(start = AuriyaTokens.padding.small, top = 4.dp),
     )
 }
 
 @Composable
 private fun GovernorRow(
     selected: String,
-    expanded: Boolean,
-    onExpand: (Boolean) -> Unit,
-    onSelect: (String) -> Unit,
-    options: List<String>,
+    onClick: () -> Unit,
 ) {
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -418,43 +917,28 @@ private fun GovernorRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Box {
-            Surface(
-                onClick = { onExpand(true) },
-                shape = RoundedCornerShape(AuriyaTokens.rounding.full),
-                color = MaterialTheme.colorScheme.primaryContainer,
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(AuriyaTokens.rounding.full),
+            color = MaterialTheme.colorScheme.primaryContainer,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = AuriyaTokens.padding.small, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = selected.uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                    Icon(
-                        imageVector = Icons.Filled.ArrowDropDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(AuriyaTokens.iconSize.medium),
-                    )
-                }
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { onExpand(false) }) {
-                options.forEach { opt ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = opt.uppercase(),
-                                fontWeight = if (opt == selected) FontWeight.ExtraBold else FontWeight.Normal,
-                                color = if (opt == selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            )
-                        },
-                        onClick = { onSelect(opt) },
-                    )
-                }
+                Text(
+                    text = selected.uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Icon(
+                    imageVector = Icons.Filled.ArrowDropDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
     }
@@ -463,16 +947,12 @@ private fun GovernorRow(
 @Composable
 private fun CeilingRow(
     selected: String,
-    expanded: Boolean,
-    onExpand: (Boolean) -> Unit,
-    onSelect: (String) -> Unit,
-    options: List<String>,
+    onClick: () -> Unit,
 ) {
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -488,43 +968,28 @@ private fun CeilingRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Box {
-            Surface(
-                onClick = { onExpand(true) },
-                shape = RoundedCornerShape(AuriyaTokens.rounding.full),
-                color = MaterialTheme.colorScheme.tertiaryContainer,
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(AuriyaTokens.rounding.full),
+            color = MaterialTheme.colorScheme.tertiaryContainer,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = AuriyaTokens.padding.small, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = selected.uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                    Icon(
-                        imageVector = Icons.Filled.ArrowDropDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.size(AuriyaTokens.iconSize.medium),
-                    )
-                }
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { onExpand(false) }) {
-                options.forEach { opt ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = opt.uppercase(),
-                                fontWeight = if (opt == selected) FontWeight.ExtraBold else FontWeight.Normal,
-                                color = if (opt == selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            )
-                        },
-                        onClick = { onSelect(opt) },
-                    )
-                }
+                Text(
+                    text = selected.uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                Icon(
+                    imageVector = Icons.Filled.ArrowDropDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
     }
@@ -535,15 +1000,15 @@ private fun SliderRow(
     title: String,
     value: Float,
     onChange: (Float) -> Unit,
+    onValueChangeFinished: (() -> Unit)? = null,
     range: ClosedFloatingPointRange<Float>,
     steps: Int,
     valueLabel: String,
 ) {
     Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest),
     ) {
         Row(
@@ -561,13 +1026,13 @@ private fun SliderRow(
         Slider(
             value = value,
             onValueChange = onChange,
+            onValueChangeFinished = onValueChangeFinished,
             valueRange = range,
             steps = steps,
-            colors =
-                SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                ),
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+            ),
         )
     }
 }
@@ -580,10 +1045,9 @@ private fun SwitchRow(
     onCheck: (Boolean) -> Unit,
 ) {
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -598,6 +1062,68 @@ private fun SwitchRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Switch(checked = checked, onCheckedChange = onCheck)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheck,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                checkedBorderColor = Color.Transparent,
+                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+            )
+        )
+    }
+}
+
+private fun getGovernorInfo(gov: String): Pair<androidx.compose.ui.graphics.vector.ImageVector, String> {
+    val name = gov.lowercase().trim()
+    return when (name) {
+        "performance" -> Icons.Outlined.Speed to "Locks CPU clusters to maximum operating frequencies for maximum throughput."
+        "powersave" -> Icons.Outlined.BatterySaver to "Locks CPU to lowest frequencies to conserve battery and minimize thermals."
+        "schedutil" -> Icons.Outlined.Tune to "Energy-Aware Scheduling governor scaling frequencies dynamically via task load."
+        "walt" -> Icons.Outlined.Analytics to "Qualcomm Window-Assisted Load Tracking predicting workload demand history."
+        "conservative" -> Icons.AutoMirrored.Filled.TrendingDown to "Gradual step-by-step frequency scaling prioritizing battery longevity."
+        "ondemand" -> Icons.Outlined.Bolt to "Rapidly jumps to maximum frequency on CPU load spikes, then steps down."
+        "interactive" -> Icons.Outlined.TouchApp to "Responsive scaling tailored for low latency and smooth UI touch response."
+        "userspace" -> Icons.Outlined.Tune to "Allows manual frequency control by userspace daemons and external tools."
+        "blu_schedutil", "blu_active" -> Icons.Outlined.Tune to "Tuned EAS governor by eng.stk balancing smooth frametimes and efficiency."
+        "helix_schedutil" -> Icons.Outlined.Tune to "Energy-Aware Scheduling governor tuned for responsive UI and reduced power spikes."
+        "electroutil" -> Icons.Outlined.EnergySavingsLeaf to "Schedutil tuning designed for battery efficiency and low frametime jitter."
+        "pwrutilx", "pwrutil" -> Icons.Outlined.BatterySaver to "Power-focused schedutil variant designed for extended battery endurance."
+        "elementalx" -> Icons.Outlined.Speed to "ElementalX custom governor balancing rapid touch response with battery preservation."
+        "alucard" -> Icons.Outlined.Speed to "Custom governor with aggressive frequency ramp-up on high computational loads."
+        "darkness", "nightmare" -> Icons.Outlined.Speed to "Aggressive scaling governor prioritizing rapid task completion and fast idle."
+        "impulse" -> Icons.Outlined.Bolt to "Tuned interactive governor delivering instant frequency bursts for responsiveness."
+        "ironactive" -> Icons.Outlined.EnergySavingsLeaf to "Interactive variant modified for aggressive power conservation and smooth scaling."
+        "zzmoove" -> Icons.Outlined.Tune to "Dynamic multi-profile governor that adapts frequency scaling based on load patterns."
+        "smartmax", "smartmax_eps" -> Icons.Outlined.EnergySavingsLeaf to "Custom governor tuned for UI smoothness with strict battery caps."
+        "wheatley" -> Icons.Outlined.EnergySavingsLeaf to "Governor designed to maximize CPU C-state sleep duration during active sessions."
+        "pegasusq" -> Icons.Outlined.Tune to "Multi-core aware governor that dynamically manages core hotplugging and scaling."
+        "cultivation", "cultivation_schedutil" -> Icons.Outlined.SportsEsports to "Gaming-focused governor optimized for stable 3D framerates and frametime pacing."
+        "bioshock" -> Icons.Outlined.Speed to "Custom multi-tiered governor designed for snappy responsiveness under gaming loads."
+        "yankactive", "yankbattery" -> Icons.Outlined.BatterySaver to "Battery-centric governor tuned for endurance and conservative frequency bumps."
+        "smartass", "smartassv2" -> Icons.Outlined.TouchApp to "Smart interactive governor with dedicated screen-on and deep-sleep states."
+        else -> when {
+            "sched" in name || "util" in name -> Icons.Outlined.Tune to "Scheduler-based frequency scaling policy."
+            "save" in name || "eco" in name || "pwr" in name || "batt" in name -> Icons.Outlined.BatterySaver to "Power-saving frequency policy designed to minimize battery drain."
+            "perf" in name || "boost" in name || "turbo" in name || "max" in name -> Icons.Outlined.Speed to "High-performance frequency scaling policy."
+            "active" in name || "interact" in name || "touch" in name -> Icons.Outlined.TouchApp to "Interactive scaling policy responsive to UI and input events."
+            "game" in name || "gaming" in name -> Icons.Outlined.SportsEsports to "Gaming-tuned governor policy optimized for steady frametimes."
+            "chill" in name || "cool" in name || "thermal" in name -> Icons.Outlined.EnergySavingsLeaf to "Thermal-focused frequency policy prioritizing cool operation."
+            else -> Icons.Outlined.Tune to "Kernel CPU governor scheduling policy."
+        }
+    }
+}
+
+private fun getCeilingInfo(ceiling: String): Pair<androidx.compose.ui.graphics.vector.ImageVector, String> {
+    val name = ceiling.lowercase().trim()
+    return when (name) {
+        "default" -> Icons.Outlined.Tune to "Vendor kernel default power capping and thermal limits."
+        "low" -> Icons.Outlined.EnergySavingsLeaf to "Strict thermal cap for maximum battery conservation and cool thermals."
+        "balance" -> Icons.Outlined.Balance to "Balanced power limit balancing sustained FPS and thermal dissipation."
+        "high" -> Icons.Outlined.LocalFireDepartment to "High burst power ceiling allowing sustained peak graphical performance."
+        else -> Icons.Outlined.Tune to "Custom cluster frequency ceiling cap."
     }
 }

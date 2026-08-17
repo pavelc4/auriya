@@ -19,6 +19,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        viewModel.loadInstalledApps(packageManager)
         setContent {
             val prefs by themeViewModel.prefs.collectAsState()
             AuriyaTheme(prefs = prefs) {

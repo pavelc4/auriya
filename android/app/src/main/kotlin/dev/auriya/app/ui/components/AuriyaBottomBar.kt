@@ -58,6 +58,8 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.graphics.graphicsLayer
 
+import dev.auriya.app.ui.theme.GoogleSansRounded
+
 data class AuriyaNavItem(
     val label: String,
     val icon: ImageVector,
@@ -76,7 +78,7 @@ fun AuriyaBottomBar(
         ModernBar(items, selectedIndex, onSelect, mode, cornerRadius)
     } else {
         when (mode) {
-            NavMode.STANDARD -> StandardBar(items, selectedIndex, onSelect)
+            NavMode.STANDARD -> StandardBar(items, selectedIndex, onSelect, cornerRadius)
             NavMode.FLOATING -> FloatingPillBar(items, selectedIndex, onSelect)
         }
     }
@@ -87,16 +89,18 @@ private fun StandardBar(
     items: List<AuriyaNavItem>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
+    cornerRadius: Int = 24,
 ) {
     Surface(
         shape = RoundedCornerShape(
-            topStart = AuriyaTokens.rounding.xl,
-            topEnd = AuriyaTokens.rounding.xl,
+            topStart = cornerRadius.dp,
+            topEnd = cornerRadius.dp,
             bottomStart = 0.dp,
             bottomEnd = 0.dp
         ),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
     ) {
         NavigationBar(
             containerColor = Color.Transparent,
@@ -106,7 +110,7 @@ private fun StandardBar(
                 NavigationBarItem(
                     selected = selectedIndex == index,
                     onClick = { onSelect(index) },
-                    label = { Text(item.label) },
+                    label = { Text(item.label, fontFamily = GoogleSansRounded, fontWeight = FontWeight.SemiBold) },
                     icon = { Icon(item.icon, contentDescription = item.label) },
                     colors = NavigationBarItemDefaults.colors(
                         indicatorColor = MaterialTheme.colorScheme.primaryContainer,
@@ -135,17 +139,16 @@ private fun FloatingPillBar(
     ) {
         Surface(
             shape = RoundedCornerShape(AuriyaTokens.rounding.full),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
-            tonalElevation = 2.dp,
-            shadowElevation = 12.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 4.dp,
+            shadowElevation = 16.dp,
         ) {
             Row(
                 modifier = Modifier
-                    .height(64.dp)
-                    .padding(horizontal = AuriyaTokens.padding.small),
+                    .height(74.dp)
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smaller),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items.forEachIndexed { index, item ->
                     PillNavItem(
@@ -166,20 +169,22 @@ private fun PillNavItem(
     onClick: () -> Unit,
 ) {
     val bg by animateColorAsState(
-        if (selected) MaterialTheme.colorScheme.secondaryContainer
+        if (selected) MaterialTheme.colorScheme.primaryContainer
         else Color.Transparent,
+        animationSpec = tween(durationMillis = 250),
         label = "nav-bg",
     )
     val fg by animateColorAsState(
-        if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+        if (selected) MaterialTheme.colorScheme.onPrimaryContainer
         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+        animationSpec = tween(durationMillis = 250),
         label = "nav-fg",
     )
     val interactionSource = remember { MutableInteractionSource() }
 
     Box(
         modifier = Modifier
-            .height(44.dp)
+            .height(52.dp)
             .clip(CircleShape)
             .background(bg)
             .clickable(
@@ -187,12 +192,15 @@ private fun PillNavItem(
                 indication = null,
                 onClick = onClick,
             )
-            .padding(horizontal = if (selected) 16.dp else 12.dp),
+            .padding(horizontal = if (selected) 20.dp else 16.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
             modifier = Modifier.animateContentSize(
-                animationSpec = tween(durationMillis = 200)
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
             ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
@@ -201,20 +209,28 @@ private fun PillNavItem(
                 imageVector = item.icon,
                 contentDescription = item.label,
                 tint = fg,
-                modifier = Modifier.size(AuriyaTokens.iconSize.normal),
+                modifier = Modifier.size(24.dp),
             )
 
             AnimatedVisibility(
                 visible = selected,
-                enter = fadeIn() + expandHorizontally(),
-                exit = fadeOut() + shrinkHorizontally()
+                enter = fadeIn(animationSpec = tween(180)) + expandHorizontally(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                ),
+                exit = fadeOut(animationSpec = tween(150)) + shrinkHorizontally(
+                    animationSpec = tween(150)
+                )
             ) {
                 Row {
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = item.label,
                         color = fg,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1
                     )
@@ -252,8 +268,8 @@ private fun ModernStandardBar(
             bottomStart = 0.dp,
             bottomEnd = 0.dp
         ),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 4.dp,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 2.dp,
         shadowElevation = 8.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -294,18 +310,17 @@ private fun ModernFloatingBar(
     ) {
         Surface(
             shape = RoundedCornerShape(cornerRadius.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 4.dp,
             shadowElevation = 16.dp,
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
             Row(
                 modifier = Modifier
-                    .height(64.dp)
-                    .padding(horizontal = 8.dp),
+                    .height(74.dp)
+                    .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items.forEachIndexed { index, item ->
                     val isSelected = selectedIndex == index
