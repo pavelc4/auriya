@@ -17,10 +17,20 @@ runs:
         ndk-version: r29
         add-to-path: true
 
-    - name: Setup Rust (stable)
-      uses: dtolnay/rust-toolchain@stable
+    - name: Setup Rust (nightly for eBPF)
+      uses: dtolnay/rust-toolchain@nightly
       with:
         targets: aarch64-linux-android
+        components: rust-src
+
+    - name: Set nightly as default (kala eBPF build script needs it)
+      run: rustup default nightly-x86_64-unknown-linux-gnu
+      shell: bash
+
+    - name: Install bpf-linker (prebuilt binary)
+      run: |
+        curl -sL "https://github.com/aya-rs/bpf-linker/releases/download/v0.11.0/bpf-linker-x86_64-unknown-linux-musl.tar.zst" | tar --zstd -x -C "${HOME}/.cargo/bin"
+      shell: bash
 
     - name: Install cargo-ndk
       run: cargo install cargo-ndk --locked
@@ -29,5 +39,5 @@ runs:
     - name: Install Compression Tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y p7zip-full
+        sudo apt-get install -y p7zip-full zstd
       shell: bash
