@@ -297,15 +297,17 @@ fun GamesScreen(
                     },
                     state = state,
                     indicator = {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = 12.dp)
-                        ) {
-                            val progress = state.distanceFraction.coerceIn(0f, 1f)
-                            if (isRefreshing || progress > 0f) {
+                        val rawProgress = state.distanceFraction
+                        val isVisible = isRefreshing || rawProgress >= 0.4f
+                        if (isVisible) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 12.dp)
+                            ) {
+                                val scale = if (isRefreshing) 1f else ((rawProgress - 0.4f) / 0.6f).coerceIn(0f, 1f)
                                 AuriyaLoadingIndicator(
-                                    size = 56.dp * if (isRefreshing) 1f else progress,
+                                    size = (52.dp * scale).coerceAtLeast(28.dp),
                                     modifier = Modifier.align(Alignment.Center)
                                 )
                             }
