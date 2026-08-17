@@ -43,7 +43,6 @@ fun HomeScreen(
 ) {
     val systemInfo by viewModel.systemInfo.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
-    val hasRoot by viewModel.hasRoot.collectAsState()
     val isDaemonRunning = systemInfo.pid != null && systemInfo.pid != "null"
     val context = LocalContext.current
     var showProfileSheet by remember { mutableStateOf(false) }
@@ -156,9 +155,6 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
                 ) {
-                    if (!hasRoot) {
-                        item { RootDeniedBanner() }
-                    }
                     item { HeroCard(isDaemonRunning = isDaemonRunning, systemInfo = systemInfo) }
                     item {
                         MiniCardRow(
@@ -190,43 +186,6 @@ fun HomeScreen(
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RootDeniedBanner() {
-    Surface(
-        shape = RoundedCornerShape(AuriyaTokens.rounding.xl),
-        color = MaterialTheme.colorScheme.errorContainer,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AuriyaTokens.padding.larger),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Warning,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier.size(AuriyaTokens.iconSize.normal),
-            )
-            Spacer(Modifier.width(AuriyaTokens.padding.normal))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Root access required",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                )
-                Text(
-                    text = "Grant superuser permission in KernelSU/Magisk/APatch manager so Auriya can read daemon state and config files.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
-                )
             }
         }
     }

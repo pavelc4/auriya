@@ -139,15 +139,7 @@ class UiViewModel : ViewModel() {
     }
 
     init {
-        viewModelScope.launch(Dispatchers.IO) {
-            // Only check the *cached* shell on startup — never trigger a SU prompt here.
-            // The OOBE step is responsible for the explicit root request.
-            val root = RootShell.hasCachedRoot()
-            _hasRoot.value = root
-            if (root) {
-                loadAvailableGovernors()
-            }
-        }
+        checkRoot()
         loadConfigurations()
         initSystemInfoStatic()
         startMonitoring()
@@ -227,6 +219,13 @@ class UiViewModel : ViewModel() {
                 if (!_isActive.value) {
                     delay(500)
                     continue
+                }
+                val cachedRoot = RootShell.hasCachedRoot()
+                if (cachedRoot && !_hasRoot.value) {
+                    _hasRoot.value = true
+                    loadAvailableGovernors()
+                    loadConfigurations()
+                    initSystemInfoStatic()
                 }
                 runCatching { pollOnce() }.onFailure { it.printStackTrace() }
                 delay(2000)
