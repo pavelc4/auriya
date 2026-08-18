@@ -58,10 +58,12 @@ impl Daemon {
             }
         } else {
             let telemetry = self.telemetry_hub.snapshot(&self.ceiling_controller.layout);
+            let game_session = self.is_in_game_session();
 
             if let Ok(mut cur) = self.shared_current.write() {
                 cur.pkg = self.last.pkg.clone();
                 cur.pid = self.last.pid;
+                cur.game_session = game_session;
                 cur.screen_awake = self.last.screen_awake.unwrap_or(false);
                 cur.battery_saver = self.last.battery_saver.unwrap_or(false);
                 cur.profile = self.last.profile_mode.unwrap_or(self.default_mode);

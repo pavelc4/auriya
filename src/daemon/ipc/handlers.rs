@@ -368,7 +368,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         &bat,
                         st.and_then(|s| s.pkg.as_deref()),
                         st.map(|s| s.profile).unwrap_or_default(),
-                        st.and_then(|s| s.pkg.as_ref()).is_some(),
+                        st.map(|s| s.game_session).unwrap_or(false),
                     )
                 };
 

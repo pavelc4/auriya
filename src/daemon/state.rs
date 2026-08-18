@@ -16,6 +16,11 @@ pub struct CurrentState {
     /// Measured FPS from eBPF (FAS) or sysfs fallback.
     pub fps: Option<f64>,
     pub fps_source: Option<crate::core::fps_meter::FpsSource>,
+    /// True only when a **whitelisted** game with a live PID is the active
+    /// session (mirrors `Daemon::is_in_game_session`), as opposed to any
+    /// foreground app. This is the authoritative "is a game running" signal
+    /// the stats API exposes as `session.active`.
+    pub game_session: bool,
 }
 
 #[derive(Debug, Default, Clone)]
