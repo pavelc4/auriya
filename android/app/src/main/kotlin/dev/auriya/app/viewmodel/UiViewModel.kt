@@ -1,11 +1,16 @@
 package dev.auriya.app.viewmodel
 
+import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.data.RootShell
+import dev.auriya.app.data.stats.BenchmarkRecorder
+import dev.auriya.app.data.stats.BenchmarkSession
+import dev.auriya.app.data.stats.Stats
+import dev.auriya.app.data.stats.StatsParser
 import dev.auriya.shared.config.ConfigPaths
 import dev.auriya.shared.config.TomlParser
 import dev.auriya.shared.model.*
@@ -38,7 +43,17 @@ data class SystemInfo(
     val ram: String = "-",
 )
 
-class UiViewModel : ViewModel() {
+class UiViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val benchmarkRecorder = BenchmarkRecorder(application)
+
+    private val _liveStats = MutableStateFlow<Stats?>(null)
+    val liveStats: StateFlow<Stats?> = _liveStats.asStateFlow()
+
+    val isRecording: StateFlow<Boolean> = benchmarkRecorder.isRecording
+    val currentRecordingDurationSec: StateFlow<Long> = benchmarkRecorder.currentRecordingDurationSec
+    val currentSamplesCount: StateFlow<Int> = benchmarkRecorder.currentSamplesCount
+    val benchmarkSessions: StateFlow<List<BenchmarkSession>> = benchmarkRecorder.sessions
 
     private val _settings = MutableStateFlow(Settings())
     val settings: StateFlow<Settings> = _settings.asStateFlow()
@@ -366,6 +381,33 @@ class UiViewModel : ViewModel() {
         } else {
             _logs.value = "No daemon log at $logPath"
         }
+
+        // Live performance stats & telemetry for Recording / Benchmark
+        runCatching {
+            val stats = StatsParser.fetchStats()
+            _liveStats.value = stats
+            stats?.let { benchmarkRecorder.processStats(it) }
+        }
+    }
+
+    fun startRecording(pkg: String? = null, profile: String = "balance") {
+        benchmarkRecorder.startManualRecording(pkg, profile)
+    }
+
+    fun stopRecording() {
+        benchmarkRecorder.stopManualRecording()
+    }
+
+    fun deleteBenchmarkSession(id: String) {
+        benchmarkRecorder.deleteSession(id)
+    }
+
+    fun clearAllBenchmarkSessions() {
+        benchmarkRecorder.clearAllSessions()
+    }
+
+    fun refreshBenchmarkSessions() {
+        benchmarkRecorder.loadSessions()
     }
 
     fun updateProfile(mode: String) {

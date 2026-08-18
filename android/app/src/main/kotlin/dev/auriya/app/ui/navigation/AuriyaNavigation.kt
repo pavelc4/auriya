@@ -37,12 +37,15 @@ import dev.auriya.app.ui.settings.LanguageScreen
 import dev.auriya.app.ui.settings.SettingsScreen
 import dev.auriya.app.viewmodel.ThemeViewModel
 import dev.auriya.app.viewmodel.UiViewModel
+import dev.auriya.app.ui.record.RecordScreen
 import dev.auriya.shared.model.GameProfile
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Tune
 
 enum class NavigationTab(val title: String, val icon: ImageVector) {
     HOME("Home", Icons.Filled.Home),
     GAMES("Games", Icons.Filled.SportsEsports),
+    RECORD("Record", Icons.Filled.Analytics),
     CONFIG("Config", Icons.Filled.Tune),
 }
 
@@ -271,6 +274,9 @@ fun AuriyaNavigation(
                                                     )
                                                 }
                                             }
+                                            NavigationTab.RECORD -> RecordScreen(
+                                                viewModel = viewModel
+                                            )
                                             NavigationTab.CONFIG -> ConfigScreen(
                                                 viewModel = viewModel
                                             )

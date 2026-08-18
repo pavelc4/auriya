@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.data.stats.AutoRecordPrefs
 import dev.auriya.app.ui.components.AuriyaDragHandle
 import dev.auriya.app.ui.components.ExpressiveList
 import dev.auriya.app.ui.components.StatusBadge
@@ -45,6 +46,10 @@ fun GameProfileScreen(
 ) {
     val context = LocalContext.current
     val pm = context.packageManager
+    val autoRecordPrefs = remember { AutoRecordPrefs(context) }
+    var autoRecord by remember(game.packageName) {
+        mutableStateOf(autoRecordPrefs.isAutoRecordEnabled(game.packageName))
+    }
     val appLabel =
         remember(game.packageName) {
             runCatching {
@@ -283,13 +288,22 @@ fun GameProfileScreen(
                 }
 
                 item {
-                    ExpressiveList(count = 1) { index ->
+                    ExpressiveList(count = 2) { index ->
                         when (index) {
                             0 -> SwitchRow(
                                 title = "Do Not Disturb",
                                 subtitle = "Priority notifications on launch",
                                 checked = enableDnd,
                                 onCheck = { updateAndSave(dnd = it) },
+                            )
+                            1 -> SwitchRow(
+                                title = "Auto Record FPS",
+                                subtitle = "Record benchmark session automatically on game launch",
+                                checked = autoRecord,
+                                onCheck = {
+                                    autoRecord = it
+                                    autoRecordPrefs.setAutoRecordEnabled(game.packageName, it)
+                                },
                             )
                         }
                     }
