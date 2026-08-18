@@ -26,7 +26,9 @@ daemon cannot reach:
   ([System tweaks → CmdWriter](../internals/system-tweaks#actions-routed-through-android--cmdwriter)).
 
 Its liveness is tracked via `companion.lock` (see
-[Architecture overview](overview#control-and-status-paths)).
+[Architecture overview](overview#control-and-status-paths)). Full internals —
+sensors, actuators, atomic file IO — are documented in
+[Companion service](../internals/companion).
 
 ## Shared Kotlin — `android/shared/`
 
