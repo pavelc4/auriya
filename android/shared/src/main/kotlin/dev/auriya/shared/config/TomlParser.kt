@@ -18,6 +18,10 @@ object TomlParser {
         var fasPollIntervalMs = 300L
         var fasTargetFps = 60
 
+        var dgEnabled = true
+        var dgCvThreshold = 0.15
+        var dgDebounceFrames = 3
+
         val modes = mutableMapOf<String, FasMode>()
 
         var currentSection = ""
@@ -87,6 +91,14 @@ object TomlParser {
                     }
                 }
 
+                "dynamic_governor" -> {
+                    when (key) {
+                        "enabled" -> dgEnabled = value.toBooleanStrictOrNull() ?: true
+                        "cv_threshold" -> dgCvThreshold = value.toDoubleOrNull() ?: 0.15
+                        "debounce_frames" -> dgDebounceFrames = value.toIntOrNull() ?: 3
+                    }
+                }
+
                 "modes" -> {
                     when (key) {
                         "margin" -> currentModeMargin = value.toDoubleOrNull()
@@ -102,6 +114,7 @@ object TomlParser {
             cpu = CpuConfig(cpuDefaultGovernor),
             dnd = DndConfig(dndDefaultEnable),
             fas = FasConfig(fasEnabled, fasDefaultMode, fasThermalThreshold, fasPollIntervalMs, fasTargetFps),
+            dynamicGovernor = DynamicGovernorConfig(dgEnabled, dgCvThreshold, dgDebounceFrames),
             modes = modes,
         )
     }
@@ -125,6 +138,11 @@ object TomlParser {
             append("thermal_threshold = ").append(settings.fas.thermalThreshold).append("\n")
             append("poll_interval_ms = ").append(settings.fas.pollIntervalMs).append("\n")
             append("target_fps = ").append(settings.fas.targetFps).append("\n\n")
+
+            append("[dynamic_governor]\n")
+            append("enabled = ").append(settings.dynamicGovernor.enabled).append("\n")
+            append("cv_threshold = ").append(settings.dynamicGovernor.cvThreshold).append("\n")
+            append("debounce_frames = ").append(settings.dynamicGovernor.debounceFrames).append("\n\n")
 
             settings.modes.forEach { (name, mode) ->
                 append("[modes.").append(name).append("]\n")

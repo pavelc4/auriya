@@ -5,6 +5,7 @@ data class Settings(
     val cpu: CpuConfig = CpuConfig(),
     val dnd: DndConfig = DndConfig(),
     val fas: FasConfig = FasConfig(),
+    val dynamicGovernor: DynamicGovernorConfig = DynamicGovernorConfig(),
     val modes: Map<String, FasMode> = emptyMap()
 )
 
@@ -28,6 +29,12 @@ data class FasConfig(
     val thermalThreshold: Double = 90.0,
     val pollIntervalMs: Long = 300,
     val targetFps: Int = 60
+)
+
+data class DynamicGovernorConfig(
+    val enabled: Boolean = true,
+    val cvThreshold: Double = 0.15,
+    val debounceFrames: Int = 3
 )
 
 data class FasMode(
