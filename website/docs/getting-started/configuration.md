@@ -1,6 +1,16 @@
 # Configuration
 
-Auriya reads two TOML files, both under `/data/adb/.config/auriya/`:
+:::tip Configure everything from the manager app
+**You do not need to edit any files by hand.** The Auriya manager app is the
+intended way to change every setting — global behavior and per-game overrides
+alike. Open the app, change what you want, and it writes the config for you; the
+daemon picks it up automatically. The file details below are for understanding
+and power-user fallback only — a normal setup never touches a terminal or a text
+editor. For which values to choose, see [Performance tuning](performance-tuning).
+:::
+
+Under the hood Auriya reads two TOML files, both under `/data/adb/.config/auriya/`
+(the app writes these — you don't have to):
 
 | File | Scope | Full reference |
 | --- | --- | --- |
@@ -12,15 +22,16 @@ every key (type, default, whether the daemon actually consumes it, and evidence)
 
 ## How edits reach the daemon
 
-- **From the manager app** — the app writes both files (and, for the game list,
-  the daemon also writes it in response to app/CLI commands). This is the primary,
-  supported path.
+- **From the manager app (recommended)** — the app writes both files, and for the
+  game list the daemon also rewrites it in response to app commands. This is the
+  primary, supported path and covers every setting.
 - **From the CLI** — `auriyactl` mutates the game list over IPC (`add-game`,
   `remove-game`, and raw `UPDATE_GAME`) and can trigger a settings reload with
   `auriyactl reload`. It has **no** command to edit individual `settings.toml`
   keys. See [Command reference](../reference/commands).
-- **By hand** — you can edit the files directly, then `auriyactl reload` (or let
-  the file watcher pick up the change).
+- **By hand (fallback)** — you *can* edit the files directly, then `auriyactl
+  reload` (or let the file watcher pick it up). Only needed if you're not using
+  the app.
 
 ## Two things to know before editing
 
@@ -43,6 +54,7 @@ but a *missing* game list is treated as empty. Details in the reference pages.
 
 ## Next
 
+[Performance tuning](performance-tuning) — which values to choose ·
 [settings.toml reference](../reference/settings) ·
 [gamelist.toml reference](../reference/gamelist) ·
 [Profile scheduler](../internals/profile-scheduler).

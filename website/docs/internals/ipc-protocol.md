@@ -63,6 +63,7 @@ lower-cased downstream).
 | `SET_FPS` | `SETFPS` | `<u32>` |
 | `GET_FPS` | `GETFPS` | — |
 | `GET_SUPPORTED_RATES` | `GETRATES` | — |
+| `GET_STATS` | `GETSTATS` | — |
 | `INJECT` | — | `<package>` |
 | `CLEAR_INJECT` | `CLEARINJECT` | — |
 | `GETPID` | `GET_PID` | — |
@@ -96,6 +97,7 @@ marks interpolated values.
 | `GETPID` / `GET_PID` | `PKG={pkg} PID={pid}`, or `PKG={pkg} PID=None`, or `PKG=None PID=None` | — |
 | `GET_FPS` | `FPS={measured:.1} TARGET={target}` (measured `0` if none) | — |
 | `GET_SUPPORTED_RATES` | JSON array of unique refresh rates, e.g. `[60,90,120]` (deduped/sorted from cached display modes) | `ERR JSON {e}` |
+| `GET_STATS` | Single-line JSON perf snapshot (fps/thermal/battery/cpu/gpu/session) — full schema in [Stats API](../reference/stats-api) | `ERR JSON {e}` |
 | `STATUS` | See [STATUS format](#status-response) below | — |
 
 #### STATUS response
