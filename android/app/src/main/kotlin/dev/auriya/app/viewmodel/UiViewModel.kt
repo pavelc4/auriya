@@ -45,7 +45,7 @@ data class SystemInfo(
 
 class UiViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val benchmarkRecorder = BenchmarkRecorder(application)
+    private val benchmarkRecorder = BenchmarkRecorder.getInstance(application)
 
     private val _liveStats = MutableStateFlow<Stats?>(null)
     val liveStats: StateFlow<Stats?> = _liveStats.asStateFlow()

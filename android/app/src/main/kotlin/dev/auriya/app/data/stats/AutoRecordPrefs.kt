@@ -21,4 +21,8 @@ class AutoRecordPrefs(context: Context) {
             .map { it.removePrefix("auto_rec_") }
             .toSet()
     }
+
+    fun hasAnyAutoRecordEnabled(): Boolean {
+        return getAllAutoRecordPackages().isNotEmpty()
+    }
 }

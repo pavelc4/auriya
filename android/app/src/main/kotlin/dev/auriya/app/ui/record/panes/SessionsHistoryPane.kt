@@ -14,31 +14,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.auriya.app.data.stats.BenchmarkSession
-import dev.auriya.app.ui.record.components.BenchmarkDetailBottomSheet
 import dev.auriya.app.ui.record.components.BenchmarkSessionCard
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SessionsHistoryPane(
     sessions: List<BenchmarkSession>,
+    onSelectSession: (BenchmarkSession) -> Unit,
     onDeleteSession: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedSessionForDetail by remember { mutableStateOf<BenchmarkSession?>(null) }
-    val detailSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    if (selectedSessionForDetail != null) {
-        BenchmarkDetailBottomSheet(
-            session = selectedSessionForDetail!!,
-            onDismiss = { selectedSessionForDetail = null },
-            onDelete = {
-                onDeleteSession(selectedSessionForDetail!!.id)
-                selectedSessionForDetail = null
-            },
-            sheetState = detailSheetState
-        )
-    }
-
     Surface(
         modifier = modifier.fillMaxSize(),
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
@@ -78,13 +62,13 @@ fun SessionsHistoryPane(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(sessions, key = { it.id }) { session ->
                     BenchmarkSessionCard(
                         session = session,
-                        onClick = { selectedSessionForDetail = session },
+                        onClick = { onSelectSession(session) },
                         onDelete = { onDeleteSession(session.id) }
                     )
                 }

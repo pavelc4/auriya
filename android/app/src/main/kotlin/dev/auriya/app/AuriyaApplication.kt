@@ -25,6 +25,7 @@ class AuriyaApplication : Application(), SingletonImageLoader.Factory {
                 .setTimeout(10),
         )
         super.onCreate()
+        dev.auriya.app.data.stats.BenchmarkRecorder.getInstance(this)
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {

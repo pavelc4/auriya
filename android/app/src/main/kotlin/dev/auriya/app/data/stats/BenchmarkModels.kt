@@ -5,6 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.util.UUID
+import kotlin.math.roundToInt
 
 data class BenchmarkSample(
     val timestampOffsetMs: Long,
@@ -148,6 +149,32 @@ class BenchmarkRepository(private val context: Context) {
             }
         }
 
+        val activeSamples = samplesList.filter { it.fps > 10.0 }.ifEmpty { samplesList }
+        val calcAvgFps = if (activeSamples.isNotEmpty()) {
+            (activeSamples.map { it.fps }.average() * 10.0).roundToInt() / 10.0
+        } else {
+            obj.optDouble("avgFps", 0.0)
+        }
+        val calcLow1Pct = if (activeSamples.size >= 4) {
+            val sorted = activeSamples.map { it.fps }.sorted()
+            val count = (sorted.size * 0.05).toInt().coerceAtLeast(1)
+            (sorted.take(count).average() * 10.0).roundToInt() / 10.0
+        } else if (activeSamples.isNotEmpty()) {
+            (activeSamples.map { it.low1Pct }.average() * 10.0).roundToInt() / 10.0
+        } else {
+            obj.optDouble("minLow1Pct", 0.0)
+        }
+        val calcMaxFps = if (activeSamples.isNotEmpty()) {
+            (activeSamples.maxOf { it.fps } * 10.0).roundToInt() / 10.0
+        } else {
+            obj.optDouble("maxFps", 0.0)
+        }
+        val calcJank = if (samplesList.isNotEmpty()) {
+            samplesList.maxOfOrNull { it.jank } ?: obj.optInt("totalJank", 0)
+        } else {
+            obj.optInt("totalJank", 0)
+        }
+
         return BenchmarkSession(
             id = obj.optString("id", UUID.randomUUID().toString()),
             packageName = obj.optString("packageName", ""),
@@ -157,10 +184,10 @@ class BenchmarkRepository(private val context: Context) {
             endTimeEpoch = obj.optLong("endTimeEpoch", 0L),
             durationSeconds = obj.optLong("durationSeconds", 0L),
             samplesCount = obj.optInt("samplesCount", samplesList.size),
-            avgFps = obj.optDouble("avgFps", 0.0),
-            minLow1Pct = obj.optDouble("minLow1Pct", 0.0),
-            maxFps = obj.optDouble("maxFps", 0.0),
-            totalJank = obj.optInt("totalJank", 0),
+            avgFps = calcAvgFps,
+            minLow1Pct = calcLow1Pct,
+            maxFps = calcMaxFps,
+            totalJank = calcJank,
             avgCpuLoad = obj.optDouble("avgCpuLoad", 0.0).toFloat(),
             maxCpuTemp = if (obj.has("maxCpuTemp")) obj.getDouble("maxCpuTemp").toFloat() else null,
             maxBatteryTemp = if (obj.has("maxBatteryTemp")) obj.getDouble("maxBatteryTemp").toFloat() else null,
