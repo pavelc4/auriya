@@ -1,0 +1,33 @@
+---
+sidebar_position: 1
+slug: /
+title: Auriya Wiki
+description: Dokumentasi teknis untuk aplikasi Android, companion service, dan daemon Rust Auriya.
+---
+
+# Auriya Wiki
+
+Auriya adalah modul root Android yang terdiri dari manajer Kotlin/Compose, Android companion service, dan daemon Rust. Wiki ini mendokumentasikan bagaimana komponen-komponen tersebut dimulai, berkomunikasi, memantau sistem, dan menerapkan konfigurasi.
+
+## Mulai dari Sini
+
+| Tujuan | Halaman |
+| --- | --- |
+| Instalasi dan konfigurasi awal | [Instalasi](getting-started/installation) |
+| Memilih mode FAS dan nilai yang disarankan | [Penyesuaian performa](getting-started/performance-tuning) |
+| Memahami alur kerja program lengkap | [Ringkasan arsitektur](architecture/overview) |
+| Membaca FPS/telemetri langsung dari daemon | [Stats API](reference/stats-api) |
+| Memeriksa komunikasi aplikasi ke daemon | [Protokol IPC](internals/ipc-protocol) |
+| Mengompilasi Auriya dari source code | [Kompilasi](development/building) |
+
+:::info Cakupan
+Dokumentasi ini menjelaskan implementasi dan perilaku teknis sistem. Modul ini tidak menjanjikan peningkatan performa yang sama untuk setiap perangkat, ROM, atau kernel.
+:::
+
+## Status Dokumentasi
+
+Setiap halaman **terverifikasi dari source code**: setiap penjelasan teknis merujuk langsung ke file (dan fungsi) asalnya di repositori, serta dilengkapi catatan apa yang perlu diverifikasi ulang jika kode berubah.
+
+:::note Konfigurasi Terhubung Penuh
+Setiap kunci di `settings.toml` yang ditulis oleh aplikasi manajer sudah dikonsumsi langsung oleh daemon — termasuk scaffolding Frame-Aware Scheduling (`[fas]`, `[dynamic_governor]`, `[modes.*]`, `check_interval_ms`). Lihat [Referensi settings](reference/settings#key-by-key-reference) untuk rincian setiap efek kunci konfigurasi.
+:::

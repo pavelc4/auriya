@@ -62,16 +62,20 @@ The action reads the current commit subject, HTML-escapes `&`, `<`, and `>`, the
 
 ### Job DAG
 
-```text
-build.yml
-on: workflow_dispatch
+```mermaid
+flowchart LR
+    setup["setup"]
+    rust["rust-binary"]
+    apk["android-apk"]
+    pkg["package"]
+    notify["notify"]
 
-┌─────────────┐       ┌─────────────────┐       ┌─────────────┐       ┌────────────┐
-│    setup    ├───┬───┤   rust-binary   ├───┬───┤   package   ├───────┤   notify   │
-└─────────────┘   │   └─────────────────┘   │   └─────────────┘       └────────────┘
-                  │   ┌─────────────────┐   │
-                  └───┤   android-apk   ├───┘
-                      └─────────────────┘
+    setup --> rust
+    setup --> apk
+    rust --> pkg
+    apk --> pkg
+    setup -.-> notify
+    pkg --> notify
 ```
 
 `rust-binary` and `android-apk` run in parallel after `setup`. `package` requires both. `notify` declares `needs: [setup, package]` and `if: !cancelled()`, so it is allowed to start after a dependency failure/skipped result unless the run was cancelled.
@@ -159,16 +163,20 @@ Secrets: `BOT_TOKEN`, `CHAT_ID`, `GH_PAT`, `KEYSTORES_SSH_KEY`, `KEYSTORE_PASSWO
 
 ### Job DAG
 
-```text
-release.yml
-on: push (v*) | workflow_dispatch
+```mermaid
+flowchart LR
+    setup["setup"]
+    rust["rust-binary"]
+    apk["android-apk"]
+    pkg["package"]
+    rel["release"]
 
-┌─────────────┐       ┌─────────────────┐       ┌─────────────┐       ┌────────────┐
-│    setup    ├───┬───┤   rust-binary   ├───┬───┤   package   ├───────┤  release   │
-└─────────────┘   │   └─────────────────┘   │   └─────────────┘       └────────────┘
-                  │   ┌─────────────────┐   │
-                  └───┤   android-apk   ├───┘
-                      └─────────────────┘
+    setup --> rust
+    setup --> apk
+    rust --> pkg
+    apk --> pkg
+    setup -.-> rel
+    pkg --> rel
 ```
 
 The first four jobs execute the same commands and dependencies as `build.yml`, except packaging receives `build_type: release`. The final job is named `release`, needs `setup` and `package`, and uses `if: !cancelled()`.

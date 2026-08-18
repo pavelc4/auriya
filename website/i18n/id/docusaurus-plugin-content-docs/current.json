@@ -1,0 +1,26 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.docs.category.Getting Started": {
+    "message": "Memulai",
+    "description": "The label for category 'Getting Started' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Architecture": {
+    "message": "Arsitektur",
+    "description": "The label for category 'Architecture' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Internals": {
+    "message": "Internal",
+    "description": "The label for category 'Internals' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Reference": {
+    "message": "Referensi",
+    "description": "The label for category 'Reference' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Development": {
+    "message": "Pengembangan",
+    "description": "The label for category 'Development' in sidebar 'docs'"
+  }
+}

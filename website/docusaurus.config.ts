@@ -3,6 +3,12 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
+  future: {
+    faster: true,
+    v4: {
+      removeLegacyPostBuildHeadAttribute: true,
+    },
+  },
   title: 'Auriya Wiki',
   tagline: 'Technical documentation for Auriya',
   url: 'https://auriya-wiki.pages.dev',
@@ -10,7 +16,21 @@ const config: Config = {
   organizationName: 'pavelc4',
   projectName: 'auriya',
   onBrokenLinks: 'throw',
-  i18n: {defaultLocale: 'en', locales: ['en']},
+  i18n: {
+    defaultLocale: 'en',
+    locales: ['en', 'id'],
+    localeConfigs: {
+      en: {
+        label: 'English',
+        htmlLang: 'en-US',
+      },
+      id: {
+        label: 'Bahasa Indonesia',
+        htmlLang: 'id-ID',
+      },
+    },
+  },
+  markdown: {mermaid: true},
   presets: [
     [
       'classic',
@@ -28,6 +48,7 @@ const config: Config = {
     ],
   ],
   themes: [
+    '@docusaurus/theme-mermaid',
     [
       require.resolve('@easyops-cn/docusaurus-search-local'),
       {
@@ -35,8 +56,12 @@ const config: Config = {
         language: ['en'],
         indexDocs: true,
         indexBlog: false,
-        indexPages: false,
+        indexPages: true,
         docsRouteBasePath: '/docs',
+        searchBarPosition: 'right',
+        searchBarShortcut: true,
+        searchBarShortcutHint: true,
+        highlightSearchTermsOnTargetPage: true,
       },
     ],
   ],
@@ -59,6 +84,10 @@ const config: Config = {
       items: [
         {
           type: 'search',
+          position: 'right',
+        },
+        {
+          type: 'localeDropdown',
           position: 'right',
         },
         {

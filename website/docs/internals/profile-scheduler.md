@@ -20,20 +20,26 @@ and
 `Daemon::process_tick_logic` (`tick.rs:91-192`) evaluates conditions in **strict
 priority order**; the first matching branch wins and no lower branch runs:
 
-```text
-1. screen OFF or battery-saver ON
-      → POWERSAVE, Low ceiling, detach eBPF, disable game DnD
-2. IPC foreground override present (INJECT)
-      → treat the injected package as foreground
-3. companion reports no focused package
-      → default mode + release game-owned state
-4. same package as last tick AND tracked PID still alive
-      → fast path: FAS may adjust; profile NOT reapplied
-5. package is whitelisted
-      → validate PID against /proc; valid → enter/update game session
-                                 invalid → default mode + release state
-6. package is not whitelisted
-      → default mode + release game-owned state
+```mermaid
+flowchart TD
+    tick([Tick Triggered]) --> branch1{"1. Screen OFF or<br/>Battery Saver ON?"}
+    branch1 -->|yes| act1["POWERSAVE + Low ceiling<br/>+ detach eBPF + disable game DnD"]
+    branch1 -->|no| branch2{"2. IPC foreground override<br/>(INJECT) exists?"}
+
+    branch2 -->|yes| act2["Treat injected package as foreground"]
+    branch2 -->|no| branch3{"3. Companion reports<br/>focused package?"}
+
+    branch3 -->|no| act3["Default mode<br/>+ release game-owned state"]
+    branch3 -->|yes| branch4{"4. Same package &<br/>tracked PID alive?"}
+
+    branch4 -->|yes| act4["Fast path: FAS adjusts if available;<br/>Profile NOT reapplied"]
+    branch4 -->|no| branch5{"5. Package is whitelisted?"}
+
+    branch5 -->|yes| val_pid{"Validate PID against /proc"}
+    val_pid -->|valid| act5["Enter / update game session"]
+    val_pid -->|invalid| act3
+
+    branch5 -->|no| act6["6. Default mode<br/>+ release game-owned state"]
 ```
 
 Screen-off / battery-saver is checked first and unconditionally, so it wins even

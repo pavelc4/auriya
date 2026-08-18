@@ -75,32 +75,38 @@ nodes, plus the eBPF frame probe. Missing nodes are skipped
 
 ## Architecture tree
 
-```text
-Auriya
-├── Android plane
-│   ├── Manager app              Compose UI, root commands, widgets/overlay   (android/app)
-│   ├── Companion service        task/power/Zen sensors and actuators         (android/service)
-│   └── Shared module            models, TOML parser, command/status formats  (android/shared)
-├── Rust plane
-│   ├── auriya daemon            (src/main.rs, src/daemon, src/core)
-│   │   ├── daemon/              lifecycle, event loop, state, watchers
-│   │   ├── daemon/ipc/          Unix socket parser/server/handlers
-│   │   └── core/
-│   │       ├── config/          settings and game profiles
-│   │       ├── system_status/   companion snapshot cache
-│   │       ├── pid_tracker.rs   foreground process liveness
-│   │       ├── fps_meter/       sysfs/eBPF FPS telemetry
-│   │       ├── fas/             frame-aware scheduling
-│   │       ├── telemetry/       CPU/GPU/thermal observations
-│   │       ├── cmd_writer/      companion command file (DnD, refresh rate)
-│   │       └── tweaks/          CPU/GPU/scheduler/memory/vendor writes
-│   └── auriyactl                Unix socket client                           (src/ctl.rs, src/cli)
-├── Module plane                 (module/)
-│   ├── customize.sh             unpack, verify, install bundled payload
-│   ├── service.sh               boot companion then daemon
-│   └── uninstall.sh             process/package/data cleanup
-└── Documentation plane
-    └── Docusaurus               this wiki                                    (website/)
+```mermaid
+flowchart TD
+    root["Auriya Root Architecture"]
+    
+    subgraph android_plane ["Android Plane (android/)"]
+        app["Manager App (android/app)<br/>Compose UI, root cmds, overlay"]
+        comp["Companion Service (android/service)<br/>Sensors & actuators (app_process)"]
+        shared["Shared Module (android/shared)<br/>Models, TOML parser, types"]
+    end
+
+    subgraph rust_plane ["Rust Plane (src/)"]
+        daemon["auriya Daemon (src/main.rs, src/daemon, src/core)<br/>Event loop, watchers, scheduler"]
+        fas["FAS & FPS Meter (src/core/fas, fps_meter)<br/>eBPF frame pacing & scaling"]
+        tweaks["System Tweaks (src/core/tweaks)<br/>Governors, frequencies, memory, vendor"]
+        ctl["auriyactl (src/ctl.rs, src/cli)<br/>Unix domain socket CLI client"]
+    end
+
+    subgraph module_plane ["Module Plane (module/)"]
+        scripts["Root Lifecycle Scripts<br/>customize.sh, service.sh, uninstall.sh"]
+    end
+
+    subgraph doc_plane ["Documentation Plane (website/)"]
+        wiki["Docusaurus Technical Wiki"]
+    end
+
+    root --> android_plane
+    root --> rust_plane
+    root --> module_plane
+    root --> doc_plane
+
+    daemon --> fas
+    daemon --> tweaks
 ```
 
 For the exact source-tree layout of files on disk, see

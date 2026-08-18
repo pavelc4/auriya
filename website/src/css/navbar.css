@@ -9,12 +9,58 @@
   letter-spacing: 0;
 }
 
-.header-github-link {
-  width: 32px;
-  height: 32px;
+.navbar__items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navbar__item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.navbar__link {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px;
+  font-weight: 500;
+  border-radius: 8px;
+  line-height: 1;
+}
+
+.navbar__link svg,
+.dropdown > .navbar__link svg,
+.iconLanguage_nlXk {
+  display: inline-block !important;
+  vertical-align: middle;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+.dropdown--hoverable .dropdown__menu {
+  border-radius: 12px;
+  border: 1px solid var(--ifm-toc-border-color);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   padding: 6px;
-  margin-right: 4px;
+  min-width: 160px;
+}
+
+.dropdown__link {
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.header-github-link {
+  width: 34px;
+  height: 34px;
+  padding: 7px;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background var(--ifm-transition-fast);
 }
 

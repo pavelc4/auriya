@@ -2,39 +2,25 @@
 
 Auriya is a rooted Android performance module composed of three runtime planes: a Compose manager app, a companion Android service, and an aarch64 Rust daemon. The daemon is the owner of observation, profile transitions, telemetry, and writes to `/proc`/`sys`; Android components provide lifecycle integration and user-facing control.
 
-```text
-┌─────────────────┐
-│ Android Manager │
-└────────┬────────┘
-         │
-         │ commands and state
-         ▼
-┌───────────────────┐
-│ Companion Service │
-└────────┬──────────┘
-         │
-         │ local IPC
-         ▼
-┌───────────────────┐
-│    Rust Daemon    │
-└────────┬──────────┘
-         │
-         ├─► Process / game detection ──┐
-         │                              │
-         └─► FPS meter ─────────────────┴─► ┌───────────────────┐
-                                            │ Profile scheduler │
-                                            └─────────┬─────────┘
-                                                      │
-                                                      ▼
-                                            ┌───────────────────┐
-                                            │ System tweak layer│
-                                            └─────────┬─────────┘
-                                                      │
-                                                      ▼
-                                            ┌───────────────────┐
-                                            │  /proc and /sys   │
-                                            └───────────────────┘
+```mermaid
+flowchart TD
+    app["Android Manager (Compose)"]
+    comp["Companion Service (AuriyaSysMon)"]
+    daemon["Rust Daemon (auriya)"]
+    det["Process / Game Detection"]
+    fps["FPS Meter (eBPF / sysfs)"]
+    sched["Profile Scheduler"]
+    tweaks["System Tweak Layer"]
+    kernel["/proc & /sys (Kernel Interfaces)"]
 
+    app -->|commands & status| comp
+    comp -->|local IPC / system_status| daemon
+    daemon --> det
+    daemon --> fps
+    det --> sched
+    fps --> sched
+    sched --> tweaks
+    tweaks --> kernel
 ```
 
 The Android manager owns user interaction and presentation. The companion service bridges Android lifecycle constraints. The Rust daemon owns long-running observation, scheduling, telemetry, and system writes.
@@ -45,22 +31,23 @@ The control CLI in `src/ctl.rs` provides a second entry point for querying or co
 
 The installed module does not launch the daemon through the Android app. At boot, `module/service.sh` waits for Android's `sys.boot_completed`, starts the bundled companion APK with `app_process`, waits up to 10 seconds for `/data/adb/.config/auriya/system_status`, then executes `/data/adb/modules/auriya/system/bin/auriya` with the installed settings and gamelist paths. Standard output/error are piped into logcat and `/data/adb/auriya/daemon.log`. See [module lifecycle](module-lifecycle) for the installation paths.
 
-```text
-Android boot completed
-└── module/service.sh
-    ├── stop stale companion and daemon processes
-    ├── remove stale socket/status/lock files
-    ├── app_process service.apk → dev.auriya.service.Main
-    ├── wait for system_status (maximum 10 seconds)
-    └── execute Rust binary: auriya
-        ├── load settings.toml + gamelist.toml
-        ├── initialize logging
-        ├── wait for the companion status file
-        ├── create daemon state, telemetry, FPS/eBPF, and FAS objects
-        ├── bind /dev/socket/auriya.sock
-        ├── start config/module/companion watchers
-        ├── run one immediate tick
-        └── enter the adaptive event loop
+```mermaid
+flowchart TD
+    boot([Android boot completed]) --> svc["module/service.sh"]
+    svc --> c1["Stop stale companion & daemon processes"]
+    svc --> c2["Remove stale socket / status / lock files"]
+    svc --> c3["app_process service.apk → dev.auriya.service.Main"]
+    svc --> c4{"Wait for system_status<br/>(≤ 10s timeout)"}
+    c4 -->|ok| daemon["exec auriya (Rust Binary)"]
+    c4 -->|timeout| abort["Abort daemon startup"]
+
+    daemon --> d1["Load settings.toml + gamelist.toml"]
+    daemon --> d2["Initialize logging & tracing"]
+    daemon --> d3["Create daemon state, telemetry, eBPF & FAS"]
+    daemon --> d4["Bind /dev/socket/auriya.sock"]
+    daemon --> d5["Start config, module & companion watchers"]
+    daemon --> d6["Run one immediate tick"]
+    d6 --> loop([Enter adaptive event loop])
 ```
 
 The Rust entry point loads both configuration files before initializing tracing; a load/parse error returns from `main` and prevents daemon startup ([`main`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/main.rs#L8-L49)). `run_with_config` refuses to continue when the companion status file is not populated within 10 seconds. Failure to enumerate display modes is non-fatal and produces an empty supported-mode list ([`run_with_config`](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/daemon/run.rs#L574-L607)).
@@ -85,23 +72,28 @@ Tick errors do not terminate the loop. Identical errors are log-debounced for 30
 
 The profile scheduler evaluates conditions in strict priority order. A lower branch is not evaluated after a higher branch returns.
 
-```text
-tick
-├── screen OFF or battery saver ON?
-│   └── POWERSAVE + Low ceiling + detach eBPF + disable game DnD
-├── foreground override from IPC exists?
-│   └── use injected package
-├── companion has no focused package?
-│   └── apply default mode + release game-owned state
-├── same package and tracked PID still alive?
-│   ├── FAS available and package whitelisted → run FAS decision
-│   └── otherwise skip profile reapplication
-├── package is whitelisted?
-│   ├── validate companion PID against /proc/package
-│   ├── PID invalid/missing → default mode + release game-owned state
-│   └── PID valid → enter/update game session
-└── package is not whitelisted
-    └── default mode + release game-owned state
+```mermaid
+flowchart TD
+    tick([Tick Triggered]) --> check_screen{"Screen OFF or<br/>Battery Saver ON?"}
+    check_screen -->|yes| p_powersave["POWERSAVE + Low ceiling<br/>+ detach eBPF + disable game DnD"]
+    check_screen -->|no| check_inject{"Foreground override<br/>from IPC exists?"}
+
+    check_inject -->|yes| use_inject["Use injected package"]
+    check_inject -->|no| check_fg{"Companion has<br/>focused package?"}
+
+    check_fg -->|no| default_mode["Apply default mode<br/>+ release game-owned state"]
+    check_fg -->|yes| check_same{"Same package &<br/>tracked PID still alive?"}
+
+    check_same -->|yes| check_fas{"FAS available &<br/>whitelisted?"}
+    check_fas -->|yes| run_fas["Run FAS scaling decision"]
+    check_fas -->|no| skip_reapply["Skip profile reapplication"]
+
+    check_same -->|no| check_white{"Package is<br/>whitelisted?"}
+    check_white -->|no| default_mode
+
+    check_white -->|yes| check_pid{"Validate PID<br/>against /proc/package"}
+    check_pid -->|invalid / missing| default_mode
+    check_pid -->|valid| enter_game["Enter / update game session<br/>(lock vendor, profile, ceiling, eBPF, DnD)"]
 ```
 
 This order is implemented by `Daemon::process_tick_logic` ([source](https://github.com/pavelc4/auriya/blob/10fe7c6b56474a00513fec34ebac1376b30e95e6/src/daemon/tick.rs#L91-L192)). Screen-off or battery saver always wins, even if a game remains foregrounded. The daemon only calls a full profile application when `last.profile_mode` differs from the target mode; repeated ticks do not rewrite every kernel node.

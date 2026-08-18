@@ -16,22 +16,38 @@ below is grounded in the runtime paths described in [Data flow](data-flow).
 
 ## Use-case map
 
-```text
-                       ┌───────────────────────── Auriya ─────────────────────────┐
-                       │                                                           │
-  User ── install/flash ─────────────────────────────▶ (module lifecycle)         │
-   │                   │                                                           │
-   ├─ set profile ─────┼─▶ App ─▶ socket SET_PROFILE ─▶ Daemon ─▶ Kernel writes    │
-   ├─ add/edit game ───┼─▶ App ─▶ socket ADD/UPDATE_GAME ─▶ Daemon ─▶ gamelist.toml │
-   ├─ tune FAS/settings ┼▶ App ─▶ writes settings.toml ─▶ Daemon (watch/restart)   │
-   ├─ view live stats ─┼─▶ App ─▶ socket GET_STATS ─▶ Daemon ─▶ JSON ─▶ cards       │
-   └─ (auto) record FPS ┼▶ App watches session.active ─▶ records GET_STATS samples  │
-                       │                                                           │
-   Play a game ────────┼─▶ Companion detects fg ─▶ system_status ─▶ Daemon tick ─▶  │
-                       │      profile + FAS + eBPF attach ─▶ Kernel                 │
-                       │                                                           │
-   Boot ───────────────┼─▶ service.sh ─▶ Companion + Daemon come up (no user act.)  │
-                       └───────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    user(("User"))
+    user --> uc1["Install / flash"]
+    user --> uc2["Set profile"]
+    user --> uc3["Add / edit game"]
+    user --> uc4["Tune FAS / settings"]
+    user --> uc6["View live stats"]
+    user --> uc7["Auto-record FPS"]
+
+    uc1 --> life["module lifecycle (customize.sh)"]
+    uc2 --> app["Manager app"]
+    uc3 --> app
+    uc4 --> app
+    uc6 --> app
+    uc7 --> app
+
+    app -->|SET_PROFILE| daemon["Daemon"]
+    app -->|ADD / UPDATE_GAME| daemon
+    app -->|writes settings.toml| daemon
+    app -->|GET_STATS| daemon
+    uc7 -.->|watches session.active,<br/>records GET_STATS samples| app
+
+    daemon -->|"governor / tweaks"| kernel["Kernel /proc,/sys"]
+    daemon -->|rewrites| gl[("gamelist.toml")]
+    daemon -->|JSON| app
+
+    comp["Companion"] -->|"detects foreground,<br/>writes system_status"| daemon
+    play(("Play a game")) --> comp
+    daemon -->|"profile + FAS + eBPF attach"| kernel
+
+    boot(("Boot")) --> svc["service.sh starts<br/>Companion + Daemon (no user action)"]
 ```
 
 ## Flows
@@ -93,21 +109,6 @@ below is grounded in the runtime paths described in [Data flow](data-flow).
 3. Recording is stored in the app's own sandbox. The daemon provides the *signal*
    (`session.active`) and *data* (`GET_STATS`); the recording logic is app-side —
    see [Stats API → auto-record](../reference/stats-api#fps-auto-record-app-side).
-
-## Actor × capability matrix
-
-| Capability | User | App | Companion | Daemon | Kernel |
-| --- | :---: | :---: | :---: | :---: | :---: |
-| Install / boot | ▶ | | ● | ● | |
-| Set profile | ▶ | ● | | ● | ✎ |
-| Add / edit game | ▶ | ● | | ● | |
-| Tune settings | ▶ | ● | | ● | |
-| Detect foreground game | | | ● | ○ | |
-| Apply FAS / tweaks | | | | ● | ✎ |
-| Provide telemetry | | ○ | ○ | ● | ○ |
-| View / record stats | ▶ | ● | | ○ | |
-
-▶ initiates · ● performs · ○ provides/observes · ✎ is written to
 
 ## See also
 

@@ -122,7 +122,7 @@ $ auriyactl --socket /tmp/test.sock status
    	   Auriya Daemon Status
 Daemon: Running
 
-  ✓ Enabled:  true
+    Enabled:  true
     Games:    3 configured
     FPS:      59.8 SOURCE=ebpf
 ```

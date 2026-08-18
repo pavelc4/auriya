@@ -15,27 +15,31 @@ Rust: `src/core/config/`, `src/core/system_status/`, `src/core/cmd_writer/`,
 
 ## Entity map (who owns what, sync direction)
 
-```text
-                 ┌───────────────────────── PERSISTED CONFIG ─────────────────────────┐
-                 │                                                                     │
-   ┌─────────────┴─────────────┐        settings.toml         ┌────────────────────┐  │
-   │  Kotlin models (app)      │  write ───────────────────▶  │  Rust structs      │  │
-   │  Settings.kt              │  ◀─────────────────── read   │  settings.rs       │  │
-   │  (data classes)           │        gamelist.toml         │  gamelist.rs       │  │
-   │  TomlParser.kt            │  ◀──── read/write ────────▶  │  (serde)           │  │
-   └───────────────────────────┘   (daemon also writes         └─────────┬──────────┘  │
-        ▲  schemas MUST match         gamelist on IPC mutate)             │             │
-        │  field-for-field                                               │ loaded into │
-        └──────────────── same keys, or a field is dropped ──────────────┘             │
-                 └─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph persisted ["Persisted config - Rust and Kotlin must agree"]
+        direction LR
+        kt["Kotlin models (app)<br/>Settings.kt, TomlParser.kt"]
+        toml[("settings.toml<br/>gamelist.toml")]
+        rs["Rust structs<br/>settings.rs, gamelist.rs (serde)"]
+        kt -->|write| toml
+        toml -->|read| rs
+        rs -.->|"daemon rewrites gamelist on IPC mutate"| toml
+        toml -->|read| kt
+    end
+    kt <-->|"schemas must match field-for-field,<br/>or a field is silently dropped"| rs
 
-                 ┌───────────────────────── RUNTIME / WIRE ───────────────────────────┐
-   Companion ──▶ SystemStatus ──▶ CurrentState ──▶ StatsSnapshot ──▶ JSON ──▶ App
-   (writes       (parsed from      (per-tick        (GET_STATS,       (socket)  (cards)
-    system_status) status file)    in-memory)        on request)
-                                        │
-   Daemon ──▶ Cmd (auriya_cmd) ──▶ Companion         FrameBuffer ──▶ FpsStats
-   (DnD, refresh rate)                                (FAS deque)     (computed)
+    subgraph runtime ["Runtime / wire - no persistence"]
+        direction LR
+        comp["Companion"] -->|writes| ss["SystemStatus<br/>(system_status file)"]
+        ss --> cs["CurrentState<br/>(per-tick, in-memory)"]
+        cs --> stats["StatsSnapshot<br/>(GET_STATS, on request)"]
+        stats -->|"JSON over socket"| app["App (cards)"]
+        fb["FrameBuffer<br/>(FAS deque)"] --> fps["FpsStats (computed)"]
+        fps --> stats
+        daemon["Daemon"] -->|"DnD, refresh rate"| cmd["Cmd<br/>(auriya_cmd file)"]
+        cmd --> comp
+    end
 ```
 
 ## Config entities (Rust ↔ Kotlin — must stay in sync)
@@ -48,12 +52,12 @@ the TOML file. Keeping them equal is a hard requirement.
 
 | Group | Rust (`settings.rs`) | Kotlin (`Settings.kt`) | Notes |
 | --- | --- | --- | --- |
-| `[daemon]` | `DaemonConfig { log_level, check_interval_ms, default_mode }` | `DaemonConfig(logLevel, checkIntervalMs, defaultMode)` | ✔ parity |
-| `[cpu]` | `CpuConfig { default_governor }` | `CpuConfig(defaultGovernor)` | ✔ |
-| `[dnd]` | `DndConfig { default_enable }` | `DndConfig(defaultEnable)` | ✔ |
-| `[fas]` | `FasConfig { enabled, default_mode, thermal_threshold, poll_interval_ms, target_fps }` | `FasConfig(enabled, defaultMode, thermalThreshold, pollIntervalMs, targetFps)` | ✔ (all 5) |
-| `[dynamic_governor]` | `DynamicGovernorConfig { enabled, cv_threshold, debounce_frames }` | `DynamicGovernorConfig(enabled, cvThreshold, debounceFrames)` | ✔ |
-| `[modes.*]` | `HashMap<String, FasMode { margin, thermal_threshold }>` | `Map<String, FasMode(margin, thermalThreshold)>` | ✔ |
+| `[daemon]` | `DaemonConfig { log_level, check_interval_ms, default_mode }` | `DaemonConfig(logLevel, checkIntervalMs, defaultMode)` | Parity |
+| `[cpu]` | `CpuConfig { default_governor }` | `CpuConfig(defaultGovernor)` | Parity |
+| `[dnd]` | `DndConfig { default_enable }` | `DndConfig(defaultEnable)` | Parity |
+| `[fas]` | `FasConfig { enabled, default_mode, thermal_threshold, poll_interval_ms, target_fps }` | `FasConfig(enabled, defaultMode, thermalThreshold, pollIntervalMs, targetFps)` | Parity (all 5) |
+| `[dynamic_governor]` | `DynamicGovernorConfig { enabled, cv_threshold, debounce_frames }` | `DynamicGovernorConfig(enabled, cvThreshold, debounceFrames)` | Parity |
+| `[modes.*]` | `HashMap<String, FasMode { margin, thermal_threshold }>` | `Map<String, FasMode(margin, thermalThreshold)>` | Parity |
 
 Full per-key meaning + which the daemon consumes: [settings reference](../reference/settings).
 
@@ -61,9 +65,9 @@ Full per-key meaning + which the daemon consumes: [settings reference](../refere
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `package` | string | ✔ | whitelist key |
-| `cpu_governor` | string | ✔ | |
-| `enable_dnd` | bool | ✔ | |
+| `package` | string | Yes | whitelist key |
+| `cpu_governor` | string | Yes | |
+| `enable_dnd` | bool | Yes | |
 | `target_fps` | int **or** int[] | — | custom deserializer (`TargetFpsConfig`) |
 | `refresh_rate` | int | — | |
 | `mode` | string | — | `performance`/`balance`/`powersave` |
@@ -133,12 +137,12 @@ fresh on each `GET_STATS`. All fields best-effort `Option`.
 
 | Entity | Created by | Lives in | Read by | Persisted? |
 | --- | --- | --- | --- | --- |
-| `Settings` / `GameProfile` | app (or install defaults) | TOML on disk | daemon (startup/watch) | ✔ file |
-| `SystemStatus` | companion | `system_status` file | daemon (watch) | ✔ file (transient) |
-| `Cmd` | daemon | `auriya_cmd` file | companion (watch) | ✔ file (transient) |
-| `CurrentState` | daemon tick | RAM | IPC handlers | ✗ RAM only |
-| `StatsSnapshot` | IPC handler | RAM → JSON | app | ✗ per-request |
-| `current_profile` | daemon | file (`1`/`2`/`3`) | legacy readers | ✔ file |
+| `Settings` / `GameProfile` | app (or install defaults) | TOML on disk | daemon (startup/watch) | Yes (file) |
+| `SystemStatus` | companion | `system_status` file | daemon (watch) | Yes (file, transient) |
+| `Cmd` | daemon | `auriya_cmd` file | companion (watch) | Yes (file, transient) |
+| `CurrentState` | daemon tick | RAM | IPC handlers | No (RAM only) |
+| `StatsSnapshot` | IPC handler | RAM → JSON | app | No (per-request) |
+| `current_profile` | daemon | file (`1`/`2`/`3`) | legacy readers | Yes (file) |
 
 ## See also
 

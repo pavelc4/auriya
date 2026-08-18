@@ -26,6 +26,27 @@ pub enum FpsSource { Ebpf, Sysfs }
 pub struct FpsReading { pub fps: f64, pub source: FpsSource }
 ```
 
+```mermaid
+flowchart TD
+    req([FPS Request]) --> check_sysfs{"Sysfs Node Available?"}
+    check_sysfs -->|yes| sysfs_cache{"Cache < 2s old?"}
+    sysfs_cache -->|yes| return_cached["Return cached sysfs reading"]
+    sysfs_cache -->|no| read_node["Read /sys node (f64)"]
+    read_node --> check_val{"0 < value ≤ 500?"}
+    check_val -->|yes| return_sysfs["Return FpsReading (Sysfs)"]
+    check_val -->|no / empty| fallback_ebpf
+
+    check_sysfs -->|no| fallback_ebpf{"eBPF Frame Stream Available?"}
+    fallback_ebpf -->|no| return_none["Return None"]
+    fallback_ebpf -->|yes| drain["Drain deltas < 500ms into 30-frame ring"]
+    drain --> check_ring{"Frames in last 3s?"}
+    check_ring -->|no| return_none
+    check_ring -->|yes| calc["Calculate 1.0 / mean(frametimes)"]
+    calc --> clamp{"0 < FPS ≤ 500?"}
+    clamp -->|yes| return_ebpf["Return FpsReading (Ebpf)"]
+    clamp -->|no| return_none
+```
+
 In `STATUS` this surfaces as `FPS=<value> SOURCE=<ebpf|sysfs>` (see
 [IPC protocol → STATUS](ipc-protocol#status-response)).
 

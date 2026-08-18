@@ -4,6 +4,8 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 
+import Translate from '@docusaurus/Translate';
+
 function HeroSection(): ReactNode {
   return (
     <header className="hero-section">
@@ -30,14 +32,18 @@ function HeroSection(): ReactNode {
           </h1>
 
           <p className="hero-headline">
-            Just a personal playground for experiments.
+            <Translate id="homepage.hero.headline" description="Hero headline on the home page">
+              Just a personal playground for experiments.
+            </Translate>
           </p>
 
           <div className="hero-actions">
             <Link
               className="hero-btn-primary"
               to="/docs/getting-started/installation">
-              Get Started →
+              <Translate id="homepage.hero.getStarted" description="Primary CTA button">
+                Get Started →
+              </Translate>
             </Link>
             <Link
               className="hero-btn-secondary"

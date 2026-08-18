@@ -16,10 +16,10 @@ with the daemon through files, never a socket.
 
 | Need | Daemon (root binary) | Companion (root-uid app) |
 | --- | :---: | :---: |
-| Read/write `/proc`, `/sys` | ✅ | — |
-| Detect foreground app (TaskStack/ActivityManager) | ❌ | ✅ |
-| Read screen / power-save / Zen state | ❌ | ✅ |
-| Set Do-Not-Disturb, refresh rate | ❌ | ✅ |
+| Read/write `/proc`, `/sys` | Yes | — |
+| Detect foreground app (TaskStack/ActivityManager) | No | Yes |
+| Read screen / power-save / Zen state | No | Yes |
+| Set Do-Not-Disturb, refresh rate | No | Yes |
 
 So the daemon owns kernel-level work; the companion owns framework-level work. See
 [overview → runtime boundaries](../architecture/overview#runtime-boundaries).
@@ -39,19 +39,50 @@ manager's `service.d` hook). `Main.main` (`Main.kt`):
 
 ## Architecture
 
-```text
-   Android framework                Companion (AuriyaSysMon)              Daemon
-   ─────────────────                ────────────────────────             ──────
-   TaskStackListener ─┐
-   ActivityManager    ├─▶ TaskStackSensor ┐
-   PowerManager ──────┼─▶ PowerSensor     ├─▶ SensorSink ─▶ Aggregator ─▶ StatusWriter
-   Settings.zen ──────┴─▶ ZenSensor       ┘   (merge +      (atomic swap) │
-                                              debounce 50ms)               ▼
-                                                                    system_status ──▶ (daemon watches)
+```mermaid
+flowchart LR
+    subgraph fw ["Android Framework"]
+        ts["TaskStackListener"]
+        am["ActivityManager"]
+        pm["PowerManager"]
+        zen["Settings.zen"]
+        nm["NotificationManager"]
+        disp["Display Refresh Rate"]
+    end
 
-   NotificationManager ◀── DnDActuator ┐
-   Display refresh    ◀── DisplayActuator├─◀ CmdReader ◀── auriya_cmd ◀── (daemon writes)
-                                        ┘   (poll 500ms, seq dedup)
+    subgraph companion ["Companion Service (AuriyaSysMon)"]
+        tss["TaskStackSensor"]
+        ps["PowerSensor"]
+        zs["ZenSensor"]
+        sink["SensorSink<br/>(merge + debounce 50ms)"]
+        agg["Aggregator"]
+        writer["StatusWriter<br/>(atomic swap)"]
+
+        reader["CmdReader<br/>(poll 500ms, seq dedup)"]
+        dnd["DnDActuator"]
+        disp_act["DisplayActuator"]
+    end
+
+    subgraph daemon_plane ["Rust Daemon Plane"]
+        sys_status[("system_status file")]
+        cmd_file[("auriya_cmd file")]
+        daemon["Rust Daemon"]
+    end
+
+    ts --> tss
+    am --> tss
+    pm --> ps
+    zen --> zs
+
+    tss --> sink
+    ps --> sink
+    zs --> sink
+    sink --> agg --> writer
+    writer --> sys_status --> daemon
+
+    daemon --> cmd_file --> reader
+    reader --> dnd --> nm
+    reader --> disp_act --> disp
 ```
 
 Two independent directions: **sensors → `system_status`** (observe) and

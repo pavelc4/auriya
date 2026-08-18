@@ -4,13 +4,16 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "start": "docusaurus start",
+    "start": "docusaurus build && docusaurus serve --port 3000",
+    "start:en": "docusaurus start",
+    "start:id": "docusaurus start --locale id",
+    "dev": "docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
-    "serve": "docusaurus serve",
-    "preview": "serve build",
+    "serve": "docusaurus serve --port 3000",
+    "preview": "docusaurus serve --port 3000",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc"
@@ -24,7 +27,8 @@
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "@docusaurus/theme-mermaid": "^3.10.2"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.10.2",
