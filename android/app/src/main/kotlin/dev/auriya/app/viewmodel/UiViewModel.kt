@@ -34,8 +34,9 @@ data class SystemInfo(
     val profile: String = "...",
     val kernel: String = "...",
     val chipset: String = "...",
-    val codename: String = "...",
-    val sdk: String = "...",
+    val codename: String = android.os.Build.DEVICE,
+    val sdk: String = android.os.Build.VERSION.SDK_INT.toString(),
+    val androidVersion: String = "Android ${android.os.Build.VERSION.RELEASE}",
     val battery: String = "...",
     val temp: String = "...",
     val daemonStatus: String = "stopped",
@@ -297,6 +298,7 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
             uname -r 2>/dev/null; echo "|||";
             getprop ro.board.platform; echo "|||";
             getprop ro.product.device; echo "|||";
+            getprop ro.build.version.release; echo "|||";
             getprop ro.build.version.sdk; echo "|||";
             cat /sys/class/power_supply/battery/capacity 2>/dev/null; echo "|||";
             cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | head -n 5; echo "|||";
@@ -321,16 +323,18 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             val kernel = parts.getOrNull(1)?.ifEmpty { "Unknown" } ?: "Unknown"
-            val chipset = parts.getOrNull(2)?.ifEmpty { "Unknown" } ?: "Unknown"
-            val codename = parts.getOrNull(3)?.ifEmpty { "Unknown" } ?: "Unknown"
-            val sdk = parts.getOrNull(4)?.ifEmpty { "Unknown" } ?: "Unknown"
+            val chipset = parts.getOrNull(2)?.ifEmpty { android.os.Build.BOARD } ?: android.os.Build.BOARD
+            val codename = parts.getOrNull(3)?.ifEmpty { android.os.Build.DEVICE } ?: android.os.Build.DEVICE
+            val releaseVer = parts.getOrNull(4)?.ifEmpty { android.os.Build.VERSION.RELEASE } ?: android.os.Build.VERSION.RELEASE
+            val sdk = parts.getOrNull(5)?.ifEmpty { android.os.Build.VERSION.SDK_INT.toString() } ?: android.os.Build.VERSION.SDK_INT.toString()
+            val androidVersion = "Android $releaseVer"
 
-            val batteryPercent = parts.getOrNull(5)
+            val batteryPercent = parts.getOrNull(6)
             val battery =
                 if (batteryPercent != null && batteryPercent.toIntOrNull() != null) "$batteryPercent%" else "Unknown"
 
             var temp = "Unknown"
-            parts.getOrNull(6)?.split("\n")?.forEach { t ->
+            parts.getOrNull(7)?.split("\n")?.forEach { t ->
                 val v = t.trim().toIntOrNull()
                 if (v != null && v > 1000) {
                     temp = "${v / 1000}°C"
@@ -338,8 +342,8 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
-            val pid = parts.getOrNull(7)?.ifEmpty { "null" } ?: "null"
-            val rss = parts.getOrNull(8)
+            val pid = parts.getOrNull(8)?.ifEmpty { "null" } ?: "null"
+            val rss = parts.getOrNull(9)
 
             val daemonActiveBool = pid != "null" && pid.isNotEmpty()
             _daemonActive.value = daemonActiveBool
@@ -356,6 +360,7 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
                 chipset = chipset,
                 codename = codename,
                 sdk = sdk,
+                androidVersion = androidVersion,
                 battery = battery,
                 temp = temp,
                 pid = if (pid == "null") null else pid,

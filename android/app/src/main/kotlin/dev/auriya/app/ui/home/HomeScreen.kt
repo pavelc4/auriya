@@ -222,11 +222,11 @@ private fun HeroCard(
                 .padding(20.dp),
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                     Text(
                         text = if (isDaemonRunning) "Auriya is working" else "Auriya is stopped",
                         style = MaterialTheme.typography.titleLarge,
@@ -234,13 +234,8 @@ private fun HeroCard(
                         color = onCardBg,
                     )
                     val cleanVersion = systemInfo.version.removePrefix("v").removePrefix("V")
-                    val cleanArch = when (val arch = systemInfo.deviceArch.uppercase()) {
-                        "V8A" -> "ARM64-V8A"
-                        "V7A" -> "ARM-V7A"
-                        else -> arch
-                    }
                     Text(
-                        text = "Version $cleanVersion (${systemInfo.commit}) · $cleanArch",
+                        text = "v$cleanVersion",
                         style = MaterialTheme.typography.bodySmall,
                         color = onCardBg.copy(alpha = 0.8f),
                     )
@@ -250,20 +245,24 @@ private fun HeroCard(
                     onClick = onInfoClick,
                     shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = onCardBg.copy(alpha = 0.12f),
+                        containerColor = onCardBg.copy(alpha = 0.14f),
                         contentColor = onCardBg
                     ),
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(34.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Info,
                         contentDescription = "Version & App Info",
-                        modifier = Modifier.size(17.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
             Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.smallest)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 if (isDaemonRunning) {
                     StatusBadge(
                         label = "PID ${systemInfo.pid}",
@@ -273,6 +272,14 @@ private fun HeroCard(
                 } else {
                     StatusBadge(
                         label = "Stopped",
+                        containerColor = onCardBg.copy(alpha = 0.16f),
+                        contentColor = onCardBg,
+                    )
+                }
+
+                if (systemInfo.codename.isNotEmpty() && systemInfo.codename != "...") {
+                    StatusBadge(
+                        label = systemInfo.codename,
                         containerColor = onCardBg.copy(alpha = 0.16f),
                         contentColor = onCardBg,
                     )
@@ -388,9 +395,9 @@ private fun MiniCard(
 private fun SystemMetricsList(systemInfo: SystemInfo) {
     val rows = remember(systemInfo) {
         listOf(
-            MetricRow(Icons.Outlined.Memory, "Memory", systemInfo.ram),
-            MetricRow(Icons.Outlined.Settings, "Kernel", systemInfo.kernel),
+            MetricRow(Icons.Outlined.Android, "Android", systemInfo.androidVersion),
             MetricRow(Icons.Outlined.Speed, "Chipset", systemInfo.chipset),
+            MetricRow(Icons.Outlined.Settings, "Kernel", systemInfo.kernel),
         )
     }
     Column {
@@ -418,36 +425,39 @@ private fun MetricRowItem(row: MetricRow) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(AuriyaTokens.rounding.medium))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-            contentAlignment = Alignment.Center,
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(36.dp)
         ) {
-            Icon(
-                imageVector = row.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(AuriyaTokens.iconSize.medium),
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = row.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
-        Spacer(Modifier.width(AuriyaTokens.padding.normal))
+        Spacer(Modifier.width(14.dp))
         Text(
             text = row.label,
             style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        Spacer(Modifier.width(AuriyaTokens.padding.normal))
+        Spacer(Modifier.width(14.dp))
         Text(
             text = row.value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
     }
@@ -805,7 +815,54 @@ private fun AuriyaInfoBottomSheet(
                 }
             }
 
-            // Card 2: GitHub issue shortcut
+            // Card 2: Device Specs Info
+            item {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Outlined.PhoneAndroid,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${systemInfo.codename} • ${systemInfo.androidVersion}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "SoC: ${systemInfo.chipset} | Kernel: ${systemInfo.kernel} | API: ${systemInfo.sdk}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Card 3: GitHub issue shortcut
             item {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
