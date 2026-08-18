@@ -25,26 +25,28 @@ import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.ui.components.AuriyaBottomBar
 import dev.auriya.app.ui.components.AuriyaNavItem
 import dev.auriya.app.ui.components.AuriyaLoadingIndicator
+import dev.auriya.app.ui.config.ConfigScreen
 import dev.auriya.app.ui.games.GameProfileScreen
 import dev.auriya.app.ui.games.GamesPane
 import dev.auriya.app.ui.games.GamesScreen
 import dev.auriya.app.ui.home.HomeScreen
+import dev.auriya.app.ui.oobe.OobeScreen
 import dev.auriya.app.ui.settings.AboutScreen
 import dev.auriya.app.ui.settings.AppearanceScreen
 import dev.auriya.app.ui.settings.LanguageScreen
 import dev.auriya.app.ui.settings.SettingsScreen
-import dev.auriya.app.ui.oobe.OobeScreen
 import dev.auriya.app.viewmodel.ThemeViewModel
 import dev.auriya.app.viewmodel.UiViewModel
 import dev.auriya.shared.model.GameProfile
+import androidx.compose.material.icons.filled.Tune
 
 enum class NavigationTab(val title: String, val icon: ImageVector) {
     HOME("Home", Icons.Filled.Home),
     GAMES("Games", Icons.Filled.SportsEsports),
-    SETTINGS("Settings", Icons.Filled.Settings),
+    CONFIG("Config", Icons.Filled.Tune),
 }
 
-private enum class SubScreen { None, Language, About, Appearance }
+private enum class SubScreen { None, Language, About, Appearance, Settings }
 
 private sealed interface AppRoute {
     data object Main : AppRoute
@@ -52,6 +54,7 @@ private sealed interface AppRoute {
     data object Appearance : AppRoute
     data object Language : AppRoute
     data object About : AppRoute
+    data object Settings : AppRoute
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,7 +87,7 @@ fun AuriyaNavigation(
             subScreen = SubScreen.None
         }
     }
-    if (activeTab == NavigationTab.SETTINGS && subScreen == SubScreen.None) {
+    if (activeTab != NavigationTab.HOME && subScreen == SubScreen.None) {
         BackHandler {
             activeTab = NavigationTab.HOME
         }
@@ -128,69 +131,81 @@ fun AuriyaNavigation(
                     subScreen == SubScreen.Appearance -> AppRoute.Appearance
                     subScreen == SubScreen.Language -> AppRoute.Language
                     subScreen == SubScreen.About -> AppRoute.About
+                    subScreen == SubScreen.Settings -> AppRoute.Settings
                     else -> AppRoute.Main
                 }
 
-                AnimatedContent(
-                    targetState = currentRoute,
-                    transitionSpec = {
-                        if (targetState is AppRoute.Main) {
-                            (scaleIn(initialScale = 0.94f, animationSpec = tween(220, easing = EaseOutCubic)) + fadeIn(animationSpec = tween(200)))
-                            .togetherWith(
-                                (slideOutHorizontally(targetOffsetX = { it }) + fadeOut(animationSpec = tween(180, easing = EaseInCubic)))
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                ) {
+                    AnimatedContent(
+                        targetState = currentRoute,
+                        transitionSpec = {
+                            if (targetState is AppRoute.Main) {
+                                (scaleIn(initialScale = 0.94f, animationSpec = tween(220, easing = EaseOutCubic)) + fadeIn(animationSpec = tween(200)))
+                                .togetherWith(
+                                    (slideOutHorizontally(targetOffsetX = { it }) + fadeOut(animationSpec = tween(180, easing = EaseInCubic)))
+                                )
+                            } else {
+                                (slideInHorizontally(initialOffsetX = { it }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)) + fadeIn(animationSpec = tween(220)))
+                                .togetherWith(
+                                    (scaleOut(targetScale = 0.94f, animationSpec = tween(180, easing = EaseInCubic)) + fadeOut(animationSpec = tween(180)))
+                                )
+                            }
+                        },
+                        label = "SubScreenForwardDepthTransition"
+                    ) { route ->
+                        when (route) {
+                            is AppRoute.GameDetail -> {
+                                val current = route.profile
+                                val isExisting = gameList.games.any { it.packageName == current.packageName }
+                                GameProfileScreen(
+                                    game = current,
+                                    governorOptions = governors,
+                                    isExistingProfile = isExisting,
+                                    onDismiss = { editingGameProfile = null },
+                                    onSave = { updated ->
+                                        viewModel.addGame(updated)
+                                    },
+                                    onRemove = if (isExisting) {
+                                        {
+                                            editingGameProfile = null
+                                            viewModel.removeGame(current.packageName)
+                                        }
+                                    } else null,
+                                )
+                            }
+                            AppRoute.Appearance -> AppearanceScreen(
+                                themeViewModel = themeViewModel,
+                                onDismiss = { subScreen = SubScreen.None },
                             )
-                        } else {
-                            (slideInHorizontally(initialOffsetX = { it }, animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)) + fadeIn(animationSpec = tween(220)))
-                            .togetherWith(
-                                (scaleOut(targetScale = 0.94f, animationSpec = tween(180, easing = EaseInCubic)) + fadeOut(animationSpec = tween(180)))
+                            AppRoute.Language -> LanguageScreen(
+                                onDismiss = { subScreen = SubScreen.None },
                             )
-                        }
-                    },
-                    label = "SubScreenForwardDepthTransition"
-                ) { route ->
-                    when (route) {
-                        is AppRoute.GameDetail -> {
-                            val current = route.profile
-                            val isExisting = gameList.games.any { it.packageName == current.packageName }
-                            GameProfileScreen(
-                                game = current,
-                                governorOptions = governors,
-                                isExistingProfile = isExisting,
-                                onDismiss = { editingGameProfile = null },
-                                onSave = { updated ->
-                                    viewModel.addGame(updated)
-                                },
-                                onRemove = if (isExisting) {
-                                    {
-                                        editingGameProfile = null
-                                        viewModel.removeGame(current.packageName)
-                                    }
-                                } else null,
+                            AppRoute.About -> AboutScreen(
+                                onDismiss = { subScreen = SubScreen.None },
                             )
-                        }
-                        AppRoute.Appearance -> AppearanceScreen(
-                            themeViewModel = themeViewModel,
-                            onDismiss = { subScreen = SubScreen.None },
-                        )
-                        AppRoute.Language -> LanguageScreen(
-                            onDismiss = { subScreen = SubScreen.None },
-                        )
-                        AppRoute.About -> AboutScreen(
-                            onDismiss = { subScreen = SubScreen.None },
-                        )
-                        AppRoute.Main -> {
-                            val navItems = NavigationTab.entries.map { AuriyaNavItem(it.title, it.icon) }
-                            val selectedIndex = NavigationTab.entries.indexOf(activeTab)
-                            val navMode = themePrefs?.navMode ?: NavMode.STANDARD
-                            val navType = themePrefs?.navType ?: NavType.LEGACY
-                            val cornerRadius = themePrefs?.cornerRadius ?: 24
-                            val showBottomBar = activeTab != NavigationTab.SETTINGS && editingGameProfile == null && selectedGameProfile == null && subScreen == SubScreen.None
+                            AppRoute.Settings -> SettingsScreen(
+                                viewModel = viewModel,
+                                onNavigateBack = { subScreen = SubScreen.None },
+                                onNavigateToAppearance = { subScreen = SubScreen.Appearance },
+                                onNavigateToLanguage = { subScreen = SubScreen.Language },
+                                onNavigateToAbout = { subScreen = SubScreen.About },
+                                onResetOobe = { themeViewModel.setOobeCompleted(false) },
+                            )
+                            AppRoute.Main -> {
+                                val navItems = NavigationTab.entries.map { AuriyaNavItem(it.title, it.icon) }
+                                val selectedIndex = NavigationTab.entries.indexOf(activeTab)
+                                val navMode = themePrefs?.navMode ?: NavMode.STANDARD
+                                val navType = themePrefs?.navType ?: NavType.LEGACY
+                                val cornerRadius = themePrefs?.cornerRadius ?: 24
+                                val showBottomBar = editingGameProfile == null && selectedGameProfile == null && subScreen == SubScreen.None
 
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .statusBarsPadding()
-                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
                                 AnimatedContent(
                                     targetState = activeTab,
                                     transitionSpec = {
@@ -227,7 +242,8 @@ fun AuriyaNavigation(
                                         when (currentTab) {
                                             NavigationTab.HOME -> HomeScreen(
                                                 viewModel = viewModel,
-                                                onNavigateToGames = { activeTab = NavigationTab.GAMES }
+                                                onNavigateToGames = { activeTab = NavigationTab.GAMES },
+                                                onNavigateToSettings = { subScreen = SubScreen.Settings }
                                             )
                                             NavigationTab.GAMES -> {
                                                 val current = selectedGameProfile
@@ -255,13 +271,8 @@ fun AuriyaNavigation(
                                                     )
                                                 }
                                             }
-                                            NavigationTab.SETTINGS -> SettingsScreen(
-                                                viewModel = viewModel,
-                                                onNavigateBack = { activeTab = NavigationTab.HOME },
-                                                onNavigateToAppearance = { subScreen = SubScreen.Appearance },
-                                                onNavigateToLanguage = { subScreen = SubScreen.Language },
-                                                onNavigateToAbout = { subScreen = SubScreen.About },
-                                                onResetOobe = { themeViewModel.setOobeCompleted(false) },
+                                            NavigationTab.CONFIG -> ConfigScreen(
+                                                viewModel = viewModel
                                             )
                                         }
                                     }
@@ -290,4 +301,5 @@ fun AuriyaNavigation(
             }
         }
     }
+}
 }

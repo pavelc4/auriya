@@ -370,10 +370,11 @@ class UiViewModel : ViewModel() {
 
     fun updateProfile(mode: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            val modeString = when (mode) {
-                "1" -> "performance"
-                "2" -> "balance"
-                "3" -> "powersave"
+            val modeString = when (mode.lowercase()) {
+                "1", "performance" -> "performance"
+                "2", "balance" -> "balance"
+                "3", "powersave" -> "powersave"
+                "4", "fast" -> "fast"
                 else -> "balance"
             }
 

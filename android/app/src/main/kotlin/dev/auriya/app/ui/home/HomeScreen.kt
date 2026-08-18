@@ -41,7 +41,8 @@ import dev.auriya.app.viewmodel.UiViewModel
 @Composable
 fun HomeScreen(
     viewModel: UiViewModel,
-    onNavigateToGames: () -> Unit
+    onNavigateToGames: () -> Unit,
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val systemInfo by viewModel.systemInfo.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
@@ -102,7 +103,7 @@ fun HomeScreen(
             )
 
             FilledIconButton(
-                onClick = { showInfoSheet = true },
+                onClick = onNavigateToSettings,
                 shape = CircleShape,
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -111,8 +112,8 @@ fun HomeScreen(
                 modifier = Modifier.size(42.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = "Version & App Info",
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = "Settings",
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -159,7 +160,13 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
                 ) {
-                    item { HeroCard(isDaemonRunning = isDaemonRunning, systemInfo = systemInfo) }
+                    item {
+                        HeroCard(
+                            isDaemonRunning = isDaemonRunning,
+                            systemInfo = systemInfo,
+                            onInfoClick = { showInfoSheet = true }
+                        )
+                    }
                     item {
                         MiniCardRow(
                             profile = systemInfo.profile,
@@ -196,7 +203,11 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
+private fun HeroCard(
+    isDaemonRunning: Boolean,
+    systemInfo: SystemInfo,
+    onInfoClick: () -> Unit
+) {
     val cardBg = if (isDaemonRunning) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer
     val onCardBg = if (isDaemonRunning) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
 
@@ -210,7 +221,11 @@ private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
                 .fillMaxWidth()
                 .padding(20.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = if (isDaemonRunning) "Auriya is working" else "Auriya is stopped",
@@ -228,6 +243,22 @@ private fun HeroCard(isDaemonRunning: Boolean, systemInfo: SystemInfo) {
                         text = "Version $cleanVersion (${systemInfo.commit}) · $cleanArch",
                         style = MaterialTheme.typography.bodySmall,
                         color = onCardBg.copy(alpha = 0.8f),
+                    )
+                }
+
+                FilledIconButton(
+                    onClick = onInfoClick,
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = onCardBg.copy(alpha = 0.12f),
+                        contentColor = onCardBg
+                    ),
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = "Version & App Info",
+                        modifier = Modifier.size(17.dp)
                     )
                 }
             }
@@ -479,6 +510,7 @@ private fun ProfileSelectionBottomSheet(
     val displayProfile = when (normProfile) {
         "powersave", "3" -> "Power Save"
         "performance", "1" -> "Performance"
+        "fast", "4" -> "Fast"
         else -> "Balance"
     }
 
@@ -572,6 +604,24 @@ private fun ProfileSelectionBottomSheet(
                     selected = isSelected,
                     onClick = {
                         onSelect("1")
+                        onDismiss()
+                    }
+                )
+            }
+
+            // Fast Card
+            item {
+                val isSelected = normProfile == "fast" || normProfile == "4"
+                ProfileCard(
+                    title = "Fast",
+                    subtitle = "Profile 4 • Ultra Low Latency",
+                    description = "Zero-margin frame delivery with rapid clock ramp-up for competitive response.",
+                    icon = Icons.Outlined.RocketLaunch,
+                    iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    selected = isSelected,
+                    onClick = {
+                        onSelect("4")
                         onDismiss()
                     }
                 )
