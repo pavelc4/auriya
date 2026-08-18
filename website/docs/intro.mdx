@@ -1,0 +1,28 @@
+---
+sidebar_position: 1
+slug: /
+title: Auriya Wiki
+description: Technical documentation for Auriya's Android app, companion service, and Rust daemon.
+---
+
+# Auriya Wiki
+
+Auriya is an Android root module composed of a Kotlin/Compose manager, an Android companion service, and a Rust daemon. This wiki documents how those components start, communicate, observe the system, and apply configuration.
+
+:::info Scope
+This documentation describes implementation and behavior. It does not promise performance gains for every device, ROM, or kernel.
+:::
+
+## Start here
+
+| Goal | Page |
+| --- | --- |
+| Install and complete first-run setup | [Installation](getting-started/installation) |
+| Understand the complete program flow | [Architecture overview](architecture/overview) |
+| Learn how FPS is collected | [FPS detection](internals/fps-detection) |
+| Inspect app-to-daemon communication | [IPC protocol](internals/ipc-protocol) |
+| Build Auriya from source | [Building](development/building) |
+
+## Documentation status
+
+The site structure is ready for source-backed documentation. Pages marked as implementation notes should be expanded only after the corresponding source path, payload, interval, and fallback have been verified.
