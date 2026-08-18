@@ -35,7 +35,7 @@ Models and codecs used by both the app and the companion: the `Settings` /
 (`TomlParser.kt`), and the command/status wire formats. This is where the app's
 view of `settings.toml` is defined — and why config keys must stay in sync
 between here and the Rust `Settings` struct
-([settings reference](../reference/settings#written-by-the-app-not-yet-used-by-the-daemon)).
+([settings reference](../reference/settings#schema-sync-rust--app)).
 
 :::note `android/shared/bin/` is generated
 `android/shared/bin/` mirrors the shared Kotlin for tooling and is **not** the

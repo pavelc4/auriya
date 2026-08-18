@@ -89,9 +89,9 @@ than terminating the probe.
 `FrameProbe::new`, creates a worker thread, and broadcasts returned frame
 durations through a Tokio `broadcast` channel (capacity 4096). With no attached
 PID the worker blocks on its command channel; with at least one PID it drains
-commands and polls Kala every 50 ms (`recv_with_deadline(Duration::from_millis(50))`).
-The PID from Kala's tuple is currently ignored; only the `Duration` is sent to
-subscribers.
+commands and polls Kala on the `settings.fas.poll_interval_ms` deadline (clamped
+to `[1, 500]` ms; `recv_with_deadline`). The PID from Kala's tuple is currently
+ignored; only the `Duration` is sent to subscribers.
 
 `attach` and `detach` send commands to that worker and wait up to one second for
 the reply. They report explicit errors when the worker is gone, the timeout is

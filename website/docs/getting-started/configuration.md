@@ -24,15 +24,14 @@ every key (type, default, whether the daemon actually consumes it, and evidence)
 
 ## Two things to know before editing
 
-1. **Not every key in `settings.toml` is live.** Several keys are written by the
-   app and parsed by the daemon but **not yet consumed** (they are Frame-Aware
-   Scheduling scaffolding). Changing them has no effect today. Each is flagged in
-   the [settings reference](../reference/settings#key-by-key-reference) with the
-   hardcoded value actually in effect. This is deliberate, not a bug.
-2. **Reload is selective.** On a `settings.toml` change the daemon only re-reads
-   `cpu.default_governor` and `daemon.default_mode`; everything else applies at
-   startup and needs a daemon restart (`auriyactl restart`) to take effect. See
-   [settings → reload behavior](../reference/settings#reload-behavior).
+1. **Some keys apply live, most at startup.** `cpu.default_governor`,
+   `daemon.default_mode`, and `daemon.check_interval_ms` are re-read when you edit
+   `settings.toml`; the FAS block (`[fas]`, `[dynamic_governor]`, `[modes.*]`) is
+   read once at construction and needs a daemon restart to re-tune. Each key's
+   behavior is in the [settings reference](../reference/settings#key-by-key-reference).
+2. **`fas.default_mode` picks the active `[modes.*]`.** Only the mode it names
+   drives FAS margin/thermal; the other `[modes.*]` blocks are inactive until
+   selected. See [settings → `[modes.*]`](../reference/settings#modes).
 
 ## Invalid values
 

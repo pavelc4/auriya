@@ -26,16 +26,14 @@ performance gains for every device, ROM, or kernel.
 
 ## Documentation status
 
-Every page is **source-traced** against commit
-[`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6):
-behavioral claims cite the file (and often the line) they come from, and each
-reference/internals page ends with a "Likely to drift first" note listing what to
-re-verify when the code changes.
+Every page is **source-traced**: behavioral claims cite the file (and often the
+function) they come from, and each reference/internals page ends with a "Likely
+to drift first" note listing what to re-verify when the code changes.
 
-:::warning Configuration is partly scaffolding
-Several `settings.toml` keys are written by the manager app and parsed by the
-daemon but **not yet consumed** — they are Frame-Aware Scheduling scaffolding.
-The [settings reference](reference/settings#key-by-key-reference) marks each key
-as consumed (Active) or ignored (Unused / Unsupported) with the value actually in effect. Don't tune a
-key expecting an effect the daemon doesn't yet read.
+:::note Configuration is fully wired
+Every `settings.toml` key the manager app writes is now consumed by the daemon —
+the earlier Frame-Aware Scheduling scaffolding (`[fas]`, `[dynamic_governor]`,
+`[modes.*]`, `check_interval_ms`) has been wired in. The
+[settings reference](reference/settings#key-by-key-reference) documents each key's
+effect and whether it applies live or only at daemon restart.
 :::

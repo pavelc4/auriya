@@ -26,9 +26,9 @@ Re-verify this page if that file, `settings.toml`, or
 :::note The app is the config authority
 As of this revision the CLI (`auriyactl`) has **no** command that edits
 `settings.toml`. The file is written by the manager app and re-read by the
-daemon through a filesystem watcher. That is why some keys below are written by
-the app but not yet consumed by the daemon — see
-[Written by the app, not yet used by the daemon](#written-by-the-app-not-yet-used-by-the-daemon).
+daemon (some keys live, most at startup — see
+[Reload behavior](#reload-behavior)). The Rust and Kotlin schemas must stay in
+sync — see [Schema sync](#schema-sync-rust--app).
 :::
 
 ## The shipped default file
@@ -85,8 +85,7 @@ thermal_threshold = 95.0
 both verified:
 
 1. **Unknown keys are silently discarded.** A key the `Settings` struct does not
-   declare (for example `[fas] target_fps`) parses without error and is dropped.
-   You get no warning.
+   declare parses without error and is dropped. You get no warning.
 2. **Sections without a serde default are mandatory.** If a required section is
    missing, `toml::from_str` returns an error, `main` returns before the daemon
    starts, and startup fails.
@@ -103,11 +102,11 @@ both verified:
 | `[ceiling]` | Optional | `#[serde(default)]` + `impl Default` | `settings.rs:15-16`, `85-93` |
 | `[modes.*]` | **Required (≥1 table)** | `modes: HashMap` has no serde default | `settings.rs:17` |
 
-:::warning `[modes.*]` is required to start but its values are ignored
+:::note `[modes.*]` is required to start
 `Settings.modes` has no `#[serde(default)]`, so **at least one** `[modes.X]`
-table must exist or the daemon refuses to start. Yet nothing in the daemon ever
-reads the map — see the dead-config note below. Removing every `[modes.*]`
-block breaks startup; changing the numbers inside them changes nothing.
+table must exist or the daemon refuses to start. The mode named by
+`fas.default_mode` is the one whose `margin`/`thermal_threshold` drive FAS; the
+others are inactive until selected.
 :::
 
 ## Key-by-key reference
@@ -116,7 +115,6 @@ Legend for the **Consumed** column:
 
 - **Yes** — the daemon reads this value and it affects behavior.
 - **No** — parsed into memory but never read by the daemon (no effect if changed).
-- **Dropped** — not a struct field; dropped during parsing.
 
 ### `[daemon]`
 
@@ -125,7 +123,7 @@ Defined by `DaemonConfig`, `settings.rs:20-30`.
 | Key | Type | Default | Consumed | Meaning & evidence |
 | --- | --- | --- | :---: | --- |
 | `log_level` | string | `"info"` | Yes | `tracing` env-filter directive applied **at startup** (`main.rs:13-14`, `EnvFilter::new(level)`). Accepts anything `EnvFilter` accepts (`error`/`warn`/`info`/`debug`/`trace`, or per-target like `auriya::daemon=debug`). **Not** re-read on file reload — change the running level with the IPC `SETLOG` command instead (`src/daemon/run.rs:378-392`). |
-| `check_interval_ms` | integer (ms) | `2000` | No | **Dead key.** No reader exists outside the struct. The tick cadence is hardcoded (≈500 ms in-game, 5 s foreground, 10 s screen-off) in the event loop (`src/daemon/run.rs:644`), not derived from this value. |
+| `check_interval_ms` | integer (ms) | `2000` | Yes | Idle/foreground tick cadence. Feeds `Daemon::normal_interval_ms` (clamped ≥100 ms), used in the event-loop sleep selection (`src/daemon/run.rs`). Re-read on reload. The in-game (500 ms) and screen-off (10 s) cadences stay fixed. |
 | `default_mode` | string | `"balance"` | Yes | The profile applied when no whitelisted game is foreground. Parsed via `ProfileMode::from_str`; unrecognized values fall back to `Balance` (`src/daemon/run.rs:164-170`). Re-read on reload (`run.rs:303-312`). Valid: `performance`, `balance`, `powersave` (`src/common/types.rs:14-16`). |
 
 ### `[cpu]`
@@ -142,7 +140,7 @@ Defined by `DndConfig`, `settings.rs:38-40`.
 
 | Key | Type | Default | Consumed | Meaning & evidence |
 | --- | --- | --- | :---: | --- |
-| `default_enable` | bool | none (**required**) | No | **Not consumed by the daemon.** Do-Not-Disturb is driven per-game: each tick uses the game's own `enable_dnd` (or a hardcoded `true` when a game has none) — `src/daemon/tick.rs:156,226,296`. The global `settings.dnd.default_enable` is never read. The app still writes it (`TomlParser.kt:75-76,120`). |
+| `default_enable` | bool | none (**required**) | Yes | Default `enable_dnd` for a game created via IPC `ADD_GAME` (`src/daemon/ipc/handlers.rs`, snapshotted into `IpcHandles.dnd_default`). Per-game DnD in `gamelist.toml` overrides it once a game has an explicit value. |
 
 ### `[fas]`
 
@@ -150,11 +148,11 @@ Frame-Aware Scheduling. Defined by `FasConfig`, `settings.rs:43-49`.
 
 | Key | Type | Default | Consumed | Meaning & evidence |
 | --- | --- | --- | :---: | --- |
-| `enabled` | bool | none (**required**) | Yes | Master switch for FAS. When `true` **and** the eBPF frame stream initialized, the daemon builds a `FasController`; otherwise FAS is skipped (`src/daemon/run.rs:190-207`, `main.rs:36`). |
-| `default_mode` | string | none (**required**) | No | Parsed, never read. FAS's fallback target is the daemon's `default_mode`, not this field. |
-| `thermal_threshold` | float (°C) | none (**required**) | No | Parsed, never read. |
-| `poll_interval_ms` | integer (ms) | `100` | No | Parsed, never read. The eBPF worker polls the frame stream on a hardcoded 50 ms deadline (`src/core/ebpf.rs`; see [Kala eBPF frame probe](../internals/kala-research)). |
-| `target_fps` | integer | — | Dropped | **Not a field of `FasConfig`** — dropped during parsing. The FAS controller is constructed with a hardcoded target of `60` (`src/daemon/run.rs:195`, `FasController::with_target_fps(rx, 60)`). Per-game `target_fps` in `gamelist.toml` *does* override this at runtime (`tick.rs:159-170`); the global one does not. |
+| `enabled` | bool | none (**required**) | Yes | Master switch for FAS. When `true` **and** the eBPF frame stream initialized, the daemon builds a `FasController`; otherwise FAS is skipped (`src/daemon/run.rs`, `main.rs`). |
+| `default_mode` | string | none (**required**) | Yes | Selects which `[modes.*]` entry is active, supplying the FAS `margin` and (preferentially) thermal ceiling (`FasTuning::from_settings`, `src/daemon/fas.rs`). Unknown name → default margin + `fas.thermal_threshold` fallback (logged). |
+| `thermal_threshold` | float (°C) | none (**required**) | Yes | Fallback skin-temp ceiling for FAS `Reduce`, used when the active `[modes.*]` entry omits its own `thermal_threshold` (`FasTuning::from_settings`). |
+| `poll_interval_ms` | integer (ms) | `100` | Yes | eBPF frame-poll deadline, clamped to `[1, 500]` ms (`EbpfFrameStream::new`, `src/core/ebpf.rs`). |
+| `target_fps` | integer | `60` | Yes | Global FAS target when a game has no per-game `target_fps` (`FasConfig.target_fps` → `FasController` construction, `src/daemon/run.rs`). Per-game `target_fps` in `gamelist.toml` still overrides it at runtime. |
 
 ### `[dynamic_governor]`
 
@@ -162,9 +160,9 @@ Defined by `DynamicGovernorConfig`, `settings.rs:58-65`.
 
 | Key | Type | Default | Consumed | Meaning & evidence |
 | --- | --- | --- | :---: | --- |
-| `enabled` | bool | `true` | No | Parsed, never read. |
-| `cv_threshold` | float | `0.15` | No | Parsed, never read. The bottleneck detector is constructed with hardcoded literals — `BottleneckDetector::new(0.15, 3)` (`src/daemon/fas.rs:83`) — not from this value. The default matching `0.15` is a coincidence, not a wiring. |
-| `debounce_frames` | integer | `3` | No | Parsed, never read (same hardcoded `3` above). |
+| `enabled` | bool | `true` | Yes | When `false`, FAS skips bottleneck classification and treats every boost as `BoostBalanced` (full profile) instead of CPU/GPU-targeted (`FasController::tick`, `src/daemon/fas.rs`). |
+| `cv_threshold` | float | `0.15` | Yes | Coefficient-of-variation split between GPU- and CPU-bound classification. Threaded into `BottleneckDetector::new` via `FasTuning` (`src/daemon/fas.rs`). |
+| `debounce_frames` | integer | `3` | Yes | Frames a new bottleneck class must persist before it is accepted (`BottleneckDetector::new` via `FasTuning`). |
 
 ### `[ceiling]`
 
@@ -185,52 +183,54 @@ A TOML table per mode name, deserialized into `HashMap<String, FasMode>`
 
 | Key | Type | Default | Consumed | Meaning & evidence |
 | --- | --- | --- | :---: | --- |
-| `margin` | float (fps) | none (required per table) | No | Parsed, never read. FAS uses a hardcoded `MARGIN_FPS = 1.5` (`src/daemon/fas.rs:30`). |
-| `thermal_threshold` | float (°C) | none (required per table) | No | Parsed, never read. |
+| `margin` | float (fps) | none (required per table) | Yes | FPS headroom subtracted from the target for the **active** mode (the one named by `fas.default_mode`). Higher margin biases FAS toward boosting. Fed to `FasController` via `FasTuning` (`src/daemon/fas.rs`). |
+| `thermal_threshold` | float (°C) | none (required per table) | Yes | Skin-temp ceiling for the active mode; above it FAS forces `Reduce`. Overrides `fas.thermal_threshold` when the active mode defines it. |
 
 The shipped file defines four modes (`powersave`, `balance`, `performance`,
-`fast`). The map is required to exist (see the startup warning above) but no
-code path looks up a mode by name.
+`fast`). Only the one selected by `fas.default_mode` is active at a time; its
+`margin`/`thermal_threshold` drive FAS. `fast` is a FAS **margin preset**
+(`margin = 0.0`, push closest to the frame deadline) — it is *not* a separate
+CPU-governor profile. This per-mode layout mirrors upstream
+[fas-rs](https://github.com/shadow3aaa/fas-rs), which Auriya's FAS controller is
+adapted from.
 
 ## Reload behavior
 
-The settings watcher reacts to a runtime edit of `settings.toml`. Only two keys
-are re-read — everything else is applied **once at startup and never again**
-until the daemon restarts. Verified in `Daemon::reload_settings`
-(`src/daemon/run.rs:288-317`):
+The settings watcher reacts to a runtime edit of `settings.toml`. A few keys are
+re-read live; everything else is applied **once at startup** until the daemon
+restarts. Verified in `Daemon::reload_settings` (`src/daemon/run.rs`):
 
 | Key | Re-read on file change? | Effect |
 | --- | :---: | --- |
 | `cpu.default_governor` | Yes | Updates `balance_governor`; re-applies immediately only if the current profile is Balance. |
 | `daemon.default_mode` | Yes | Updates the fallback profile for the next tick. |
-| everything else | No | Ignored on reload (including `log_level` — use `SETLOG` over IPC). |
+| `daemon.check_interval_ms` | Yes | Updates the idle/foreground tick cadence for the next loop iteration. |
+| `[fas]` / `[dynamic_governor]` / `[modes.*]` | No | Consumed at startup into the `FasController`; needs `auriyactl restart` to re-tune. |
+| everything else | No | Applied at startup (including `log_level` — use `SETLOG` over IPC). |
 
-## Written by the app, not yet used by the daemon
+## Schema sync (Rust ↔ app)
 
-The manager app's `TomlParser.kt` parses **and re-serializes every key above**,
-including the ones marked No / Dropped (`TomlParser.kt:59-96` parse,
-`109-134` serialize). So each time settings are saved from the app, the full set
-of keys is rewritten to disk even though the daemon ignores most of them.
+The manager app's `TomlParser.kt` parses **and re-serializes every key above**
+(`TomlParser.kt` parse + serialize), so a settings save from the app rewrites the
+full key set. The Rust `Settings` struct and the Kotlin model/parser must stay in
+sync: adding or removing a key means editing **both** sides (plus the shipped
+`settings.toml`), or the app will silently re-add what only Rust dropped. There is
+no `#[serde(deny_unknown_fields)]`, so a key present in one schema but not the
+other is ignored rather than erroring.
 
-This is **half-wired scaffolding, not accidental junk**. The hardcoded values in
-the daemon (`BottleneckDetector::new(0.15, 3)`, `with_target_fps(rx, 60)`,
-`MARGIN_FPS = 1.5`) sit exactly where these keys would plug in, matching Auriya's
-in-progress Frame-Aware Scheduling work. Do not "clean up" a No key by editing
-only `settings.toml` or only the Rust struct: the app will rewrite it, and the
-Rust and Kotlin schemas must stay in sync.
-
-:::warning Effective vs. configured
-For any key marked No or Dropped, the number in your `settings.toml` is **not** the
-value in effect. The effective value is the hardcoded one cited in the table.
+:::note FAS tuning is startup-only
+`[fas]`, `[dynamic_governor]`, and the active `[modes.*]` entry are resolved into
+the `FasController` once at construction (`FasTuning::from_settings`). Editing them
+at runtime has no effect until `auriyactl restart`.
 :::
 
 ## Likely to drift first
 
-If this page falls out of date, these parts go stale soonest:
-
-- The **Consumed** columns — as FAS wiring lands, No/Dropped keys become Yes.
-- `check_interval_ms` and the hardcoded tick cadence.
-- `[modes.*]` and the hardcoded `MARGIN_FPS`.
+- Per-key **evidence** references — they point to functions (`FasTuning::from_settings`,
+  `EbpfFrameStream::new`, `Daemon::reload_settings`) rather than line numbers, but
+  re-verify if those move.
+- The `[modes.*]` semantics and the `fast` preset, if FAS gains real per-mode
+  profiles.
 
 Re-verify against `src/core/config/settings.rs`, `src/daemon/run.rs`,
 `src/daemon/fas.rs`, and `TomlParser.kt`.
