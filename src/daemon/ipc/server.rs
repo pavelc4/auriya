@@ -21,6 +21,19 @@ type AsyncGetFpsCallback = Arc<
         + Sync,
 >;
 
+/// Returns windowed FPS stats, or `None` when FAS is disabled/unavailable
+/// (no per-frame data to compute from).
+type AsyncGetStatsCallback = Arc<
+    dyn Fn() -> std::pin::Pin<
+            Box<
+                dyn std::future::Future<Output = Option<crate::core::stats::FpsStats>>
+                    + Send
+                    + Sync,
+            >,
+        > + Send
+        + Sync,
+>;
+
 pub struct IpcHandles {
     pub enabled: Arc<AtomicBool>,
     pub shared_config: Arc<RwLock<Arc<GameList>>>,
@@ -29,6 +42,7 @@ pub struct IpcHandles {
     pub set_log_level: Arc<dyn Fn(LogLevelCmd) + Send + Sync>,
     pub set_fps: AsyncFpsCallback,
     pub get_fps: AsyncGetFpsCallback,
+    pub get_fps_stats: AsyncGetStatsCallback,
     pub profile_lock: Arc<Mutex<()>>,
 
     pub current_state: Arc<RwLock<CurrentState>>,
@@ -57,6 +71,7 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
             set_log_level: h.set_log_level.clone(),
             set_fps: h.set_fps.clone(),
             get_fps: h.get_fps.clone(),
+            get_fps_stats: h.get_fps_stats.clone(),
             profile_lock: h.profile_lock.clone(),
             current_state: h.current_state.clone(),
             balance_governor: h.balance_governor.clone(),

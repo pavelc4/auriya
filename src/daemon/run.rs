@@ -26,6 +26,16 @@ type AsyncGetFpsCallback = Arc<
         + Send
         + Sync,
 >;
+type AsyncGetStatsCallback = Arc<
+    dyn Fn() -> std::pin::Pin<
+            Box<
+                dyn std::future::Future<Output = Option<crate::core::stats::FpsStats>>
+                    + Send
+                    + Sync,
+            >,
+        > + Send
+        + Sync,
+>;
 
 const INGAME_INTERVAL_MS: u64 = 500;
 const SCREEN_OFF_INTERVAL_MS: u64 = 10000;
@@ -375,6 +385,17 @@ impl Daemon {
             })
         });
 
+        let fas_clone_for_stats = self.fas_controller.clone();
+        let get_fps_stats: AsyncGetStatsCallback = Arc::new(move || {
+            let fas = fas_clone_for_stats.clone();
+            Box::pin(async move {
+                match &fas {
+                    Some(fas) => Some(fas.lock().await.fps_stats()),
+                    None => None,
+                }
+            })
+        });
+
         let shared_cfg = self.shared_gamelist.clone();
         let reload_fn = Arc::new(move || {
             match crate::core::config::GameList::load(crate::core::config::gamelist_path()) {
@@ -425,6 +446,7 @@ impl Daemon {
             set_log_level,
             set_fps,
             get_fps,
+            get_fps_stats,
             profile_lock: Arc::new(std::sync::Mutex::new(())),
             current_state: current_state.clone(),
             balance_governor: cfg.settings.cpu.default_governor.clone(),

@@ -192,6 +192,16 @@ impl FasController {
         self.buffer.target_fps.unwrap_or(60)
     }
 
+    /// Windowed FPS stats (avg/peak/1%-low/jank) for the IPC `GET_STATS` API,
+    /// computed on request from the frame deque already held by the buffer.
+    /// Reuses the public `FrameBuffer::recent_frametimes`; no per-tick cost.
+    pub fn fps_stats(&self) -> crate::core::stats::FpsStats {
+        crate::core::stats::fps_stats_from_frametimes(
+            &self.buffer.recent_frametimes(600),
+            self.get_target_fps(),
+        )
+    }
+
     pub async fn tick(&mut self) -> Result<ScalingAction> {
         if let Some(pid) = self.pid.filter(|_| !self.package.is_empty())
             && self.last_attached_pkg != self.package

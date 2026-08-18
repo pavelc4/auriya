@@ -47,6 +47,7 @@ pub enum Command {
     SetFps(u32),
     GetFps,
     GetSupportedRates,
+    GetStats,
 }
 
 impl FromStr for Command {
@@ -81,6 +82,7 @@ impl FromStr for Command {
 
             ["GET_FPS"] | ["GETFPS"] => Ok(Command::GetFps),
             ["GET_SUPPORTED_RATES"] | ["GETRATES"] => Ok(Command::GetSupportedRates),
+            ["GET_STATS"] | ["GETSTATS"] => Ok(Command::GetStats),
 
             ["INJECT", pkg] => Ok(Command::Inject(pkg.to_string())),
             ["CLEAR_INJECT"] | ["CLEARINJECT"] => Ok(Command::ClearInject),

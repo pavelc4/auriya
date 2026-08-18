@@ -344,6 +344,39 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     Err(e) => format!("ERR JSON {:?}\n", e),
                 }
             }
+            Ok(Command::GetStats) => {
+                use crate::core::stats::StatsSnapshot;
+                use crate::core::telemetry::battery;
+
+                // Windowed FPS stats from the FAS buffer. None when FAS is off;
+                // also collapse an empty window (no game / no frames) to None so
+                // the UI can tell "inactive" from a real 0 fps.
+                let fps = (h.get_fps_stats)().await.filter(|f| f.frames > 0);
+                // Battery is read fresh from sysfs on request.
+                let bat = battery::snapshot();
+
+                // Everything else is the per-tick telemetry snapshot already in
+                // CurrentState; clone the pieces out under the read lock.
+                let snap = {
+                    let st = h.current_state.read().ok();
+                    let st = st.as_deref();
+                    StatsSnapshot::build(
+                        fps,
+                        st.and_then(|s| s.cpu_telemetry.as_ref()),
+                        st.and_then(|s| s.gpu_telemetry.as_ref()),
+                        st.and_then(|s| s.thermal_telemetry.as_ref()),
+                        &bat,
+                        st.and_then(|s| s.pkg.as_deref()),
+                        st.map(|s| s.profile).unwrap_or_default(),
+                        st.and_then(|s| s.pkg.as_ref()).is_some(),
+                    )
+                };
+
+                match serde_json::to_string(&snap) {
+                    Ok(json) => format!("{}\n", json),
+                    Err(e) => format!("ERR JSON {:?}\n", e),
+                }
+            }
             Err(e) => format!("ERR {}\n", e),
         };
         if !resp.is_empty() {
