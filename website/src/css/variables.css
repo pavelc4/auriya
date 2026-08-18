@@ -1,0 +1,45 @@
+:root {
+  --ifm-font-family-base: "Geist Variable", "Geist", ui-sans-serif, system-ui, sans-serif;
+  --ifm-heading-font-family: "Google Sans Rounded", "Geist", ui-sans-serif, system-ui, sans-serif;
+  --ifm-color-primary: #dd6d6d;
+  --ifm-color-primary-dark: #9e7a7a;
+  --ifm-color-primary-darker: #775454;
+  --ifm-color-primary-darkest: #5e4e4e;
+  --ifm-color-primary-light: #f7dfdf;
+  --ifm-color-primary-lighter: #fae9e9;
+  --ifm-color-primary-lightest: #fff4f4;
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: #ffffff;
+  --ifm-navbar-background-color: rgba(255, 255, 255, 0.94);
+  --ifm-footer-background-color: #ffffff;
+  --ifm-footer-color: #71717a;
+  --ifm-footer-link-color: #52525b;
+  --ifm-footer-link-hover-color: var(--ifm-color-primary);
+  --ifm-footer-title-color: #27272a;
+  --ifm-footer-padding-vertical: 1rem;
+  --ifm-footer-padding-horizontal: 1.5rem;
+  --ifm-toc-border-color: #f0f0f0;
+  --ifm-code-font-size: 95%;
+  --ifm-global-radius: 6px;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] {
+  --ifm-color-primary: #f3d2d2;
+  --ifm-color-primary-dark: #ddbcbc;
+  --ifm-color-primary-darker: #c7a8a8;
+  --ifm-color-primary-darkest: #b69999;
+  --ifm-color-primary-light: #f7dfdf;
+  --ifm-color-primary-lighter: #fae9e9;
+  --ifm-color-primary-lightest: #fff4f4;
+  --ifm-background-color: #121212;
+  --ifm-background-surface-color: #121212;
+  --ifm-navbar-background-color: rgba(18, 18, 18, 0.94);
+  --ifm-footer-background-color: #121212;
+  --ifm-footer-color: #71717a;
+  --ifm-footer-link-color: #a1a1aa;
+  --ifm-footer-link-hover-color: var(--ifm-color-primary);
+  --ifm-footer-title-color: #e4e4e7;
+  --ifm-toc-border-color: #1f1f1f;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}

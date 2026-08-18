@@ -1,0 +1,39 @@
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/Geist/Geist-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/Geist/Geist-Variable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Google Sans Rounded";
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+  src: url("/fonts/GoogleSansFlex.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Google Sans Genre";
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+  src: url("/fonts/GoogleSansGenre.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/Geist/Geist-Bold.woff2") format("woff2");
+}

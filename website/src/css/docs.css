@@ -1,0 +1,58 @@
+.theme-doc-sidebar-container {
+  border-right-color: var(--ifm-toc-border-color) !important;
+}
+
+.menu__link,
+.theme-admonition {
+  border-radius: 6px;
+}
+
+.menu__link--active {
+  font-weight: 700;
+}
+
+.markdown h1 {
+  font-size: 2.4rem;
+  letter-spacing: 0;
+}
+
+.markdown h2 {
+  padding-top: 1.5rem;
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+
+code {
+  border-radius: 4px;
+}
+
+pre code {
+  font-variant-ligatures: none;
+}
+
+/* Hide "(Simulated during dev for better perf)" */
+.theme-last-updated small,
+.theme-last-updated div {
+  display: none !important;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.responsive-container {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.responsive-container > div {
+  width: 48%;
+  padding: 10px;
+}
+
+@media (max-width: 768px) {
+  .responsive-container > div {
+    width: 100%;
+  }
+}

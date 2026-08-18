@@ -9,10 +9,6 @@ description: Technical documentation for Auriya's Android app, companion service
 
 Auriya is an Android root module composed of a Kotlin/Compose manager, an Android companion service, and a Rust daemon. This wiki documents how those components start, communicate, observe the system, and apply configuration.
 
-:::info Scope
-This documentation describes implementation and behavior. It does not promise performance gains for every device, ROM, or kernel.
-:::
-
 ## Start here
 
 | Goal | Page |
@@ -23,6 +19,23 @@ This documentation describes implementation and behavior. It does not promise pe
 | Inspect app-to-daemon communication | [IPC protocol](internals/ipc-protocol) |
 | Build Auriya from source | [Building](development/building) |
 
+:::info Scope
+This documentation describes implementation and behavior. It does not promise
+performance gains for every device, ROM, or kernel.
+:::
+
 ## Documentation status
 
-The site structure is ready for source-backed documentation. Pages marked as implementation notes should be expanded only after the corresponding source path, payload, interval, and fallback have been verified.
+Every page is **source-traced** against commit
+[`10fe7c6`](https://github.com/pavelc4/auriya/tree/10fe7c6b56474a00513fec34ebac1376b30e95e6):
+behavioral claims cite the file (and often the line) they come from, and each
+reference/internals page ends with a "Likely to drift first" note listing what to
+re-verify when the code changes.
+
+:::warning Configuration is partly scaffolding
+Several `settings.toml` keys are written by the manager app and parsed by the
+daemon but **not yet consumed** — they are Frame-Aware Scheduling scaffolding.
+The [settings reference](reference/settings#key-by-key-reference) marks each key
+as consumed (Active) or ignored (Unused / Unsupported) with the value actually in effect. Don't tune a
+key expecting an effect the daemon doesn't yet read.
+:::
