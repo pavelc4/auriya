@@ -35,7 +35,13 @@ pub struct EbpfFrameStream {
 impl EbpfFrameStream {
     /// Load the eBPF probe and spawn the worker thread.
     /// Failures (old kernel, no BTF, SELinux deny) propagate to the caller.
-    pub fn new() -> Result<Self> {
+    ///
+    /// `poll_interval_ms` (from `settings.fas.poll_interval_ms`) is the
+    /// deadline the worker waits for the next frame each loop. It is clamped
+    /// to `[1, 500]` ms: `0` would busy-spin, and anything above ~half a
+    /// second would starve FAS of timely frame deltas.
+    pub fn new(poll_interval_ms: u64) -> Result<Self> {
+        let poll = Duration::from_millis(poll_interval_ms.clamp(1, 500));
         let mut probe = FrameProbe::new().map_err(|e| anyhow!("kala init: {e}"))?;
 
         let (cmd_tx, cmd_rx) = std_mpsc::channel::<Cmd>();
@@ -68,7 +74,7 @@ impl EbpfFrameStream {
                     }
 
                     if let Some((_pid, frametime)) =
-                        probe.recv_with_deadline(Duration::from_millis(50))
+                        probe.recv_with_deadline(poll)
                     {
                         let _ = frame_tx.send(frametime);
                     }

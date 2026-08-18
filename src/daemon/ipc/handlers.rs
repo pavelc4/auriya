@@ -209,7 +209,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     let profile = GameProfile {
                         package: pkg.clone(),
                         cpu_governor: "performance".to_string(),
-                        enable_dnd: true,
+                        enable_dnd: h.dnd_default,
                         target_fps: None,
                         refresh_rate: None,
                         mode: Some("performance".to_string()),

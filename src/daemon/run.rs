@@ -28,7 +28,6 @@ type AsyncGetFpsCallback = Arc<
 >;
 
 const INGAME_INTERVAL_MS: u64 = 500;
-const NORMAL_INTERVAL_MS: u64 = 5000;
 const SCREEN_OFF_INTERVAL_MS: u64 = 10000;
 
 /// How often to re-check whether the companion process is still alive.
@@ -118,6 +117,11 @@ pub struct Daemon {
     pub(crate) fas_controller: Option<Arc<tokio::sync::Mutex<crate::daemon::fas::FasController>>>,
     pub(crate) balance_governor: String,
     pub(crate) default_mode: ProfileMode,
+    /// Idle/foreground (non-game) tick cadence in ms, from
+    /// `daemon.check_interval_ms`. The in-game (500 ms) and screen-off
+    /// (10 s) cadences remain fixed; only this "normal" interval is
+    /// user-configurable. Reloadable.
+    pub(crate) normal_interval_ms: u64,
     pub(crate) supported_modes: Arc<Vec<crate::core::display::DisplayMode>>,
     /// Currently-active refresh-rate override (Hz) we've asked the
     /// companion to apply. `None` means we have not pushed a custom rate
@@ -170,7 +174,7 @@ impl Daemon {
         debug!(target: "auriya::daemon", "Default mode: {:?}", default_mode);
 
         let (fas_controller, fps_meter, ebpf) = {
-            let e = match crate::core::ebpf::EbpfFrameStream::new() {
+            let e = match crate::core::ebpf::EbpfFrameStream::new(cfg.settings.fas.poll_interval_ms) {
                 Ok(e) => {
                     debug!(target: "auriya::daemon", "eBPF frame stream ready");
                     Some(e)
@@ -189,10 +193,15 @@ impl Daemon {
 
             let fas = if cfg.settings.fas.enabled {
                 if let Some(ref listener) = e {
-                    debug!(target: "auriya::daemon", "FAS enabled with eBPF");
+                    let tuning = crate::daemon::fas::FasTuning::from_settings(&cfg.settings);
+                    debug!(target: "auriya::daemon", "FAS enabled with eBPF (target_fps={}, mode={})", cfg.settings.fas.target_fps, cfg.settings.fas.default_mode);
                     let rx = listener.subscribe();
                     Some(Arc::new(tokio::sync::Mutex::new(
-                        crate::daemon::fas::FasController::with_target_fps(rx, 60),
+                        crate::daemon::fas::FasController::new(
+                            rx,
+                            crate::core::fas::buffer::TargetFps::Single(cfg.settings.fas.target_fps),
+                            tuning,
+                        ),
                     )))
                 } else {
                     tracing::warn!(
@@ -230,6 +239,10 @@ impl Daemon {
 
         let core_layout = crate::core::tweaks::ceiling::CoreLayout::detect();
 
+        // Idle/foreground cadence from config. Clamp to a 100 ms floor so a
+        // misconfigured tiny value cannot turn the tick loop into a busy-spin.
+        let normal_interval_ms = cfg.settings.daemon.check_interval_ms.max(100);
+
         Ok(Self {
             cfg,
             _shared_settings: shared_settings,
@@ -242,6 +255,7 @@ impl Daemon {
             fas_controller,
             balance_governor,
             default_mode,
+            normal_interval_ms,
             supported_modes,
             applied_refresh_rate: None,
             cached_whitelist,
@@ -309,6 +323,12 @@ impl Daemon {
                 if self.default_mode != new_default_mode {
                     debug!(target: "auriya::daemon", "Settings reloaded. New default mode: {:?} → {:?}", self.default_mode, new_default_mode);
                     self.default_mode = new_default_mode;
+                }
+
+                let new_interval = new_settings.daemon.check_interval_ms.max(100);
+                if self.normal_interval_ms != new_interval {
+                    debug!(target: "auriya::daemon", "Settings reloaded. Normal tick interval: {}ms → {}ms", self.normal_interval_ms, new_interval);
+                    self.normal_interval_ms = new_interval;
                 }
             }
             Err(e) => {
@@ -408,6 +428,7 @@ impl Daemon {
             profile_lock: Arc::new(std::sync::Mutex::new(())),
             current_state: current_state.clone(),
             balance_governor: cfg.settings.cpu.default_governor.clone(),
+            dnd_default: cfg.settings.dnd.default_enable,
             current_log_level,
             supported_modes: self.supported_modes.clone(),
         };
@@ -627,7 +648,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
 
     crate::daemon::companion_lock::start_companion_lock_watcher(daemon.event_tx.clone());
 
-    debug!(target: "auriya::daemon", "Tick loop started (adaptive: {}ms idle, {}ms gaming)", NORMAL_INTERVAL_MS, INGAME_INTERVAL_MS);
+    debug!(target: "auriya::daemon", "Tick loop started (adaptive: {}ms idle, {}ms gaming)", daemon.normal_interval_ms, INGAME_INTERVAL_MS);
 
     daemon.tick().await;
 
@@ -637,7 +658,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
         } else if daemon.is_in_game_session() {
             INGAME_INTERVAL_MS
         } else {
-            NORMAL_INTERVAL_MS
+            daemon.normal_interval_ms
         };
 
         tokio::select! {

@@ -33,6 +33,9 @@ pub struct IpcHandles {
 
     pub current_state: Arc<RwLock<CurrentState>>,
     pub balance_governor: String,
+    /// Default `enable_dnd` for a game created via `ADD_GAME`, from
+    /// `settings.dnd.default_enable`. Snapshotted at IPC init.
+    pub dnd_default: bool,
     pub current_log_level: Arc<RwLock<LogLevelCmd>>,
     pub supported_modes: Arc<Vec<crate::core::display::DisplayMode>>,
 }
@@ -57,6 +60,7 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
             profile_lock: h.profile_lock.clone(),
             current_state: h.current_state.clone(),
             balance_governor: h.balance_governor.clone(),
+            dnd_default: h.dnd_default,
             current_log_level: h.current_log_level.clone(),
             supported_modes: h.supported_modes.clone(),
         };

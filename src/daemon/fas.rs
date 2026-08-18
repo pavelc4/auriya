@@ -32,6 +32,70 @@ const JANK_DELTA_FPS: f64 = 2.0;
 const BOOST_THRESHOLD_KHZ: f64 = 50_000.0;
 const REDUCE_THRESHOLD_KHZ: f64 = -50_000.0;
 
+/// Runtime-tunable FAS parameters, resolved from `settings.toml` at daemon
+/// construction (`[fas]`, `[dynamic_governor]`, and the active `[modes.*]`
+/// entry selected by `fas.default_mode`). `Default` reproduces the historical
+/// hardcoded constants so the unit tests stay behaviour-identical without a
+/// settings file.
+#[derive(Debug, Clone, Copy)]
+pub struct FasTuning {
+    /// FPS headroom subtracted from the target (per-mode `margin`). Higher =
+    /// the controller treats "exactly target" as slower, biasing toward boosts.
+    pub margin_fps: f64,
+    /// Skin-temperature ceiling (°C); above it FAS forces `Reduce`.
+    pub thermal_threshold: f32,
+    /// Bottleneck-detector coefficient-of-variation split
+    pub cv_threshold: f64,
+    /// Frames a new bottleneck class must persist before it is accepted.
+    pub debounce_frames: u32,
+    /// When false, bottleneck classification is skipped and every boost is
+    /// `BoostBalanced` (full profile) instead
+    pub dynamic_governor_enabled: bool,
+}
+
+impl Default for FasTuning {
+    fn default() -> Self {
+        Self {
+            margin_fps: MARGIN_FPS,
+            thermal_threshold: 90.0,
+            cv_threshold: 0.15,
+            debounce_frames: 3,
+            dynamic_governor_enabled: true,
+        }
+    }
+}
+
+impl FasTuning {
+    /// Resolve tuning from `settings.toml`.
+    ///
+    /// `fas.default_mode` names which `[modes.*]` entry is active; that entry
+    /// supplies `margin` and (preferentially) the thermal ceiling, with
+    /// `fas.thermal_threshold` as the fallback when the mode omits it or is
+    /// unknown. `[dynamic_governor]` supplies the bottleneck-detector knobs.
+    /// This is what makes `fas.default_mode` and every `[modes.*]` block
+    /// (including `fast`) actually affect FAS behaviour.
+    pub fn from_settings(settings: &crate::core::config::Settings) -> Self {
+        let mode = settings.modes.get(&settings.fas.default_mode);
+        if mode.is_none() {
+            tracing::warn!(
+                target: "auriya::fas",
+                "fas.default_mode = {:?} has no matching [modes.*] entry; using default margin",
+                settings.fas.default_mode,
+            );
+        }
+        let default = Self::default();
+        Self {
+            margin_fps: mode.map(|m| m.margin).unwrap_or(default.margin_fps),
+            thermal_threshold: mode
+                .map(|m| m.thermal_threshold)
+                .unwrap_or(settings.fas.thermal_threshold) as f32,
+            cv_threshold: settings.dynamic_governor.cv_threshold,
+            debounce_frames: settings.dynamic_governor.debounce_frames,
+            dynamic_governor_enabled: settings.dynamic_governor.enabled,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FasState {
     NotWorking,
@@ -53,6 +117,7 @@ pub struct FasController {
     util_sampler: UtilSampler,
     target_fps_offset: f64,
     kp: f64,
+    tuning: FasTuning,
 }
 
 impl FasController {
@@ -62,14 +127,18 @@ impl FasController {
     pub fn new(
         rx: tokio::sync::broadcast::Receiver<Duration>,
         target_fps_config: TargetFps,
+        tuning: FasTuning,
     ) -> Self {
         let source = FrameSource::new(rx);
         let caps = PlatformCapabilities::detect();
         tracing::debug!(
             target: "auriya::fas",
-            "FAS Controller initialized (gpu={} cpu={})",
+            "FAS Controller initialized (gpu={} cpu={} margin={} thermal={} dyn_gov={})",
             caps.gpu_controllable,
-            caps.cpu_controllable
+            caps.cpu_controllable,
+            tuning.margin_fps,
+            tuning.thermal_threshold,
+            tuning.dynamic_governor_enabled,
         );
         if !caps.gpu_controllable {
             tracing::warn!(
@@ -80,7 +149,7 @@ impl FasController {
         Self {
             source,
             buffer: FrameBuffer::new(target_fps_config),
-            bottleneck: BottleneckDetector::new(0.15, 3),
+            bottleneck: BottleneckDetector::new(tuning.cv_threshold, tuning.debounce_frames),
             thermal: ThermalMonitor::new(),
             caps,
             package: String::new(),
@@ -91,11 +160,8 @@ impl FasController {
             util_sampler: UtilSampler::new(),
             target_fps_offset: 0.0,
             kp: KP_DEFAULT,
+            tuning,
         }
-    }
-
-    pub fn with_target_fps(rx: tokio::sync::broadcast::Receiver<Duration>, fps: u32) -> Self {
-        Self::new(rx, TargetFps::Single(fps))
     }
 
     pub fn set_package(&mut self, package: String, pid: Option<i32>) {
@@ -126,7 +192,7 @@ impl FasController {
         self.buffer.target_fps.unwrap_or(60)
     }
 
-    pub async fn tick(&mut self, thermal_thresh: f32) -> Result<ScalingAction> {
+    pub async fn tick(&mut self) -> Result<ScalingAction> {
         if let Some(pid) = self.pid.filter(|_| !self.package.is_empty())
             && self.last_attached_pkg != self.package
         {
@@ -170,8 +236,8 @@ impl FasController {
         }
 
         let temp = self.thermal.get_max_temp().unwrap_or(0.0);
-        if temp > thermal_thresh {
-            tracing::debug!(target: "auriya::fas", "Thermal throttle: {:.1}°C", temp);
+        if temp > self.tuning.thermal_threshold {
+            tracing::debug!(target: "auriya::fas", "Thermal throttle: {:.1}°C (limit {:.1})", temp, self.tuning.thermal_threshold);
             return Ok(ScalingAction::Reduce);
         }
 
@@ -186,7 +252,7 @@ impl FasController {
         self.update_target_offset();
 
         let adjusted_target_fps =
-            (f64::from(target_fps) + self.target_fps_offset - MARGIN_FPS).max(1.0);
+            (f64::from(target_fps) + self.target_fps_offset - self.tuning.margin_fps).max(1.0);
 
         let last_frame = match self.buffer.last_frametime() {
             Some(f) => f,
@@ -196,8 +262,16 @@ impl FasController {
         let control_khz = compute_control_khz(last_frame, adjusted_target_fps, self.kp);
         let is_janked = self.buffer.current_fps_long < f64::from(target_fps) - JANK_DELTA_FPS;
 
-        let frametimes = self.buffer.recent_frametimes(60);
-        let bottleneck = self.bottleneck.classify(&frametimes, target_fps);
+        // Bottleneck classification is what lets FAS issue *targeted* CPU-only
+        // or GPU-only boosts. When dynamic_governor is disabled, skip it and
+        // treat every boost as Balanced (full profile) — a coarser but
+        // predictable fallback that never mis-attributes the bottleneck.
+        let bottleneck = if self.tuning.dynamic_governor_enabled {
+            let frametimes = self.buffer.recent_frametimes(60);
+            self.bottleneck.classify(&frametimes, target_fps)
+        } else {
+            BottleneckType::Balanced
+        };
 
         tracing::debug!(
             target: "auriya::fas",
@@ -391,6 +465,84 @@ mod tests {
 
     fn ft_ms(ms: f64) -> Duration {
         Duration::from_secs_f64(ms / 1000.0)
+    }
+
+    // --- FasTuning::from_settings ---------------------------------------
+    // These lock in the wiring that makes fas.default_mode + every [modes.*]
+    // entry actually affect FAS. Pure over `Settings`, so no device needed.
+
+    fn settings_with(
+        default_mode: &str,
+        modes: &[(&str, f64, f64)],
+    ) -> crate::core::config::Settings {
+        use crate::core::config::settings::*;
+        use std::collections::HashMap;
+        let mut m = HashMap::new();
+        for (name, margin, thermal) in modes {
+            m.insert(
+                (*name).to_string(),
+                FasMode {
+                    margin: *margin,
+                    thermal_threshold: *thermal,
+                },
+            );
+        }
+        Settings {
+            daemon: DaemonConfig::default(),
+            cpu: CpuConfig {
+                default_governor: "schedutil".into(),
+            },
+            dnd: DndConfig {
+                default_enable: true,
+            },
+            fas: FasConfig {
+                enabled: true,
+                default_mode: default_mode.to_string(),
+                thermal_threshold: 90.0,
+                poll_interval_ms: 100,
+                target_fps: 60,
+            },
+            dynamic_governor: DynamicGovernorConfig {
+                enabled: true,
+                cv_threshold: 0.22,
+                debounce_frames: 7,
+            },
+            ceiling: CeilingConfig::default(),
+            modes: m,
+        }
+    }
+
+    #[test]
+    fn tuning_uses_active_mode_margin_and_thermal() {
+        // fas.default_mode = "fast" selects [modes.fast]; margin/thermal come
+        // from that entry, not the global fas.thermal_threshold (90.0).
+        let s = settings_with("fast", &[("balance", 2.0, 90.0), ("fast", 0.0, 95.0)]);
+        let t = FasTuning::from_settings(&s);
+        assert_eq!(t.margin_fps, 0.0);
+        assert_eq!(t.thermal_threshold, 95.0);
+        // dynamic_governor knobs are threaded through verbatim.
+        assert_eq!(t.cv_threshold, 0.22);
+        assert_eq!(t.debounce_frames, 7);
+        assert!(t.dynamic_governor_enabled);
+    }
+
+    #[test]
+    fn tuning_unknown_mode_falls_back_to_defaults_and_global_thermal() {
+        // default_mode names a mode that has no [modes.*] entry: margin falls
+        // back to the historical default, thermal to fas.thermal_threshold.
+        let s = settings_with("nonexistent", &[("balance", 2.0, 88.0)]);
+        let t = FasTuning::from_settings(&s);
+        assert_eq!(t.margin_fps, FasTuning::default().margin_fps);
+        assert_eq!(t.thermal_threshold, 90.0); // fas.thermal_threshold fallback
+    }
+
+    #[test]
+    fn tuning_disabled_dynamic_governor_is_propagated() {
+        let mut s = settings_with("balance", &[("balance", 3.0, 85.0)]);
+        s.dynamic_governor.enabled = false;
+        let t = FasTuning::from_settings(&s);
+        assert!(!t.dynamic_governor_enabled);
+        assert_eq!(t.margin_fps, 3.0);
     }
 
     #[test]

@@ -449,12 +449,13 @@ impl Daemon {
     ) -> Result<bool> {
         use crate::core::{profile, scaling::ScalingAction};
 
-        let thermal_thresh = 90.0;
-
+        // The thermal ceiling now lives in the FasController's tuning
+        // (resolved from settings.fas.thermal_threshold / the active
+        // [modes.*] entry at construction), so the tick takes no argument.
         let action = {
             let mut fas_guard = fas.lock().await;
             fas_guard.set_package(pkg.to_string(), pid);
-            fas_guard.tick(thermal_thresh).await?
+            fas_guard.tick().await?
         };
 
         match action {
