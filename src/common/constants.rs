@@ -5,4 +5,3 @@ pub const SETTINGS_FILE: &str = "/data/adb/.config/auriya/settings.toml";
 pub const GAMELIST_FILE: &str = "/data/adb/.config/auriya/gamelist.toml";
 pub const LOG_FILE: &str = "/data/adb/auriya/daemon.log";
 pub const SERVICE_SCRIPT: &str = "/data/adb/modules/auriya/service.sh";
-pub const WEBUI_DIR: &str = "/data/adb/modules/auriya/webui";
