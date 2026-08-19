@@ -73,9 +73,7 @@ impl EbpfFrameStream {
                         }
                     }
 
-                    if let Some((_pid, frametime)) =
-                        probe.recv_with_deadline(poll)
-                    {
+                    if let Some((_pid, frametime)) = probe.recv_with_deadline(poll) {
                         let _ = frame_tx.send(frametime);
                     }
                 }

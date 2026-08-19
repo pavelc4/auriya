@@ -184,7 +184,8 @@ impl Daemon {
         debug!(target: "auriya::daemon", "Default mode: {:?}", default_mode);
 
         let (fas_controller, fps_meter, ebpf) = {
-            let e = match crate::core::ebpf::EbpfFrameStream::new(cfg.settings.fas.poll_interval_ms) {
+            let e = match crate::core::ebpf::EbpfFrameStream::new(cfg.settings.fas.poll_interval_ms)
+            {
                 Ok(e) => {
                     debug!(target: "auriya::daemon", "eBPF frame stream ready");
                     Some(e)
@@ -209,7 +210,9 @@ impl Daemon {
                     Some(Arc::new(tokio::sync::Mutex::new(
                         crate::daemon::fas::FasController::new(
                             rx,
-                            crate::core::fas::buffer::TargetFps::Single(cfg.settings.fas.target_fps),
+                            crate::core::fas::buffer::TargetFps::Single(
+                                cfg.settings.fas.target_fps,
+                            ),
                             tuning,
                         ),
                     )))
