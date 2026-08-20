@@ -548,6 +548,7 @@ fun RecordScreen(
                         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLowest,
                     ) {
+                        val roundFps by viewModel.roundFps.collectAsState()
                         LazyColumn(
                             modifier =
                                 Modifier
@@ -591,7 +592,7 @@ fun RecordScreen(
                                                 Text(
                                                     text =
                                                         if (isSessionActive) {
-                                                            (session.pkg?.substringAfterLast('.') ?: "ACTIVE")
+                                                            "LIVE TELEMETRY"
                                                         } else if (lastSession != null) {
                                                             lastSession.profile.uppercase()
                                                         } else {
@@ -613,13 +614,31 @@ fun RecordScreen(
                                             }
 
                                             if (isSessionActive) {
-                                                Text(
-                                                    text = session.profile.uppercase(),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    fontSize = 11.sp,
-                                                )
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                    ) {
+                                                        Box(
+                                                            modifier =
+                                                                Modifier
+                                                                    .size(6.dp)
+                                                                    .clip(CircleShape)
+                                                                    .background(MaterialTheme.colorScheme.tertiary),
+                                                        )
+                                                        Text(
+                                                            text = "ACTIVE",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                                            fontSize = 10.sp,
+                                                        )
+                                                    }
+                                                }
                                             } else if (lastSession != null) {
                                                 Text(
                                                     text = lastSession.appLabel,
@@ -646,9 +665,11 @@ fun RecordScreen(
                                         ) {
                                             val displayFpsText =
                                                 if (isSessionActive && fps != null) {
-                                                    "%.1f".format(fps.avg)
+                                                    dev.auriya.app.data.AppPrefs
+                                                        .formatFps(fps.avg, roundFps)
                                                 } else if (lastSession != null) {
-                                                    "%.1f".format(lastSession.avgFps)
+                                                    dev.auriya.app.data.AppPrefs
+                                                        .formatFps(lastSession.avgFps, roundFps)
                                                 } else {
                                                     "--"
                                                 }
@@ -679,11 +700,11 @@ fun RecordScreen(
                                         Text(
                                             text =
                                                 if (isSessionActive && fps != null) {
-                                                    "1%% Low: %.1f FPS • Peak: %.1f FPS".format(fps.low_1pct, fps.peak)
+                                                    "1% Low: ${dev.auriya.app.data.AppPrefs.formatFps(fps.low_1pct, roundFps)} FPS • Peak: ${dev.auriya.app.data.AppPrefs.formatFps(fps.peak, roundFps)} FPS"
                                                 } else if (lastSession != null) {
-                                                    "1%% Low: %.1f FPS • Peak: %.1f FPS • ${formatDuration(
+                                                    "1% Low: ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.minLow1Pct, roundFps)} FPS • Peak: ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.maxFps, roundFps)} FPS • ${formatDuration(
                                                         lastSession.durationSeconds,
-                                                    )}".format(lastSession.minLow1Pct, lastSession.maxFps)
+                                                    )}"
                                                 } else {
                                                     "Launch a configured game from Gamelist to track live rendering"
                                                 },
@@ -707,7 +728,7 @@ fun RecordScreen(
                                         title = "FPS & Frametimes",
                                         subtitle =
                                             if (fps != null && liveStats?.session?.active == true) {
-                                                "Avg %.1f FPS • 1%% Low %.1f FPS • %d Jank".format(fps.avg, fps.low_1pct, fps.jank)
+                                                "Avg ${dev.auriya.app.data.AppPrefs.formatFps(fps.avg, roundFps)} FPS • 1% Low ${dev.auriya.app.data.AppPrefs.formatFps(fps.low_1pct, roundFps)} FPS • ${fps.jank} Jank"
                                             } else {
                                                 "View real-time frame rates and sparkline"
                                             },

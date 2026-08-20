@@ -65,6 +65,10 @@ fun SessionDetailPane(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val roundFps by dev.auriya.app.data.AppPrefs
+        .getInstance(context)
+        .roundFps
+        .collectAsState()
     var selectedTab by remember { mutableStateOf(MetricGraphTab.OVERVIEW) }
 
     val dateStr =
@@ -211,7 +215,9 @@ fun SessionDetailPane(
                         ) {
                             Column {
                                 Text(
-                                    text = "%.1f".format(session.avgFps),
+                                    text =
+                                        dev.auriya.app.data.AppPrefs
+                                            .formatFps(session.avgFps, roundFps),
                                     style =
                                         ExpTitleTypography.titleLarge.copy(
                                             fontSize = 44.sp,
@@ -239,7 +245,7 @@ fun SessionDetailPane(
                                         modifier = Modifier.size(16.dp),
                                     )
                                     Text(
-                                        text = "%.1f FPS".format(session.minLow1Pct),
+                                        text = "${dev.auriya.app.data.AppPrefs.formatFps(session.minLow1Pct, roundFps)} FPS",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Black,
                                         color = MaterialTheme.colorScheme.onSurface,
@@ -262,7 +268,9 @@ fun SessionDetailPane(
                         ) {
                             DetailStatItem(
                                 title = "Peak FPS",
-                                value = "%.1f".format(session.maxFps),
+                                value =
+                                    dev.auriya.app.data.AppPrefs
+                                        .formatFps(session.maxFps, roundFps),
                                 icon = Icons.AutoMirrored.Filled.TrendingUp,
                             )
                             DetailStatItem(
@@ -375,7 +383,7 @@ fun SessionDetailPane(
                                             }
 
                                             MetricGraphTab.FPS -> {
-                                                "Avg %.1f FPS • 1%% Low %.1f FPS".format(session.avgFps, session.minLow1Pct)
+                                                "Avg ${dev.auriya.app.data.AppPrefs.formatFps(session.avgFps, roundFps)} FPS • 1% Low ${dev.auriya.app.data.AppPrefs.formatFps(session.minLow1Pct, roundFps)} FPS"
                                             }
 
                                             MetricGraphTab.THERMALS -> {

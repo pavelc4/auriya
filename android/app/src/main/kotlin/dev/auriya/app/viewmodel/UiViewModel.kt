@@ -55,14 +55,23 @@ class UiViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val benchmarkRecorder = BenchmarkRecorder.getInstance(application)
+    private val appPrefs =
+        dev.auriya.app.data.AppPrefs
+            .getInstance(application)
 
     private val _liveStats = MutableStateFlow<Stats?>(null)
     val liveStats: StateFlow<Stats?> = _liveStats.asStateFlow()
+
+    val roundFps: StateFlow<Boolean> = appPrefs.roundFps
 
     val isRecording: StateFlow<Boolean> = benchmarkRecorder.isRecording
     val currentRecordingDurationSec: StateFlow<Long> = benchmarkRecorder.currentRecordingDurationSec
     val currentSamplesCount: StateFlow<Int> = benchmarkRecorder.currentSamplesCount
     val benchmarkSessions: StateFlow<List<BenchmarkSession>> = benchmarkRecorder.sessions
+
+    fun setRoundFps(enabled: Boolean) {
+        appPrefs.setRoundFps(enabled)
+    }
 
     private val _settings = MutableStateFlow(Settings())
     val settings: StateFlow<Settings> = _settings.asStateFlow()

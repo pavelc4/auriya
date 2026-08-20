@@ -9,9 +9,12 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,6 +34,11 @@ fun FpsDetailPane(
     lastSession: BenchmarkSession? = null,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val roundFps by dev.auriya.app.data.AppPrefs
+        .getInstance(context)
+        .roundFps
+        .collectAsState()
     val isLive = session.active && fps != null
     val displayHistory =
         if (isLive && fpsHistory.isNotEmpty()) {
@@ -128,9 +136,11 @@ fun FpsDetailPane(
                         ) {
                             val meanFpsText =
                                 if (isLive) {
-                                    "%.1f".format(fps.avg)
+                                    dev.auriya.app.data.AppPrefs
+                                        .formatFps(fps.avg, roundFps)
                                 } else if (lastSession != null) {
-                                    "%.1f".format(lastSession.avgFps)
+                                    dev.auriya.app.data.AppPrefs
+                                        .formatFps(lastSession.avgFps, roundFps)
                                 } else {
                                     "--"
                                 }
@@ -264,18 +274,22 @@ fun FpsDetailPane(
             item {
                 val low1Pct =
                     if (isLive) {
-                        "%.1f".format(fps.low_1pct)
+                        dev.auriya.app.data.AppPrefs
+                            .formatFps(fps.low_1pct, roundFps)
                     } else if (lastSession != null) {
-                        "%.1f".format(lastSession.minLow1Pct)
+                        dev.auriya.app.data.AppPrefs
+                            .formatFps(lastSession.minLow1Pct, roundFps)
                     } else {
                         "--"
                     }
 
                 val peakFps =
                     if (isLive) {
-                        "%.1f".format(fps.peak)
+                        dev.auriya.app.data.AppPrefs
+                            .formatFps(fps.peak, roundFps)
                     } else if (lastSession != null) {
-                        "%.1f".format(lastSession.maxFps)
+                        dev.auriya.app.data.AppPrefs
+                            .formatFps(lastSession.maxFps, roundFps)
                     } else {
                         "--"
                     }

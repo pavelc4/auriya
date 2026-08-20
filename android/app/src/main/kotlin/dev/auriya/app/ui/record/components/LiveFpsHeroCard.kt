@@ -39,6 +39,11 @@ fun LiveFpsHeroCard(
     fpsHistory: List<Float>,
     modifier: Modifier = Modifier,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val roundFps by dev.auriya.app.data.AppPrefs
+        .getInstance(context)
+        .roundFps
+        .collectAsState()
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
@@ -183,7 +188,8 @@ fun LiveFpsHeroCard(
                         Text(
                             text =
                                 if (fps != null && session.active) {
-                                    String.format("%.1f", fps.avg)
+                                    dev.auriya.app.data.AppPrefs
+                                        .formatFps(fps.avg, roundFps)
                                 } else {
                                     "--"
                                 },
@@ -245,19 +251,37 @@ fun LiveFpsHeroCard(
             ) {
                 MetricPill(
                     label = "Avg FPS",
-                    value = if (fps != null && session.active) "%.1f".format(fps.avg) else "--",
+                    value =
+                        if (fps != null && session.active) {
+                            dev.auriya.app.data.AppPrefs
+                                .formatFps(fps.avg, roundFps)
+                        } else {
+                            "--"
+                        },
                     icon = Icons.Outlined.Timeline,
                     modifier = Modifier.weight(1f),
                 )
                 MetricPill(
                     label = "Peak FPS",
-                    value = if (fps != null && session.active) "%.1f".format(fps.peak) else "--",
+                    value =
+                        if (fps != null && session.active) {
+                            dev.auriya.app.data.AppPrefs
+                                .formatFps(fps.peak, roundFps)
+                        } else {
+                            "--"
+                        },
                     icon = Icons.Outlined.Speed,
                     modifier = Modifier.weight(1f),
                 )
                 MetricPill(
                     label = "1% Low",
-                    value = if (fps != null && session.active) "%.1f".format(fps.low_1pct) else "--",
+                    value =
+                        if (fps != null && session.active) {
+                            dev.auriya.app.data.AppPrefs
+                                .formatFps(fps.low_1pct, roundFps)
+                        } else {
+                            "--"
+                        },
                     icon = Icons.AutoMirrored.Filled.TrendingDown,
                     modifier = Modifier.weight(1f),
                 )

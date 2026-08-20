@@ -12,6 +12,8 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +50,11 @@ fun BenchmarkSessionCard(
         remember(session.packageName) {
             AppIconCache.load(context.packageManager, session.packageName)
         }
+
+    val roundFps by dev.auriya.app.data.AppPrefs
+        .getInstance(context)
+        .roundFps
+        .collectAsState()
 
     val cardColor =
         if (isSelected) {
@@ -145,7 +152,9 @@ fun BenchmarkSessionCard(
             // Right Avg FPS & 1% Low
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "%.1f".format(session.avgFps),
+                    text =
+                        dev.auriya.app.data.AppPrefs
+                            .formatFps(session.avgFps, roundFps),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.primary,
@@ -162,7 +171,9 @@ fun BenchmarkSessionCard(
                         modifier = Modifier.size(12.dp),
                     )
                     Text(
-                        text = "%.1f".format(session.minLow1Pct),
+                        text =
+                            dev.auriya.app.data.AppPrefs
+                                .formatFps(session.minLow1Pct, roundFps),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

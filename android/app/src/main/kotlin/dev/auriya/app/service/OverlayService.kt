@@ -279,7 +279,13 @@ class OverlayService :
         var fpsVal = "0"
         var rawFpsNum = 0f
         if (stats?.session?.active == true && stats.fps != null && stats.fps.avg > 0) {
-            fpsVal = "%.1f".format(stats.fps.avg)
+            val roundFps =
+                dev.auriya.app.data.AppPrefs
+                    .getInstance(this)
+                    .roundFps.value
+            fpsVal =
+                dev.auriya.app.data.AppPrefs
+                    .formatFps(stats.fps.avg, roundFps)
             rawFpsNum = stats.fps.avg.toFloat()
         }
 

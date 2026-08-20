@@ -196,6 +196,34 @@ fun SettingsScreen(
 
                     SettingsSubScreen.APP -> {
                         item {
+                            SectionCard(title = "Display & Metrics") {
+                                val roundFps by viewModel.roundFps.collectAsState()
+                                SettingRow(
+                                    icon = Icons.Outlined.Numbers,
+                                    title = "Round FPS Values",
+                                    subtitle =
+                                        if (roundFps) {
+                                            "Showing integer FPS (e.g. 60 FPS)"
+                                        } else {
+                                            "Showing precise decimals (e.g. 59.8 FPS)"
+                                        },
+                                    showChevron = false,
+                                    control = {
+                                        Switch(
+                                            checked = roundFps,
+                                            onCheckedChange = { viewModel.setRoundFps(it) },
+                                            colors =
+                                                SwitchDefaults.colors(
+                                                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                                    checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                                ),
+                                        )
+                                    },
+                                )
+                            }
+                        }
+
+                        item {
                             SectionCard(title = "General") {
                                 SettingRow(
                                     icon = Icons.Filled.Translate,

@@ -262,9 +262,9 @@ fun ThermalInsightCard(
                         progress = 1f,
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        strokeWidth = 6.dp,
+                        strokeWidth = 12.dp,
                         amplitude = 2.dp,
-                        frequency = 10,
+                        frequency = 12,
                     )
 
                     // Active Progress (scaled to 0-85°C max)
@@ -273,9 +273,9 @@ fun ThermalInsightCard(
                         progress = if (maxTemp > 0f) progressFraction else 0f,
                         modifier = Modifier.fillMaxSize(),
                         color = primaryColor,
-                        strokeWidth = 6.dp,
+                        strokeWidth = 12.dp,
                         amplitude = 2.dp,
-                        frequency = 10,
+                        frequency = 12,
                     )
 
                     Column(
