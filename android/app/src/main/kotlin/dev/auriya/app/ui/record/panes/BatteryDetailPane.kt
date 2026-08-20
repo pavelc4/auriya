@@ -25,75 +25,88 @@ import kotlin.math.abs
 @Composable
 fun BatteryDetailPane(
     battery: Battery,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val isCharging = (battery.current_ma ?: 0) > 0
-    val wattage = if (battery.voltage_v != null && battery.current_ma != null) {
-        abs(battery.voltage_v * battery.current_ma / 1000.0)
-    } else null
+    val wattage =
+        if (battery.voltage_v != null && battery.current_ma != null) {
+            abs(battery.voltage_v * battery.current_ma / 1000.0)
+        } else {
+            null
+        }
 
     Surface(
         modifier = modifier.fillMaxSize(),
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
             contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Hero Battery Level Card
             item {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
                                 text = "Battery Power State",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isCharging) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceContainerHighest
+                                color =
+                                    if (isCharging) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHighest
+                                    },
                             ) {
                                 Text(
                                     text = (battery.status ?: if (isCharging) "Charging" else "Discharging").uppercase(),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isCharging) MaterialTheme.colorScheme.onPrimaryContainer
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color =
+                                        if (isCharging) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                    fontSize = 10.sp
+                                    fontSize = 10.sp,
                                 )
                             }
                         }
 
                         Row(
                             verticalAlignment = Alignment.Bottom,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Text(
                                 text = if (battery.pct != null) "${battery.pct}%" else "--",
-                                style = ExpTitleTypography.titleLarge.copy(
-                                    fontSize = 48.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                                style =
+                                    ExpTitleTypography.titleLarge.copy(
+                                        fontSize = 48.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    ),
                             )
                             if (wattage != null) {
                                 Text(
@@ -101,7 +114,7 @@ fun BatteryDetailPane(
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(bottom = 8.dp)
+                                    modifier = Modifier.padding(bottom = 8.dp),
                                 )
                             }
                         }
@@ -113,7 +126,7 @@ fun BatteryDetailPane(
                                 trackColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                                 strokeWidth = 4.dp,
                                 amplitude = 1.6.dp,
-                                wavelength = 10.dp
+                                wavelength = 10.dp,
                             )
                         }
                     }
@@ -127,35 +140,38 @@ fun BatteryDetailPane(
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
                 )
             }
 
             // Power Metrics Grid Row 1
             item {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     BatteryMetricCard(
                         title = if (isCharging) "Charge Rate" else "Discharge",
                         value = if (battery.current_ma != null) "${abs(battery.current_ma)} mA" else "--",
                         desc = if (isCharging) "Input current" else "Power drain",
                         icon = if (isCharging) Icons.Outlined.Bolt else Icons.Outlined.ElectricBolt,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                     )
                     BatteryMetricCard(
                         title = "Voltage",
                         value = if (battery.voltage_v != null) "%.2f V".format(battery.voltage_v) else "--",
                         desc = "Terminal potential",
                         icon = Icons.Outlined.ElectricalServices,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                     )
                 }
             }
@@ -163,28 +179,31 @@ fun BatteryDetailPane(
             // Power Metrics Grid Row 2
             item {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     BatteryMetricCard(
                         title = "Health",
                         value = battery.health ?: "Good",
                         desc = "Pack integrity",
                         icon = Icons.Outlined.HealthAndSafety,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                     )
                     BatteryMetricCard(
                         title = "Chemistry",
                         value = "Li-Po / Li-ion",
                         desc = "Cell chemistry",
                         icon = Icons.Outlined.BatteryChargingFull,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                     )
                 }
             }
@@ -198,29 +217,29 @@ private fun BatteryMetricCard(
     value: String,
     desc: String,
     icon: ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier
+        modifier = modifier,
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             // Icon with Badge
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(32.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
@@ -233,7 +252,7 @@ private fun BatteryMetricCard(
                 fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = title,
@@ -241,7 +260,7 @@ private fun BatteryMetricCard(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = desc,
@@ -249,7 +268,7 @@ private fun BatteryMetricCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

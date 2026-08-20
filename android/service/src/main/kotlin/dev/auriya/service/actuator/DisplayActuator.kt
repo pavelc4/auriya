@@ -23,7 +23,9 @@ import android.util.Log
  * is granted automatically — no WRITE_SETTINGS or signature grant
  * required.
  */
-class DisplayActuator(private val settings: SettingsHelper) {
+class DisplayActuator(
+    private val settings: SettingsHelper,
+) {
     private companion object {
         private const val TAG = "AuriyaDisplay"
         private const val KEY_PEAK = "peak_refresh_rate"

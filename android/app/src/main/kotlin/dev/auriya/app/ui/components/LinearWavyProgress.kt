@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 
-
 @Composable
 fun LinearWavyProgress(
     progress: Float,
@@ -46,17 +45,18 @@ fun LinearWavyProgress(
         if (activeWidth <= 0f) return@Canvas
 
         // Wavy indicator
-        val path = Path().apply {
-            moveTo(0f, centerY)
-            var x = 0f
-            val step = 1f
-            while (x < activeWidth) {
-                val phase = (x / waveLength) * 2f * Math.PI.toFloat()
-                val y = centerY + kotlin.math.sin(phase.toDouble()).toFloat() * amplitude
-                lineTo(x, y)
-                x += step
+        val path =
+            Path().apply {
+                moveTo(0f, centerY)
+                var x = 0f
+                val step = 1f
+                while (x < activeWidth) {
+                    val phase = (x / waveLength) * 2f * Math.PI.toFloat()
+                    val y = centerY + kotlin.math.sin(phase.toDouble()).toFloat() * amplitude
+                    lineTo(x, y)
+                    x += step
+                }
             }
-        }
         drawPath(
             path = path,
             color = indicatorColor,

@@ -29,7 +29,7 @@ fun LazyListScope.daemonConfigPane(
         PopupInfoCard(
             icon = Icons.Outlined.Dns,
             title = "Auriya Daemon",
-            description = "The Auriya background daemon monitors foreground games, manages CPU frequencies via Unix sockets, and enforces scheduling policies."
+            description = "The Auriya background daemon monitors foreground games, manages CPU frequencies via Unix sockets, and enforces scheduling policies.",
         )
     }
     item {

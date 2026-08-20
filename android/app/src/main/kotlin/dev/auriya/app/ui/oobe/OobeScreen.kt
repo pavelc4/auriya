@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import dev.auriya.app.viewmodel.ThemeViewModel
 import dev.auriya.app.viewmodel.UiViewModel
 
-
 @Composable
 fun OobeScreen(
     viewModel: UiViewModel,
@@ -41,10 +40,11 @@ fun OobeScreen(
     }
 
     val pageCount = 6
-    val isNextButtonEnabled = when (step) {
-        1 -> hasRoot
-        else -> true
-    }
+    val isNextButtonEnabled =
+        when (step) {
+            1 -> hasRoot
+            else -> true
+        }
 
     Scaffold(
         bottomBar = {
@@ -58,15 +58,16 @@ fun OobeScreen(
                 },
                 onFinishClicked = onFinished,
                 isNextButtonEnabled = isNextButtonEnabled,
-                isFinishButtonEnabled = true
+                isFinishButtonEnabled = true,
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
         ) {
             AnimatedContent(
                 targetState = step,
@@ -80,38 +81,50 @@ fun OobeScreen(
                     }
                 },
                 modifier = Modifier.fillMaxSize(),
-                label = "OobeStepTransition"
+                label = "OobeStepTransition",
             ) { s ->
                 when (s) {
-                    0 -> WelcomeContent(
-                        isDark = isDark,
-                        themeViewModel = themeViewModel
-                    )
+                    0 -> {
+                        WelcomeContent(
+                            isDark = isDark,
+                            themeViewModel = themeViewModel,
+                        )
+                    }
 
-                    1 -> RootCheckContent(
-                        isDark = isDark,
-                        viewModel = viewModel,
-                        hasRoot = hasRoot
-                    )
+                    1 -> {
+                        RootCheckContent(
+                            isDark = isDark,
+                            viewModel = viewModel,
+                            hasRoot = hasRoot,
+                        )
+                    }
 
-                    2 -> OverlayContent(
-                        isDark = isDark
-                    )
+                    2 -> {
+                        OverlayContent(
+                            isDark = isDark,
+                        )
+                    }
 
-                    3 -> ColoringContent(
-                        isDark = isDark,
-                        themeViewModel = themeViewModel
-                    )
+                    3 -> {
+                        ColoringContent(
+                            isDark = isDark,
+                            themeViewModel = themeViewModel,
+                        )
+                    }
 
-                    4 -> NavbarContent(
-                        isDark = isDark,
-                        themeViewModel = themeViewModel
-                    )
+                    4 -> {
+                        NavbarContent(
+                            isDark = isDark,
+                            themeViewModel = themeViewModel,
+                        )
+                    }
 
-                    5 -> DoneContent(
-                        isDark = isDark,
-                        themeViewModel = themeViewModel
-                    )
+                    5 -> {
+                        DoneContent(
+                            isDark = isDark,
+                            themeViewModel = themeViewModel,
+                        )
+                    }
                 }
             }
         }

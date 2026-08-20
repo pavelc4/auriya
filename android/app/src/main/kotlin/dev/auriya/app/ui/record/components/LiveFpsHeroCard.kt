@@ -37,70 +37,83 @@ fun LiveFpsHeroCard(
     recordingDurationSec: Long,
     recordedSamplesCount: Int,
     fpsHistory: List<Float>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseAlpha"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(800, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "pulseAlpha",
     )
 
     Surface(
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header Row: Session State + Recording Status Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = if (session.active) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerHighest,
-                        modifier = Modifier.size(32.dp)
+                        color =
+                            if (session.active) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHighest
+                            },
+                        modifier = Modifier.size(32.dp),
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = if (session.active) Icons.Outlined.SportsEsports else Icons.Outlined.Speed,
                                 contentDescription = null,
-                                tint = if (session.active) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
+                                tint =
+                                    if (session.active) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
 
                     Column {
                         Text(
-                            text = if (session.active && !session.pkg.isNullOrEmpty()) {
-                                session.pkg.substringAfterLast('.')
-                            } else "System Idle",
+                            text =
+                                if (session.active && !session.pkg.isNullOrEmpty()) {
+                                    session.pkg.substringAfterLast('.')
+                                } else {
+                                    "System Idle"
+                                },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
                             text = if (session.active) "Profile: ${session.profile.uppercase()}" else "No active game running",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -108,40 +121,49 @@ fun LiveFpsHeroCard(
                 if (isRecording) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.error.copy(alpha = pulseAlpha))
+                                modifier =
+                                    Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.error.copy(alpha = pulseAlpha)),
                             )
                             Text(
                                 text = "REC ${formatDuration(recordingDurationSec)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onErrorContainer
+                                color = MaterialTheme.colorScheme.onErrorContainer,
                             )
                         }
                     }
                 } else {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (session.active) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        else MaterialTheme.colorScheme.surfaceContainerHighest
+                        color =
+                            if (session.active) {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHighest
+                            },
                     ) {
                         Text(
                             text = if (session.active) "MONITORING" else "STANDBY",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (session.active) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            color =
+                                if (session.active) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         )
                     }
                 }
@@ -151,54 +173,66 @@ fun LiveFpsHeroCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column {
                     Row(
                         verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            text = if (fps != null && session.active) {
-                                String.format("%.1f", fps.avg)
-                            } else "--",
-                            style = ExpTitleTypography.titleLarge.copy(
-                                fontSize = 48.sp,
-                                fontWeight = FontWeight.Black,
-                                color = if (fps != null && session.active) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            text =
+                                if (fps != null && session.active) {
+                                    String.format("%.1f", fps.avg)
+                                } else {
+                                    "--"
+                                },
+                            style =
+                                ExpTitleTypography.titleLarge.copy(
+                                    fontSize = 48.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color =
+                                        if (fps != null && session.active) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                ),
                         )
                         Text(
                             text = "FPS",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 8.dp),
                         )
                     }
 
                     Text(
-                        text = if (fps != null && session.active) {
-                            "Based on ${fps.frames} live frame samples"
-                        } else "Start a whitelisted game to view live FPS stats",
+                        text =
+                            if (fps != null && session.active) {
+                                "Based on ${fps.frames} live frame samples"
+                            } else {
+                                "Start a whitelisted game to view live FPS stats"
+                            },
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
                 // Sparkline Real-time Graph
                 if (fpsHistory.isNotEmpty()) {
                     Box(
-                        modifier = Modifier
-                            .width(130.dp)
-                            .height(52.dp)
-                            .padding(bottom = 6.dp)
+                        modifier =
+                            Modifier
+                                .width(130.dp)
+                                .height(52.dp)
+                                .padding(bottom = 6.dp),
                     ) {
                         FpsSparkline(
                             values = fpsHistory,
                             lineColor = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
@@ -207,31 +241,31 @@ fun LiveFpsHeroCard(
             // 4 Core Gamer Metrics Cards
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 MetricPill(
                     label = "Avg FPS",
                     value = if (fps != null && session.active) "%.1f".format(fps.avg) else "--",
                     icon = Icons.Outlined.Timeline,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
                 MetricPill(
                     label = "Peak FPS",
                     value = if (fps != null && session.active) "%.1f".format(fps.peak) else "--",
                     icon = Icons.Outlined.Speed,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
                 MetricPill(
                     label = "1% Low",
                     value = if (fps != null && session.active) "%.1f".format(fps.low_1pct) else "--",
                     icon = Icons.AutoMirrored.Filled.TrendingDown,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
                 MetricPill(
                     label = "Jank",
                     value = if (fps != null && session.active) "${fps.jank}" else "--",
                     icon = Icons.Outlined.WarningAmber,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -243,38 +277,39 @@ private fun MetricPill(
     label: String,
     value: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        modifier = modifier
+        modifier = modifier,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp, horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(16.dp),
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 10.sp
+                fontSize = 10.sp,
             )
         }
     }
@@ -284,7 +319,7 @@ private fun MetricPill(
 fun FpsSparkline(
     values: List<Float>,
     lineColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Canvas(modifier = modifier) {
         if (values.size < 2) return@Canvas
@@ -324,17 +359,18 @@ fun FpsSparkline(
 
         drawPath(
             path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(lineColor.copy(alpha = 0.25f), Color.Transparent),
-                startY = 0f,
-                endY = height
-            )
+            brush =
+                Brush.verticalGradient(
+                    colors = listOf(lineColor.copy(alpha = 0.25f), Color.Transparent),
+                    startY = 0f,
+                    endY = height,
+                ),
         )
 
         drawPath(
             path = path,
             color = lineColor,
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
         )
     }
 }

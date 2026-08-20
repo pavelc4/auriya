@@ -22,9 +22,12 @@ import java.nio.file.StandardCopyOption
  * directory operation, so the daemon's read is always either the old
  * snapshot or the new one — never a torn write.
  */
-class StatusWriter(private val target: File) {
-    private val parent: File = target.parentFile
-        ?: error("status file ${target.path} has no parent directory")
+class StatusWriter(
+    private val target: File,
+) {
+    private val parent: File =
+        target.parentFile
+            ?: error("status file ${target.path} has no parent directory")
     private val tmpName = ".${target.name}.tmp"
 
     init {
@@ -38,7 +41,10 @@ class StatusWriter(private val target: File) {
      * are reported via [onError] so the caller can log without coupling
      * this class to any logging framework.
      */
-    fun write(status: SystemStatus, onError: (Throwable) -> Unit = {}): Boolean {
+    fun write(
+        status: SystemStatus,
+        onError: (Throwable) -> Unit = {},
+    ): Boolean {
         val tmp = File(parent, tmpName)
         return try {
             val bytes = StatusFormat.encode(status).toByteArray(Charsets.UTF_8)

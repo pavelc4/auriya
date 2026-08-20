@@ -27,7 +27,8 @@ class DnDActuator {
         } catch (_: Throwable) {
             try {
                 SystemServices.callVoid(nm, "setInterruptionFilter", CALLING_PKG, target, false)
-            } catch (_: Throwable) {}
+            } catch (_: Throwable) {
+            }
         }
 
         // Always ensure system command fallback for absolute reliability

@@ -15,11 +15,12 @@ import dev.auriya.shared.model.DndFilter
  * `seq` is mandatory — the companion uses it for deduplication.
  */
 object CmdFormat {
-    fun encode(cmd: Cmd): String = buildString {
-        append("seq ").append(cmd.seq).append('\n')
-        cmd.dnd?.let { append("dnd ").append(it.wire).append('\n') }
-        cmd.refreshRate?.let { append("refresh_rate ").append(it).append('\n') }
-    }
+    fun encode(cmd: Cmd): String =
+        buildString {
+            append("seq ").append(cmd.seq).append('\n')
+            cmd.dnd?.let { append("dnd ").append(it.wire).append('\n') }
+            cmd.refreshRate?.let { append("refresh_rate ").append(it).append('\n') }
+        }
 
     fun decode(text: String): Cmd? {
         var seq: Long? = null

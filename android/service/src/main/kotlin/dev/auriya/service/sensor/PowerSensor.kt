@@ -37,12 +37,13 @@ class PowerSensor(
         handler.postDelayed(pollRunnable, POLL_MS)
     }
 
-    private val pollRunnable = object : Runnable {
-        override fun run() {
-            val awake = SystemServices.callBoolean(powerManager, "isInteractive")
-            val saver = SystemServices.callBoolean(powerManager, "isPowerSaveMode")
-            sink.push(SensorSnapshot(screenAwake = awake, batterySaver = saver))
-            handler.postDelayed(this, POLL_MS)
+    private val pollRunnable =
+        object : Runnable {
+            override fun run() {
+                val awake = SystemServices.callBoolean(powerManager, "isInteractive")
+                val saver = SystemServices.callBoolean(powerManager, "isPowerSaveMode")
+                sink.push(SensorSnapshot(screenAwake = awake, batterySaver = saver))
+                handler.postDelayed(this, POLL_MS)
+            }
         }
-    }
 }

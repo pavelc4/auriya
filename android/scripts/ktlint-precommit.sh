@@ -21,4 +21,4 @@ if [ -z "$staged" ]; then
   exit 0
 fi
 
-echo "$staged" | tr '\n' '\0' | xargs -0 "$KTLINT_BIN" --relative --color
+echo "$staged" | tr '\n' '\0' | xargs -0 "$KTLINT_BIN" -F --relative --color

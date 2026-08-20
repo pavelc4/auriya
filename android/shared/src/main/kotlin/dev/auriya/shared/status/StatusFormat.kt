@@ -21,17 +21,18 @@ object StatusFormat {
      * `null` are omitted entirely, which the reader treats as
      * "no change since the last write" for that key.
      */
-    fun encode(status: SystemStatus): String = buildString {
-        status.focusedApp?.let { pkg ->
-            append("focused_app ").append(pkg)
-            status.focusedPid?.let { append(' ').append(it) }
-            status.focusedUid?.let { append(' ').append(it) }
-            append('\n')
+    fun encode(status: SystemStatus): String =
+        buildString {
+            status.focusedApp?.let { pkg ->
+                append("focused_app ").append(pkg)
+                status.focusedPid?.let { append(' ').append(it) }
+                status.focusedUid?.let { append(' ').append(it) }
+                append('\n')
+            }
+            status.screenAwake?.let { append("screen_awake ").append(if (it) 1 else 0).append('\n') }
+            status.batterySaver?.let { append("battery_saver ").append(if (it) 1 else 0).append('\n') }
+            status.zenMode?.let { append("zen_mode ").append(it).append('\n') }
         }
-        status.screenAwake?.let { append("screen_awake ").append(if (it) 1 else 0).append('\n') }
-        status.batterySaver?.let { append("battery_saver ").append(if (it) 1 else 0).append('\n') }
-        status.zenMode?.let { append("zen_mode ").append(it).append('\n') }
-    }
 
     /**
      * Parse the wire representation back into a [SystemStatus]. Used
@@ -62,10 +63,22 @@ object StatusFormat {
                     focusedPid = parts.getOrNull(1)?.toIntOrNull()
                     focusedUid = parts.getOrNull(2)?.toIntOrNull()
                 }
-                "screen_awake" -> screenAwake = parseBool(value)
-                "battery_saver" -> batterySaver = parseBool(value)
-                "zen_mode" -> zenMode = value.toIntOrNull()
-                else -> Unit // forward-compatible
+
+                "screen_awake" -> {
+                    screenAwake = parseBool(value)
+                }
+
+                "battery_saver" -> {
+                    batterySaver = parseBool(value)
+                }
+
+                "zen_mode" -> {
+                    zenMode = value.toIntOrNull()
+                }
+
+                else -> {
+                    Unit
+                } // forward-compatible
             }
         }
 
@@ -79,9 +92,10 @@ object StatusFormat {
         )
     }
 
-    private fun parseBool(value: String): Boolean? = when (value.lowercase()) {
-        "1", "true" -> true
-        "0", "false" -> false
-        else -> null
-    }
+    private fun parseBool(value: String): Boolean? =
+        when (value.lowercase()) {
+            "1", "true" -> true
+            "0", "false" -> false
+            else -> null
+        }
 }

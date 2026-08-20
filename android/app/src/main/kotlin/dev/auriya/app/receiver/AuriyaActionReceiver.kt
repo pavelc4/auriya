@@ -8,7 +8,10 @@ import dev.auriya.app.data.stats.AutoRecordPrefs
 import dev.auriya.app.data.stats.BenchmarkRecorder
 
 class AuriyaActionReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         when (intent.action) {
             "dev.auriya.app.ACTION_GAME_ENTER" -> {
                 val pkg = intent.getStringExtra("pkg") ?: return

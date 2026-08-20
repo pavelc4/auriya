@@ -52,7 +52,7 @@ import dev.auriya.app.viewmodel.ThemeViewModel
 @Composable
 fun AppearanceScreen(
     themeViewModel: ThemeViewModel,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     val prefs by themeViewModel.prefs.collectAsState()
     val currentPrefs = prefs ?: return
@@ -65,7 +65,7 @@ fun AppearanceScreen(
         AdjustCornerRadiusScreen(
             cornerRadius = currentPrefs.cornerRadius,
             onCornerRadiusChange = themeViewModel::setCornerRadius,
-            onDismiss = { showCornerRadiusScreen = false }
+            onDismiss = { showCornerRadiusScreen = false },
         )
         return
     }
@@ -74,56 +74,62 @@ fun AppearanceScreen(
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1.0f,
         targetValue = 1.25f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseScale"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "pulseScale",
     )
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.6f,
         targetValue = 0.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseAlpha"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "pulseAlpha",
     )
 
     val isSystemDark = isSystemInDarkTheme()
-    val isDarkActive = when (currentPrefs.darkThemeMode) {
-        DarkThemeMode.FOLLOW_SYSTEM -> isSystemDark
-        DarkThemeMode.LIGHT -> false
-        DarkThemeMode.DARK -> true
-    }
+    val isDarkActive =
+        when (currentPrefs.darkThemeMode) {
+            DarkThemeMode.FOLLOW_SYSTEM -> isSystemDark
+            DarkThemeMode.LIGHT -> false
+            DarkThemeMode.DARK -> true
+        }
 
     val isFloating = currentPrefs.navMode == NavMode.FLOATING
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainer)
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceContainer),
     ) {
         // --- 1. TOP PINNED HEADER AREA ---
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 20.dp, top = 14.dp, bottom = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 20.dp, top = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             FilledIconButton(
                 onClick = onDismiss,
                 shape = CircleShape,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                modifier = Modifier.size(42.dp)
+                colors =
+                    IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                modifier = Modifier.size(42.dp),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(20.dp),
                 )
             }
 
@@ -135,30 +141,32 @@ fun AppearanceScreen(
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = "Theme mode, colors, and navigation layout",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
 
         // --- 2. FOREGROUND STACKED CARD SHEET ---
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLowest
+            color = MaterialTheme.colorScheme.surfaceContainerLowest,
         ) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp)
+                contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp),
             ) {
                 // --- 1. GLOBAL THEME SUBSECTION ---
                 item {
@@ -172,7 +180,7 @@ fun AppearanceScreen(
                         ThemeSelectorSettingItem(
                             selectedMode = currentPrefs.darkThemeMode,
                             onModeSelected = themeViewModel::setDarkThemeMode,
-                            shape = shapeFor(currentIndex++, themeItemCount)
+                            shape = shapeFor(currentIndex++, themeItemCount),
                         )
 
                         // 1b. Material You Dynamic Color
@@ -184,7 +192,7 @@ fun AppearanceScreen(
                             icon = Icons.Rounded.Palette,
                             iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            shape = shapeFor(currentIndex++, themeItemCount)
+                            shape = shapeFor(currentIndex++, themeItemCount),
                         )
 
                         // 1c. Custom Palette Swatches (Directly below Dynamic Color)
@@ -194,7 +202,7 @@ fun AppearanceScreen(
                                 onSeedChange = themeViewModel::setSeedColor,
                                 pulseScale = pulseScale,
                                 pulseAlpha = pulseAlpha,
-                                shape = shapeFor(currentIndex++, themeItemCount)
+                                shape = shapeFor(currentIndex++, themeItemCount),
                             )
                         }
 
@@ -208,7 +216,7 @@ fun AppearanceScreen(
                                 icon = Icons.Rounded.DarkMode,
                                 iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                 iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                shape = shapeFor(currentIndex++, themeItemCount)
+                                shape = shapeFor(currentIndex++, themeItemCount),
                             )
                         }
                     }
@@ -223,8 +231,12 @@ fun AppearanceScreen(
                         // Floating Island Layout Switch
                         SwitchSettingItem(
                             title = "Floating Island Layout",
-                            subtitle = if (isFloating) "Floating pill capsule with rounded edges"
-                            else "Docked full-width standard navigation bar",
+                            subtitle =
+                                if (isFloating) {
+                                    "Floating pill capsule with rounded edges"
+                                } else {
+                                    "Docked full-width standard navigation bar"
+                                },
                             checked = isFloating,
                             onCheckedChange = { floating ->
                                 themeViewModel.setNavMode(if (floating) NavMode.FLOATING else NavMode.STANDARD)
@@ -232,7 +244,7 @@ fun AppearanceScreen(
                             icon = Icons.Rounded.Dock,
                             iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            shape = shapeFor(navIndex++, navItemCount)
+                            shape = shapeFor(navIndex++, navItemCount),
                         )
 
                         // NavBar Corner Radius Setting (Only visible when Floating is OFF!)
@@ -244,7 +256,7 @@ fun AppearanceScreen(
                                 icon = Icons.Rounded.RoundedCorner,
                                 iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                 iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                shape = shapeFor(navIndex++, navItemCount)
+                                shape = shapeFor(navIndex++, navItemCount),
                             )
                         }
                     }
@@ -257,39 +269,42 @@ fun AppearanceScreen(
 @Composable
 private fun SettingsSubsection(
     title: String,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 2.dp)
+            modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 2.dp),
         )
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.Transparent),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.Transparent),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             content()
         }
     }
 }
 
-private fun shapeFor(index: Int, total: Int): RoundedCornerShape {
-    return when {
+private fun shapeFor(
+    index: Int,
+    total: Int,
+): RoundedCornerShape =
+    when {
         total <= 1 -> RoundedCornerShape(24.dp)
         index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
         index == total - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
         else -> RoundedCornerShape(4.dp)
     }
-}
 
 @Composable
 private fun SwitchSettingItem(
@@ -305,58 +320,60 @@ private fun SwitchSettingItem(
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = iconContainerColor,
-                modifier = Modifier.size(44.dp)
+                modifier = Modifier.size(44.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = iconTint,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(22.dp),
                     )
                 }
             }
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primary,
-                    checkedBorderColor = Color.Transparent,
-                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
-                )
+                colors =
+                    SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        checkedBorderColor = Color.Transparent,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+                    ),
             )
         }
     }
@@ -371,29 +388,30 @@ private fun ThemeSelectorSettingItem(
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(44.dp)
+                    modifier = Modifier.size(44.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Rounded.DarkMode,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(22.dp),
                         )
                     }
                 }
@@ -402,31 +420,33 @@ private fun ThemeSelectorSettingItem(
                         text = "App Theme",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "Choose light, dark, or follow device settings",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
             SegmentedControl(
                 items = listOf("System", "Light", "Dark"),
-                selectedIndex = when (selectedMode) {
-                    DarkThemeMode.FOLLOW_SYSTEM -> 0
-                    DarkThemeMode.LIGHT -> 1
-                    DarkThemeMode.DARK -> 2
-                },
+                selectedIndex =
+                    when (selectedMode) {
+                        DarkThemeMode.FOLLOW_SYSTEM -> 0
+                        DarkThemeMode.LIGHT -> 1
+                        DarkThemeMode.DARK -> 2
+                    },
                 onItemSelected = { index ->
-                    val mode = when (index) {
-                        0 -> DarkThemeMode.FOLLOW_SYSTEM
-                        1 -> DarkThemeMode.LIGHT
-                        else -> DarkThemeMode.DARK
-                    }
+                    val mode =
+                        when (index) {
+                            0 -> DarkThemeMode.FOLLOW_SYSTEM
+                            1 -> DarkThemeMode.LIGHT
+                            else -> DarkThemeMode.DARK
+                        }
                     onModeSelected(mode)
-                }
+                },
             )
         }
     }
@@ -443,29 +463,30 @@ private fun PalettePickerSettingItem(
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(44.dp)
+                    modifier = Modifier.size(44.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Rounded.ColorLens,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(22.dp),
                         )
                     }
                 }
@@ -474,12 +495,12 @@ private fun PalettePickerSettingItem(
                         text = "Custom Accent Palette",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "Select a vibrant seed accent color",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -487,7 +508,7 @@ private fun PalettePickerSettingItem(
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 items(PALETTE_ITEMS) { item ->
                     SwatchDot(
@@ -495,7 +516,7 @@ private fun PalettePickerSettingItem(
                         selected = item.seed == seedColor,
                         pulseScale = pulseScale,
                         pulseAlpha = pulseAlpha,
-                        onClick = { onSeedChange(item.seed) }
+                        onClick = { onSeedChange(item.seed) },
                     )
                 }
             }
@@ -512,32 +533,33 @@ private fun ClickableSettingItem(
     iconContainerColor: Color,
     iconTint: Color,
     shape: RoundedCornerShape,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = shape,
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = iconContainerColor,
-                modifier = Modifier.size(44.dp)
+                modifier = Modifier.size(44.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = iconTint,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(22.dp),
                     )
                 }
             }
@@ -548,12 +570,12 @@ private fun ClickableSettingItem(
                     style = MaterialTheme.typography.titleMedium,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -561,7 +583,7 @@ private fun ClickableSettingItem(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(24.dp),
             )
         }
     }
@@ -571,37 +593,40 @@ private fun ClickableSettingItem(
 private fun AdjustCornerRadiusScreen(
     cornerRadius: Int,
     onCornerRadiusChange: (Int) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var previewTabIndex by remember { mutableIntStateOf(0) }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .statusBarsPadding()
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .statusBarsPadding(),
     ) {
         // 1. Top Action Bar: Back button on left, [ ✓ Done ] pill button on right
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             FilledIconButton(
                 onClick = onDismiss,
                 shape = CircleShape,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                modifier = Modifier.size(42.dp)
+                colors =
+                    IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                modifier = Modifier.size(42.dp),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(20.dp),
                 )
             }
 
@@ -609,25 +634,25 @@ private fun AdjustCornerRadiusScreen(
                 onClick = onDismiss,
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.height(40.dp)
+                modifier = Modifier.height(40.dp),
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
                     )
                     Text(
                         text = "Done",
                         style = MaterialTheme.typography.labelLarge,
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
             }
@@ -635,22 +660,23 @@ private fun AdjustCornerRadiusScreen(
 
         // 2. Header Text
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 4.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
         ) {
             Text(
                 text = "Adjust Corner Radius",
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold,
                 fontSize = 28.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Match the navbar shape's corners with your device's physical corners for a seamless look.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -660,52 +686,54 @@ private fun AdjustCornerRadiusScreen(
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = "Corner Radius",
                         style = MaterialTheme.typography.titleMedium,
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
 
                     Surface(
                         onClick = { onCornerRadiusChange(24) },
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.height(32.dp)
+                        modifier = Modifier.height(32.dp),
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Refresh,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(16.dp),
                             )
                             Text(
                                 text = "Reset",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontFamily = GoogleSansRounded,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
                             )
                         }
                     }
@@ -714,20 +742,20 @@ private fun AdjustCornerRadiusScreen(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.RoundedCorner,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
                     )
 
                     Slider(
                         value = cornerRadius.toFloat(),
                         onValueChange = { onCornerRadiusChange(it.toInt()) },
                         valueRange = 0f..50f,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
 
                     Text(
@@ -736,7 +764,7 @@ private fun AdjustCornerRadiusScreen(
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.width(48.dp)
+                        modifier = Modifier.width(48.dp),
                     )
                 }
             }
@@ -746,47 +774,52 @@ private fun AdjustCornerRadiusScreen(
 
         // 4. Low-Fidelity Phone Mockup Canvas (Matching wireframe reference)
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 24.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Surface(
                 shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerLowest,
                 border = BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.92f)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.92f),
             ) {
                 Column(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     // Inner Screen Wireframe Content
                     Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(top = 22.dp, start = 18.dp, end = 18.dp, bottom = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .padding(top = 22.dp, start = 18.dp, end = 18.dp, bottom = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         // Low-Fi Header: [Title Pill] --------- [Info Dot]
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .size(width = 54.dp, height = 10.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
+                                modifier =
+                                    Modifier
+                                        .size(width = 54.dp, height = 10.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)),
                             )
                             Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
+                                modifier =
+                                    Modifier
+                                        .size(12.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)),
                             )
                         }
 
@@ -794,31 +827,34 @@ private fun AdjustCornerRadiusScreen(
                         Surface(
                             shape = RoundedCornerShape(18.dp),
                             color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Row(
                                 modifier = Modifier.padding(14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                    modifier =
+                                        Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                                 )
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Box(
-                                        modifier = Modifier
-                                            .size(width = 130.dp, height = 8.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
+                                        modifier =
+                                            Modifier
+                                                .size(width = 130.dp, height = 8.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)),
                                     )
                                     Box(
-                                        modifier = Modifier
-                                            .size(width = 75.dp, height = 6.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                                        modifier =
+                                            Modifier
+                                                .size(width = 75.dp, height = 6.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)),
                                     )
                                 }
                             }
@@ -828,31 +864,34 @@ private fun AdjustCornerRadiusScreen(
                         Surface(
                             shape = RoundedCornerShape(18.dp),
                             color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Row(
                                 modifier = Modifier.padding(14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                    modifier =
+                                        Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                                 )
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Box(
-                                        modifier = Modifier
-                                            .size(width = 110.dp, height = 8.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
+                                        modifier =
+                                            Modifier
+                                                .size(width = 110.dp, height = 8.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)),
                                     )
                                     Box(
-                                        modifier = Modifier
-                                            .size(width = 60.dp, height = 6.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                                        modifier =
+                                            Modifier
+                                                .size(width = 60.dp, height = 6.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)),
                                     )
                                 }
                             }
@@ -861,55 +900,61 @@ private fun AdjustCornerRadiusScreen(
 
                     // Low-Fi Docked Navbar Preview at bottom
                     Surface(
-                        shape = RoundedCornerShape(
-                            topStart = cornerRadius.dp,
-                            topEnd = cornerRadius.dp,
-                            bottomStart = 26.dp,
-                            bottomEnd = 26.dp
-                        ),
+                        shape =
+                            RoundedCornerShape(
+                                topStart = cornerRadius.dp,
+                                topEnd = cornerRadius.dp,
+                                bottomStart = 26.dp,
+                                bottomEnd = 26.dp,
+                            ),
                         color = MaterialTheme.colorScheme.surfaceContainer,
                         tonalElevation = 2.dp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(60.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 24.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 24.dp),
                             horizontalArrangement = Arrangement.SpaceAround,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             // Active Tab Capsule Pill
                             Surface(
                                 shape = CircleShape,
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                                modifier = Modifier.size(width = 44.dp, height = 24.dp)
+                                modifier = Modifier.size(width = 44.dp, height = 24.dp),
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Box(
-                                        modifier = Modifier
-                                            .size(width = 16.dp, height = 4.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primary)
+                                        modifier =
+                                            Modifier
+                                                .size(width = 16.dp, height = 4.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary),
                                     )
                                 }
                             }
 
                             // Inactive Tab 2 Dot
                             Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                modifier =
+                                    Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
                             )
 
                             // Inactive Tab 3 Dot
                             Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                modifier =
+                                    Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
                             )
                         }
                     }

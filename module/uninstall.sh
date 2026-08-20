@@ -62,7 +62,6 @@ _pm_uninstall() {
   return 1
 }
 
-
 _status "Auriya uninstall started. Do not reboot."
 _kill_by_name auriya
 

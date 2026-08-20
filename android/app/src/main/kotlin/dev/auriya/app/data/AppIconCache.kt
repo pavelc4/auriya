@@ -29,7 +29,10 @@ object AppIconCache {
     fun isMiss(packageName: String): Boolean = misses.contains(packageName)
 
     /** Load synchronously off-thread; safe to call from Dispatchers.IO. */
-    fun load(pm: PackageManager, packageName: String): ImageBitmap? {
+    fun load(
+        pm: PackageManager,
+        packageName: String,
+    ): ImageBitmap? {
         cache[packageName]?.let { return it }
         if (misses.contains(packageName)) return null
         return try {
@@ -39,15 +42,16 @@ object AppIconCache {
             val scale = MAX_PX.toFloat() / maxOf(srcW, srcH).toFloat()
             val w = if (scale < 1f) (srcW * scale).toInt().coerceAtLeast(1) else srcW
             val h = if (scale < 1f) (srcH * scale).toInt().coerceAtLeast(1) else srcH
-            val bmp = if (drawable is BitmapDrawable && drawable.bitmap != null && srcW <= MAX_PX && srcH <= MAX_PX) {
-                drawable.bitmap
-            } else {
-                val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(out)
-                drawable.setBounds(0, 0, w, h)
-                drawable.draw(canvas)
-                out
-            }
+            val bmp =
+                if (drawable is BitmapDrawable && drawable.bitmap != null && srcW <= MAX_PX && srcH <= MAX_PX) {
+                    drawable.bitmap
+                } else {
+                    val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(out)
+                    drawable.setBounds(0, 0, w, h)
+                    drawable.draw(canvas)
+                    out
+                }
             val ib = bmp.asImageBitmap()
             cache[packageName] = ib
             ib

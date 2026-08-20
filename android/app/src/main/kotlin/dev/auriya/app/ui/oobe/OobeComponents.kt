@@ -59,25 +59,27 @@ fun SineWaveLine(
     animate: Boolean? = false,
     animationDurationMillis: Int = 2000,
     samples: Int = 400,
-    cap: StrokeCap = StrokeCap.Round
+    cap: StrokeCap = StrokeCap.Round,
 ) {
     val density = LocalDensity.current
 
-    val currentPhase = if (animate == true) {
-        val infiniteTransition = rememberInfiniteTransition(label = "SineWaveAnimation")
-        val animatedPhase by infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 2f * PI.toFloat(),
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = animationDurationMillis, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "phaseAnimation"
-        )
-        animatedPhase
-    } else {
-        phase
-    }
+    val currentPhase =
+        if (animate == true) {
+            val infiniteTransition = rememberInfiniteTransition(label = "SineWaveAnimation")
+            val animatedPhase by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 2f * PI.toFloat(),
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(durationMillis = animationDurationMillis, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart,
+                    ),
+                label = "phaseAnimation",
+            )
+            animatedPhase
+        } else {
+            phase
+        }
 
     Canvas(modifier = modifier) {
         val w = size.width
@@ -89,30 +91,31 @@ fun SineWaveLine(
 
         if (w <= 0f || samples < 2) return@Canvas
 
-        val path = Path().apply {
-            val step = w / (samples - 1)
-            moveTo(0f, centerY + (ampPx * sin(currentPhase)))
-            for (i in 1 until samples) {
-                val x = i * step
-                val theta = (x / w) * (2f * PI.toFloat() * waves) + currentPhase
-                val y = centerY + ampPx * sin(theta)
-                lineTo(x, y)
+        val path =
+            Path().apply {
+                val step = w / (samples - 1)
+                moveTo(0f, centerY + (ampPx * sin(currentPhase)))
+                for (i in 1 until samples) {
+                    val x = i * step
+                    val theta = (x / w) * (2f * PI.toFloat() * waves) + currentPhase
+                    val y = centerY + ampPx * sin(theta)
+                    lineTo(x, y)
+                }
             }
-        }
 
         drawPath(
             path = path,
             color = color,
-            style = Stroke(
-                width = strokePx,
-                cap = cap,
-                join = StrokeJoin.Round
-            ),
-            alpha = alpha
+            style =
+                Stroke(
+                    width = strokePx,
+                    cap = cap,
+                    join = StrokeJoin.Round,
+                ),
+            alpha = alpha,
         )
     }
 }
-
 
 // Custom Dynamic Palette Items (Screenshot 2)
 data class PaletteItem(
@@ -120,51 +123,52 @@ data class PaletteItem(
     val primary: Color,
     val secondary: Color,
     val tertiary: Color,
-    val neutral: Color
+    val neutral: Color,
 )
 
-val PALETTE_ITEMS = listOf(
-    // Green theme (Monet template 1)
-    PaletteItem(
-        seed = 0xFF2E7D32.toInt(),
-        primary = Color(0xFF2E7D32),
-        secondary = Color(0xFF81C784),
-        tertiary = Color(0xFFC8E6C9),
-        neutral = Color(0xFFE8F5E9)
-    ),
-    // Blue theme (Monet template 2)
-    PaletteItem(
-        seed = 0xFF1976D2.toInt(),
-        primary = Color(0xFF1976D2),
-        secondary = Color(0xFF64B5F6),
-        tertiary = Color(0xFFBBDEFB),
-        neutral = Color(0xFFE3F2FD)
-    ),
-    // Purple theme (Monet template 3)
-    PaletteItem(
-        seed = 0xFF7B1FA2.toInt(),
-        primary = Color(0xFF7B1FA2),
-        secondary = Color(0xFFBA68C8),
-        tertiary = Color(0xFFE1BEE7),
-        neutral = Color(0xFFF3E5F5)
-    ),
-    // Pinkish/orange theme (Monet template 4)
-    PaletteItem(
-        seed = 0xFFE64A19.toInt(),
-        primary = Color(0xFFE64A19),
-        secondary = Color(0xFFFF8A65),
-        tertiary = Color(0xFFFFCCBC),
-        neutral = Color(0xFFFBE9E7)
-    ),
-    // Yellow/sand theme (Monet template 5)
-    PaletteItem(
-        seed = 0xFFFBC02D.toInt(),
-        primary = Color(0xFFFBC02D),
-        secondary = Color(0xFFFFF176),
-        tertiary = Color(0xFFFFF9C4),
-        neutral = Color(0xFFFFFDE7)
+val PALETTE_ITEMS =
+    listOf(
+        // Green theme (Monet template 1)
+        PaletteItem(
+            seed = 0xFF2E7D32.toInt(),
+            primary = Color(0xFF2E7D32),
+            secondary = Color(0xFF81C784),
+            tertiary = Color(0xFFC8E6C9),
+            neutral = Color(0xFFE8F5E9),
+        ),
+        // Blue theme (Monet template 2)
+        PaletteItem(
+            seed = 0xFF1976D2.toInt(),
+            primary = Color(0xFF1976D2),
+            secondary = Color(0xFF64B5F6),
+            tertiary = Color(0xFFBBDEFB),
+            neutral = Color(0xFFE3F2FD),
+        ),
+        // Purple theme (Monet template 3)
+        PaletteItem(
+            seed = 0xFF7B1FA2.toInt(),
+            primary = Color(0xFF7B1FA2),
+            secondary = Color(0xFFBA68C8),
+            tertiary = Color(0xFFE1BEE7),
+            neutral = Color(0xFFF3E5F5),
+        ),
+        // Pinkish/orange theme (Monet template 4)
+        PaletteItem(
+            seed = 0xFFE64A19.toInt(),
+            primary = Color(0xFFE64A19),
+            secondary = Color(0xFFFF8A65),
+            tertiary = Color(0xFFFFCCBC),
+            neutral = Color(0xFFFBE9E7),
+        ),
+        // Yellow/sand theme (Monet template 5)
+        PaletteItem(
+            seed = 0xFFFBC02D.toInt(),
+            primary = Color(0xFFFBC02D),
+            secondary = Color(0xFFFFF176),
+            tertiary = Color(0xFFFFF9C4),
+            neutral = Color(0xFFFFFDE7),
+        ),
     )
-)
 
 // Helper to determine if we should render light or dark text based on theme preferences
 @Composable
@@ -178,10 +182,11 @@ fun isThemeDark(prefs: ThemePrefs?): Boolean {
 }
 
 // Sine easing transition curve for smooth bouncing/floating
-val SineBow = Easing { fraction ->
-    val t = fraction * 2f * Math.PI.toFloat()
-    (1f - cos(t)) / 2f
-}
+val SineBow =
+    Easing { fraction ->
+        val t = fraction * 2f * Math.PI.toFloat()
+        (1f - cos(t)) / 2f
+    }
 
 @Stable
 data class OobeIconPlacement(
@@ -191,19 +196,20 @@ data class OobeIconPlacement(
     val rot: Float,
     val shape: Shape,
     val offsetX: Dp,
-    val offsetY: Dp
+    val offsetY: Dp,
 )
 
 @Composable
 fun AuriyaIconCollage(
     icons: List<ImageVector>,
     modifier: Modifier = Modifier,
-    height: Dp = 190.dp
+    height: Dp = 190.dp,
 ) {
     BoxWithConstraints(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(height),
     ) {
         val minDim = minOf(180.dp, maxHeight)
         val primaryCol = MaterialTheme.colorScheme.primary
@@ -211,53 +217,54 @@ fun AuriyaIconCollage(
         val tertCol = MaterialTheme.colorScheme.tertiary
         val onSurf = MaterialTheme.colorScheme.onSurfaceVariant
 
-        val configs = listOf(
-            OobeIconPlacement(
-                size = minDim * 0.72f,
-                color = secCol,
-                align = Alignment.Center,
-                rot = -12f,
-                shape = RoundedCornerShape(24.dp),
-                offsetX = 0.dp,
-                offsetY = 0.dp
-            ),
-            OobeIconPlacement(
-                size = minDim * 0.42f,
-                color = onSurf,
-                align = Alignment.TopStart,
-                rot = 16f,
-                shape = CircleShape,
-                offsetX = 18.dp,
-                offsetY = 6.dp
-            ),
-            OobeIconPlacement(
-                size = minDim * 0.44f,
-                color = primaryCol,
-                align = Alignment.BottomEnd,
-                rot = 8f,
-                shape = CircleShape,
-                offsetX = (-18).dp,
-                offsetY = (-6).dp
-            ),
-            OobeIconPlacement(
-                size = minDim * 0.48f,
-                color = tertCol,
-                align = Alignment.TopEnd,
-                rot = -18f,
-                shape = RoundedCornerShape(20.dp),
-                offsetX = (-22).dp,
-                offsetY = 8.dp
-            ),
-            OobeIconPlacement(
-                size = minDim * 0.38f,
-                color = secCol,
-                align = Alignment.BottomStart,
-                rot = 12f,
-                shape = MaterialShapes.Clover6,
-                offsetX = 24.dp,
-                offsetY = (-8).dp
+        val configs =
+            listOf(
+                OobeIconPlacement(
+                    size = minDim * 0.72f,
+                    color = secCol,
+                    align = Alignment.Center,
+                    rot = -12f,
+                    shape = RoundedCornerShape(24.dp),
+                    offsetX = 0.dp,
+                    offsetY = 0.dp,
+                ),
+                OobeIconPlacement(
+                    size = minDim * 0.42f,
+                    color = onSurf,
+                    align = Alignment.TopStart,
+                    rot = 16f,
+                    shape = CircleShape,
+                    offsetX = 18.dp,
+                    offsetY = 6.dp,
+                ),
+                OobeIconPlacement(
+                    size = minDim * 0.44f,
+                    color = primaryCol,
+                    align = Alignment.BottomEnd,
+                    rot = 8f,
+                    shape = CircleShape,
+                    offsetX = (-18).dp,
+                    offsetY = (-6).dp,
+                ),
+                OobeIconPlacement(
+                    size = minDim * 0.48f,
+                    color = tertCol,
+                    align = Alignment.TopEnd,
+                    rot = -18f,
+                    shape = RoundedCornerShape(20.dp),
+                    offsetX = (-22).dp,
+                    offsetY = 8.dp,
+                ),
+                OobeIconPlacement(
+                    size = minDim * 0.38f,
+                    color = secCol,
+                    align = Alignment.BottomStart,
+                    rot = 12f,
+                    shape = MaterialShapes.Clover6,
+                    offsetX = 24.dp,
+                    offsetY = (-8).dp,
+                ),
             )
-        )
 
         icons.take(5).forEachIndexed { index, icon ->
             val cfg = configs.getOrElse(index) { configs[0] }
@@ -265,44 +272,47 @@ fun AuriyaIconCollage(
                 // Center element: render as a plain floating icon with no card
                 // backing so it doesn't appear as a large card behind the group.
                 Box(
-                    modifier = Modifier
-                        .size(cfg.size)
-                        .align(cfg.align)
-                        .offset(cfg.offsetX, cfg.offsetY)
-                        .graphicsLayer { rotationZ = cfg.rot }
-                        .padding(14.dp),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .size(cfg.size)
+                            .align(cfg.align)
+                            .offset(cfg.offsetX, cfg.offsetY)
+                            .graphicsLayer { rotationZ = cfg.rot }
+                            .padding(14.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = cfg.color,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
             } else {
                 Surface(
-                    modifier = Modifier
-                        .size(cfg.size)
-                        .align(cfg.align)
-                        .offset(cfg.offsetX, cfg.offsetY)
-                        .graphicsLayer { rotationZ = cfg.rot },
+                    modifier =
+                        Modifier
+                            .size(cfg.size)
+                            .align(cfg.align)
+                            .offset(cfg.offsetX, cfg.offsetY)
+                            .graphicsLayer { rotationZ = cfg.rot },
                     shape = cfg.shape,
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     tonalElevation = 4.dp,
-                    shadowElevation = 2.dp
+                    shadowElevation = 2.dp,
                 ) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(14.dp),
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(14.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
                             tint = cfg.color,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
@@ -315,12 +325,13 @@ fun AuriyaIconCollage(
 fun AuriyaDrawableCollage(
     drawables: List<Int>,
     modifier: Modifier = Modifier,
-    height: Dp = 190.dp
+    height: Dp = 190.dp,
 ) {
     BoxWithConstraints(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(height),
     ) {
         val minDim = minOf(180.dp, maxHeight)
         val primaryCol = MaterialTheme.colorScheme.primary
@@ -328,83 +339,86 @@ fun AuriyaDrawableCollage(
         val tertCol = MaterialTheme.colorScheme.tertiary
         val onSurf = MaterialTheme.colorScheme.onSurfaceVariant
 
-        val configs = listOf(
-            // 0. Magisk (Center - Smooth Capsule Stadium)
-            OobeIconPlacement(
-                size = minDim * 0.68f,
-                color = primaryCol,
-                align = Alignment.Center,
-                rot = -8f,
-                shape = RoundedCornerShape(32.dp),
-                offsetX = 0.dp,
-                offsetY = 0.dp
-            ),
-            // 1. KernelSU (TopStart - Asymmetric Diamond Leaf / Gem)
-            OobeIconPlacement(
-                size = minDim * 0.46f,
-                color = secCol,
-                align = Alignment.TopStart,
-                rot = 12f,
-                shape = RoundedCornerShape(topStart = 26.dp, bottomEnd = 26.dp, topEnd = 8.dp, bottomStart = 8.dp),
-                offsetX = 16.dp,
-                offsetY = 4.dp
-            ),
-            // 2. APatch (BottomEnd - Clean Geometric Circle)
-            OobeIconPlacement(
-                size = minDim * 0.46f,
-                color = tertCol,
-                align = Alignment.BottomEnd,
-                rot = 8f,
-                shape = CircleShape,
-                offsetX = (-18).dp,
-                offsetY = (-6).dp
-            ),
-            // 3. KernelSU Next (TopEnd - 12-sided Scallop Flower Badge)
-            OobeIconPlacement(
-                size = minDim * 0.48f,
-                color = secCol,
-                align = Alignment.TopEnd,
-                rot = -14f,
-                shape = MaterialShapes.Scallop12,
-                offsetX = (-20).dp,
-                offsetY = 6.dp
-            ),
-            // 4. KowSU (BottomStart - Material PixelCircle)
-            OobeIconPlacement(
-                size = minDim * 0.48f,
-                color = primaryCol,
-                align = Alignment.BottomStart,
-                rot = 10f,
-                shape = MaterialShapes.PixelCircle,
-                offsetX = 18.dp,
-                offsetY = (-6).dp
+        val configs =
+            listOf(
+                // 0. Magisk (Center - Smooth Capsule Stadium)
+                OobeIconPlacement(
+                    size = minDim * 0.68f,
+                    color = primaryCol,
+                    align = Alignment.Center,
+                    rot = -8f,
+                    shape = RoundedCornerShape(32.dp),
+                    offsetX = 0.dp,
+                    offsetY = 0.dp,
+                ),
+                // 1. KernelSU (TopStart - Asymmetric Diamond Leaf / Gem)
+                OobeIconPlacement(
+                    size = minDim * 0.46f,
+                    color = secCol,
+                    align = Alignment.TopStart,
+                    rot = 12f,
+                    shape = RoundedCornerShape(topStart = 26.dp, bottomEnd = 26.dp, topEnd = 8.dp, bottomStart = 8.dp),
+                    offsetX = 16.dp,
+                    offsetY = 4.dp,
+                ),
+                // 2. APatch (BottomEnd - Clean Geometric Circle)
+                OobeIconPlacement(
+                    size = minDim * 0.46f,
+                    color = tertCol,
+                    align = Alignment.BottomEnd,
+                    rot = 8f,
+                    shape = CircleShape,
+                    offsetX = (-18).dp,
+                    offsetY = (-6).dp,
+                ),
+                // 3. KernelSU Next (TopEnd - 12-sided Scallop Flower Badge)
+                OobeIconPlacement(
+                    size = minDim * 0.48f,
+                    color = secCol,
+                    align = Alignment.TopEnd,
+                    rot = -14f,
+                    shape = MaterialShapes.Scallop12,
+                    offsetX = (-20).dp,
+                    offsetY = 6.dp,
+                ),
+                // 4. KnowSU (BottomStart - Material PixelCircle)
+                OobeIconPlacement(
+                    size = minDim * 0.48f,
+                    color = primaryCol,
+                    align = Alignment.BottomStart,
+                    rot = 10f,
+                    shape = MaterialShapes.PixelCircle,
+                    offsetX = 18.dp,
+                    offsetY = (-6).dp,
+                ),
             )
-        )
 
         drawables.take(5).forEachIndexed { index, resId ->
             val cfg = configs.getOrElse(index) { configs[0] }
             Surface(
-                modifier = Modifier
-                    .size(cfg.size)
-                    .align(cfg.align)
-                    .offset(cfg.offsetX, cfg.offsetY)
-                    .graphicsLayer { rotationZ = cfg.rot },
+                modifier =
+                    Modifier
+                        .size(cfg.size)
+                        .align(cfg.align)
+                        .offset(cfg.offsetX, cfg.offsetY)
+                        .graphicsLayer { rotationZ = cfg.rot },
                 shape = cfg.shape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 tonalElevation = if (index == 0) 6.dp else 4.dp,
-                shadowElevation = if (index == 0) 4.dp else 2.dp
+                shadowElevation = if (index == 0) 4.dp else 2.dp,
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(if (index == 0) 14.dp else 11.dp),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(if (index == 0) 14.dp else 11.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         painter = painterResource(id = resId),
                         contentDescription = null,
                         tint = cfg.color,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
             }
@@ -414,19 +428,23 @@ fun AuriyaDrawableCollage(
 
 // Detailed, compact checklist row item for Done Screen
 @Composable
-fun SummaryItem(label: String, value: String, isDark: Boolean) {
+fun SummaryItem(
+    label: String,
+    value: String,
+    isDark: Boolean,
+) {
     val labelColor = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF49454F)
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(16.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(label, style = MaterialTheme.typography.bodyMedium, color = labelColor)
@@ -435,7 +453,7 @@ fun SummaryItem(label: String, value: String, isDark: Boolean) {
             value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
@@ -447,25 +465,27 @@ fun SwatchDot(
     selected: Boolean,
     pulseScale: Float,
     pulseAlpha: Float,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier.size(54.dp), // handle pulsating ring size bounds
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         if (selected && pulseAlpha > 0f) {
             Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .scale(pulseScale)
-                    .border(BorderStroke(2.dp, item.primary.copy(alpha = pulseAlpha)), CircleShape)
+                modifier =
+                    Modifier
+                        .size(42.dp)
+                        .scale(pulseScale)
+                        .border(BorderStroke(2.dp, item.primary.copy(alpha = pulseAlpha)), CircleShape),
             )
         }
         Canvas(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onClick)
+            modifier =
+                Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onClick),
         ) {
             // Draw 4 arcs representing Monet palette tone quadrants
             drawArc(color = item.primary, startAngle = 180f, sweepAngle = 90f, useCenter = true)
@@ -475,12 +495,13 @@ fun SwatchDot(
         }
         if (selected) {
             Box(
-                modifier = Modifier
-                    .size(18.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .border(BorderStroke(1.dp, item.primary), CircleShape),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(BorderStroke(1.dp, item.primary), CircleShape),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Filled.Check, null, tint = item.primary, modifier = Modifier.size(12.dp))
             }
@@ -491,8 +512,11 @@ fun SwatchDot(
 // LiveUiPreviewCard: Dynamic multi-widget previewing sharp vs rounded styling (Step 5) - 220dp Height
 @Composable
 fun LiveUiPreviewCard(
-    seedColor: Int, useDynamicColor: Boolean,
-    navMode: NavMode, navType: NavType, cornerRadius: Int
+    seedColor: Int,
+    useDynamicColor: Boolean,
+    navMode: NavMode,
+    navType: NavType,
+    cornerRadius: Int,
 ) {
     val shapeRadius = cornerRadius.dp
     val subRadius = (cornerRadius / 2f).dp
@@ -501,42 +525,50 @@ fun LiveUiPreviewCard(
     Surface(
         modifier = Modifier.fillMaxWidth().height(220.dp),
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 // 1. Top Row: Avatar icon, description lines, and mock Apply button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         // Profile Avatar
                         Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(shapeRadius))
-                                .background(MaterialTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center
+                            modifier =
+                                Modifier
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(shapeRadius))
+                                    .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Text("*", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Box(
-                                modifier = Modifier.size(width = 80.dp, height = 8.dp).clip(RoundedCornerShape(4.dp))
-                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f))
+                                modifier =
+                                    Modifier
+                                        .size(width = 80.dp, height = 8.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)),
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Box(
-                                modifier = Modifier.size(width = 50.dp, height = 5.dp).clip(RoundedCornerShape(2.dp))
-                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.13f))
+                                modifier =
+                                    Modifier
+                                        .size(width = 50.dp, height = 5.dp)
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.13f)),
                             )
                         }
                     }
@@ -545,16 +577,17 @@ fun LiveUiPreviewCard(
                     Surface(
                         shape = RoundedCornerShape(shapeRadius),
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .size(width = 68.dp, height = 28.dp)
-                            .clickable {}
+                        modifier =
+                            Modifier
+                                .size(width = 68.dp, height = 28.dp)
+                                .clickable {},
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 "Apply",
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
@@ -563,15 +596,16 @@ fun LiveUiPreviewCard(
                 // 2. Middle Row: 4 horizontal quick settings tiles
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     repeat(4) {
                         Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(28.dp)
-                                .clip(RoundedCornerShape(subRadius))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .height(28.dp)
+                                    .clip(RoundedCornerShape(subRadius))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
                         )
                     }
                 }
@@ -581,34 +615,37 @@ fun LiveUiPreviewCard(
                     shape = RoundedCornerShape(shapeRadius),
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    modifier = Modifier.fillMaxWidth().height(42.dp)
+                    modifier = Modifier.fillMaxWidth().height(42.dp),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .clip(RoundedCornerShape(miniRadius))
-                                    .background(MaterialTheme.colorScheme.primary)
+                                modifier =
+                                    Modifier
+                                        .size(18.dp)
+                                        .clip(RoundedCornerShape(miniRadius))
+                                        .background(MaterialTheme.colorScheme.primary),
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Box(
-                                modifier = Modifier
-                                    .size(width = 72.dp, height = 7.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                                modifier =
+                                    Modifier
+                                        .size(width = 72.dp, height = 7.dp)
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)),
                             )
                         }
                         // Mock switch shape
                         Box(
-                            modifier = Modifier
-                                .size(width = 28.dp, height = 16.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                            modifier =
+                                Modifier
+                                    .size(width = 28.dp, height = 16.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
                         )
                     }
                 }
@@ -616,35 +653,41 @@ fun LiveUiPreviewCard(
 
             // 4. System Bottom Navigation Bar
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = if (navMode == NavMode.FLOATING) 6.dp else 0.dp),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = if (navMode == NavMode.FLOATING) 6.dp else 0.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 val capsule = RoundedCornerShape(cornerRadius.dp / 2f)
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth(if (navMode == NavMode.FLOATING) 0.65f else 1f)
-                        .height(24.dp)
-                        .clip(capsule)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(if (navMode == NavMode.FLOATING) 0.65f else 1f)
+                            .height(24.dp)
+                            .clip(capsule)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         repeat(3) { index ->
                             val sel = index == 0
                             Box(
-                                modifier = Modifier
-                                    .size(if (sel) 10.dp else 6.dp)
-                                    .clip(if (navType == NavType.MODERN) RoundedCornerShape(2.dp) else CircleShape)
-                                    .background(
-                                        if (sel) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
-                                    )
+                                modifier =
+                                    Modifier
+                                        .size(if (sel) 10.dp else 6.dp)
+                                        .clip(if (navType == NavType.MODERN) RoundedCornerShape(2.dp) else CircleShape)
+                                        .background(
+                                            if (sel) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                                            },
+                                        ),
                             )
                         }
                     }
@@ -657,7 +700,7 @@ fun LiveUiPreviewCard(
 @Composable
 fun ThemeColorWidgetCompositionCard(
     pulseScale: Float,
-    pulseAlpha: Float
+    pulseAlpha: Float,
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val secondaryColor = MaterialTheme.colorScheme.secondary
@@ -667,47 +710,47 @@ fun ThemeColorWidgetCompositionCard(
     val animPrimary by animateColorAsState(
         targetValue = primaryColor,
         animationSpec = tween(600),
-        label = "animPrimary"
+        label = "animPrimary",
     )
     val animOnPrimary by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.onPrimary,
         animationSpec = tween(600),
-        label = "animOnPrimary"
+        label = "animOnPrimary",
     )
     val animSecondary by animateColorAsState(
         targetValue = secondaryColor,
         animationSpec = tween(600),
-        label = "animSecondary"
+        label = "animSecondary",
     )
     val animOnSecondary by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.onSecondary,
         animationSpec = tween(600),
-        label = "animOnSecondary"
+        label = "animOnSecondary",
     )
     val animSecondaryContainer by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.secondaryContainer,
         animationSpec = tween(600),
-        label = "animSecondaryContainer"
+        label = "animSecondaryContainer",
     )
     val animTertiary by animateColorAsState(
         targetValue = tertiaryColor,
         animationSpec = tween(600),
-        label = "animTertiary"
+        label = "animTertiary",
     )
     val animOnTertiary by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.onTertiary,
         animationSpec = tween(600),
-        label = "animOnTertiary"
+        label = "animOnTertiary",
     )
     val animSurfaceContainer by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.surfaceContainer,
         animationSpec = tween(600),
-        label = "animSurfaceContainer"
+        label = "animSurfaceContainer",
     )
     val animOutlineVariant by animateColorAsState(
         targetValue = MaterialTheme.colorScheme.outlineVariant,
         animationSpec = tween(600),
-        label = "animOutlineVariant"
+        label = "animOutlineVariant",
     )
 
     // Micro-animations infinite transition
@@ -715,42 +758,46 @@ fun ThemeColorWidgetCompositionCard(
     val floatOffset by infiniteTransition.animateFloat(
         initialValue = -5f,
         targetValue = 5f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = SineBow),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "floatOffset"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(2000, easing = SineBow),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "floatOffset",
     )
     val progressVal by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "progressVal"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(3500, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "progressVal",
     )
 
     Surface(
         modifier = Modifier.fillMaxWidth().height(210.dp),
         shape = RoundedCornerShape(24.dp),
         color = animSurfaceContainer,
-        border = BorderStroke(1.dp, animOutlineVariant.copy(alpha = 0.5f))
+        border = BorderStroke(1.dp, animOutlineVariant.copy(alpha = 0.5f)),
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Left Column: Custom polar M3 shapes (Flower & Heart) drawn mathematically on Canvas + CPU line graph
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
             ) {
                 Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .offset(y = floatOffset.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .offset(y = floatOffset.dp),
                 ) {
                     val w = size.width
                     val h = size.height
@@ -777,14 +824,13 @@ fun ThemeColorWidgetCompositionCard(
                             drawPath(
                                 path = flowerPath,
                                 color = animPrimary.copy(alpha = pulseAlpha),
-                                style = Stroke(width = 3.dp.toPx())
+                                style = Stroke(width = 3.dp.toPx()),
                             )
                         }
                     }
                     // Fill and outline
                     drawPath(path = flowerPath, color = animPrimary.copy(alpha = 0.22f))
                     drawPath(path = flowerPath, color = animPrimary, style = Stroke(width = 2.dp.toPx()))
-
 
                     // 2. M3 Heart Shape overlapping on the right side
                     val heartCenterX = w * 0.62f
@@ -808,7 +854,7 @@ fun ThemeColorWidgetCompositionCard(
                             drawPath(
                                 path = heartPath,
                                 color = animTertiary.copy(alpha = pulseAlpha),
-                                style = Stroke(width = 3.dp.toPx())
+                                style = Stroke(width = 3.dp.toPx()),
                             )
                         }
                     }
@@ -825,27 +871,28 @@ fun ThemeColorWidgetCompositionCard(
                     drawPath(
                         path = graphPath,
                         color = animSecondary.copy(alpha = 0.8f),
-                        style = Stroke(width = 2.dp.toPx())
+                        style = Stroke(width = 2.dp.toPx()),
                     )
                 }
 
                 // Tiny dynamic progress bar underneath shapes
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomStart)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomStart),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
+                        verticalAlignment = Alignment.Bottom,
                     ) {
                         Text("Optimizing", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = animPrimary)
                         Text(
                             "${(progressVal * 100).toInt()}%",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = animPrimary
+                            color = animPrimary,
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
@@ -853,7 +900,7 @@ fun ThemeColorWidgetCompositionCard(
                         progress = { progressVal },
                         modifier = Modifier.fillMaxWidth().height(5.dp).clip(CircleShape),
                         color = animPrimary,
-                        trackColor = animOutlineVariant.copy(alpha = 0.3f)
+                        trackColor = animOutlineVariant.copy(alpha = 0.3f),
                     )
                 }
             }
@@ -862,22 +909,23 @@ fun ThemeColorWidgetCompositionCard(
             Column(
                 modifier = Modifier.weight(1.1f).fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.End
+                horizontalAlignment = Alignment.End,
             ) {
                 // Mock Primary Filled Button with dynamic pulse outer ring
                 Box(
                     modifier = Modifier.fillMaxWidth().height(36.dp),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     if (pulseAlpha > 0f) {
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(36.dp)
-                                .scale(scaleX = pulseScale, scaleY = pulseScale),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp)
+                                    .scale(scaleX = pulseScale, scaleY = pulseScale),
                             shape = CircleShape,
                             color = Color.Transparent,
-                            border = BorderStroke(2.dp, animPrimary.copy(alpha = pulseAlpha))
+                            border = BorderStroke(2.dp, animPrimary.copy(alpha = pulseAlpha)),
                         ) {}
                     }
                     Button(
@@ -885,10 +933,11 @@ fun ThemeColorWidgetCompositionCard(
                         shape = CircleShape,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = animPrimary,
-                            contentColor = animOnPrimary
-                        )
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = animPrimary,
+                                contentColor = animOnPrimary,
+                            ),
                     ) {
                         Text("Primary Filled", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
@@ -900,10 +949,11 @@ fun ThemeColorWidgetCompositionCard(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth().height(34.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = animSecondaryContainer,
-                        contentColor = animSecondary
-                    )
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = animSecondaryContainer,
+                            contentColor = animSecondary,
+                        ),
                 ) {
                     Text("Tonal Style", fontSize = 11.sp, fontWeight = FontWeight.Medium)
                 }
@@ -912,14 +962,14 @@ fun ThemeColorWidgetCompositionCard(
                 Surface(
                     shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomStart = 10.dp, bottomEnd = 2.dp),
                     color = animTertiary,
-                    modifier = Modifier.fillMaxWidth().height(26.dp)
+                    modifier = Modifier.fillMaxWidth().height(26.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 8.dp)) {
                         Text(
                             "Auriya core active",
                             color = animOnTertiary,
                             fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                 }
@@ -928,13 +978,13 @@ fun ThemeColorWidgetCompositionCard(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = animSecondary.copy(alpha = 0.15f),
                         border = BorderStroke(1.dp, animSecondary.copy(alpha = 0.4f)),
-                        modifier = Modifier.height(28.dp)
+                        modifier = Modifier.height(28.dp),
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 8.dp)) {
                             Text("Chip", color = animSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -945,10 +995,11 @@ fun ThemeColorWidgetCompositionCard(
                         checked = true,
                         onCheckedChange = {},
                         modifier = Modifier.scale(0.75f),
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = animOnPrimary,
-                            checkedTrackColor = animPrimary
-                        )
+                        colors =
+                            SwitchDefaults.colors(
+                                checkedThumbColor = animOnPrimary,
+                                checkedTrackColor = animPrimary,
+                            ),
                     )
                 }
 
@@ -958,11 +1009,12 @@ fun ThemeColorWidgetCompositionCard(
                         value = 0.65f,
                         onValueChange = {},
                         modifier = Modifier.fillMaxWidth().height(16.dp),
-                        colors = SliderDefaults.colors(
-                            thumbColor = animPrimary,
-                            activeTrackColor = animPrimary,
-                            inactiveTrackColor = animOutlineVariant.copy(alpha = 0.3f)
-                        )
+                        colors =
+                            SliderDefaults.colors(
+                                thumbColor = animPrimary,
+                                activeTrackColor = animPrimary,
+                                inactiveTrackColor = animOutlineVariant.copy(alpha = 0.3f),
+                            ),
                     )
                 }
             }
@@ -982,16 +1034,21 @@ fun SetupBottomBar(
     onFinishClicked: () -> Unit,
     isNextButtonEnabled: Boolean,
     isFinishButtonEnabled: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val morphAnimationSpec = tween<Float>(durationMillis = 600, easing = FastOutSlowInEasing)
     val rotationAnimationSpec = tween<Float>(durationMillis = 900, easing = FastOutSlowInEasing)
 
-    val targetShapeValues = when (currentPage % 3) {
-        0 -> listOf(50f, 50f, 50f, 50f) // Circle
-        1 -> listOf(26f, 26f, 26f, 26f) // Rounded Square
-        else -> listOf(18f, 50f, 18f, 50f) // Leaf shape
-    }
+    val targetShapeValues =
+        when (currentPage % 3) {
+            0 -> listOf(50f, 50f, 50f, 50f)
+
+            // Circle
+            1 -> listOf(26f, 26f, 26f, 26f)
+
+            // Rounded Square
+            else -> listOf(18f, 50f, 18f, 50f) // Leaf shape
+        }
 
     val animatedTopStart by animateFloatAsState(targetShapeValues[0], morphAnimationSpec, label = "TopStart")
     val animatedTopEnd by animateFloatAsState(targetShapeValues[1], morphAnimationSpec, label = "TopEnd")
@@ -1001,7 +1058,7 @@ fun SetupBottomBar(
     val animatedRotation by animateFloatAsState(
         targetValue = currentPage * 360f,
         animationSpec = rotationAnimationSpec,
-        label = "Rotation"
+        label = "Rotation",
     )
 
     var errorTrigger by remember { mutableStateOf(0L) }
@@ -1024,26 +1081,31 @@ fun SetupBottomBar(
         color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
         tonalElevation = 6.dp,
-        shadowElevation = 8.dp
+        shadowElevation = 8.dp,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 22.dp, vertical = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 22.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             AnimatedContent(
                 targetState = currentPage,
                 modifier = Modifier.weight(1f),
                 transitionSpec = {
                     if (targetState > initialState) {
-                        (slideInVertically { height -> height } + fadeIn()).togetherWith(slideOutVertically { height -> -height } + fadeOut())
+                        (slideInVertically { height -> height } + fadeIn()).togetherWith(
+                            slideOutVertically { height -> -height } + fadeOut(),
+                        )
                     } else {
-                        (slideInVertically { height -> -height } + fadeIn()).togetherWith(slideOutVertically { height -> height } + fadeOut())
+                        (slideInVertically { height -> -height } + fadeIn()).togetherWith(
+                            slideOutVertically { height -> height } + fadeOut(),
+                        )
                     }
                 },
-                label = "StepTextAnimation"
+                label = "StepTextAnimation",
             ) { targetPage ->
                 if (targetPage == 0) {
                     Text(
@@ -1067,80 +1129,97 @@ fun SetupBottomBar(
             val isErrorActive = errorTrigger > 0L
 
             val containerColor by animateColorAsState(
-                targetValue = when {
-                    isErrorActive -> MaterialTheme.colorScheme.errorContainer
-                    !isPrimaryButtonEnabled -> MaterialTheme.colorScheme.surfaceContainerHighest
-                    else -> MaterialTheme.colorScheme.primaryContainer
-                },
+                targetValue =
+                    when {
+                        isErrorActive -> MaterialTheme.colorScheme.errorContainer
+                        !isPrimaryButtonEnabled -> MaterialTheme.colorScheme.surfaceContainerHighest
+                        else -> MaterialTheme.colorScheme.primaryContainer
+                    },
                 animationSpec = tween(200),
-                label = "fab-container-color"
+                label = "fab-container-color",
             )
             val contentColor by animateColorAsState(
-                targetValue = when {
-                    isErrorActive -> MaterialTheme.colorScheme.onErrorContainer
-                    !isPrimaryButtonEnabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-                    else -> MaterialTheme.colorScheme.onPrimaryContainer
-                },
+                targetValue =
+                    when {
+                        isErrorActive -> MaterialTheme.colorScheme.onErrorContainer
+                        !isPrimaryButtonEnabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                        else -> MaterialTheme.colorScheme.onPrimaryContainer
+                    },
                 animationSpec = tween(200),
-                label = "fab-content-color"
+                label = "fab-content-color",
             )
 
-            val dynamicShape = RoundedCornerShape(
-                topStartPercent = animatedTopStart.toInt(),
-                topEndPercent = animatedTopEnd.toInt(),
-                bottomStartPercent = animatedBottomStart.toInt(),
-                bottomEndPercent = animatedBottomEnd.toInt()
-            )
+            val dynamicShape =
+                RoundedCornerShape(
+                    topStartPercent = animatedTopStart.toInt(),
+                    topEndPercent = animatedTopEnd.toInt(),
+                    bottomStartPercent = animatedBottomStart.toInt(),
+                    bottomEndPercent = animatedBottomEnd.toInt(),
+                )
 
             Surface(
                 shape = dynamicShape,
                 color = containerColor,
                 contentColor = contentColor,
-                modifier = Modifier
-                    .offset(x = shakeOffset.value.dp)
-                    .size(width = 84.dp, height = 56.dp)
-                    .bouncyClickable(onClick = {
-                        if (isPrimaryButtonEnabled) {
-                            if (isLastPage) onFinishClicked() else onNextClicked()
-                        } else {
-                            errorTrigger = System.currentTimeMillis()
-                        }
-                    })
-                    .rotate(animatedRotation)
+                modifier =
+                    Modifier
+                        .offset(x = shakeOffset.value.dp)
+                        .size(width = 84.dp, height = 56.dp)
+                        .bouncyClickable(onClick = {
+                            if (isPrimaryButtonEnabled) {
+                                if (isLastPage) onFinishClicked() else onNextClicked()
+                            } else {
+                                errorTrigger = System.currentTimeMillis()
+                            }
+                        })
+                        .rotate(animatedRotation),
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     AnimatedContent(
                         modifier = Modifier.rotate(-animatedRotation),
-                        targetState = when {
-                            isErrorActive -> 2 // X Error
-                            currentPage < pageCount - 1 -> 0 // Arrow Forward
-                            else -> 1 // Checkmark Finish
-                        },
+                        targetState =
+                            when {
+                                isErrorActive -> 2
+
+                                // X Error
+                                currentPage < pageCount - 1 -> 0
+
+                                // Arrow Forward
+                                else -> 1 // Checkmark Finish
+                            },
                         transitionSpec = {
                             (scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn())
-                            .togetherWith(scaleOut() + fadeOut())
+                                .togetherWith(scaleOut() + fadeOut())
                         },
-                        label = "AnimatedFabIcon"
+                        label = "AnimatedFabIcon",
                     ) { iconState ->
                         when (iconState) {
-                            2 -> Icon(
-                                imageVector = Icons.Rounded.Close,
-                                contentDescription = "Permission Required",
-                                modifier = Modifier.size(26.dp)
-                            )
-                            0 -> Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = "Next",
-                                modifier = Modifier.size(26.dp)
-                            )
-                            else -> Icon(
-                                imageVector = Icons.Filled.Check,
-                                contentDescription = "Finish",
-                                modifier = Modifier.size(26.dp)
-                            )
+                            2 -> {
+                                Icon(
+                                    imageVector = Icons.Rounded.Close,
+                                    contentDescription = "Permission Required",
+                                    modifier = Modifier.size(26.dp),
+                                )
+                            }
+
+                            0 -> {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = "Next",
+                                    modifier = Modifier.size(26.dp),
+                                )
+                            }
+
+                            else -> {
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = "Finish",
+                                    modifier = Modifier.size(26.dp),
+                                )
+                            }
                         }
                     }
                 }
@@ -1154,76 +1233,81 @@ data class ThemeOptionItem(
     val title: String,
     val description: String,
     val icon: ImageVector,
-    val recommended: Boolean = false
+    val recommended: Boolean = false,
 )
 
 @Composable
 fun ThemeModeOptionCard(
     option: ThemeOptionItem,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Surface(
         onClick = onClick,
-        color = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHigh
-        },
+        color =
+            if (selected) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            },
         shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
-                color = if (selected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.secondaryContainer
-                },
+                color =
+                    if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    },
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.size(46.dp)
+                modifier = Modifier.size(46.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = option.icon,
                         contentDescription = null,
-                        tint = if (selected) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        },
-                        modifier = Modifier.size(22.dp)
+                        tint =
+                            if (selected) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            },
+                        modifier = Modifier.size(22.dp),
                     )
                 }
             }
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
                         text = option.title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                     if (option.recommended) {
                         Surface(
-                            color = if (selected) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.primaryContainer
-                            },
-                            shape = RoundedCornerShape(999.dp)
+                            color =
+                                if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                },
+                            shape = RoundedCornerShape(999.dp),
                         ) {
                             Text(
                                 text = "Recommended",
@@ -1232,7 +1316,7 @@ fun ThemeModeOptionCard(
                                 maxLines = 1,
                                 softWrap = false,
                                 color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             )
                         }
                     }
@@ -1240,35 +1324,37 @@ fun ThemeModeOptionCard(
                 Text(
                     text = option.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             Surface(
-                color = if (selected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerHighest
-                },
-                shape = CircleShape
+                color =
+                    if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    },
+                shape = CircleShape,
             ) {
                 Box(
                     modifier = Modifier.size(28.dp),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     if (selected) {
                         Icon(
                             imageVector = Icons.Filled.Check,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp),
                         )
                     } else {
                         Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f))
+                            modifier =
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)),
                         )
                     }
                 }
@@ -1286,14 +1372,15 @@ fun PermissionPageLayout(
     icons: List<ImageVector>,
     buttonEnabled: Boolean = true,
     onGrantClicked: () -> Unit,
-    content: @Composable () -> Unit = {}
+    content: @Composable () -> Unit = {},
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 16.dp)
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(10.dp))
@@ -1302,32 +1389,33 @@ fun PermissionPageLayout(
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
         Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            contentAlignment = Alignment.Center,
         ) {
             AuriyaIconCollage(
                 modifier = Modifier.height(210.dp),
-                icons = icons
+                icons = icons,
             )
         }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             content()
             Spacer(modifier = Modifier.height(12.dp))
@@ -1336,10 +1424,11 @@ fun PermissionPageLayout(
                 enabled = buttonEnabled,
                 shape = RoundedCornerShape(20.dp),
                 contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (granted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
-                    contentColor = if (granted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
-                )
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = if (granted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
+                        contentColor = if (granted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
+                    ),
             ) {
                 AnimatedContent(targetState = granted, label = "ButtonAnim") { isGranted ->
                     if (isGranted) {
@@ -1352,7 +1441,7 @@ fun PermissionPageLayout(
                         Text(
                             text = buttonText,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                 }
@@ -1378,11 +1467,12 @@ fun SineWaveLine(
     val animatedPhase by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 2f * Math.PI.toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = animationDurationMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "phaseAnimation"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = animationDurationMillis, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "phaseAnimation",
     )
 
     Canvas(modifier = modifier) {
@@ -1394,22 +1484,23 @@ fun SineWaveLine(
 
         if (w <= 0f || samples < 2) return@Canvas
 
-        val path = Path().apply {
-            val step = w / (samples - 1)
-            moveTo(0f, centerY + (ampPx * kotlin.math.sin(animatedPhase)))
-            for (i in 1 until samples) {
-                val x = i * step
-                val theta = (x / w) * (2f * Math.PI.toFloat() * waves) + animatedPhase
-                val y = centerY + ampPx * kotlin.math.sin(theta)
-                lineTo(x, y)
+        val path =
+            Path().apply {
+                val step = w / (samples - 1)
+                moveTo(0f, centerY + (ampPx * kotlin.math.sin(animatedPhase)))
+                for (i in 1 until samples) {
+                    val x = i * step
+                    val theta = (x / w) * (2f * Math.PI.toFloat() * waves) + animatedPhase
+                    val y = centerY + ampPx * kotlin.math.sin(theta)
+                    lineTo(x, y)
+                }
             }
-        }
 
         drawPath(
             path = path,
             color = color,
             style = Stroke(width = strokePx, cap = StrokeCap.Round, join = StrokeJoin.Round),
-            alpha = alpha
+            alpha = alpha,
         )
     }
 }
@@ -1419,41 +1510,46 @@ fun NavBarPreview(isFloating: Boolean) {
     Surface(
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(210.dp)
-            .padding(horizontal = 8.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(210.dp)
+                .padding(horizontal = 8.dp),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(10.dp)
-                .clip(RoundedCornerShape(22.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(10.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLowest),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 // Mock App Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(36.dp, 8.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                        modifier =
+                            Modifier
+                                .size(36.dp, 8.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)),
                     )
                     Box(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                        modifier =
+                            Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                     )
                 }
 
@@ -1461,36 +1557,39 @@ fun NavBarPreview(isFloating: Boolean) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
                         modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer)
+                            modifier =
+                                Modifier
+                                    .size(28.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
                         )
                         Column(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.7f)
-                                    .height(8.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth(0.7f)
+                                        .height(8.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)),
                             )
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.45f)
-                                    .height(6.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth(0.45f)
+                                        .height(6.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)),
                             )
                         }
                     }
@@ -1500,36 +1599,39 @@ fun NavBarPreview(isFloating: Boolean) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.surfaceContainer,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
                         modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                            modifier =
+                                Modifier
+                                    .size(28.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.secondaryContainer),
                         )
                         Column(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.55f)
-                                    .height(8.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth(0.55f)
+                                        .height(8.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)),
                             )
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.35f)
-                                    .height(6.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth(0.35f)
+                                        .height(6.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)),
                             )
                         }
                     }
@@ -1544,90 +1646,98 @@ fun NavBarPreview(isFloating: Boolean) {
                         (fadeIn(animationSpec = tween(350)) + slideInVertically { it })
                             .togetherWith(fadeOut(animationSpec = tween(200)) + slideOutVertically { it })
                     },
-                    label = "NavbarPreviewAnim"
+                    label = "NavbarPreviewAnim",
                 ) { floating ->
                     if (floating) {
                         Surface(
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp, vertical = 10.dp)
-                                .width(190.dp)
-                                .height(46.dp),
+                            modifier =
+                                Modifier
+                                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                                    .width(190.dp)
+                                    .height(46.dp),
                             shape = RoundedCornerShape(23.dp),
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            tonalElevation = 6.dp
+                            tonalElevation = 6.dp,
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(14.dp),
                                     color = MaterialTheme.colorScheme.primaryContainer,
-                                    modifier = Modifier.size(38.dp, 26.dp)
+                                    modifier = Modifier.size(38.dp, 26.dp),
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Box(
-                                            modifier = Modifier
-                                                .size(16.dp, 5.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.onPrimaryContainer)
+                                            modifier =
+                                                Modifier
+                                                    .size(16.dp, 5.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.onPrimaryContainer),
                                         )
                                     }
                                 }
                                 Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                    modifier =
+                                        Modifier
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
                                 )
                                 Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                    modifier =
+                                        Modifier
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
                                 )
                             }
                         }
                     } else {
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
                             shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            tonalElevation = 6.dp
+                            tonalElevation = 6.dp,
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(14.dp),
                                     color = MaterialTheme.colorScheme.primaryContainer,
-                                    modifier = Modifier.size(44.dp, 26.dp)
+                                    modifier = Modifier.size(44.dp, 26.dp),
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Box(
-                                            modifier = Modifier
-                                                .size(18.dp, 5.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.onPrimaryContainer)
+                                            modifier =
+                                                Modifier
+                                                    .size(18.dp, 5.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.onPrimaryContainer),
                                         )
                                     }
                                 }
                                 Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                    modifier =
+                                        Modifier
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
                                 )
                                 Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                    modifier =
+                                        Modifier
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
                                 )
                             }
                         }

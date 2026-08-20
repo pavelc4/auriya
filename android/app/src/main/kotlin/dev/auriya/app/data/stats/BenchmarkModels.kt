@@ -14,7 +14,7 @@ data class BenchmarkSample(
     val jank: Int,
     val cpuLoad: Float,
     val cpuTemp: Float?,
-    val batteryTemp: Float?
+    val batteryTemp: Float?,
 )
 
 data class BenchmarkSession(
@@ -33,11 +33,12 @@ data class BenchmarkSession(
     val avgCpuLoad: Float,
     val maxCpuTemp: Float?,
     val maxBatteryTemp: Float?,
-    val samples: List<BenchmarkSample> = emptyList()
+    val samples: List<BenchmarkSample> = emptyList(),
 )
 
-class BenchmarkRepository(private val context: Context) {
-
+class BenchmarkRepository(
+    private val context: Context,
+) {
     private val sessionsFile: File
         get() = File(context.filesDir, "benchmark_sessions.json")
 
@@ -94,8 +95,8 @@ class BenchmarkRepository(private val context: Context) {
         }
     }
 
-    private fun serializeSession(s: BenchmarkSession): JSONObject {
-        return JSONObject().apply {
+    private fun serializeSession(s: BenchmarkSession): JSONObject =
+        JSONObject().apply {
             put("id", s.id)
             put("packageName", s.packageName)
             put("appLabel", s.appLabel)
@@ -114,20 +115,20 @@ class BenchmarkRepository(private val context: Context) {
 
             val samplesArray = JSONArray()
             s.samples.forEach { sample ->
-                val sampleObj = JSONObject().apply {
-                    put("t", sample.timestampOffsetMs)
-                    put("fps", sample.fps)
-                    put("low1Pct", sample.low1Pct)
-                    put("jank", sample.jank)
-                    put("cpu", sample.cpuLoad.toDouble())
-                    if (sample.cpuTemp != null) put("cpuTemp", sample.cpuTemp.toDouble())
-                    if (sample.batteryTemp != null) put("batTemp", sample.batteryTemp.toDouble())
-                }
+                val sampleObj =
+                    JSONObject().apply {
+                        put("t", sample.timestampOffsetMs)
+                        put("fps", sample.fps)
+                        put("low1Pct", sample.low1Pct)
+                        put("jank", sample.jank)
+                        put("cpu", sample.cpuLoad.toDouble())
+                        if (sample.cpuTemp != null) put("cpuTemp", sample.cpuTemp.toDouble())
+                        if (sample.batteryTemp != null) put("batTemp", sample.batteryTemp.toDouble())
+                    }
                 samplesArray.put(sampleObj)
             }
             put("samples", samplesArray)
         }
-    }
 
     private fun deserializeSession(obj: JSONObject): BenchmarkSession {
         val samplesArray = obj.optJSONArray("samples")
@@ -143,37 +144,41 @@ class BenchmarkRepository(private val context: Context) {
                         jank = sObj.optInt("jank", 0),
                         cpuLoad = sObj.optDouble("cpu", 0.0).toFloat(),
                         cpuTemp = if (sObj.has("cpuTemp")) sObj.getDouble("cpuTemp").toFloat() else null,
-                        batteryTemp = if (sObj.has("batTemp")) sObj.getDouble("batTemp").toFloat() else null
-                    )
+                        batteryTemp = if (sObj.has("batTemp")) sObj.getDouble("batTemp").toFloat() else null,
+                    ),
                 )
             }
         }
 
         val activeSamples = samplesList.filter { it.fps > 10.0 }.ifEmpty { samplesList }
-        val calcAvgFps = if (activeSamples.isNotEmpty()) {
-            (activeSamples.map { it.fps }.average() * 10.0).roundToInt() / 10.0
-        } else {
-            obj.optDouble("avgFps", 0.0)
-        }
-        val calcLow1Pct = if (activeSamples.size >= 4) {
-            val sorted = activeSamples.map { it.fps }.sorted()
-            val count = (sorted.size * 0.05).toInt().coerceAtLeast(1)
-            (sorted.take(count).average() * 10.0).roundToInt() / 10.0
-        } else if (activeSamples.isNotEmpty()) {
-            (activeSamples.map { it.low1Pct }.average() * 10.0).roundToInt() / 10.0
-        } else {
-            obj.optDouble("minLow1Pct", 0.0)
-        }
-        val calcMaxFps = if (activeSamples.isNotEmpty()) {
-            (activeSamples.maxOf { it.fps } * 10.0).roundToInt() / 10.0
-        } else {
-            obj.optDouble("maxFps", 0.0)
-        }
-        val calcJank = if (samplesList.isNotEmpty()) {
-            samplesList.maxOfOrNull { it.jank } ?: obj.optInt("totalJank", 0)
-        } else {
-            obj.optInt("totalJank", 0)
-        }
+        val calcAvgFps =
+            if (activeSamples.isNotEmpty()) {
+                (activeSamples.map { it.fps }.average() * 10.0).roundToInt() / 10.0
+            } else {
+                obj.optDouble("avgFps", 0.0)
+            }
+        val calcLow1Pct =
+            if (activeSamples.size >= 4) {
+                val sorted = activeSamples.map { it.fps }.sorted()
+                val count = (sorted.size * 0.05).toInt().coerceAtLeast(1)
+                (sorted.take(count).average() * 10.0).roundToInt() / 10.0
+            } else if (activeSamples.isNotEmpty()) {
+                (activeSamples.map { it.low1Pct }.average() * 10.0).roundToInt() / 10.0
+            } else {
+                obj.optDouble("minLow1Pct", 0.0)
+            }
+        val calcMaxFps =
+            if (activeSamples.isNotEmpty()) {
+                (activeSamples.maxOf { it.fps } * 10.0).roundToInt() / 10.0
+            } else {
+                obj.optDouble("maxFps", 0.0)
+            }
+        val calcJank =
+            if (samplesList.isNotEmpty()) {
+                samplesList.maxOfOrNull { it.jank } ?: obj.optInt("totalJank", 0)
+            } else {
+                obj.optInt("totalJank", 0)
+            }
 
         return BenchmarkSession(
             id = obj.optString("id", UUID.randomUUID().toString()),
@@ -191,7 +196,7 @@ class BenchmarkRepository(private val context: Context) {
             avgCpuLoad = obj.optDouble("avgCpuLoad", 0.0).toFloat(),
             maxCpuTemp = if (obj.has("maxCpuTemp")) obj.getDouble("maxCpuTemp").toFloat() else null,
             maxBatteryTemp = if (obj.has("maxBatteryTemp")) obj.getDouble("maxBatteryTemp").toFloat() else null,
-            samples = samplesList
+            samples = samplesList,
         )
     }
 }

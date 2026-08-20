@@ -14,7 +14,9 @@ import java.nio.channels.OverlappingFileLockException
  * crashed companion in real time — when the JVM exits or is killed the
  * OS releases the lock automatically.
  */
-class LockFile(private val path: File) : AutoCloseable {
+class LockFile(
+    private val path: File,
+) : AutoCloseable {
     private var raf: RandomAccessFile? = null
     private var channel: FileChannel? = null
     private var lock: FileLock? = null
@@ -52,9 +54,18 @@ class LockFile(private val path: File) : AutoCloseable {
     }
 
     override fun close() {
-        try { lock?.release() } catch (_: Throwable) {}
-        try { channel?.close() } catch (_: Throwable) {}
-        try { raf?.close() } catch (_: Throwable) {}
+        try {
+            lock?.release()
+        } catch (_: Throwable) {
+        }
+        try {
+            channel?.close()
+        } catch (_: Throwable) {
+        }
+        try {
+            raf?.close()
+        } catch (_: Throwable) {
+        }
         lock = null
         channel = null
         raf = null

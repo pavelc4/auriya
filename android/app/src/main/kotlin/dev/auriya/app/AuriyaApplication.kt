@@ -11,8 +11,9 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.topjohnwu.superuser.Shell
 
-class AuriyaApplication : Application(), SingletonImageLoader.Factory {
-
+class AuriyaApplication :
+    Application(),
+    SingletonImageLoader.Factory {
     override fun onCreate() {
         // Configure the global libsu Shell BEFORE super.onCreate so any
         // early IO that touches /data/adb/* uses the cached root shell.
@@ -20,29 +21,31 @@ class AuriyaApplication : Application(), SingletonImageLoader.Factory {
         // module's overlay) when reading config/log paths.
         Shell.enableVerboseLogging = false
         Shell.setDefaultBuilder(
-            Shell.Builder.create()
+            Shell.Builder
+                .create()
                 .setFlags(Shell.FLAG_MOUNT_MASTER)
                 .setTimeout(10),
         )
         super.onCreate()
-        dev.auriya.app.data.stats.BenchmarkRecorder.getInstance(this)
+        dev.auriya.app.data.stats.BenchmarkRecorder
+            .getInstance(this)
     }
 
-    override fun newImageLoader(context: PlatformContext): ImageLoader {
-        return ImageLoader.Builder(context)
+    override fun newImageLoader(context: PlatformContext): ImageLoader =
+        ImageLoader
+            .Builder(context)
             .crossfade(true)
             .memoryCache {
-                MemoryCache.Builder()
+                MemoryCache
+                    .Builder()
                     .maxSizePercent(context, 0.20)
                     .build()
-            }
-            .diskCache {
-                DiskCache.Builder()
+            }.diskCache {
+                DiskCache
+                    .Builder()
                     .directory(cacheDir.resolve("image_cache"))
                     .maxSizeBytes(32L * 1024 * 1024)
                     .build()
-            }
-            .components { add(OkHttpNetworkFetcherFactory()) }
+            }.components { add(OkHttpNetworkFetcherFactory()) }
             .build()
-    }
 }

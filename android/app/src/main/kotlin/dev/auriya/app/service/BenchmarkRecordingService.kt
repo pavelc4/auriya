@@ -12,16 +12,19 @@ import androidx.core.app.NotificationCompat
 import dev.auriya.app.MainActivity
 
 class BenchmarkRecordingService : Service() {
-
     companion object {
         const val CHANNEL_ID = "auriya_benchmark_channel"
         const val NOTIFICATION_ID = 1002
 
-        fun start(context: Context, gameTitle: String) {
+        fun start(
+            context: Context,
+            gameTitle: String,
+        ) {
             runCatching {
-                val intent = Intent(context, BenchmarkRecordingService::class.java).apply {
-                    putExtra("game_title", gameTitle)
-                }
+                val intent =
+                    Intent(context, BenchmarkRecordingService::class.java).apply {
+                        putExtra("game_title", gameTitle)
+                    }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(intent)
                 } else {
@@ -42,23 +45,30 @@ class BenchmarkRecordingService : Service() {
         createNotificationChannel()
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
         val gameTitle = intent?.getStringExtra("game_title") ?: "Game"
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        val pendingIntent =
+            PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, MainActivity::class.java),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Auriya Benchmark Active")
-            .setContentText("Tracking frame telemetry for $gameTitle")
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setOngoing(true)
-            .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
+        val notification =
+            NotificationCompat
+                .Builder(this, CHANNEL_ID)
+                .setContentTitle("Auriya Benchmark Active")
+                .setContentText("Tracking frame telemetry for $gameTitle")
+                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setOngoing(true)
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build()
 
         startForeground(NOTIFICATION_ID, notification)
         return START_STICKY
@@ -68,13 +78,14 @@ class BenchmarkRecordingService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Auriya Benchmark Service",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Keeps benchmark telemetry recorder active during gameplay"
-            }
+            val channel =
+                NotificationChannel(
+                    CHANNEL_ID,
+                    "Auriya Benchmark Service",
+                    NotificationManager.IMPORTANCE_LOW,
+                ).apply {
+                    description = "Keeps benchmark telemetry recorder active during gameplay"
+                }
             val manager = getSystemService(NotificationManager::class.java)
             manager?.createNotificationChannel(channel)
         }

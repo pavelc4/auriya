@@ -12,8 +12,9 @@ import java.io.File
 import java.util.Date
 import kotlin.math.roundToInt
 
-class BenchmarkRecorder private constructor(private val context: Context) {
-
+class BenchmarkRecorder private constructor(
+    private val context: Context,
+) {
     private val repository = BenchmarkRepository(context)
     private val autoRecordPrefs = AutoRecordPrefs(context)
     private val pm: PackageManager = context.packageManager
@@ -52,38 +53,43 @@ class BenchmarkRecorder private constructor(private val context: Context) {
         @Volatile
         private var instance: BenchmarkRecorder? = null
 
-        fun getInstance(context: Context): BenchmarkRecorder {
-            return instance ?: synchronized(this) {
+        fun getInstance(context: Context): BenchmarkRecorder =
+            instance ?: synchronized(this) {
                 instance ?: BenchmarkRecorder(context.applicationContext).also { instance = it }
             }
-        }
 
-        fun saveSessionToDownloadAuriya(context: Context, session: BenchmarkSession): File? {
-            return runCatching {
+        fun saveSessionToDownloadAuriya(
+            context: Context,
+            session: BenchmarkSession,
+        ): File? =
+            runCatching {
                 val safeName = session.appLabel.replace("[^a-zA-Z0-9]".toRegex(), "_")
                 val fileName = "auriya_benchmark_${safeName}_${session.startTimeEpoch}.csv"
 
-                val csvContent = buildString {
-                    appendLine("AURIYA BENCHMARK REPORT")
-                    appendLine("Game Title,${session.appLabel}")
-                    appendLine("Package Name,${session.packageName}")
-                    appendLine("Profile,${session.profile}")
-                    appendLine("Recorded At,${Date(session.startTimeEpoch)}")
-                    appendLine("Duration (Seconds),${session.durationSeconds}")
-                    appendLine("Total Samples,${session.samplesCount}")
-                    appendLine("Average FPS,${session.avgFps}")
-                    appendLine("1% Low FPS,${session.minLow1Pct}")
-                    appendLine("Peak FPS,${session.maxFps}")
-                    appendLine("Total Jank Frames,${session.totalJank}")
-                    appendLine("Average CPU Load (%),${session.avgCpuLoad}")
-                    appendLine("Peak CPU Temp (°C),${session.maxCpuTemp ?: "N/A"}")
-                    appendLine("Peak Battery Temp (°C),${session.maxBatteryTemp ?: "N/A"}")
-                    appendLine()
-                    appendLine("Timestamp Offset (ms),FPS,1% Low,Jank Frames,CPU Load (%),CPU Temp (°C),Battery Temp (°C)")
-                    session.samples.forEach { s ->
-                        appendLine("${s.timestampOffsetMs},${s.fps},${s.low1Pct},${s.jank},${s.cpuLoad},${s.cpuTemp ?: ""},${s.batteryTemp ?: ""}")
+                val csvContent =
+                    buildString {
+                        appendLine("AURIYA BENCHMARK REPORT")
+                        appendLine("Game Title,${session.appLabel}")
+                        appendLine("Package Name,${session.packageName}")
+                        appendLine("Profile,${session.profile}")
+                        appendLine("Recorded At,${Date(session.startTimeEpoch)}")
+                        appendLine("Duration (Seconds),${session.durationSeconds}")
+                        appendLine("Total Samples,${session.samplesCount}")
+                        appendLine("Average FPS,${session.avgFps}")
+                        appendLine("1% Low FPS,${session.minLow1Pct}")
+                        appendLine("Peak FPS,${session.maxFps}")
+                        appendLine("Total Jank Frames,${session.totalJank}")
+                        appendLine("Average CPU Load (%),${session.avgCpuLoad}")
+                        appendLine("Peak CPU Temp (°C),${session.maxCpuTemp ?: "N/A"}")
+                        appendLine("Peak Battery Temp (°C),${session.maxBatteryTemp ?: "N/A"}")
+                        appendLine()
+                        appendLine("Timestamp Offset (ms),FPS,1% Low,Jank Frames,CPU Load (%),CPU Temp (°C),Battery Temp (°C)")
+                        session.samples.forEach { s ->
+                            appendLine(
+                                "${s.timestampOffsetMs},${s.fps},${s.low1Pct},${s.jank},${s.cpuLoad},${s.cpuTemp ?: ""},${s.batteryTemp ?: ""}",
+                            )
+                        }
                     }
-                }
 
                 val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                 val downloadAuriyaDir = File(downloadDir, "auriya")
@@ -109,13 +115,14 @@ class BenchmarkRecorder private constructor(private val context: Context) {
                 if (!written) {
                     val cacheTmp = File(context.cacheDir, fileName)
                     cacheTmp.writeText(csvContent)
-                    val script = """
+                    val script =
+                        """
                         if [ -f /sdcard/Download/auriya ]; then rm -f /sdcard/Download/auriya; fi
                         mkdir -p /sdcard/Download/auriya
                         chmod 777 /sdcard/Download/auriya
                         cp '${cacheTmp.absolutePath}' '/sdcard/Download/auriya/$fileName'
                         chmod 666 '/sdcard/Download/auriya/$fileName'
-                    """.trimIndent()
+                        """.trimIndent()
                     RootShell.run(script)
                 }
 
@@ -125,32 +132,33 @@ class BenchmarkRecorder private constructor(private val context: Context) {
                     android.media.MediaScannerConnection.scanFile(
                         context,
                         arrayOf(actualFile.absolutePath),
-                        arrayOf("text/csv")
+                        arrayOf("text/csv"),
                     ) { path, uri -> }
-                } catch (_: Exception) {}
+                } catch (_: Exception) {
+                }
 
                 actualFile
             }.getOrNull()
-        }
     }
 
     fun startBackgroundMonitoring() {
         if (monitoringJob?.isActive == true) return
-        monitoringJob = scope.launch {
-            while (isActive) {
-                if (_isRecording.value || autoRecordPrefs.hasAnyAutoRecordEnabled()) {
-                    runCatching {
-                        val stats = StatsParser.fetchStats()
-                        if (stats != null) {
-                            processStats(stats)
+        monitoringJob =
+            scope.launch {
+                while (isActive) {
+                    if (_isRecording.value || autoRecordPrefs.hasAnyAutoRecordEnabled()) {
+                        runCatching {
+                            val stats = StatsParser.fetchStats()
+                            if (stats != null) {
+                                processStats(stats)
+                            }
                         }
+                        delay(1000)
+                    } else {
+                        delay(2500)
                     }
-                    delay(1000)
-                } else {
-                    delay(2500)
                 }
             }
-        }
     }
 
     fun loadSessions() {
@@ -167,7 +175,10 @@ class BenchmarkRecorder private constructor(private val context: Context) {
         loadSessions()
     }
 
-    fun startManualRecording(pkg: String? = null, profile: String = "balance") {
+    fun startManualRecording(
+        pkg: String? = null,
+        profile: String = "balance",
+    ) {
         if (_isRecording.value) return
         val targetPkg = pkg ?: "system_monitor"
         val label = getAppLabel(targetPkg)
@@ -204,15 +215,16 @@ class BenchmarkRecorder private constructor(private val context: Context) {
 
                 val fps = stats.fps
                 if (fps != null) {
-                    val sample = BenchmarkSample(
-                        timestampOffsetMs = offset,
-                        fps = fps.avg,
-                        low1Pct = fps.low_1pct,
-                        jank = fps.jank,
-                        cpuLoad = stats.cpu?.load_pct ?: 0f,
-                        cpuTemp = stats.thermal.cpu_c,
-                        batteryTemp = stats.thermal.battery_c
-                    )
+                    val sample =
+                        BenchmarkSample(
+                            timestampOffsetMs = offset,
+                            fps = fps.avg,
+                            low1Pct = fps.low_1pct,
+                            jank = fps.jank,
+                            cpuLoad = stats.cpu?.load_pct ?: 0f,
+                            cpuTemp = stats.thermal.cpu_c,
+                            batteryTemp = stats.thermal.battery_c,
+                        )
                     bufferSamples.add(sample)
                     _currentSamplesCount.value = bufferSamples.size
                 }
@@ -220,7 +232,12 @@ class BenchmarkRecorder private constructor(private val context: Context) {
         }
     }
 
-    private fun startBuffer(pkg: String, label: String, profile: String, manual: Boolean) {
+    private fun startBuffer(
+        pkg: String,
+        label: String,
+        profile: String,
+        manual: Boolean,
+    ) {
         recordingStartTime = System.currentTimeMillis()
         recordingPackage = pkg
         recordingAppLabel = label
@@ -234,14 +251,16 @@ class BenchmarkRecorder private constructor(private val context: Context) {
         _currentSamplesCount.value = 0
 
         // Keep app process alive via foreground service during game match
-        dev.auriya.app.service.BenchmarkRecordingService.start(context, label)
+        dev.auriya.app.service.BenchmarkRecordingService
+            .start(context, label)
     }
 
     private fun finalizeBuffer() {
         if (!_isRecording.value) return
 
         // Stop foreground service
-        dev.auriya.app.service.BenchmarkRecordingService.stop(context)
+        dev.auriya.app.service.BenchmarkRecordingService
+            .stop(context)
 
         val endTime = System.currentTimeMillis()
         val durationSec = ((endTime - recordingStartTime) / 1000L).coerceAtLeast(1L)
@@ -256,36 +275,38 @@ class BenchmarkRecorder private constructor(private val context: Context) {
             val maxFps = activeSamples.maxOfOrNull { it.fps } ?: bufferSamples.maxOfOrNull { it.fps } ?: 0.0
 
             // 1% Low: computed across active gameplay frames
-            val low1Pct = if (activeSamples.size >= 4) {
-                val sortedFps = activeSamples.map { it.fps }.sorted()
-                val onePctCount = (sortedFps.size * 0.05).toInt().coerceAtLeast(1)
-                sortedFps.take(onePctCount).average()
-            } else {
-                activeSamples.map { it.low1Pct }.average().coerceAtLeast(0.0)
-            }
+            val low1Pct =
+                if (activeSamples.size >= 4) {
+                    val sortedFps = activeSamples.map { it.fps }.sorted()
+                    val onePctCount = (sortedFps.size * 0.05).toInt().coerceAtLeast(1)
+                    sortedFps.take(onePctCount).average()
+                } else {
+                    activeSamples.map { it.low1Pct }.average().coerceAtLeast(0.0)
+                }
 
             val totalJank = bufferSamples.maxOfOrNull { it.jank } ?: 0
             val avgCpu = activeSamples.map { it.cpuLoad }.average().toFloat()
             val maxCpuTemp = bufferSamples.mapNotNull { it.cpuTemp }.maxOrNull()
             val maxBatTemp = bufferSamples.mapNotNull { it.batteryTemp }.maxOrNull()
 
-            val session = BenchmarkSession(
-                packageName = pkg,
-                appLabel = label,
-                profile = recordingProfile,
-                startTimeEpoch = recordingStartTime,
-                endTimeEpoch = endTime,
-                durationSeconds = durationSec,
-                samplesCount = bufferSamples.size,
-                avgFps = (avgFps * 10.0).roundToInt() / 10.0,
-                minLow1Pct = (low1Pct * 10.0).roundToInt() / 10.0,
-                maxFps = (maxFps * 10.0).roundToInt() / 10.0,
-                totalJank = totalJank,
-                avgCpuLoad = (avgCpu * 10f).roundToInt() / 10f,
-                maxCpuTemp = maxCpuTemp,
-                maxBatteryTemp = maxBatTemp,
-                samples = bufferSamples.toList()
-            )
+            val session =
+                BenchmarkSession(
+                    packageName = pkg,
+                    appLabel = label,
+                    profile = recordingProfile,
+                    startTimeEpoch = recordingStartTime,
+                    endTimeEpoch = endTime,
+                    durationSeconds = durationSec,
+                    samplesCount = bufferSamples.size,
+                    avgFps = (avgFps * 10.0).roundToInt() / 10.0,
+                    minLow1Pct = (low1Pct * 10.0).roundToInt() / 10.0,
+                    maxFps = (maxFps * 10.0).roundToInt() / 10.0,
+                    totalJank = totalJank,
+                    avgCpuLoad = (avgCpu * 10f).roundToInt() / 10f,
+                    maxCpuTemp = maxCpuTemp,
+                    maxBatteryTemp = maxBatTemp,
+                    samples = bufferSamples.toList(),
+                )
             repository.saveSession(session)
 
             // Automatically save CSV snapshot into Download/auriya/ folder
@@ -300,12 +321,11 @@ class BenchmarkRecorder private constructor(private val context: Context) {
         loadSessions()
     }
 
-    private fun getAppLabel(packageName: String): String {
-        return try {
+    private fun getAppLabel(packageName: String): String =
+        try {
             val appInfo = pm.getApplicationInfo(packageName, 0)
             pm.getApplicationLabel(appInfo).toString()
         } catch (_: Exception) {
             packageName.substringAfterLast('.')
         }
-    }
 }

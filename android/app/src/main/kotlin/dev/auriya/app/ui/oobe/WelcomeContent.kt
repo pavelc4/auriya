@@ -28,76 +28,81 @@ import dev.auriya.app.viewmodel.ThemeViewModel
 fun WelcomeContent(
     isDark: Boolean,
     themeViewModel: ThemeViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 20.dp)
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp, vertical = 20.dp),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(top = 16.dp)
+            modifier = Modifier.padding(top = 16.dp),
         ) {
             Text(
                 text = "Welcome to",
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 38.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = 1.15.em
-                ),
-                textAlign = TextAlign.Center
+                style =
+                    MaterialTheme.typography.displayMedium.copy(
+                        fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 38.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 1.15.em,
+                    ),
+                textAlign = TextAlign.Center,
             )
             Text(
                 text = "Auriya",
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 46.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    lineHeight = 1.15.em
-                ),
-                textAlign = TextAlign.Center
+                style =
+                    MaterialTheme.typography.displayLarge.copy(
+                        fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 46.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        lineHeight = 1.15.em,
+                    ),
+                textAlign = TextAlign.Center,
             )
         }
 
         // Center Art Collage
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(240.dp),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(240.dp),
+            contentAlignment = Alignment.Center,
         ) {
             AuriyaIconCollage(
-                icons = listOf(
-                    androidx.compose.material.icons.Icons.Rounded.Speed,
-                    androidx.compose.material.icons.Icons.Rounded.Bolt,
-                    androidx.compose.material.icons.Icons.Rounded.Memory,
-                    androidx.compose.material.icons.Icons.Rounded.Security,
-                    androidx.compose.material.icons.Icons.Rounded.Tune
-                ),
-                height = 220.dp
+                icons =
+                    listOf(
+                        androidx.compose.material.icons.Icons.Rounded.Speed,
+                        androidx.compose.material.icons.Icons.Rounded.Bolt,
+                        androidx.compose.material.icons.Icons.Rounded.Memory,
+                        androidx.compose.material.icons.Icons.Rounded.Security,
+                        androidx.compose.material.icons.Icons.Rounded.Tune,
+                    ),
+                height = 220.dp,
             )
         }
 
         // Bottom Description Text
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
         ) {
             Text(
                 text = "Next-generation Android daemon & kernel frame scheduling engine written in Rust with Material 3 Expressive personalization.",
                 style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
-

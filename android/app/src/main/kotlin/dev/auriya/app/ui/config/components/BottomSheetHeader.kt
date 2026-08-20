@@ -16,22 +16,24 @@ import dev.auriya.app.ui.theme.ExpTitleTypography
 fun BottomSheetHeader(
     title: String,
     subtitle: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(bottom = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(bottom = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = title,
-            style = ExpTitleTypography.titleMedium.copy(
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 28.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
+            style =
+                ExpTitleTypography.titleMedium.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 28.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                ),
         )
         Spacer(Modifier.height(4.dp))
         Text(
@@ -39,7 +41,7 @@ fun BottomSheetHeader(
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
     }
 }

@@ -29,7 +29,7 @@ fun SessionActionsPopup(
     session: BenchmarkSession?,
     sheetState: SheetState,
     onDeleteRequest: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     if (!show || session == null) return
     val context = LocalContext.current
@@ -39,19 +39,20 @@ fun SessionActionsPopup(
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = { AuriyaDragHandle() },
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp),
         ) {
             item {
                 BottomSheetHeader(
                     title = "Session Actions",
-                    subtitle = "Export dataset, share file, or manage recording"
+                    subtitle = "Export dataset, share file, or manage recording",
                 )
             }
 
@@ -66,7 +67,7 @@ fun SessionActionsPopup(
                     onClick = {
                         exportSessionCsvDirect(context, session)
                         onDismiss()
-                    }
+                    },
                 )
             }
 
@@ -81,7 +82,7 @@ fun SessionActionsPopup(
                     onClick = {
                         shareSessionCsv(context, session)
                         onDismiss()
-                    }
+                    },
                 )
             }
 
@@ -96,7 +97,7 @@ fun SessionActionsPopup(
                     onClick = {
                         copyMarkdownReport(context, session)
                         onDismiss()
-                    }
+                    },
                 )
             }
 
@@ -111,7 +112,7 @@ fun SessionActionsPopup(
                     onClick = {
                         onDeleteRequest()
                         onDismiss()
-                    }
+                    },
                 )
             }
         }

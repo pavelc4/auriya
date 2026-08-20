@@ -50,7 +50,10 @@ _cleanup_all() {
   sh "$MODPATH/uninstall.sh"
 }
 
-[ -f "$_REMOVE_FLAG" ] && { _cleanup_all; exit 0; }
+[ -f "$_REMOVE_FLAG" ] && {
+  _cleanup_all
+  exit 0
+}
 
 mkdir -p "$MODULE_CONFIG" "$LOGDIR"
 chmod 0755 "$MODULE_CONFIG" "$LOGDIR"

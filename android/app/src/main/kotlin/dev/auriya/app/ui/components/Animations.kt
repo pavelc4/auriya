@@ -26,30 +26,31 @@ fun Modifier.bouncyClickable(
     enabled: Boolean = true,
     scaleDown: Float = 0.96f,
     onClick: () -> Unit,
-): Modifier = composed {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) scaleDown else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow,
-        ),
-        label = "bouncy-click-scale"
-    )
-
-    this
-        .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }
-        .clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            enabled = enabled,
-            onClick = onClick
+): Modifier =
+    composed {
+        val interactionSource = remember { MutableInteractionSource() }
+        val isPressed by interactionSource.collectIsPressedAsState()
+        val scale by animateFloatAsState(
+            targetValue = if (isPressed && enabled) scaleDown else 1f,
+            animationSpec =
+                spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow,
+                ),
+            label = "bouncy-click-scale",
         )
-}
+
+        this
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }.clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled,
+                onClick = onClick,
+            )
+    }
 
 /**
  * Animated number / text ticker that rolls up or down smoothly when text changes.
@@ -66,21 +67,23 @@ fun AnimatedTickerText(
         AnimatedContent(
             targetState = text,
             transitionSpec = {
-                (slideInVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    ),
-                    initialOffsetY = { fullHeight -> fullHeight / 2 }
-                ) + fadeIn(animationSpec = tween(150)))
-                .togetherWith(
+                (
+                    slideInVertically(
+                        animationSpec =
+                            spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow,
+                            ),
+                        initialOffsetY = { fullHeight -> fullHeight / 2 },
+                    ) + fadeIn(animationSpec = tween(150))
+                ).togetherWith(
                     slideOutVertically(
                         animationSpec = tween(150),
-                        targetOffsetY = { fullHeight -> -fullHeight / 2 }
-                    ) + fadeOut(animationSpec = tween(120))
+                        targetOffsetY = { fullHeight -> -fullHeight / 2 },
+                    ) + fadeOut(animationSpec = tween(120)),
                 )
             },
-            label = "ticker-transition"
+            label = "ticker-transition",
         ) { target ->
             Text(
                 text = target,

@@ -5,11 +5,12 @@ plugins {
 }
 
 val signingPropertiesFile = rootProject.file("signing.properties")
-val signingProperties = Properties().apply {
-    if (signingPropertiesFile.exists()) {
-        signingPropertiesFile.inputStream().use { load(it) }
+val signingProperties =
+    Properties().apply {
+        if (signingPropertiesFile.exists()) {
+            signingPropertiesFile.inputStream().use { load(it) }
+        }
     }
-}
 
 // ── Version from Cargo.toml ─────────────────────────────────────
 val cargoFile = rootProject.file("../Cargo.toml")
@@ -60,12 +61,13 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
-            signingConfig = if (signingProperties.isNotEmpty()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
-            isShrinkResources = false   // no resources to shrink
+            signingConfig =
+                if (signingProperties.isNotEmpty()) {
+                    signingConfigs.getByName("release")
+                } else {
+                    signingConfigs.getByName("debug")
+                }
+            isShrinkResources = false // no resources to shrink
             vcsInfo.include = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -92,18 +94,19 @@ android {
     // Trim packaging — no native libs, drop stray metadata.
     packaging {
         resources {
-            excludes += listOf(
-                "META-INF/*.kotlin_module",
-                "META-INF/*.version",
-                "META-INF/AL2.0",
-                "META-INF/LGPL2.1",
-                "META-INF/DEPENDENCIES",
-                "META-INF/NOTICE*",
-                "META-INF/LICENSE*",
-                "kotlin/**",
-                "**.txt",
-                "**.proto",
-            )
+            excludes +=
+                listOf(
+                    "META-INF/*.kotlin_module",
+                    "META-INF/*.version",
+                    "META-INF/AL2.0",
+                    "META-INF/LGPL2.1",
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/NOTICE*",
+                    "META-INF/LICENSE*",
+                    "kotlin/**",
+                    "**.txt",
+                    "**.proto",
+                )
         }
     }
 

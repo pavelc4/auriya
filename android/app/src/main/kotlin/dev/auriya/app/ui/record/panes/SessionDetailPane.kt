@@ -49,7 +49,10 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-private enum class MetricGraphTab(val label: String, val icon: ImageVector) {
+private enum class MetricGraphTab(
+    val label: String,
+    val icon: ImageVector,
+) {
     OVERVIEW("Overview", Icons.Outlined.Layers),
     FPS("FPS", Icons.Outlined.Speed),
     THERMALS("Thermals", Icons.Outlined.DeviceThermostat),
@@ -59,74 +62,80 @@ private enum class MetricGraphTab(val label: String, val icon: ImageVector) {
 @Composable
 fun SessionDetailPane(
     session: BenchmarkSession,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(MetricGraphTab.OVERVIEW) }
 
-    val dateStr = remember(session.startTimeEpoch) {
-        val sdf = SimpleDateFormat("EEEE, MMMM d, yyyy • HH:mm", Locale.getDefault())
-        sdf.format(Date(session.startTimeEpoch))
-    }
-
-    val displayJank = remember(session) {
-        if (session.samples.isNotEmpty()) {
-            session.samples.maxOfOrNull { it.jank } ?: session.totalJank
-        } else {
-            session.totalJank
+    val dateStr =
+        remember(session.startTimeEpoch) {
+            val sdf = SimpleDateFormat("EEEE, MMMM d, yyyy • HH:mm", Locale.getDefault())
+            sdf.format(Date(session.startTimeEpoch))
         }
-    }
+
+    val displayJank =
+        remember(session) {
+            if (session.samples.isNotEmpty()) {
+                session.samples.maxOfOrNull { it.jank } ?: session.totalJank
+            } else {
+                session.totalJank
+            }
+        }
 
     Surface(
         modifier = modifier.fillMaxSize(),
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
             contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header Info Card
             item {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        val icon = remember(session.packageName) {
-                            AppIconCache.load(context.packageManager, session.packageName)
-                        }
+                        val icon =
+                            remember(session.packageName) {
+                                AppIconCache.load(context.packageManager, session.packageName)
+                            }
 
                         if (icon != null) {
                             androidx.compose.foundation.Image(
                                 bitmap = icon,
                                 contentDescription = null,
-                                modifier = Modifier
-                                    .size(46.dp)
-                                    .clip(RoundedCornerShape(12.dp))
+                                modifier =
+                                    Modifier
+                                        .size(46.dp)
+                                        .clip(RoundedCornerShape(12.dp)),
                             )
                         } else {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.size(46.dp)
+                                modifier = Modifier.size(46.dp),
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = Icons.Outlined.SportsEsports,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(24.dp),
                                     )
                                 }
                             }
@@ -139,16 +148,16 @@ fun SessionDetailPane(
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
                             )
                             Spacer(Modifier.height(2.dp))
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                                 ) {
                                     Text(
                                         text = session.profile.uppercase(),
@@ -156,21 +165,21 @@ fun SessionDetailPane(
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        fontSize = 10.sp
+                                        fontSize = 10.sp,
                                     )
                                 }
                                 Text(
                                     text = "• ${formatDuration(session.durationSeconds)} • ${session.samplesCount} samples",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 11.sp
+                                    fontSize = 11.sp,
                                 )
                             }
                             Text(
                                 text = dateStr,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                fontSize = 10.sp
+                                fontSize = 10.sp,
                             )
                         }
                     }
@@ -182,64 +191,65 @@ fun SessionDetailPane(
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Text(
                             text = "PERFORMANCE METRICS",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
                         )
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.Bottom,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column {
                                 Text(
                                     text = "%.1f".format(session.avgFps),
-                                    style = ExpTitleTypography.titleLarge.copy(
-                                        fontSize = 44.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                                    style =
+                                        ExpTitleTypography.titleLarge.copy(
+                                            fontSize = 44.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        ),
                                 )
                                 Text(
                                     text = "Average Frame Rate",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 11.sp
+                                    fontSize = 11.sp,
                                 )
                             }
 
                             Column(horizontalAlignment = Alignment.End) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.TrendingDown,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.tertiary,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(16.dp),
                                     )
                                     Text(
                                         text = "%.1f FPS".format(session.minLow1Pct),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Black,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = MaterialTheme.colorScheme.onSurface,
                                     )
                                 }
                                 Text(
                                     text = "1% Low Stability",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 10.sp
+                                    fontSize = 10.sp,
                                 )
                             }
                         }
@@ -248,22 +258,22 @@ fun SessionDetailPane(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             DetailStatItem(
                                 title = "Peak FPS",
                                 value = "%.1f".format(session.maxFps),
-                                icon = Icons.AutoMirrored.Filled.TrendingUp
+                                icon = Icons.AutoMirrored.Filled.TrendingUp,
                             )
                             DetailStatItem(
                                 title = "Jank Stutter",
                                 value = "$displayJank frames",
-                                icon = Icons.Outlined.WarningAmber
+                                icon = Icons.Outlined.WarningAmber,
                             )
                             DetailStatItem(
                                 title = "Avg CPU Load",
                                 value = "%.1f%%".format(session.avgCpuLoad),
-                                icon = Icons.Outlined.Memory
+                                icon = Icons.Outlined.Memory,
                             )
                         }
                     }
@@ -278,7 +288,7 @@ fun SessionDetailPane(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
                     )
                 }
 
@@ -286,24 +296,25 @@ fun SessionDetailPane(
                     Surface(
                         shape = RoundedCornerShape(24.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Column(
                             modifier = Modifier.padding(18.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
                             // 1. High-Fidelity Canvas Graph (Double tap to reset to Overview)
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(150.dp)
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onDoubleTap = {
-                                                selectedTab = MetricGraphTab.OVERVIEW
-                                            }
-                                        )
-                                    }
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(150.dp)
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onDoubleTap = {
+                                                    selectedTab = MetricGraphTab.OVERVIEW
+                                                },
+                                            )
+                                        },
                             ) {
                                 when (selectedTab) {
                                     MetricGraphTab.OVERVIEW -> {
@@ -311,27 +322,30 @@ fun SessionDetailPane(
                                             samples = session.samples,
                                             maxFps = (session.maxFps.toFloat() * 1.1f).coerceAtLeast(60f),
                                             avgFps = session.avgFps.toFloat(),
-                                            modifier = Modifier.fillMaxSize()
+                                            modifier = Modifier.fillMaxSize(),
                                         )
                                     }
+
                                     MetricGraphTab.FPS -> {
                                         FpsTimelineCanvas(
                                             samples = session.samples,
                                             maxFps = (session.maxFps.toFloat() * 1.1f).coerceAtLeast(60f),
                                             avgFps = session.avgFps.toFloat(),
-                                            modifier = Modifier.fillMaxSize()
+                                            modifier = Modifier.fillMaxSize(),
                                         )
                                     }
+
                                     MetricGraphTab.THERMALS -> {
                                         ThermalTimelineCanvas(
                                             samples = session.samples,
-                                            modifier = Modifier.fillMaxSize()
+                                            modifier = Modifier.fillMaxSize(),
                                         )
                                     }
+
                                     MetricGraphTab.CPU_LOAD -> {
                                         CpuLoadTimelineCanvas(
                                             samples = session.samples,
-                                            modifier = Modifier.fillMaxSize()
+                                            modifier = Modifier.fillMaxSize(),
                                         )
                                     }
                                 }
@@ -341,80 +355,102 @@ fun SessionDetailPane(
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
                                     text = "00:00",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 10.sp
+                                    fontSize = 10.sp,
                                 )
                                 Text(
-                                    text = when (selectedTab) {
-                                        MetricGraphTab.OVERVIEW -> "Avg %.1f FPS • Peak %.1f°C • %.1f%% Load".format(session.avgFps, session.maxCpuTemp ?: 0f, session.avgCpuLoad)
-                                        MetricGraphTab.FPS -> "Avg %.1f FPS • 1%% Low %.1f FPS".format(session.avgFps, session.minLow1Pct)
-                                        MetricGraphTab.THERMALS -> "Peak CPU: %.1f°C • Peak Bat: %.1f°C".format(session.maxCpuTemp ?: 0f, session.maxBatteryTemp ?: 0f)
-                                        MetricGraphTab.CPU_LOAD -> "Avg CPU Load: %.1f%%".format(session.avgCpuLoad)
-                                    },
+                                    text =
+                                        when (selectedTab) {
+                                            MetricGraphTab.OVERVIEW -> {
+                                                "Avg %.1f FPS • Peak %.1f°C • %.1f%% Load".format(
+                                                    session.avgFps,
+                                                    session.maxCpuTemp ?: 0f,
+                                                    session.avgCpuLoad,
+                                                )
+                                            }
+
+                                            MetricGraphTab.FPS -> {
+                                                "Avg %.1f FPS • 1%% Low %.1f FPS".format(session.avgFps, session.minLow1Pct)
+                                            }
+
+                                            MetricGraphTab.THERMALS -> {
+                                                "Peak CPU: %.1f°C • Peak Bat: %.1f°C".format(
+                                                    session.maxCpuTemp ?: 0f,
+                                                    session.maxBatteryTemp ?: 0f,
+                                                )
+                                            }
+
+                                            MetricGraphTab.CPU_LOAD -> {
+                                                "Avg CPU Load: %.1f%%".format(session.avgCpuLoad)
+                                            }
+                                        },
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 10.sp
+                                    fontSize = 10.sp,
                                 )
                                 Text(
                                     text = formatDuration(session.durationSeconds),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 10.sp
+                                    fontSize = 10.sp,
                                 )
                             }
 
                             // 3. Metric Selector Tabs AT THE BOTTOM
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                                    .padding(4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                                        .padding(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
                                 MetricGraphTab.entries.forEach { tab ->
                                     val isSelected = selectedTab == tab
                                     val containerColor by animateColorAsState(
                                         targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                                         animationSpec = tween(200, easing = FastOutSlowInEasing),
-                                        label = "tab_color"
+                                        label = "tab_color",
                                     )
                                     val contentColor by animateColorAsState(
                                         targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                                         animationSpec = tween(200, easing = FastOutSlowInEasing),
-                                        label = "tab_text_color"
+                                        label = "tab_text_color",
                                     )
 
                                     Surface(
                                         shape = RoundedCornerShape(10.dp),
                                         color = containerColor,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .clickable {
-                                                selectedTab = if (isSelected && tab != MetricGraphTab.OVERVIEW) {
-                                                    MetricGraphTab.OVERVIEW
-                                                } else {
-                                                    tab
-                                                }
-                                            }
+                                        modifier =
+                                            Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .clickable {
+                                                    selectedTab =
+                                                        if (isSelected && tab != MetricGraphTab.OVERVIEW) {
+                                                            MetricGraphTab.OVERVIEW
+                                                        } else {
+                                                            tab
+                                                        }
+                                                },
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(vertical = 8.dp),
                                             horizontalArrangement = Arrangement.Center,
-                                            verticalAlignment = Alignment.CenterVertically
+                                            verticalAlignment = Alignment.CenterVertically,
                                         ) {
                                             Icon(
                                                 imageVector = tab.icon,
                                                 contentDescription = null,
                                                 tint = contentColor,
-                                                modifier = Modifier.size(14.dp)
+                                                modifier = Modifier.size(14.dp),
                                             )
                                             Spacer(Modifier.width(4.dp))
                                             Text(
@@ -422,7 +458,7 @@ fun SessionDetailPane(
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
                                                 color = contentColor,
-                                                fontSize = 10.5.sp
+                                                fontSize = 10.5.sp,
                                             )
                                         }
                                     }
@@ -440,34 +476,37 @@ fun SessionDetailPane(
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
                 )
             }
 
             item {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     SessionCharacteristicCard(
                         title = "Peak CPU Temp",
                         value = if (session.maxCpuTemp != null) "%.1f°C".format(session.maxCpuTemp) else "--",
                         desc = "Max junction silicon heat",
                         icon = Icons.Outlined.Memory,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                     )
                     SessionCharacteristicCard(
                         title = "Peak Battery Temp",
                         value = if (session.maxBatteryTemp != null) "%.1f°C".format(session.maxBatteryTemp) else "--",
                         desc = "Max cell pack thermal",
                         icon = Icons.Outlined.BatteryChargingFull,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                     )
                 }
             }
@@ -479,31 +518,31 @@ fun SessionDetailPane(
 private fun DetailStatItem(
     title: String,
     value: String,
-    icon: ImageVector
+    icon: ImageVector,
 ) {
     Column {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(14.dp),
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
         Text(
             text = title,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 10.sp
+            fontSize = 10.sp,
         )
     }
 }
@@ -514,28 +553,28 @@ private fun SessionCharacteristicCard(
     value: String,
     desc: String,
     icon: ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier
+        modifier = modifier,
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(32.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
@@ -548,7 +587,7 @@ private fun SessionCharacteristicCard(
                 fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = title,
@@ -556,7 +595,7 @@ private fun SessionCharacteristicCard(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = desc,
@@ -564,7 +603,7 @@ private fun SessionCharacteristicCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -578,7 +617,7 @@ private fun OverviewTimelineCanvas(
     samples: List<BenchmarkSample>,
     maxFps: Float,
     avgFps: Float,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val fpsColor = MaterialTheme.colorScheme.primary
     val tempColor = MaterialTheme.colorScheme.error
@@ -597,7 +636,7 @@ private fun OverviewTimelineCanvas(
                 color = gridColor,
                 start = Offset(0f, y),
                 end = Offset(w, y),
-                strokeWidth = 1.dp.toPx()
+                strokeWidth = 1.dp.toPx(),
             )
         }
 
@@ -605,73 +644,79 @@ private fun OverviewTimelineCanvas(
         val stepX = w / (samples.size - 1).coerceAtLeast(1)
 
         // 2. CPU Load Line (0..100%)
-        val loadPath = Path().apply {
-            samples.forEachIndexed { index, s ->
-                val x = index * stepX
-                val y = h - (s.cpuLoad / 100f).coerceIn(0f, 1f) * h
-                if (index == 0) moveTo(x, y) else lineTo(x, y)
+        val loadPath =
+            Path().apply {
+                samples.forEachIndexed { index, s ->
+                    val x = index * stepX
+                    val y = h - (s.cpuLoad / 100f).coerceIn(0f, 1f) * h
+                    if (index == 0) moveTo(x, y) else lineTo(x, y)
+                }
             }
-        }
         drawPath(
             path = loadPath,
             color = loadColor.copy(alpha = 0.55f),
-            style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round)
+            style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round),
         )
 
         // 3. CPU Temp Line (30..90°C)
         val hasTemps = samples.any { it.cpuTemp != null }
         if (hasTemps) {
-            val tempPath = Path().apply {
-                samples.forEachIndexed { index, s ->
-                    val temp = s.cpuTemp ?: 40f
-                    val x = index * stepX
-                    val normalizedTemp = ((temp - 30f) / 60f).coerceIn(0f, 1f)
-                    val y = h - normalizedTemp * h
-                    if (index == 0) moveTo(x, y) else lineTo(x, y)
+            val tempPath =
+                Path().apply {
+                    samples.forEachIndexed { index, s ->
+                        val temp = s.cpuTemp ?: 40f
+                        val x = index * stepX
+                        val normalizedTemp = ((temp - 30f) / 60f).coerceIn(0f, 1f)
+                        val y = h - normalizedTemp * h
+                        if (index == 0) moveTo(x, y) else lineTo(x, y)
+                    }
                 }
-            }
             drawPath(
                 path = tempPath,
                 color = tempColor.copy(alpha = 0.70f),
-                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
             )
         }
 
         // 4. Area Gradient Fill under FPS
-        val fillPath = Path().apply {
-            moveTo(0f, h)
-            samples.forEachIndexed { index, s ->
-                val x = index * stepX
-                val y = h - (s.fps.toFloat() / maxFps).coerceIn(0f, 1f) * h
-                lineTo(x, y)
+        val fillPath =
+            Path().apply {
+                moveTo(0f, h)
+                samples.forEachIndexed { index, s ->
+                    val x = index * stepX
+                    val y = h - (s.fps.toFloat() / maxFps).coerceIn(0f, 1f) * h
+                    lineTo(x, y)
+                }
+                lineTo(w, h)
+                close()
             }
-            lineTo(w, h)
-            close()
-        }
         drawPath(
             path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    fpsColor.copy(alpha = 0.25f),
-                    fpsColor.copy(alpha = 0.02f)
+            brush =
+                Brush.verticalGradient(
+                    colors =
+                        listOf(
+                            fpsColor.copy(alpha = 0.25f),
+                            fpsColor.copy(alpha = 0.02f),
+                        ),
+                    startY = 0f,
+                    endY = h,
                 ),
-                startY = 0f,
-                endY = h
-            )
         )
 
         // 5. Bold FPS Stroke Line
-        val fpsPath = Path().apply {
-            samples.forEachIndexed { index, s ->
-                val x = index * stepX
-                val y = h - (s.fps.toFloat() / maxFps).coerceIn(0f, 1f) * h
-                if (index == 0) moveTo(x, y) else lineTo(x, y)
+        val fpsPath =
+            Path().apply {
+                samples.forEachIndexed { index, s ->
+                    val x = index * stepX
+                    val y = h - (s.fps.toFloat() / maxFps).coerceIn(0f, 1f) * h
+                    if (index == 0) moveTo(x, y) else lineTo(x, y)
+                }
             }
-        }
         drawPath(
             path = fpsPath,
             color = fpsColor,
-            style = Stroke(width = 2.8.dp.toPx(), cap = StrokeCap.Round)
+            style = Stroke(width = 2.8.dp.toPx(), cap = StrokeCap.Round),
         )
     }
 }
@@ -684,7 +729,7 @@ private fun FpsTimelineCanvas(
     samples: List<BenchmarkSample>,
     maxFps: Float,
     avgFps: Float,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.20f)
@@ -702,7 +747,7 @@ private fun FpsTimelineCanvas(
                 color = gridColor,
                 start = Offset(0f, y),
                 end = Offset(w, y),
-                strokeWidth = 1.dp.toPx()
+                strokeWidth = 1.dp.toPx(),
             )
         }
 
@@ -714,7 +759,7 @@ private fun FpsTimelineCanvas(
                 start = Offset(0f, avgY),
                 end = Offset(w, avgY),
                 strokeWidth = 1.dp.toPx(),
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f),
             )
         }
 
@@ -723,45 +768,50 @@ private fun FpsTimelineCanvas(
         val stepX = w / (samples.size - 1).coerceAtLeast(1)
 
         // 3. Fill Area Gradient Path
-        val fillPath = Path().apply {
-            moveTo(0f, h)
-            samples.forEachIndexed { index, s ->
-                val x = index * stepX
-                val y = h - (s.fps.toFloat() / maxFps).coerceIn(0f, 1f) * h
-                lineTo(x, y)
+        val fillPath =
+            Path().apply {
+                moveTo(0f, h)
+                samples.forEachIndexed { index, s ->
+                    val x = index * stepX
+                    val y = h - (s.fps.toFloat() / maxFps).coerceIn(0f, 1f) * h
+                    lineTo(x, y)
+                }
+                lineTo(w, h)
+                close()
             }
-            lineTo(w, h)
-            close()
-        }
 
         drawPath(
             path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    primaryColor.copy(alpha = 0.28f),
-                    primaryColor.copy(alpha = 0.02f)
+            brush =
+                Brush.verticalGradient(
+                    colors =
+                        listOf(
+                            primaryColor.copy(alpha = 0.28f),
+                            primaryColor.copy(alpha = 0.02f),
+                        ),
+                    startY = 0f,
+                    endY = h,
                 ),
-                startY = 0f,
-                endY = h
-            )
         )
 
         // 4. Smooth Stroke Line Path
-        val strokePath = Path().apply {
-            samples.forEachIndexed { index, s ->
-                val x = index * stepX
-                val y = h - (s.fps.toFloat() / maxFps).coerceIn(0f, 1f) * h
-                if (index == 0) moveTo(x, y) else lineTo(x, y)
+        val strokePath =
+            Path().apply {
+                samples.forEachIndexed { index, s ->
+                    val x = index * stepX
+                    val y = h - (s.fps.toFloat() / maxFps).coerceIn(0f, 1f) * h
+                    if (index == 0) moveTo(x, y) else lineTo(x, y)
+                }
             }
-        }
 
         drawPath(
             path = strokePath,
             color = primaryColor,
-            style = Stroke(
-                width = 2.5.dp.toPx(),
-                cap = StrokeCap.Round
-            )
+            style =
+                Stroke(
+                    width = 2.5.dp.toPx(),
+                    cap = StrokeCap.Round,
+                ),
         )
     }
 }
@@ -772,7 +822,7 @@ private fun FpsTimelineCanvas(
 @Composable
 private fun ThermalTimelineCanvas(
     samples: List<BenchmarkSample>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val cpuColor = MaterialTheme.colorScheme.error
     val batteryColor = MaterialTheme.colorScheme.tertiary
@@ -794,7 +844,7 @@ private fun ThermalTimelineCanvas(
                 color = gridColor,
                 start = Offset(0f, y),
                 end = Offset(w, y),
-                strokeWidth = 1.dp.toPx()
+                strokeWidth = 1.dp.toPx(),
             )
         }
 
@@ -804,36 +854,38 @@ private fun ThermalTimelineCanvas(
         // 1. Battery Temp Curve
         val hasBat = samples.any { it.batteryTemp != null }
         if (hasBat) {
-            val batPath = Path().apply {
-                samples.forEachIndexed { index, s ->
-                    val temp = s.batteryTemp ?: 30f
-                    val x = index * stepX
-                    val y = h - ((temp - minTemp) / tempRange).coerceIn(0f, 1f) * h
-                    if (index == 0) moveTo(x, y) else lineTo(x, y)
+            val batPath =
+                Path().apply {
+                    samples.forEachIndexed { index, s ->
+                        val temp = s.batteryTemp ?: 30f
+                        val x = index * stepX
+                        val y = h - ((temp - minTemp) / tempRange).coerceIn(0f, 1f) * h
+                        if (index == 0) moveTo(x, y) else lineTo(x, y)
+                    }
                 }
-            }
             drawPath(
                 path = batPath,
                 color = batteryColor,
-                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
             )
         }
 
         // 2. CPU Temp Curve
         val hasCpu = samples.any { it.cpuTemp != null }
         if (hasCpu) {
-            val cpuPath = Path().apply {
-                samples.forEachIndexed { index, s ->
-                    val temp = s.cpuTemp ?: 40f
-                    val x = index * stepX
-                    val y = h - ((temp - minTemp) / tempRange).coerceIn(0f, 1f) * h
-                    if (index == 0) moveTo(x, y) else lineTo(x, y)
+            val cpuPath =
+                Path().apply {
+                    samples.forEachIndexed { index, s ->
+                        val temp = s.cpuTemp ?: 40f
+                        val x = index * stepX
+                        val y = h - ((temp - minTemp) / tempRange).coerceIn(0f, 1f) * h
+                        if (index == 0) moveTo(x, y) else lineTo(x, y)
+                    }
                 }
-            }
             drawPath(
                 path = cpuPath,
                 color = cpuColor,
-                style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
+                style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round),
             )
         }
     }
@@ -845,7 +897,7 @@ private fun ThermalTimelineCanvas(
 @Composable
 private fun CpuLoadTimelineCanvas(
     samples: List<BenchmarkSample>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val loadColor = MaterialTheme.colorScheme.tertiary
     val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.20f)
@@ -861,7 +913,7 @@ private fun CpuLoadTimelineCanvas(
                 color = gridColor,
                 start = Offset(0f, y),
                 end = Offset(w, y),
-                strokeWidth = 1.dp.toPx()
+                strokeWidth = 1.dp.toPx(),
             )
         }
 
@@ -869,42 +921,46 @@ private fun CpuLoadTimelineCanvas(
         val stepX = w / (samples.size - 1).coerceAtLeast(1)
 
         // Gradient Fill
-        val fillPath = Path().apply {
-            moveTo(0f, h)
-            samples.forEachIndexed { index, s ->
-                val x = index * stepX
-                val y = h - (s.cpuLoad / 100f).coerceIn(0f, 1f) * h
-                lineTo(x, y)
+        val fillPath =
+            Path().apply {
+                moveTo(0f, h)
+                samples.forEachIndexed { index, s ->
+                    val x = index * stepX
+                    val y = h - (s.cpuLoad / 100f).coerceIn(0f, 1f) * h
+                    lineTo(x, y)
+                }
+                lineTo(w, h)
+                close()
             }
-            lineTo(w, h)
-            close()
-        }
 
         drawPath(
             path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    loadColor.copy(alpha = 0.25f),
-                    loadColor.copy(alpha = 0.02f)
+            brush =
+                Brush.verticalGradient(
+                    colors =
+                        listOf(
+                            loadColor.copy(alpha = 0.25f),
+                            loadColor.copy(alpha = 0.02f),
+                        ),
+                    startY = 0f,
+                    endY = h,
                 ),
-                startY = 0f,
-                endY = h
-            )
         )
 
         // Stroke Line
-        val strokePath = Path().apply {
-            samples.forEachIndexed { index, s ->
-                val x = index * stepX
-                val y = h - (s.cpuLoad / 100f).coerceIn(0f, 1f) * h
-                if (index == 0) moveTo(x, y) else lineTo(x, y)
+        val strokePath =
+            Path().apply {
+                samples.forEachIndexed { index, s ->
+                    val x = index * stepX
+                    val y = h - (s.cpuLoad / 100f).coerceIn(0f, 1f) * h
+                    if (index == 0) moveTo(x, y) else lineTo(x, y)
+                }
             }
-        }
 
         drawPath(
             path = strokePath,
             color = loadColor,
-            style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
+            style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round),
         )
     }
 }
@@ -912,12 +968,16 @@ private fun CpuLoadTimelineCanvas(
 /**
  * Direct CSV Export to Download/auriya/ without popping up the share sheet
  */
-fun exportSessionCsvDirect(context: Context, session: BenchmarkSession) {
+fun exportSessionCsvDirect(
+    context: Context,
+    session: BenchmarkSession,
+) {
     runCatching {
         val safeName = session.appLabel.replace("[^a-zA-Z0-9]".toRegex(), "_")
         val fileName = "auriya_benchmark_${safeName}_${session.startTimeEpoch}.csv"
 
-        dev.auriya.app.data.stats.BenchmarkRecorder.saveSessionToDownloadAuriya(context, session)
+        dev.auriya.app.data.stats.BenchmarkRecorder
+            .saveSessionToDownloadAuriya(context, session)
         Toast.makeText(context, "Saved to Download/auriya/$fileName", Toast.LENGTH_LONG).show()
     }.onFailure { e ->
         e.printStackTrace()
@@ -928,30 +988,37 @@ fun exportSessionCsvDirect(context: Context, session: BenchmarkSession) {
 /**
  * Open Android system share sheet for sharing CSV file to other apps
  */
-fun shareSessionCsv(context: Context, session: BenchmarkSession) {
+fun shareSessionCsv(
+    context: Context,
+    session: BenchmarkSession,
+) {
     runCatching {
         val safeName = session.appLabel.replace("[^a-zA-Z0-9]".toRegex(), "_")
         val fileName = "auriya_benchmark_${safeName}_${session.startTimeEpoch}.csv"
 
         val exportFile = File(context.cacheDir, fileName)
-        val savedFile = dev.auriya.app.data.stats.BenchmarkRecorder.saveSessionToDownloadAuriya(context, session)
+        val savedFile =
+            dev.auriya.app.data.stats.BenchmarkRecorder
+                .saveSessionToDownloadAuriya(context, session)
         if (!exportFile.exists() && savedFile != null && savedFile.exists()) {
             savedFile.copyTo(exportFile, overwrite = true)
         }
 
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            exportFile
-        )
+        val uri =
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                exportFile,
+            )
 
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/csv"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "Auriya Benchmark Report: ${session.appLabel}")
-            putExtra(Intent.EXTRA_TEXT, "Auriya Benchmark Report for ${session.appLabel}")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
+        val intent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/csv"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "Auriya Benchmark Report: ${session.appLabel}")
+                putExtra(Intent.EXTRA_TEXT, "Auriya Benchmark Report for ${session.appLabel}")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
 
         context.startActivity(Intent.createChooser(intent, "Share CSV Report with..."))
     }.onFailure { e ->
@@ -963,28 +1030,33 @@ fun shareSessionCsv(context: Context, session: BenchmarkSession) {
 /**
  * Copies a formatted Markdown benchmark report to the clipboard
  */
-fun copyMarkdownReport(context: Context, session: BenchmarkSession) {
-    val displayJank = if (session.samples.isNotEmpty()) {
-        session.samples.maxOfOrNull { it.jank } ?: session.totalJank
-    } else {
-        session.totalJank
-    }
+fun copyMarkdownReport(
+    context: Context,
+    session: BenchmarkSession,
+) {
+    val displayJank =
+        if (session.samples.isNotEmpty()) {
+            session.samples.maxOfOrNull { it.jank } ?: session.totalJank
+        } else {
+            session.totalJank
+        }
 
-    val report = buildString {
-        appendLine("### 🎮 Auriya Benchmark Report: **${session.appLabel}**")
-        appendLine("- **Package:** `${session.packageName}`")
-        appendLine("- **Profile:** `${session.profile}`")
-        appendLine("- **Duration:** ${formatDuration(session.durationSeconds)} (${session.samplesCount} samples)")
-        appendLine("- **Average FPS:** **%.1f FPS**".format(session.avgFps))
-        appendLine("- **1% Low FPS:** **%.1f FPS**".format(session.minLow1Pct))
-        appendLine("- **Peak FPS:** **%.1f FPS**".format(session.maxFps))
-        appendLine("- **Jank Stutter:** $displayJank frames")
-        appendLine("- **Avg CPU Load:** %.1f%%".format(session.avgCpuLoad))
-        if (session.maxCpuTemp != null) appendLine("- **Peak CPU Temp:** %.1f°C".format(session.maxCpuTemp))
-        if (session.maxBatteryTemp != null) appendLine("- **Peak Battery Temp:** %.1f°C".format(session.maxBatteryTemp))
-        appendLine()
-        appendLine("*Captured with Auriya Daemon v2.0*")
-    }
+    val report =
+        buildString {
+            appendLine("### 🎮 Auriya Benchmark Report: **${session.appLabel}**")
+            appendLine("- **Package:** `${session.packageName}`")
+            appendLine("- **Profile:** `${session.profile}`")
+            appendLine("- **Duration:** ${formatDuration(session.durationSeconds)} (${session.samplesCount} samples)")
+            appendLine("- **Average FPS:** **%.1f FPS**".format(session.avgFps))
+            appendLine("- **1% Low FPS:** **%.1f FPS**".format(session.minLow1Pct))
+            appendLine("- **Peak FPS:** **%.1f FPS**".format(session.maxFps))
+            appendLine("- **Jank Stutter:** $displayJank frames")
+            appendLine("- **Avg CPU Load:** %.1f%%".format(session.avgCpuLoad))
+            if (session.maxCpuTemp != null) appendLine("- **Peak CPU Temp:** %.1f°C".format(session.maxCpuTemp))
+            if (session.maxBatteryTemp != null) appendLine("- **Peak Battery Temp:** %.1f°C".format(session.maxBatteryTemp))
+            appendLine()
+            appendLine("*Captured with Auriya Daemon v2.0*")
+        }
 
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboard.setPrimaryClip(ClipData.newPlainText("Auriya Benchmark Report", report))

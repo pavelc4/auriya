@@ -4,7 +4,6 @@ import android.os.Looper
 import android.util.Log
 import dev.auriya.service.actuator.DisplayActuator
 import dev.auriya.service.actuator.DnDActuator
-
 import dev.auriya.service.actuator.SettingsHelper
 import dev.auriya.service.io.CmdReader
 import dev.auriya.service.io.StatusWriter
@@ -48,17 +47,20 @@ object Main {
         val zen = ZenSensor(sink)
         val dnd = DnDActuator()
         val display = DisplayActuator(settings)
-        val cmdReader = CmdReader(File(ConfigPaths.CMD_FILE)) { cmd ->
-            cmd.dnd?.let { dnd.apply(it) }
-            cmd.refreshRate?.let { display.apply(it) }
-        }
+        val cmdReader =
+            CmdReader(File(ConfigPaths.CMD_FILE)) { cmd ->
+                cmd.dnd?.let { dnd.apply(it) }
+                cmd.refreshRate?.let { display.apply(it) }
+            }
 
-        Runtime.getRuntime().addShutdownHook(Thread {
-            cmdReader.stop()
-            taskStack.stop()
-            power.stop()
-            zen.stop()
-        })
+        Runtime.getRuntime().addShutdownHook(
+            Thread {
+                cmdReader.stop()
+                taskStack.stop()
+                power.stop()
+                zen.stop()
+            },
+        )
 
         taskStack.start()
         power.start()
@@ -70,15 +72,19 @@ object Main {
         Looper.loop()
     }
 
-    private class Aggregator(private val writer: StatusWriter) {
+    private class Aggregator(
+        private val writer: StatusWriter,
+    ) {
         private val state = AtomicReference(SensorSnapshot())
         private val pending = AtomicReference<Long?>(null)
+
         @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
         private val lock = Object()
-        private val writerThread = Thread(::runWriter, "auriya-status-writer").apply {
-            isDaemon = true
-            start()
-        }
+        private val writerThread =
+            Thread(::runWriter, "auriya-status-writer").apply {
+                isDaemon = true
+                start()
+            }
 
         fun push(update: SensorSnapshot) {
             while (true) {
@@ -95,16 +101,25 @@ object Main {
 
         private fun runWriter() {
             while (!Thread.currentThread().isInterrupted) {
-                val target: Long = synchronized(lock) {
-                    while (pending.get() == null) {
-                        try { lock.wait() } catch (_: InterruptedException) { return }
+                val target: Long =
+                    synchronized(lock) {
+                        while (pending.get() == null) {
+                            try {
+                                lock.wait()
+                            } catch (_: InterruptedException) {
+                                return
+                            }
+                        }
+                        pending.get() ?: 0L
                     }
-                    pending.get() ?: 0L
-                }
                 if (target == 0L) continue
                 val now = System.currentTimeMillis()
                 if (now < target) {
-                    try { Thread.sleep(target - now) } catch (_: InterruptedException) { return }
+                    try {
+                        Thread.sleep(target - now)
+                    } catch (_: InterruptedException) {
+                        return
+                    }
                     val newTarget = pending.get() ?: continue
                     if (System.currentTimeMillis() < newTarget) continue
                 }
@@ -118,11 +133,12 @@ object Main {
     }
 }
 
-private fun SensorSnapshot.toSystemStatus(): SystemStatus = SystemStatus(
-    focusedApp = focusedApp,
-    focusedPid = focusedPid,
-    focusedUid = focusedUid,
-    screenAwake = screenAwake,
-    batterySaver = batterySaver,
-    zenMode = zenMode,
-)
+private fun SensorSnapshot.toSystemStatus(): SystemStatus =
+    SystemStatus(
+        focusedApp = focusedApp,
+        focusedPid = focusedPid,
+        focusedUid = focusedUid,
+        screenAwake = screenAwake,
+        batterySaver = batterySaver,
+        zenMode = zenMode,
+    )

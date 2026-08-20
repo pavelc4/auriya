@@ -12,11 +12,12 @@ plugins {
 // CI on a clean checkout still produces a working APK for smoke
 // tests.
 val signingPropertiesFile = rootProject.file("signing.properties")
-val signingProperties = Properties().apply {
-    if (signingPropertiesFile.exists()) {
-        signingPropertiesFile.inputStream().use { load(it) }
+val signingProperties =
+    Properties().apply {
+        if (signingPropertiesFile.exists()) {
+            signingPropertiesFile.inputStream().use { load(it) }
+        }
     }
-}
 
 // ── Version from Cargo.toml ─────────────────────────────────────
 // Manager version follows the daemon version automatically so the
@@ -91,11 +92,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            signingConfig = if (signingProperties.isNotEmpty()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig =
+                if (signingProperties.isNotEmpty()) {
+                    signingConfigs.getByName("release")
+                } else {
+                    signingConfigs.getByName("debug")
+                }
         }
     }
 
@@ -124,18 +126,19 @@ android {
 
     packaging {
         resources {
-            excludes += listOf(
-                "META-INF/*.kotlin_module",
-                "META-INF/*.version",
-                "META-INF/AL2.0",
-                "META-INF/LGPL2.1",
-                "META-INF/DEPENDENCIES",
-                "META-INF/NOTICE*",
-                "META-INF/LICENSE*",
-                "kotlin/**",
-                "**.txt",
-                "**.proto",
-            )
+            excludes +=
+                listOf(
+                    "META-INF/*.kotlin_module",
+                    "META-INF/*.version",
+                    "META-INF/AL2.0",
+                    "META-INF/LGPL2.1",
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/NOTICE*",
+                    "META-INF/LICENSE*",
+                    "kotlin/**",
+                    "**.txt",
+                    "**.proto",
+                )
         }
     }
 

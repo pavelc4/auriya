@@ -11,7 +11,9 @@ import kotlinx.coroutines.flow.map
 private val Context.themeDataStore by preferencesDataStore(name = "auriya_theme")
 
 enum class NavMode { STANDARD, FLOATING }
+
 enum class NavType { LEGACY, MODERN }
+
 enum class DarkThemeMode { FOLLOW_SYSTEM, LIGHT, DARK }
 
 data class ThemePrefs(
@@ -25,7 +27,9 @@ data class ThemePrefs(
     val isOobeCompleted: Boolean,
 )
 
-class ThemeRepository(private val context: Context) {
+class ThemeRepository(
+    private val context: Context,
+) {
     companion object {
         private val SEED = intPreferencesKey("seed_color")
         private val DYNAMIC = intPreferencesKey("use_dynamic")
@@ -38,24 +42,31 @@ class ThemeRepository(private val context: Context) {
         const val DEFAULT_SEED = 0xFFFFB68E.toInt()
     }
 
-    val prefs: Flow<ThemePrefs> = context.themeDataStore.data.map { p ->
-        ThemePrefs(
-            seedColor = p[SEED] ?: DEFAULT_SEED,
-            useDynamicColor = (p[DYNAMIC] ?: 1) == 1,
-            navMode = runCatching { NavMode.valueOf(p[NAV] ?: NavMode.STANDARD.name) }
-                .getOrDefault(NavMode.STANDARD),
-            navType = runCatching { NavType.valueOf(p[NAV_TYPE] ?: NavType.LEGACY.name) }
-                .getOrDefault(NavType.LEGACY),
-            cornerRadius = p[CORNER_RADIUS] ?: 24,
-            darkThemeMode = runCatching { DarkThemeMode.valueOf(p[DARK_MODE] ?: DarkThemeMode.FOLLOW_SYSTEM.name) }
-                .getOrDefault(DarkThemeMode.FOLLOW_SYSTEM),
-            isAmoled = (p[AMOLED] ?: 0) == 1,
-            isOobeCompleted = (p[OOBE_COMPLETED] ?: 0) == 1,
-        )
-    }
+    val prefs: Flow<ThemePrefs> =
+        context.themeDataStore.data.map { p ->
+            ThemePrefs(
+                seedColor = p[SEED] ?: DEFAULT_SEED,
+                useDynamicColor = (p[DYNAMIC] ?: 1) == 1,
+                navMode =
+                    runCatching { NavMode.valueOf(p[NAV] ?: NavMode.STANDARD.name) }
+                        .getOrDefault(NavMode.STANDARD),
+                navType =
+                    runCatching { NavType.valueOf(p[NAV_TYPE] ?: NavType.LEGACY.name) }
+                        .getOrDefault(NavType.LEGACY),
+                cornerRadius = p[CORNER_RADIUS] ?: 24,
+                darkThemeMode =
+                    runCatching { DarkThemeMode.valueOf(p[DARK_MODE] ?: DarkThemeMode.FOLLOW_SYSTEM.name) }
+                        .getOrDefault(DarkThemeMode.FOLLOW_SYSTEM),
+                isAmoled = (p[AMOLED] ?: 0) == 1,
+                isOobeCompleted = (p[OOBE_COMPLETED] ?: 0) == 1,
+            )
+        }
 
     suspend fun setSeedColor(color: Int) {
-        context.themeDataStore.edit { it[SEED] = color; it[DYNAMIC] = 0 }
+        context.themeDataStore.edit {
+            it[SEED] = color
+            it[DYNAMIC] = 0
+        }
     }
 
     suspend fun setUseDynamicColor(enabled: Boolean) {
