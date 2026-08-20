@@ -18,11 +18,24 @@ class DnDActuator {
                 DndFilter.ALL -> 1
                 DndFilter.PRIORITY -> 2
             }
+        val zenVal = if (filter == DndFilter.PRIORITY) "1" else "0"
+        val dndArg = if (filter == DndFilter.PRIORITY) "priority" else "all"
+
         try {
-            SystemServices.callVoid(nm, "setInterruptionFilter", CALLING_PKG, target, false)
+            SystemServices.callVoid(nm, "setInterruptionFilter", "android", target, false)
             Log.i(TAG, "set interruption filter to $filter")
+        } catch (_: Throwable) {
+            try {
+                SystemServices.callVoid(nm, "setInterruptionFilter", CALLING_PKG, target, false)
+            } catch (_: Throwable) {}
+        }
+
+        // Always ensure system command fallback for absolute reliability
+        try {
+            Runtime.getRuntime().exec(arrayOf("cmd", "notification", "set_dnd", dndArg)).waitFor()
+            Runtime.getRuntime().exec(arrayOf("settings", "put", "global", "zen_mode", zenVal)).waitFor()
         } catch (t: Throwable) {
-            Log.e(TAG, "setInterruptionFilter($filter) failed", t)
+            Log.e(TAG, "exec fallback failed", t)
         }
     }
 }

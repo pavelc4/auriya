@@ -49,16 +49,19 @@ pub fn request_dnd(filter: DndFilter) {
             debug!(target: "auriya::profile", "Requested DnD filter {:?}", filter);
         }
     } else {
-        let val = match filter {
-            DndFilter::All => "0",
-            DndFilter::Priority => "1",
+        let (zen_val, dnd_arg) = match filter {
+            DndFilter::All => ("0", "all"),
+            DndFilter::Priority => ("1", "priority"),
         };
         debug!(
             target: "auriya::profile",
-            "DnD fallback (companion dead): zen_mode={val}"
+            "DnD fallback (companion dead): zen_mode={zen_val}"
         );
+        let _ = std::process::Command::new("su")
+            .args(["2000", "-c", &format!("cmd notification set_dnd {dnd_arg}")])
+            .status();
         let _ = std::process::Command::new("settings")
-            .args(["put", "global", "zen_mode", val])
+            .args(["put", "global", "zen_mode", zen_val])
             .status();
     }
 }

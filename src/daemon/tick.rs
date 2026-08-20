@@ -275,25 +275,10 @@ impl Daemon {
                     };
                     let app_name = pkg.rsplit('.').next().unwrap_or(pkg);
                     let msg = format!("Auriya: Applied {} Profile ({})", mode_str, app_name);
-                    let _ = std::process::Command::new("am")
-                        .args([
-                            "broadcast",
-                            "-a",
-                            "dev.auriya.app.ACTION_GAME_ENTER",
-                            "-f",
-                            "0x01000020",
-                            "--include-stopped-packages",
-                            "--es",
-                            "pkg",
-                            pkg,
-                            "--es",
-                            "mode",
-                            mode_str,
-                            "--es",
-                            "message",
-                            &msg,
-                        ])
-                        .spawn();
+                    broadcast_intent(
+                        "dev.auriya.app.ACTION_GAME_ENTER",
+                        &[("pkg", pkg), ("mode", mode_str), ("message", &msg)],
+                    );
                 }
 
                 if self.last.profile_mode != Some(target_mode) {
@@ -387,6 +372,8 @@ impl Daemon {
         {
             f.reset();
         }
+        self.fps_meter.clear();
+        self.sync_dnd(crate::core::cmd_writer::DndFilter::All);
         let was_game = self
             .last
             .pkg
@@ -394,19 +381,7 @@ impl Daemon {
             .is_some_and(|p| self.cached_whitelist.contains(p));
         if was_game {
             let last_p = self.last.pkg.clone().unwrap_or_default();
-            let _ = std::process::Command::new("am")
-                .args([
-                    "broadcast",
-                    "-a",
-                    "dev.auriya.app.ACTION_GAME_EXIT",
-                    "-f",
-                    "0x01000020",
-                    "--include-stopped-packages",
-                    "--es",
-                    "pkg",
-                    &last_p,
-                ])
-                .spawn();
+            broadcast_intent("dev.auriya.app.ACTION_GAME_EXIT", &[("pkg", &last_p)]);
         }
 
         if self.last.pkg.as_deref() != Some(pkg) {
@@ -512,19 +487,7 @@ impl Daemon {
                 .is_some_and(|p| self.cached_whitelist.contains(p));
             if was_game {
                 let last_p = self.last.pkg.clone().unwrap_or_default();
-                let _ = std::process::Command::new("am")
-                    .args([
-                        "broadcast",
-                        "-a",
-                        "dev.auriya.app.ACTION_GAME_EXIT",
-                        "-f",
-                        "0x01000020",
-                        "--include-stopped-packages",
-                        "--es",
-                        "pkg",
-                        &last_p,
-                    ])
-                    .spawn();
+                broadcast_intent("dev.auriya.app.ACTION_GAME_EXIT", &[("pkg", &last_p)]);
             }
 
             self.vendor_lock.unlock_all();
@@ -643,4 +606,17 @@ impl Daemon {
         profile::apply_ceiling(&mut self.ceiling_controller, level, &self.ceiling_config);
         self.current_ceiling = Some(level);
     }
+}
+
+fn broadcast_intent(action: &str, extras: &[(&str, &str)]) {
+    let mut cmd_str = format!("am broadcast -a {action} -f 0x01000020 --include-stopped-packages");
+    for (k, v) in extras {
+        let escaped_v = v.replace('\"', "\\\"");
+        cmd_str.push_str(&format!(" --es {k} \"{escaped_v}\""));
+    }
+    let _ = std::process::Command::new("su")
+        .args(["2000", "-c", &cmd_str])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn();
 }
