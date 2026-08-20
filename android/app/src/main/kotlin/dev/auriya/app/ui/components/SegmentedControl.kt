@@ -48,11 +48,13 @@ fun SegmentedControl(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.labelLarge.copy(
+                    style = MaterialTheme.typography.labelMedium.copy(
                         fontFamily = GoogleSansRounded,
                         fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium
                     ),
-                    color = if (selectedIndex == index) activeTextColor else inactiveTextColor
+                    color = if (selectedIndex == index) activeTextColor else inactiveTextColor,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
         }

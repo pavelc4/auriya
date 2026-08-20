@@ -103,7 +103,6 @@ fun AppearanceScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceContainer)
-            .statusBarsPadding()
     ) {
         // --- 1. TOP PINNED HEADER AREA ---
         Row(

@@ -156,7 +156,6 @@ fun GameProfileScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceContainer)
-            .statusBarsPadding()
     ) {
         // --- 1. TOP PINNED HEADER (Backdrop layer) ---
         Row(

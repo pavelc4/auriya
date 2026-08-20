@@ -282,7 +282,7 @@ fun FloatingOverlayContent(
                     else -> "Classic slash (e.g. 1.5/1.8/0.8 GHz)"
                 },
                 icon = Icons.Rounded.Memory,
-                items = listOf("Tags", "Load+Peak", "Pipe", "Slash"),
+                items = listOf("Tags", "Overview", "Pipe", "Slash"),
                 selectedIndex = when (cpuStyle) {
                     "tags" -> 0
                     "load_peak" -> 1

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -134,7 +135,8 @@ private fun FloatingPillBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 36.dp, top = AuriyaTokens.padding.smaller),
+            .navigationBarsPadding()
+            .padding(bottom = 16.dp, top = AuriyaTokens.padding.smaller),
         horizontalArrangement = Arrangement.Center,
     ) {
         Surface(
@@ -305,7 +307,8 @@ private fun ModernFloatingBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 28.dp, top = AuriyaTokens.padding.smaller),
+            .navigationBarsPadding()
+            .padding(bottom = 16.dp, top = AuriyaTokens.padding.smaller),
         horizontalArrangement = Arrangement.Center,
     ) {
         Surface(
