@@ -703,6 +703,25 @@ private fun ActiveRowContent(app: ActiveAppItem, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
+            val displayMode = when (app.profile.mode?.lowercase()) {
+                "fas", "fast" -> "FAS"
+                "balance" -> "BAL"
+                "powersave" -> "PWR"
+                else -> "PERF"
+            }
+            Surface(
+                shape = RoundedCornerShape(AuriyaTokens.rounding.full),
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Text(
+                    text = displayMode,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    fontSize = 11.sp
+                )
+            }
         }
     }
 }

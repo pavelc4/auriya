@@ -351,7 +351,17 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
             }
             Ok(Command::GetFps) => {
                 let target = (h.get_fps)().await;
-                let measured = h.current_state.read().ok().and_then(|s| s.fps);
+                let is_gaming = h
+                    .current_state
+                    .read()
+                    .ok()
+                    .map(|s| s.game_session)
+                    .unwrap_or(false);
+                let measured = if is_gaming {
+                    h.current_state.read().ok().and_then(|s| s.fps)
+                } else {
+                    None
+                };
                 match measured {
                     Some(m) => format!("FPS={:.1} TARGET={}\n", m, target),
                     None => format!("FPS=0 TARGET={}\n", target),
@@ -376,10 +386,20 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 use crate::core::stats::StatsSnapshot;
                 use crate::core::telemetry::battery;
 
-                // Windowed FPS stats from the FAS buffer. None when FAS is off;
-                // also collapse an empty window (no game / no frames) to None so
+                let is_gaming = h
+                    .current_state
+                    .read()
+                    .ok()
+                    .map(|s| s.game_session)
+                    .unwrap_or(false);
+                // Windowed FPS stats from the FAS buffer. None when not in a game session;
+                // also collapse an empty window (no frames) to None so
                 // the UI can tell "inactive" from a real 0 fps.
-                let fps = (h.get_fps_stats)().await.filter(|f| f.frames > 0);
+                let fps = if is_gaming {
+                    (h.get_fps_stats)().await.filter(|f| f.frames > 0)
+                } else {
+                    None
+                };
                 // Battery is read fresh from sysfs on request.
                 let bat = battery::snapshot();
 

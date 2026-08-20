@@ -258,7 +258,7 @@ impl Daemon {
                     .map(|m| match m.to_lowercase().as_str() {
                         "powersave" | "3" => ProfileMode::Powersave,
                         "balance" | "2" => ProfileMode::Balance,
-                        "fast" | "4" => ProfileMode::Fast,
+                        "fast" | "fas" | "4" => ProfileMode::Fast,
                         _ => ProfileMode::Performance,
                     })
                     .unwrap_or(ProfileMode::Performance);
@@ -271,18 +271,27 @@ impl Daemon {
                         ProfileMode::Performance => "Performance",
                         ProfileMode::Balance => "Balance",
                         ProfileMode::Powersave => "Powersave",
-                        ProfileMode::Fast => "Fast",
+                        ProfileMode::Fast => "FAS",
                     };
-                    let msg = format!("{}: {}", pkg, mode_str);
+                    let app_name = pkg.rsplit('.').next().unwrap_or(pkg);
+                    let msg = format!("Auriya: Applied {} Profile ({})", mode_str, app_name);
                     let _ = std::process::Command::new("am")
                         .args([
                             "broadcast",
                             "-a",
-                            "dev.auriya.app.TOAST",
+                            "dev.auriya.app.ACTION_GAME_ENTER",
+                            "-f",
+                            "0x01000020",
+                            "--include-stopped-packages",
+                            "--es",
+                            "pkg",
+                            pkg,
+                            "--es",
+                            "mode",
+                            mode_str,
                             "--es",
                             "message",
                             &msg,
-                            "dev.auriya.app/.receiver.AuriyaActionReceiver",
                         ])
                         .spawn();
                 }
@@ -371,7 +380,34 @@ impl Daemon {
 
         self.apply_ceiling_for_state(None, None);
         self.ebpf_detach();
-        self.sync_dnd(crate::core::cmd_writer::DndFilter::All);
+        if let Some(mut f) = self
+            .fas_controller
+            .as_ref()
+            .and_then(|fas| fas.try_lock().ok())
+        {
+            f.reset();
+        }
+        let was_game = self
+            .last
+            .pkg
+            .as_ref()
+            .is_some_and(|p| self.cached_whitelist.contains(p));
+        if was_game {
+            let last_p = self.last.pkg.clone().unwrap_or_default();
+            let _ = std::process::Command::new("am")
+                .args([
+                    "broadcast",
+                    "-a",
+                    "dev.auriya.app.ACTION_GAME_EXIT",
+                    "-f",
+                    "0x01000020",
+                    "--include-stopped-packages",
+                    "--es",
+                    "pkg",
+                    &last_p,
+                ])
+                .spawn();
+        }
 
         if self.last.pkg.as_deref() != Some(pkg) {
             debug!(target: "auriya::daemon", "Foreground: {} ({})", pkg, reason);
@@ -458,9 +494,39 @@ impl Daemon {
 
         self.apply_ceiling_for_state(None, None);
         self.ebpf_detach();
+        if let Some(mut f) = self
+            .fas_controller
+            .as_ref()
+            .and_then(|fas| fas.try_lock().ok())
+        {
+            f.reset();
+        }
+        self.fps_meter.clear();
         self.sync_dnd(crate::core::cmd_writer::DndFilter::All);
 
         if self.last.pkg.is_some() || self.last.pid.is_some() {
+            let was_game = self
+                .last
+                .pkg
+                .as_ref()
+                .is_some_and(|p| self.cached_whitelist.contains(p));
+            if was_game {
+                let last_p = self.last.pkg.clone().unwrap_or_default();
+                let _ = std::process::Command::new("am")
+                    .args([
+                        "broadcast",
+                        "-a",
+                        "dev.auriya.app.ACTION_GAME_EXIT",
+                        "-f",
+                        "0x01000020",
+                        "--include-stopped-packages",
+                        "--es",
+                        "pkg",
+                        &last_p,
+                    ])
+                    .spawn();
+            }
+
             self.vendor_lock.unlock_all();
 
             if should_log_change(&self.last, &self.cfg) {

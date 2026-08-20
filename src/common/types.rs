@@ -15,7 +15,7 @@ impl ProfileMode {
             "performance" | "1" => Some(Self::Performance),
             "balance" | "2" => Some(Self::Balance),
             "powersave" | "3" => Some(Self::Powersave),
-            "fast" | "4" => Some(Self::Fast),
+            "fast" | "fas" | "4" => Some(Self::Fast),
             _ => None,
         }
     }

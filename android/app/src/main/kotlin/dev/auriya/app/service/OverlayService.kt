@@ -1,12 +1,18 @@
 package dev.auriya.app.service
 
 import android.app.ActivityManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
 import android.view.WindowManager
+import androidx.core.app.NotificationCompat
+import dev.auriya.app.MainActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -86,6 +92,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -93,12 +100,47 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        startAsForeground()
         if (overlayView == null) {
             createOverlay()
         }
         pollingJob?.cancel()
         startPolling()
         return START_STICKY
+    }
+
+    private fun startAsForeground() {
+        val channelId = "auriya_overlay_channel"
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Auriya Floating Overlay",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Shows live system telemetry HUD"
+                setShowBadge(false)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Auriya Telemetry HUD")
+            .setContentText("Performance overlay is active")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setOngoing(true)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+
+        startForeground(1003, notification)
     }
 
     private fun createOverlay() {
@@ -214,24 +256,12 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
     private fun queryTelemetry(): TelemetryData {
         val stats = StatsParser.fetchStats()
 
-        // 2. FPS
+        // 1. FPS
         var fpsVal = "0"
         var rawFpsNum = 0f
-        if (stats?.fps != null && stats.fps.avg > 0) {
+        if (stats?.session?.active == true && stats.fps != null && stats.fps.avg > 0) {
             fpsVal = "%.1f".format(stats.fps.avg)
             rawFpsNum = stats.fps.avg.toFloat()
-        } else {
-            runCatching {
-                val out = RootShell.run("printf 'GET_FPS\nQUIT\n' | timeout 2 nc -U /dev/socket/auriya.sock 2>/dev/null")
-                val fpsLine = out.lines().find { it.startsWith("FPS=") }
-                if (fpsLine != null) {
-                    val num = fpsLine.split(" ").firstOrNull()?.removePrefix("FPS=")?.toFloatOrNull() ?: 0f
-                    if (num > 0f) {
-                        fpsVal = "%.1f".format(num)
-                        rawFpsNum = num
-                    }
-                }
-            }
         }
 
         // 3. CPU Clusters & Load
@@ -342,6 +372,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
     }
 
     override fun onDestroy() {
+        isRunning = false
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         pollingJob?.cancel()
         overlayView?.let { wm.removeView(it) }
@@ -349,6 +380,26 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
     }
 
     companion object {
+        var isRunning: Boolean = false
+            private set
+
+        fun start(context: Context) {
+            val intent = Intent(context, OverlayService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                runCatching { context.startForegroundService(intent) }.onFailure {
+                    dev.auriya.app.data.RootShell.run("am start-foreground-service -n ${context.packageName}/dev.auriya.app.service.OverlayService")
+                }
+            } else {
+                context.startService(intent)
+            }
+        }
+
+        fun stop(context: Context) {
+            runCatching {
+                context.stopService(Intent(context, OverlayService::class.java))
+            }
+        }
+
         @Composable
         fun OverlayChip(
             data: TelemetryData,

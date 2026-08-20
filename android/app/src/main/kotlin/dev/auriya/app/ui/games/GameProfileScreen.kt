@@ -61,12 +61,14 @@ fun GameProfileScreen(
     val initialGov = game.cpuGovernor.ifEmpty {
         governorOptions.firstOrNull() ?: "schedutil"
     }
+    var selectedMode by remember(game.packageName, game.mode) { mutableStateOf(game.mode ?: "performance") }
     var selectedGov by remember(game.packageName, initialGov) { mutableStateOf(initialGov) }
     var targetFps by remember(game.packageName, game.targetFps) { mutableStateOf(game.targetFps?.toFloat() ?: 60f) }
     var refreshRate by remember(game.packageName, game.refreshRate) { mutableStateOf(game.refreshRate?.toFloat() ?: 0f) }
     var enableDnd by remember(game.packageName, game.enableDnd) { mutableStateOf(game.enableDnd) }
     var selectedCeiling by remember(game.packageName, game.ceiling) { mutableStateOf(game.ceiling ?: "default") }
 
+    val modeOptions = remember { listOf("performance", "fas", "balance", "powersave") }
     val ceilingOptions = remember { listOf("default", "low", "balance", "high") }
     val effectiveGovOptions = remember(governorOptions, selectedGov) {
         if (selectedGov.isNotBlank() && selectedGov !in governorOptions) {
@@ -76,10 +78,12 @@ fun GameProfileScreen(
         }
     }
 
+    var showModeSheet by remember { mutableStateOf(false) }
     var showGovSheet by remember { mutableStateOf(false) }
     var showCeilingSheet by remember { mutableStateOf(false) }
     var showActionsSheet by remember { mutableStateOf(false) }
 
+    val modeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val govSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val ceilingSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val actionsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -87,12 +91,14 @@ fun GameProfileScreen(
     var pendingDelete by remember { mutableStateOf(false) }
 
     fun updateAndSave(
+        mode: String = selectedMode,
         gov: String = selectedGov,
         ceiling: String = selectedCeiling,
         fps: Float = targetFps,
         refresh: Float = refreshRate,
         dnd: Boolean = enableDnd,
     ) {
+        selectedMode = mode
         selectedGov = gov
         selectedCeiling = ceiling
         targetFps = fps
@@ -105,8 +111,19 @@ fun GameProfileScreen(
                 enableDnd = dnd,
                 targetFps = fps.toInt(),
                 refreshRate = if (refresh.toInt() == 0) null else refresh.toInt(),
+                mode = mode,
                 ceiling = if (ceiling == "default") null else ceiling,
             )
+        )
+    }
+
+    if (showModeSheet) {
+        ProfileModeSelectionBottomSheet(
+            selectedMode = selectedMode,
+            options = modeOptions,
+            onSelect = { updateAndSave(mode = it) },
+            onDismiss = { showModeSheet = false },
+            sheetState = modeSheetState,
         )
     }
 
@@ -240,6 +257,7 @@ fun GameProfileScreen(
                     HeroHeader(
                         label = appLabel,
                         iconBitmap = iconBitmap,
+                        mode = selectedMode,
                         targetFps = targetFps.toInt(),
                         dnd = enableDnd,
                         gov = selectedGov,
@@ -253,17 +271,21 @@ fun GameProfileScreen(
                 }
 
                 item {
-                    ExpressiveList(count = 4) { index ->
+                    ExpressiveList(count = 5) { index ->
                         when (index) {
-                            0 -> GovernorRow(
+                            0 -> ProfileModeRow(
+                                selected = selectedMode,
+                                onClick = { showModeSheet = true },
+                            )
+                            1 -> GovernorRow(
                                 selected = selectedGov,
                                 onClick = { showGovSheet = true },
                             )
-                            1 -> CeilingRow(
+                            2 -> CeilingRow(
                                 selected = selectedCeiling,
                                 onClick = { showCeilingSheet = true },
                             )
-                            2 -> SliderRow(
+                            3 -> SliderRow(
                                 title = "Target FPS limit",
                                 value = targetFps,
                                 onChange = { targetFps = it },
@@ -272,7 +294,7 @@ fun GameProfileScreen(
                                 steps = 5,
                                 valueLabel = "${targetFps.toInt()} FPS",
                             )
-                            3 -> SliderRow(
+                            4 -> SliderRow(
                                 title = "Screen refresh rate",
                                 value = refreshRate,
                                 onChange = { refreshRate = it },
@@ -486,6 +508,152 @@ private fun ProfileActionsBottomSheet(
                                     color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
                                 )
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun getProfileModeInfo(mode: String): Pair<androidx.compose.ui.graphics.vector.ImageVector, String> {
+    return when (mode.lowercase()) {
+        "fas", "fast" -> Pair(
+            Icons.Outlined.AutoAwesome,
+            "Dynamic frequency scaling based on frame latency"
+        )
+        "balance" -> Pair(
+            Icons.Outlined.Balance,
+            "Balanced performance and energy efficiency"
+        )
+        "powersave" -> Pair(
+            Icons.Outlined.EnergySavingsLeaf,
+            "Battery saving with lowest sustainable clocks"
+        )
+        else -> Pair(
+            Icons.Outlined.Bolt,
+            "Maximum performance and sustained clocks"
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileModeSelectionBottomSheet(
+    selectedMode: String,
+    options: List<String>,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+    sheetState: SheetState,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { AuriyaDragHandle() },
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+        ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Profile Mode",
+                        style = dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 28.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Select optimization & power preset for this game",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            items(options) { opt ->
+                val isSelected = opt.equals(selectedMode, ignoreCase = true)
+                val (icon, subtitle) = getProfileModeInfo(opt)
+                val label = when (opt.lowercase()) {
+                    "fas", "fast" -> "FAS (Frame-Aware)"
+                    "balance" -> "Balance"
+                    "powersave" -> "Powersave"
+                    else -> "Performance"
+                }
+
+                Surface(
+                    onClick = {
+                        onSelect(opt)
+                        onDismiss()
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.size(42.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                 }
@@ -774,11 +942,19 @@ private fun CeilingSelectionBottomSheet(
 private fun HeroHeader(
     label: String,
     iconBitmap: androidx.compose.ui.graphics.ImageBitmap?,
+    mode: String,
     targetFps: Int,
     dnd: Boolean,
     gov: String,
     ceiling: String,
 ) {
+    val displayMode = when (mode.lowercase()) {
+        "fas", "fast" -> "FAS"
+        "balance" -> "BALANCE"
+        "powersave" -> "POWERSAVE"
+        else -> "PERFORMANCE"
+    }
+
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -829,6 +1005,13 @@ private fun HeroHeader(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    CompactMetricChip(
+                        icon = Icons.Outlined.Bolt,
+                        text = displayMode,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+
                     CompactMetricChip(
                         icon = Icons.Outlined.Speed,
                         text = "$targetFps FPS",
@@ -908,6 +1091,64 @@ private fun SectionLabel(label: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(start = AuriyaTokens.padding.small, top = 4.dp),
     )
+}
+
+@Composable
+private fun ProfileModeRow(
+    selected: String,
+    onClick: () -> Unit,
+) {
+    val displayMode = when (selected.lowercase()) {
+        "fas", "fast" -> "FAS"
+        "balance" -> "BALANCE"
+        "powersave" -> "POWERSAVE"
+        else -> "PERFORMANCE"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Profile Mode",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Optimization & power preset",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(AuriyaTokens.rounding.full),
+            color = MaterialTheme.colorScheme.primaryContainer,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = displayMode,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Icon(
+                    imageVector = Icons.Filled.ArrowDropDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
 }
 
 @Composable

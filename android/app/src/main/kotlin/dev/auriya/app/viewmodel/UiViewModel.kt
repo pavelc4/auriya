@@ -11,6 +11,7 @@ import dev.auriya.app.data.stats.BenchmarkRecorder
 import dev.auriya.app.data.stats.BenchmarkSession
 import dev.auriya.app.data.stats.Stats
 import dev.auriya.app.data.stats.StatsParser
+import dev.auriya.app.service.OverlayService
 import dev.auriya.shared.config.ConfigPaths
 import dev.auriya.shared.config.TomlParser
 import dev.auriya.shared.model.*
