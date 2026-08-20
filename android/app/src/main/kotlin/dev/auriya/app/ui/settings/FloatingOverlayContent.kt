@@ -425,17 +425,17 @@ fun FloatingOverlayContent(
                 title = "Update Interval",
                 description = "Frequency of telemetry metrics query",
                 icon = Icons.Rounded.HourglassEmpty,
-                value = currentIntervalSec,
+                value = currentIntervalSec.coerceIn(0.2f, 5.0f),
                 onValueChange = {
-                    val valueMs = (it * 1000).toLong()
+                    val valueMs = (it * 1000).toLong().coerceIn(200L, 5000L)
                     updateIntervalMs = valueMs
                     prefs.edit().putLong("update_interval_ms", valueMs).apply()
                 },
                 onValueChangeFinished = { restartOverlay(context) },
-                valueRange = 0.5f..5.0f,
+                valueRange = 0.2f..5.0f,
                 displayValueFormatter = { "%.1f s".format(it) },
                 shape = itemShapeFor(0, totalTuningItems),
-                steps = 8,
+                steps = 23,
                 enabled = enableOverlay
             )
 

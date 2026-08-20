@@ -198,7 +198,6 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
 
     private fun startPolling() {
         val prefs = getSharedPreferences("auriya_overlay", MODE_PRIVATE)
-        val interval = prefs.getLong("update_interval_ms", 1000L).coerceAtLeast(200L)
 
         pollingJob = CoroutineScope(Dispatchers.IO + Job()).launch {
             while (isActive) {
@@ -206,6 +205,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                 withContext(Dispatchers.Main) {
                     telemetryState.value = data
                 }
+                val interval = prefs.getLong("update_interval_ms", 1000L).coerceIn(200L, 10000L)
                 delay(interval)
             }
         }
