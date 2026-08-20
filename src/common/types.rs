@@ -44,6 +44,7 @@ impl std::fmt::Display for ProfileMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
+    Trace,
     Debug,
     Info,
     Warn,
@@ -53,6 +54,7 @@ pub enum LogLevel {
 impl LogLevel {
     pub fn to_upper_str(&self) -> &'static str {
         match self {
+            Self::Trace => "TRACE",
             Self::Debug => "DEBUG",
             Self::Info => "INFO",
             Self::Warn => "WARN",
@@ -64,6 +66,7 @@ impl LogLevel {
 impl std::fmt::Display for LogLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Trace => write!(f, "trace"),
             Self::Debug => write!(f, "debug"),
             Self::Info => write!(f, "info"),
             Self::Warn => write!(f, "warn"),

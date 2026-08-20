@@ -75,6 +75,7 @@ impl ProfileMode {
 
 #[derive(Clone, ValueEnum)]
 pub enum LogLevel {
+    Trace,
     Debug,
     Info,
     Warn,
@@ -84,6 +85,7 @@ pub enum LogLevel {
 impl LogLevel {
     pub fn to_upper_str(&self) -> &'static str {
         match self {
+            Self::Trace => "TRACE",
             Self::Debug => "DEBUG",
             Self::Info => "INFO",
             Self::Warn => "WARN",

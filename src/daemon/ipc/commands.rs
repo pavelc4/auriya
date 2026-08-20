@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogLevelCmd {
+    Trace,
     Debug,
     Info,
     Warn,
@@ -69,11 +70,12 @@ impl FromStr for Command {
             ["GET_GAMELIST"] | ["GETGAMELIST"] => Ok(Command::GetGameList),
 
             ["SETLOG", level] | ["SET_LOG", level] => match level.to_uppercase().as_str() {
+                "TRACE" => Ok(Command::SetLog(LogLevelCmd::Trace)),
                 "DEBUG" => Ok(Command::SetLog(LogLevelCmd::Debug)),
                 "INFO" => Ok(Command::SetLog(LogLevelCmd::Info)),
                 "WARN" => Ok(Command::SetLog(LogLevelCmd::Warn)),
                 "ERROR" => Ok(Command::SetLog(LogLevelCmd::Error)),
-                _ => Err("usage: SETLOG <DEBUG|INFO|WARN|ERROR>"),
+                _ => Err("usage: SETLOG <TRACE|DEBUG|INFO|WARN|ERROR>"),
             },
 
             ["SET_FPS", fps] | ["SETFPS", fps] => match fps.parse::<u32>() {

@@ -176,6 +176,12 @@ impl FasController {
         }
     }
 
+    pub fn set_tuning(&mut self, tuning: FasTuning) {
+        self.tuning = tuning;
+        self.bottleneck =
+            BottleneckDetector::new(self.tuning.cv_threshold, self.tuning.debounce_frames);
+    }
+
     pub fn set_target_fps(&mut self, fps: u32) {
         self.buffer = FrameBuffer::new(TargetFps::Single(fps));
         self.bottleneck.reset();

@@ -351,6 +351,14 @@ impl Daemon {
                     debug!(target: "auriya::daemon", "Settings reloaded. Normal tick interval: {}ms → {}ms", self.normal_interval_ms, new_interval);
                     self.normal_interval_ms = new_interval;
                 }
+
+                if let Some(ref fas_arc) = self.fas_controller {
+                    let tuning = crate::daemon::fas::FasTuning::from_settings(&new_settings);
+                    if let Ok(mut f) = fas_arc.try_lock() {
+                        f.set_tuning(tuning);
+                        debug!(target: "auriya::daemon", "Settings reloaded. Updated FAS tuning parameters.");
+                    }
+                }
             }
             Err(e) => {
                 error!(target: "auriya::daemon", "Failed to reload settings: {:?}", e);
@@ -430,6 +438,7 @@ impl Daemon {
         let set_log_level = Arc::new(move |lvl| {
             use crate::daemon::ipc::LogLevelCmd;
             let filter_str = match lvl {
+                LogLevelCmd::Trace => "trace",
                 LogLevelCmd::Debug => "debug",
                 LogLevelCmd::Info => "info",
                 LogLevelCmd::Warn => "warn",

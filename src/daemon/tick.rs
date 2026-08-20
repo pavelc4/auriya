@@ -148,14 +148,21 @@ impl Daemon {
 
         if self.last.pkg.as_deref() == Some(pkg.as_str()) && pid_still_valid {
             let fas_clone = self.fas_controller.clone();
-            if let Some(fas) = fas_clone
+            let (fas_enabled, global_dnd) = self
+                ._shared_settings
+                .read()
+                .map(|s| (s.fas.enabled, s.dnd.default_enable))
+                .unwrap_or((true, true));
+
+            if fas_enabled
+                && let Some(fas) = fas_clone
                 && gamelist.game.iter().any(|a| a.package == pkg)
             {
                 let game_cfg = gamelist.find(&pkg);
                 let governor = game_cfg
                     .map(|c| c.cpu_governor.clone())
                     .unwrap_or_else(|| self.balance_governor.clone());
-                let enable_dnd = game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
+                let enable_dnd = global_dnd && game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
 
                 if let Some(cfg) = game_cfg
                     && let Some(ref fps_cfg) = cfg.target_fps
@@ -221,11 +228,18 @@ impl Daemon {
                     }
                 }
 
+                let (fas_enabled, global_dnd) = self
+                    ._shared_settings
+                    .read()
+                    .map(|s| (s.fas.enabled, s.dnd.default_enable))
+                    .unwrap_or((true, true));
+                let _ = fas_enabled;
+
                 let game_cfg = gamelist.find(pkg);
                 let governor = game_cfg
                     .map(|c| &c.cpu_governor[..])
                     .unwrap_or(&self.balance_governor);
-                let enable_dnd = game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
+                let enable_dnd = global_dnd && game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
                 let target_mode = game_cfg
                     .and_then(|c| c.mode.as_deref())
                     .map(|m| match m.to_lowercase().as_str() {
