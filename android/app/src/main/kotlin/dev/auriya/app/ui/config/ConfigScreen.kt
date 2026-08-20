@@ -136,11 +136,11 @@ fun ConfigScreen(
     var showTuneProfilePopup by remember { mutableStateOf(false) }
     var showConfigActionsPopup by remember { mutableStateOf(false) }
 
-    val govPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    val presetPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    val logLevelPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    val tuneProfilePopupState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    val configActionsPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val govPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val presetPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val logLevelPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val tuneProfilePopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val configActionsPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Column(
         modifier = Modifier

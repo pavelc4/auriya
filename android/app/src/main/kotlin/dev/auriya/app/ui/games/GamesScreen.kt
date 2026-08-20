@@ -88,7 +88,7 @@ fun GamesScreen(
     var sortMode by remember { mutableStateOf(SortMode.NAME_ASC) }
 
     var showGamesInfoSheet by remember { mutableStateOf(false) }
-    val gamesInfoSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val gamesInfoSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     if (showGamesInfoSheet) {
         GamesInfoBottomSheet(

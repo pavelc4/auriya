@@ -49,12 +49,12 @@ fun HomeScreen(
     val isDaemonRunning = systemInfo.pid != null && systemInfo.pid != "null"
     val context = LocalContext.current
     var showProfileSheet by remember { mutableStateOf(false) }
-    val profileSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val profileSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var isRefreshing by remember { mutableStateOf(false) }
     val refreshState = rememberPullToRefreshState()
     var showInfoSheet by remember { mutableStateOf(false) }
-    val infoSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val infoSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val currentProfile = systemInfo.profile.lowercase()
 

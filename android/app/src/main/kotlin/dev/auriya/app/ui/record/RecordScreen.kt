@@ -70,10 +70,10 @@ fun RecordScreen(
     var selectedSession by remember { mutableStateOf<BenchmarkSession?>(null) }
 
     var showDocSheet by remember { mutableStateOf(false) }
-    val docSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val docSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var showSessionActionsPopup by remember { mutableStateOf(false) }
-    val sessionActionsPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val sessionActionsPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     BackHandler(enabled = activeSubScreen != RecordSubScreen.NONE) {
         if (activeSubScreen == RecordSubScreen.SESSION_DETAIL) {
