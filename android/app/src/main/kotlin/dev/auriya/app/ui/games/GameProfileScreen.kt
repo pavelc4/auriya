@@ -590,7 +590,7 @@ private fun ProfileModeSelectionBottomSheet(
                 val isSelected = opt.equals(selectedMode, ignoreCase = true)
                 val (icon, subtitle) = getProfileModeInfo(opt)
                 val label = when (opt.lowercase()) {
-                    "fas", "fast" -> "FAS (Frame-Aware)"
+                    "fas", "fast" -> "FAS"
                     "balance" -> "Balance"
                     "powersave" -> "Powersave"
                     else -> "Performance"
@@ -1001,9 +1001,9 @@ private fun HeroHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     CompactMetricChip(
                         icon = Icons.Outlined.Bolt,
