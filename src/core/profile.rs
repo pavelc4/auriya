@@ -69,6 +69,7 @@ pub enum ProfileMode {
     #[default]
     Balance,
     Powersave,
+    Fast,
 }
 
 impl std::fmt::Display for ProfileMode {
@@ -77,6 +78,7 @@ impl std::fmt::Display for ProfileMode {
             ProfileMode::Performance => write!(f, "Performance"),
             ProfileMode::Balance => write!(f, "Balance"),
             ProfileMode::Powersave => write!(f, "Powersave"),
+            ProfileMode::Fast => write!(f, "Fast"),
         }
     }
 }
@@ -85,9 +87,10 @@ impl std::str::FromStr for ProfileMode {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "performance" => Ok(ProfileMode::Performance),
-            "balance" => Ok(ProfileMode::Balance),
-            "powersave" => Ok(ProfileMode::Powersave),
+            "performance" | "1" => Ok(ProfileMode::Performance),
+            "balance" | "2" => Ok(ProfileMode::Balance),
+            "powersave" | "3" => Ok(ProfileMode::Powersave),
+            "fast" | "4" => Ok(ProfileMode::Fast),
             _ => Err(()),
         }
     }
@@ -146,6 +149,11 @@ pub fn apply_performance_with_config(
 }
 
 pub fn apply_performance() -> Result<()> {
+    apply_performance_with_config("performance", true, None)
+}
+
+pub fn apply_fast() -> Result<()> {
+    debug!(target: "auriya::profile", "Applying FAST profile (zero margin boost)");
     apply_performance_with_config("performance", true, None)
 }
 

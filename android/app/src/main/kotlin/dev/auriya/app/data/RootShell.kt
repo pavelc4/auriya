@@ -69,6 +69,8 @@ object RootShell {
 
     /** Atomic-ish write: write tmp, then `mv`. Caller responsible for chmod. */
     fun writeText(path: String, content: String): Boolean = try {
+        val targetFile = SuFile(path)
+        targetFile.parentFile?.mkdirs()
         val tmp = "$path.tmp.${System.currentTimeMillis()}"
         SuFileOutputStream.open(SuFile(tmp)).use { out ->
             out.write(content.toByteArray(Charsets.UTF_8))

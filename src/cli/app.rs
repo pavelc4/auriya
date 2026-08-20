@@ -59,6 +59,7 @@ pub enum ProfileMode {
     Performance,
     Balance,
     Powersave,
+    Fast,
 }
 
 impl ProfileMode {
@@ -67,6 +68,7 @@ impl ProfileMode {
             Self::Performance => "PERFORMANCE",
             Self::Balance => "BALANCE",
             Self::Powersave => "POWERSAVE",
+            Self::Fast => "FAST",
         }
     }
 }

@@ -13,6 +13,7 @@ pub enum ProfileMode {
     Performance,
     Balance,
     Powersave,
+    Fast,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -88,10 +89,11 @@ impl FromStr for Command {
             ["CLEAR_INJECT"] | ["CLEARINJECT"] => Ok(Command::ClearInject),
 
             ["SET_PROFILE", mode] | ["SETPROFILE", mode] => match mode.to_uppercase().as_str() {
-                "PERFORMANCE" => Ok(Command::SetProfile(ProfileMode::Performance)),
-                "BALANCE" => Ok(Command::SetProfile(ProfileMode::Balance)),
-                "POWERSAVE" => Ok(Command::SetProfile(ProfileMode::Powersave)),
-                _ => Err("usage: SETPROFILE <PERFORMANCE|BALANCE|POWERSAVE>"),
+                "PERFORMANCE" | "1" => Ok(Command::SetProfile(ProfileMode::Performance)),
+                "BALANCE" | "2" => Ok(Command::SetProfile(ProfileMode::Balance)),
+                "POWERSAVE" | "3" => Ok(Command::SetProfile(ProfileMode::Powersave)),
+                "FAST" | "4" => Ok(Command::SetProfile(ProfileMode::Fast)),
+                _ => Err("usage: SETPROFILE <PERFORMANCE|BALANCE|POWERSAVE|FAST>"),
             },
 
             ["ADD_GAME", pkg] | ["ADDGAME", pkg] => Ok(Command::AddGame(pkg.to_string())),

@@ -162,7 +162,7 @@ fun AuriyaNavigation(
                     ) { route ->
                         when (route) {
                             is AppRoute.GameDetail -> {
-                                val current = route.profile
+                                val current = editingGameProfile ?: route.profile
                                 val isExisting = gameList.games.any { it.packageName == current.packageName }
                                 GameProfileScreen(
                                     game = current,
@@ -170,6 +170,7 @@ fun AuriyaNavigation(
                                     isExistingProfile = isExisting,
                                     onDismiss = { editingGameProfile = null },
                                     onSave = { updated ->
+                                        editingGameProfile = updated
                                         viewModel.addGame(updated)
                                     },
                                     onRemove = if (isExisting) {
@@ -258,6 +259,7 @@ fun AuriyaNavigation(
                                                         isExistingProfile = isExisting,
                                                         onDismiss = { selectedGameProfile = null },
                                                         onSave = { updated ->
+                                                            selectedGameProfile = updated
                                                             viewModel.addGame(updated)
                                                         },
                                                         onRemove = if (isExisting) {

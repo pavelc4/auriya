@@ -60,6 +60,7 @@ pub(crate) fn update_current_profile_file(mode: ProfileMode) {
         ProfileMode::Performance => "1",
         ProfileMode::Balance => "2",
         ProfileMode::Powersave => "3",
+        ProfileMode::Fast => "4",
     };
 
     let config_path = crate::core::config::CONFIG_DIR;
@@ -314,6 +315,10 @@ impl Daemon {
     fn reload_settings(&mut self) {
         match crate::core::config::Settings::load(crate::core::config::settings_path()) {
             Ok(new_settings) => {
+                if let Ok(mut s) = self._shared_settings.write() {
+                    *s = new_settings.clone();
+                }
+
                 if self.balance_governor != new_settings.cpu.default_governor {
                     self.balance_governor = new_settings.cpu.default_governor.clone();
                     debug!(target: "auriya::daemon", "Settings reloaded. New default governor: {}", self.balance_governor);
@@ -336,6 +341,9 @@ impl Daemon {
                 if self.default_mode != new_default_mode {
                     debug!(target: "auriya::daemon", "Settings reloaded. New default mode: {:?} → {:?}", self.default_mode, new_default_mode);
                     self.default_mode = new_default_mode;
+                    if !self.is_in_game_session() {
+                        self.last.profile_mode = None;
+                    }
                 }
 
                 let new_interval = new_settings.daemon.check_interval_ms.max(100);
@@ -697,6 +705,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
             Some(msg) = watch_rx.recv() => {
                 if msg == "settings" {
                      daemon.reload_settings();
+                     daemon.tick().await;
                 } else {
                      daemon.rebuild_whitelist();
                      debug!(target: "auriya::daemon", "Gamelist reload notification received, triggering instant tick");

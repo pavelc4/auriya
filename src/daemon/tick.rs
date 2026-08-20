@@ -229,8 +229,9 @@ impl Daemon {
                 let target_mode = game_cfg
                     .and_then(|c| c.mode.as_deref())
                     .map(|m| match m.to_lowercase().as_str() {
-                        "powersave" => ProfileMode::Powersave,
-                        "balance" => ProfileMode::Balance,
+                        "powersave" | "3" => ProfileMode::Powersave,
+                        "balance" | "2" => ProfileMode::Balance,
+                        "fast" | "4" => ProfileMode::Fast,
                         _ => ProfileMode::Performance,
                     })
                     .unwrap_or(ProfileMode::Performance);
@@ -243,6 +244,7 @@ impl Daemon {
                         ProfileMode::Performance => "Performance",
                         ProfileMode::Balance => "Balance",
                         ProfileMode::Powersave => "Powersave",
+                        ProfileMode::Fast => "Fast",
                     };
                     let msg = format!("Auriya: Tweaks applied ({})", mode_str);
                     debug!(target: "auriya::daemon", "Sending toast broadcast for game launch: {}", msg);
@@ -262,6 +264,9 @@ impl Daemon {
                 if self.last.profile_mode != Some(target_mode) {
                     let res = match target_mode {
                         ProfileMode::Performance => {
+                            profile::apply_performance_with_config(governor, enable_dnd, Some(pid))
+                        }
+                        ProfileMode::Fast => {
                             profile::apply_performance_with_config(governor, enable_dnd, Some(pid))
                         }
                         ProfileMode::Balance => profile::apply_balance(
@@ -325,6 +330,7 @@ impl Daemon {
         if self.last.profile_mode != Some(self.default_mode) {
             let res = match self.default_mode {
                 ProfileMode::Performance => profile::apply_performance(),
+                ProfileMode::Fast => profile::apply_fast(),
                 ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
                 ProfileMode::Powersave => profile::apply_powersave(),
             };
@@ -406,6 +412,7 @@ impl Daemon {
         if self.last.profile_mode != Some(self.default_mode) {
             let res = match self.default_mode {
                 ProfileMode::Performance => profile::apply_performance(),
+                ProfileMode::Fast => profile::apply_fast(),
                 ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
                 ProfileMode::Powersave => profile::apply_powersave(),
             };
@@ -494,7 +501,7 @@ impl Daemon {
             ScalingAction::Reduce => {
                 if self.last.profile_mode != Some(self.default_mode) {
                     let res = match self.default_mode {
-                        ProfileMode::Performance => {
+                        ProfileMode::Performance | ProfileMode::Fast => {
                             profile::apply_performance_with_config(game_governor, enable_dnd, None)
                         }
                         ProfileMode::Balance => {

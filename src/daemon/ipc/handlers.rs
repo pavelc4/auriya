@@ -197,6 +197,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     ProfileMode::Performance => profile::apply_performance(),
                     ProfileMode::Balance => profile::apply_balance(&h.balance_governor),
                     ProfileMode::Powersave => profile::apply_powersave(),
+                    ProfileMode::Fast => profile::apply_fast(),
                 };
                 match r {
                     Ok(_) => format!("OK SET_PROFILE {:?}\n", mode),

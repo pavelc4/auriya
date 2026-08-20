@@ -117,16 +117,12 @@ fun ConfigScreen(
     var modeMargin by remember(selectedModeKey, currentMode) { mutableFloatStateOf(currentMode.margin.toFloat()) }
     var modeThermal by remember(selectedModeKey, currentMode) { mutableFloatStateOf(currentMode.thermalThreshold.toFloat()) }
 
-    val availableGovernors = remember {
-        try {
-            val file = File("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors")
-            if (file.exists()) {
-                file.readText().split(Regex("\\s+")).filter { it.isNotEmpty() }
-            } else {
-                listOf("schedutil", "performance", "powersave")
-            }
-        } catch (e: Exception) {
-            listOf("schedutil", "performance", "powersave")
+    val governorsFromVm by viewModel.availableGovernors.collectAsState()
+    val effectiveGovernors = remember(governorsFromVm, defaultGov) {
+        if (defaultGov.isNotBlank() && defaultGov !in governorsFromVm) {
+            listOf(defaultGov) + governorsFromVm
+        } else {
+            governorsFromVm.ifEmpty { listOf("schedutil", "performance", "powersave") }
         }
     }
 
@@ -458,7 +454,7 @@ fun ConfigScreen(
     CpuGovernorPopup(
         show = showGovPopup,
         defaultGov = defaultGov,
-        availableGovernors = availableGovernors,
+        availableGovernors = effectiveGovernors,
         sheetState = govPopupState,
         onSelect = { gov ->
             defaultGov = gov
@@ -476,8 +472,12 @@ fun ConfigScreen(
         sheetState = presetPopupState,
         onSelect = { key ->
             defaultMode = key
-            val updated = settings.copy(daemon = settings.daemon.copy(defaultMode = key))
+            val updated = settings.copy(
+                daemon = settings.daemon.copy(defaultMode = key),
+                fas = settings.fas.copy(defaultMode = key)
+            )
             persistChanges(updated)
+            viewModel.updateProfile(key)
             Toast.makeText(context, "Default profile set to ${key.replaceFirstChar { c -> c.uppercase() }}", Toast.LENGTH_SHORT).show()
             showPresetPopup = false
         },
@@ -492,6 +492,7 @@ fun ConfigScreen(
             logLevel = key
             val updated = settings.copy(daemon = settings.daemon.copy(logLevel = key))
             persistChanges(updated)
+            dev.auriya.app.data.RootShell.exec("echo 'SETLOG ${key.uppercase()}' | nc -U /dev/socket/auriya.sock")
             Toast.makeText(context, "Log level set to ${key.uppercase()}", Toast.LENGTH_SHORT).show()
             showLogLevelPopup = false
         },

@@ -203,8 +203,12 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadAvailableGovernors() {
         // Sysfs is world-readable for governor list, but reading via
         // RootShell keeps a single code path for /sys access.
-        val raw = RootShell.run("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors 2>/dev/null")
-        val parsed = raw.split(Regex("\\s+")).filter { it.isNotBlank() }
+        val raw = RootShell.run(
+            "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors " +
+            "/sys/devices/system/cpu/cpufreq/policy0/scaling_available_governors " +
+            "/sys/devices/system/cpu/cpu*/cpufreq/scaling_available_governors 2>/dev/null"
+        )
+        val parsed = raw.split(Regex("\\s+")).filter { it.isNotBlank() }.distinct()
         _availableGovernors.value = parsed.ifEmpty {
             // Fallback so the dropdown is never empty on weirder kernels.
             listOf("performance", "schedutil", "powersave")
@@ -439,10 +443,13 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
                 _settings.value = updated
             }
 
-            // 3. Keep current profile state updated in UI
-            _currentProfile.value = mode
+            // 3. Notify daemon to reload config
+            RootShell.exec("echo 'RELOAD' | nc -U /dev/socket/auriya.sock")
 
-            // 4. Poll immediately to update systemInfo profile state on the UI
+            // 4. Keep current profile state updated in UI
+            _currentProfile.value = modeString
+
+            // 5. Poll immediately to update systemInfo profile state on the UI
             runCatching { pollOnce() }
         }
     }
@@ -460,6 +467,8 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
             RootShell.exec(
                 "for p in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do echo $gov > \"\$p\"; done",
             )
+            RootShell.exec("echo 'RELOAD' | nc -U /dev/socket/auriya.sock")
+            runCatching { pollOnce() }
         }
     }
 
@@ -474,7 +483,7 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
             if (RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)) {
                 _gameList.value = newList
             }
-            RootShell.exec("echo 'ADD_GAME ${profile.packageName}' | nc -U /dev/socket/auriya.sock")
+            RootShell.exec("echo 'RELOAD' | nc -U /dev/socket/auriya.sock")
         }
     }
 
@@ -488,7 +497,7 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
             if (RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)) {
                 _gameList.value = newList
             }
-            RootShell.exec("echo 'REMOVE_GAME $packageName' | nc -U /dev/socket/auriya.sock")
+            RootShell.exec("echo 'RELOAD' | nc -U /dev/socket/auriya.sock")
         }
     }
 

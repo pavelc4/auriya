@@ -6,14 +6,16 @@ pub enum ProfileMode {
     Performance,
     Balance,
     Powersave,
+    Fast,
 }
 
 impl ProfileMode {
     pub fn from_str_ignore_case(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
-            "performance" => Some(Self::Performance),
-            "balance" => Some(Self::Balance),
-            "powersave" => Some(Self::Powersave),
+            "performance" | "1" => Some(Self::Performance),
+            "balance" | "2" => Some(Self::Balance),
+            "powersave" | "3" => Some(Self::Powersave),
+            "fast" | "4" => Some(Self::Fast),
             _ => None,
         }
     }
@@ -23,6 +25,7 @@ impl ProfileMode {
             Self::Performance => "PERFORMANCE",
             Self::Balance => "BALANCE",
             Self::Powersave => "POWERSAVE",
+            Self::Fast => "FAST",
         }
     }
 }
@@ -33,6 +36,7 @@ impl std::fmt::Display for ProfileMode {
             Self::Performance => write!(f, "performance"),
             Self::Balance => write!(f, "balance"),
             Self::Powersave => write!(f, "powersave"),
+            Self::Fast => write!(f, "fast"),
         }
     }
 }

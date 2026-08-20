@@ -58,19 +58,23 @@ fun GameProfileScreen(
         }
     val iconBitmap = rememberAppIcon(game.packageName)
 
-    val initialGov =
-        if (game.cpuGovernor in governorOptions) {
-            game.cpuGovernor
-        } else {
-            governorOptions.firstOrNull() ?: game.cpuGovernor
-        }
-    var selectedGov by remember(initialGov) { mutableStateOf(initialGov) }
-    var targetFps by remember { mutableStateOf(game.targetFps?.toFloat() ?: 60f) }
-    var refreshRate by remember { mutableStateOf(game.refreshRate?.toFloat() ?: 0f) }
-    var enableDnd by remember { mutableStateOf(game.enableDnd) }
-    var selectedCeiling by remember { mutableStateOf(game.ceiling ?: "default") }
+    val initialGov = game.cpuGovernor.ifEmpty {
+        governorOptions.firstOrNull() ?: "schedutil"
+    }
+    var selectedGov by remember(game.packageName, initialGov) { mutableStateOf(initialGov) }
+    var targetFps by remember(game.packageName, game.targetFps) { mutableStateOf(game.targetFps?.toFloat() ?: 60f) }
+    var refreshRate by remember(game.packageName, game.refreshRate) { mutableStateOf(game.refreshRate?.toFloat() ?: 0f) }
+    var enableDnd by remember(game.packageName, game.enableDnd) { mutableStateOf(game.enableDnd) }
+    var selectedCeiling by remember(game.packageName, game.ceiling) { mutableStateOf(game.ceiling ?: "default") }
 
     val ceilingOptions = remember { listOf("default", "low", "balance", "high") }
+    val effectiveGovOptions = remember(governorOptions, selectedGov) {
+        if (selectedGov.isNotBlank() && selectedGov !in governorOptions) {
+            listOf(selectedGov) + governorOptions
+        } else {
+            governorOptions.ifEmpty { listOf("schedutil", "performance", "powersave") }
+        }
+    }
 
     var showGovSheet by remember { mutableStateOf(false) }
     var showCeilingSheet by remember { mutableStateOf(false) }
@@ -109,7 +113,7 @@ fun GameProfileScreen(
     if (showGovSheet) {
         GovernorSelectionBottomSheet(
             selectedGov = selectedGov,
-            options = governorOptions,
+            options = effectiveGovOptions,
             onSelect = { updateAndSave(gov = it) },
             onDismiss = { showGovSheet = false },
             sheetState = govSheetState,
