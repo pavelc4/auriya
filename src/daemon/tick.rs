@@ -159,9 +159,16 @@ impl Daemon {
                 && gamelist.game.iter().any(|a| a.package == pkg)
             {
                 let game_cfg = gamelist.find(&pkg);
+                let default_gov = self
+                    .balance_governor
+                    .read()
+                    .ok()
+                    .map(|g| g.clone())
+                    .unwrap_or_else(|| "schedutil".to_string());
                 let governor = game_cfg
-                    .map(|c| c.cpu_governor.clone())
-                    .unwrap_or_else(|| self.balance_governor.clone());
+                    .filter(|c| !c.cpu_governor.is_empty())
+                    .map(|c| c.cpu_governor.as_str())
+                    .unwrap_or(&default_gov);
                 let enable_dnd = global_dnd && game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
 
                 if let Some(cfg) = game_cfg
@@ -182,7 +189,7 @@ impl Daemon {
                 }
 
                 match self
-                    .run_fas_tick(&fas, &pkg, &governor, self.last.pid, enable_dnd)
+                    .run_fas_tick(&fas, &pkg, governor, self.last.pid, enable_dnd)
                     .await
                 {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
@@ -234,11 +241,17 @@ impl Daemon {
                     .map(|s| (s.fas.enabled, s.dnd.default_enable))
                     .unwrap_or((true, true));
                 let _ = fas_enabled;
-
                 let game_cfg = gamelist.find(pkg);
+                let default_gov = self
+                    .balance_governor
+                    .read()
+                    .ok()
+                    .map(|g| g.clone())
+                    .unwrap_or_else(|| "schedutil".to_string());
                 let governor = game_cfg
-                    .map(|c| &c.cpu_governor[..])
-                    .unwrap_or(&self.balance_governor);
+                    .filter(|c| !c.cpu_governor.is_empty())
+                    .map(|c| c.cpu_governor.as_str())
+                    .unwrap_or(&default_gov);
                 let enable_dnd = global_dnd && game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
                 let target_mode = game_cfg
                     .and_then(|c| c.mode.as_deref())
@@ -260,13 +273,12 @@ impl Daemon {
                         ProfileMode::Powersave => "Powersave",
                         ProfileMode::Fast => "Fast",
                     };
-                    let msg = format!("Auriya: Tweaks applied ({})", mode_str);
-                    debug!(target: "auriya::daemon", "Sending toast broadcast for game launch: {}", msg);
+                    let msg = format!("{}: {}", pkg, mode_str);
                     let _ = std::process::Command::new("am")
                         .args([
                             "broadcast",
                             "-a",
-                            "dev.auriya.app.ACTION_SHOW_TOAST",
+                            "dev.auriya.app.TOAST",
                             "--es",
                             "message",
                             &msg,
@@ -283,12 +295,7 @@ impl Daemon {
                         ProfileMode::Fast => {
                             profile::apply_performance_with_config(governor, enable_dnd, Some(pid))
                         }
-                        ProfileMode::Balance => profile::apply_balance(
-                            game_cfg
-                                .filter(|c| !c.cpu_governor.is_empty())
-                                .map(|c| &c.cpu_governor[..])
-                                .unwrap_or(&self.balance_governor),
-                        ),
+                        ProfileMode::Balance => profile::apply_balance(governor),
                         ProfileMode::Powersave => profile::apply_powersave(),
                     };
 
@@ -342,10 +349,15 @@ impl Daemon {
         }
 
         if self.last.profile_mode != Some(self.default_mode) {
+            let gov_guard = self.balance_governor.read();
+            let default_gov = gov_guard
+                .as_deref()
+                .map(|s| s.as_str())
+                .unwrap_or("schedutil");
             let res = match self.default_mode {
                 ProfileMode::Performance => profile::apply_performance(),
                 ProfileMode::Fast => profile::apply_fast(),
-                ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
+                ProfileMode::Balance => profile::apply_balance(default_gov),
                 ProfileMode::Powersave => profile::apply_powersave(),
             };
 
@@ -424,10 +436,15 @@ impl Daemon {
         use crate::core::profile;
 
         if self.last.profile_mode != Some(self.default_mode) {
+            let gov_guard = self.balance_governor.read();
+            let default_gov = gov_guard
+                .as_deref()
+                .map(|s| s.as_str())
+                .unwrap_or("schedutil");
             let res = match self.default_mode {
                 ProfileMode::Performance => profile::apply_performance(),
                 ProfileMode::Fast => profile::apply_fast(),
-                ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
+                ProfileMode::Balance => profile::apply_balance(default_gov),
                 ProfileMode::Powersave => profile::apply_powersave(),
             };
 

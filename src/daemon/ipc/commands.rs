@@ -32,6 +32,7 @@ pub enum Command {
     Ping,
     Quit,
     SetProfile(ProfileMode),
+    SetGovernor(String),
     AddGame(String),
     RemoveGame(String),
     ListPackages,
@@ -97,6 +98,10 @@ impl FromStr for Command {
                 "FAST" | "4" => Ok(Command::SetProfile(ProfileMode::Fast)),
                 _ => Err("usage: SETPROFILE <PERFORMANCE|BALANCE|POWERSAVE|FAST>"),
             },
+
+            ["SET_GOVERNOR", gov] | ["SETGOVERNOR", gov] => {
+                Ok(Command::SetGovernor(gov.to_string()))
+            }
 
             ["ADD_GAME", pkg] | ["ADDGAME", pkg] => Ok(Command::AddGame(pkg.to_string())),
             ["REMOVE_GAME", pkg] | ["REMOVEGAME", pkg] => Ok(Command::RemoveGame(pkg.to_string())),

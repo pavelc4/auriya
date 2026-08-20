@@ -126,7 +126,7 @@ pub struct Daemon {
     companion_restart_cooldown: Option<std::time::Instant>,
 
     pub(crate) fas_controller: Option<Arc<tokio::sync::Mutex<crate::daemon::fas::FasController>>>,
-    pub(crate) balance_governor: String,
+    pub(crate) balance_governor: Arc<RwLock<String>>,
     pub(crate) default_mode: ProfileMode,
     /// Idle/foreground (non-game) tick cadence in ms, from
     /// `daemon.check_interval_ms`. The in-game (500 ms) and screen-off
@@ -175,7 +175,7 @@ impl Daemon {
         let shared_current = Arc::new(RwLock::new(CurrentState::default()));
         let override_foreground = Arc::new(RwLock::new(None));
 
-        let balance_governor = cfg.settings.cpu.default_governor.clone();
+        let balance_governor = Arc::new(RwLock::new(cfg.settings.cpu.default_governor.clone()));
         let default_mode = cfg
             .settings
             .daemon
@@ -315,18 +315,24 @@ impl Daemon {
     fn reload_settings(&mut self) {
         match crate::core::config::Settings::load(crate::core::config::settings_path()) {
             Ok(new_settings) => {
-                if let Ok(mut s) = self._shared_settings.write() {
-                    *s = new_settings.clone();
+                let mut gov_changed = false;
+                if let Ok(mut g) = self.balance_governor.write()
+                    && *g != new_settings.cpu.default_governor
+                {
+                    *g = new_settings.cpu.default_governor.clone();
+                    gov_changed = true;
                 }
 
-                if self.balance_governor != new_settings.cpu.default_governor {
-                    self.balance_governor = new_settings.cpu.default_governor.clone();
-                    debug!(target: "auriya::daemon", "Settings reloaded. New default governor: {}", self.balance_governor);
+                if gov_changed {
+                    let new_gov = &new_settings.cpu.default_governor;
+                    debug!(target: "auriya::daemon", "Settings reloaded. New default governor: {}", new_gov);
 
-                    if self.last.profile_mode == Some(ProfileMode::Balance) {
+                    if !self.is_in_game_session()
+                        && (self.last.profile_mode.is_none()
+                            || self.last.profile_mode == Some(ProfileMode::Balance))
+                    {
                         debug!(target: "auriya::daemon", "Applying new default governor immediately...");
-                        if let Err(e) = crate::core::profile::apply_balance(&self.balance_governor)
-                        {
+                        if let Err(e) = crate::core::profile::apply_balance(new_gov) {
                             error!(target: "auriya::profile", ?e, "Failed to apply new balance governor");
                         }
                     }
@@ -469,7 +475,7 @@ impl Daemon {
             get_fps_stats,
             profile_lock: Arc::new(std::sync::Mutex::new(())),
             current_state: current_state.clone(),
-            balance_governor: cfg.settings.cpu.default_governor.clone(),
+            balance_governor: self.balance_governor.clone(),
             dnd_default: cfg.settings.dnd.default_enable,
             current_log_level,
             supported_modes: self.supported_modes.clone(),

@@ -17,7 +17,8 @@ const HELP: &str = "CMDS:
         - GETPID
         - PING
         - QUIT
-        - SET_PROFILE <PERFORMANCE|BALANCE|POWERSAVE>
+        - SET_PROFILE <PERFORMANCE|BALANCE|POWERSAVE|FAST>
+        - SET_GOVERNOR <governor>
         - ADD_GAME <pkg>
         - REMOVE_GAME <pkg>
  ";
@@ -134,10 +135,19 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                 h.enabled.store(false, Ordering::Release);
                 "OK DISABLED\n".into()
             }
-            Ok(Command::Reload) => match (h.reload_fn)() {
-                Ok(n) => format!("OK RELOADED {}\n", n),
-                Err(e) => format!("ERR RELOAD {:?}\n", e),
-            },
+            Ok(Command::Reload) => {
+                let gl_result = (h.reload_fn)();
+                if let Ok(new_settings) =
+                    crate::core::config::Settings::load(crate::core::config::settings_path())
+                    && let Ok(mut g) = h.balance_governor.write()
+                {
+                    *g = new_settings.cpu.default_governor;
+                }
+                match gl_result {
+                    Ok(n) => format!("OK RELOADED {}\n", n),
+                    Err(e) => format!("ERR RELOAD {:?}\n", e),
+                }
+            }
             Ok(Command::Restart) => {
                 info!(target: "auriya::ipc", "Restart requested via IPC - initiating self-restart");
 
@@ -193,9 +203,14 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     .profile_lock
                     .lock()
                     .map_err(|_| anyhow::anyhow!("profile lock poisoned"))?;
+                let gov_guard = h.balance_governor.read();
+                let balance_gov = gov_guard
+                    .as_deref()
+                    .map(|s| s.as_str())
+                    .unwrap_or("schedutil");
                 let r = match mode {
                     ProfileMode::Performance => profile::apply_performance(),
-                    ProfileMode::Balance => profile::apply_balance(&h.balance_governor),
+                    ProfileMode::Balance => profile::apply_balance(balance_gov),
                     ProfileMode::Powersave => profile::apply_powersave(),
                     ProfileMode::Fast => profile::apply_fast(),
                 };
@@ -203,6 +218,14 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     Ok(_) => format!("OK SET_PROFILE {:?}\n", mode),
                     Err(e) => format!("ERR SET_PROFILE {:?}\n", e),
                 }
+            }
+            Ok(Command::SetGovernor(gov)) => {
+                crate::core::tweaks::paths::set_governor_cached(&gov);
+                let resp = format!("OK SET_GOVERNOR {}\n", gov);
+                if let Ok(mut g) = h.balance_governor.write() {
+                    *g = gov;
+                }
+                resp
             }
             Ok(Command::AddGame(pkg)) => {
                 use crate::core::config::gamelist::GameProfile;

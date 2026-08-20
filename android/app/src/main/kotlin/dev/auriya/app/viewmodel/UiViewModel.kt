@@ -16,6 +16,7 @@ import dev.auriya.shared.config.TomlParser
 import dev.auriya.shared.model.*
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -100,6 +101,10 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isAppsLoading = MutableStateFlow(false)
     val isAppsLoading: StateFlow<Boolean> = _isAppsLoading.asStateFlow()
+
+    private var saveSettingsJob: Job? = null
+    private var updateProfileJob: Job? = null
+    private var gameListJob: Job? = null
 
     fun loadInstalledApps(pm: PackageManager) {
         if (_installedApps.value.isNotEmpty() || _isAppsLoading.value) return
@@ -392,10 +397,14 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // Live performance stats & telemetry for Recording / Benchmark
-        runCatching {
-            val stats = StatsParser.fetchStats()
-            _liveStats.value = stats
-            stats?.let { benchmarkRecorder.processStats(it) }
+        if (_daemonActive.value) {
+            runCatching {
+                val stats = StatsParser.fetchStats()
+                _liveStats.value = stats
+                stats?.let { benchmarkRecorder.processStats(it) }
+            }
+        } else {
+            _liveStats.value = null
         }
     }
 
@@ -420,84 +429,72 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateProfile(mode: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val modeString = when (mode.lowercase()) {
-                "1", "performance" -> "performance"
-                "2", "balance" -> "balance"
-                "3", "powersave" -> "powersave"
-                "4", "fast" -> "fast"
-                else -> "balance"
-            }
+        val modeString = when (mode.lowercase()) {
+            "1", "performance" -> "performance"
+            "2", "balance" -> "balance"
+            "3", "powersave" -> "powersave"
+            "4", "fast" -> "fast"
+            else -> "balance"
+        }
+        _currentProfile.value = modeString
+        val current = _settings.value
+        val updated = current.copy(
+            daemon = current.daemon.copy(defaultMode = modeString),
+            fas = current.fas.copy(defaultMode = modeString)
+        )
+        _settings.value = updated
+        _systemInfo.value = _systemInfo.value.copy(
+            profile = modeString.replaceFirstChar { it.uppercase() }
+        )
 
-            // 1. Notify the daemon immediately via UDS Unix Socket
-            RootShell.exec("echo 'SET_PROFILE ${modeString.uppercase()}' | nc -U /dev/socket/auriya.sock")
-
-            // 2. Persist profile choice directly to settings.toml
-            val current = _settings.value
-            val updated = current.copy(
-                daemon = current.daemon.copy(defaultMode = modeString),
-                fas = current.fas.copy(defaultMode = modeString)
-            )
+        updateProfileJob?.cancel()
+        updateProfileJob = viewModelScope.launch(Dispatchers.IO) {
             val content = TomlParser.serializeSettings(updated)
-            if (RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)) {
-                _settings.value = updated
-            }
-
-            // 3. Notify daemon to reload config
-            RootShell.exec("echo 'RELOAD' | nc -U /dev/socket/auriya.sock")
-
-            // 4. Keep current profile state updated in UI
-            _currentProfile.value = modeString
-
-            // 5. Poll immediately to update systemInfo profile state on the UI
-            runCatching { pollOnce() }
+            RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)
+            RootShell.exec("printf 'SET_PROFILE ${modeString.uppercase()}\\nRELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null")
         }
     }
 
     fun saveSettings(newSettings: Settings) {
-        viewModelScope.launch(Dispatchers.IO) {
+        _settings.value = newSettings
+        val gov = newSettings.cpu.defaultGovernor
+        saveSettingsJob?.cancel()
+        saveSettingsJob = viewModelScope.launch(Dispatchers.IO) {
             val content = TomlParser.serializeSettings(newSettings)
-            if (RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)) {
-                _settings.value = newSettings
-            }
-            val gov = newSettings.cpu.defaultGovernor
-            RootShell.exec(
-                "for p in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo $gov > \"\$p\"; done",
-            )
-            RootShell.exec(
-                "for p in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do echo $gov > \"\$p\"; done",
-            )
-            RootShell.exec("echo 'RELOAD' | nc -U /dev/socket/auriya.sock")
-            runCatching { pollOnce() }
+            RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)
+            val cmd = "printf 'SET_GOVERNOR $gov\\nRELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null || for p in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do [ -w \"\$p\" ] && echo $gov > \"\$p\" 2>/dev/null; done"
+            RootShell.exec(cmd)
         }
     }
 
     fun addGame(profile: GameProfile) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val games = _gameList.value.games.toMutableList().also {
-                it.removeAll { g -> g.packageName == profile.packageName }
-                it.add(profile)
-            }
-            val newList = GameList(games)
+        val games = _gameList.value.games.toMutableList().also {
+            it.removeAll { g -> g.packageName == profile.packageName }
+            it.add(profile)
+        }
+        val newList = GameList(games)
+        _gameList.value = newList
+
+        gameListJob?.cancel()
+        gameListJob = viewModelScope.launch(Dispatchers.IO) {
             val content = TomlParser.serializeGameList(newList)
-            if (RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)) {
-                _gameList.value = newList
-            }
-            RootShell.exec("echo 'RELOAD' | nc -U /dev/socket/auriya.sock")
+            RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)
+            RootShell.exec("printf 'RELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null")
         }
     }
 
     fun removeGame(packageName: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val games = _gameList.value.games.toMutableList().also {
-                it.removeAll { g -> g.packageName == packageName }
-            }
-            val newList = GameList(games)
+        val games = _gameList.value.games.toMutableList().also {
+            it.removeAll { g -> g.packageName == packageName }
+        }
+        val newList = GameList(games)
+        _gameList.value = newList
+
+        gameListJob?.cancel()
+        gameListJob = viewModelScope.launch(Dispatchers.IO) {
             val content = TomlParser.serializeGameList(newList)
-            if (RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)) {
-                _gameList.value = newList
-            }
-            RootShell.exec("echo 'RELOAD' | nc -U /dev/socket/auriya.sock")
+            RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)
+            RootShell.exec("printf 'RELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null")
         }
     }
 

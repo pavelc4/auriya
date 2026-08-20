@@ -71,7 +71,7 @@ object RootShell {
     fun writeText(path: String, content: String): Boolean = try {
         val targetFile = SuFile(path)
         targetFile.parentFile?.mkdirs()
-        val tmp = "$path.tmp.${System.currentTimeMillis()}"
+        val tmp = "$path.tmp.${System.currentTimeMillis()}.${(1000..9999).random()}"
         SuFileOutputStream.open(SuFile(tmp)).use { out ->
             out.write(content.toByteArray(Charsets.UTF_8))
         }

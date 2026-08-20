@@ -462,7 +462,8 @@ fun ConfigScreen(
         sheetState = govPopupState,
         onSelect = { gov ->
             defaultGov = gov
-            val updated = settings.copy(cpu = settings.cpu.copy(defaultGovernor = gov))
+            val currentSettings = viewModel.settings.value
+            val updated = currentSettings.copy(cpu = currentSettings.cpu.copy(defaultGovernor = gov))
             persistChanges(updated)
             Toast.makeText(context, "Governor set to $gov", Toast.LENGTH_SHORT).show()
             showGovPopup = false
@@ -476,9 +477,10 @@ fun ConfigScreen(
         sheetState = presetPopupState,
         onSelect = { key ->
             defaultMode = key
-            val updated = settings.copy(
-                daemon = settings.daemon.copy(defaultMode = key),
-                fas = settings.fas.copy(defaultMode = key)
+            val currentSettings = viewModel.settings.value
+            val updated = currentSettings.copy(
+                daemon = currentSettings.daemon.copy(defaultMode = key),
+                fas = currentSettings.fas.copy(defaultMode = key)
             )
             persistChanges(updated)
             viewModel.updateProfile(key)
