@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -55,7 +56,7 @@ import kotlinx.coroutines.withContext
 
 private const val OWNER_LOGIN = "Pavelc4"
 private const val REPO_NAME = "Auriya"
-private const val APP_TAGLINE = "An experimental learning project — Magisk/KernelSU performance tuning for Android."
+private const val APP_TAGLINE = "Technical documentation for Auriya and personal optimization experiments."
 
 data class RepoInfo(
     val name: String,
@@ -376,28 +377,18 @@ private fun AuriyaHeroCard(
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Surface(
-                    shape = dev.auriya.app.ui.components.MaterialShapes.PixelCircle,
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
                     modifier = Modifier.size(54.dp)
                 ) {
-                    if (appIconBitmap != null) {
-                        Image(
-                            bitmap = appIconBitmap,
-                            contentDescription = "Auriya",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(dev.auriya.app.ui.components.MaterialShapes.PixelCircle)
-                        )
-                    } else {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Filled.Speed,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
+                    Image(
+                        painter = painterResource(dev.auriya.app.R.drawable.hiyuki),
+                        contentDescription = "Auriya",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
                 }
 
                 Column(
@@ -425,14 +416,14 @@ private fun AuriyaHeroCard(
             // Version Capsule Pill (Prominent left-aligned, compact)
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.tertiaryContainer
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Text(
-                    text = if (isLoading || repoInfo == null) "Version v2.0.0-expressive" else "Version v$cleanVersion-expressive",
+                    text = if (isLoading || repoInfo == null) "Version v2.0.0" else "Version v$cleanVersion",
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                 )
             }
@@ -824,15 +815,15 @@ private fun DocumentationCard(
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.tertiaryContainer,
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(44.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.MenuBook,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -840,14 +831,14 @@ private fun DocumentationCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Documentation & Guides",
+                    text = "Auriya Wiki",
                     style = MaterialTheme.typography.titleMedium,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Architecture specs, FAS governor guide & settings manual",
+                    text = "Technical documentation for Auriya and personal optimization experiments.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

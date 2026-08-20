@@ -63,6 +63,10 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    androidResources {
+        localeFilters += listOf("en", "id")
+    }
+
     signingConfigs {
         if (signingProperties.isNotEmpty()) {
             create("release") {
@@ -180,6 +184,5 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.libsu.core)
     implementation(libs.libsu.io)
-    implementation(libs.androidx.glance.appwidget)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

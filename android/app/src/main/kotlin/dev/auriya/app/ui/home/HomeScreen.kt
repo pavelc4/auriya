@@ -180,10 +180,10 @@ fun HomeScreen(
                     item {
                         LinkRow(
                             iconVector = Icons.AutoMirrored.Outlined.MenuBook,
-                            title = "Documentation & Manual",
-                            subtitle = "Explore More About Auriya.",
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            onContainerColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                            title = "Documentation",
+                            subtitle = "Technical documentation & personal experiments.",
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             onClick = {
                                 context.startActivity(
                                     Intent(
@@ -890,14 +890,14 @@ private fun AuriyaInfoBottomSheet(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            color = MaterialTheme.colorScheme.primaryContainer,
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -905,7 +905,7 @@ private fun AuriyaInfoBottomSheet(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Documentation & Manual",
+                                text = "Documentation",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface

@@ -82,27 +82,39 @@ val GoogleSansRounded = FontFamily(
 
 val ExpTitleTypography = Typography(
     displayLarge = TextStyle(
-        fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.ExtraBold,
-        fontSize = 44.sp,
+        fontFamily = MontserratFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp,
+        textGeometricTransform = TextGeometricTransform(scaleX = 1.15f),
         letterSpacing = (-0.02).em,
-        lineHeight = 1.1.em,
+        lineHeight = 1.0.em,
         platformStyle = PlatformTextStyle(includeFontPadding = false)
     ),
     displayMedium = TextStyle(
-        fontFamily = GoogleSansRounded,
+        fontFamily = MontserratFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 36.sp,
+        fontSize = 30.sp,
+        textGeometricTransform = TextGeometricTransform(scaleX = 1.12f),
         letterSpacing = (-0.02).em,
-        lineHeight = 1.1.em,
+        lineHeight = 1.0.em,
+        platformStyle = PlatformTextStyle(includeFontPadding = false)
+    ),
+    titleLarge = TextStyle(
+        fontFamily = MontserratFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 26.sp,
+        textGeometricTransform = TextGeometricTransform(scaleX = 1.10f),
+        letterSpacing = (-0.02).em,
+        lineHeight = 1.0.em,
         platformStyle = PlatformTextStyle(includeFontPadding = false)
     ),
     titleMedium = TextStyle(
-        fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.ExtraBold,
-        fontSize = 32.sp,
+        fontFamily = MontserratFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp,
+        textGeometricTransform = TextGeometricTransform(scaleX = 1.10f),
         letterSpacing = (-0.02).em,
-        lineHeight = 1.1.em,
+        lineHeight = 1.0.em,
         platformStyle = PlatformTextStyle(includeFontPadding = false)
     )
 )
@@ -152,7 +164,7 @@ internal val AuriyaTypography = Typography(
     ),
     titleLarge = TextStyle(
         fontFamily = GoogleSansRounded,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Normal,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp
@@ -160,7 +172,7 @@ internal val AuriyaTypography = Typography(
     titleMedium = TextStyle(
         fontFamily = GoogleSansRounded,
         fontWeight = FontWeight.Medium,
-        fontSize = 16.sp,
+        fontSize = 18.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.15.sp
     ),
@@ -195,14 +207,14 @@ internal val AuriyaTypography = Typography(
     labelLarge = TextStyle(
         fontFamily = GoogleSansRounded,
         fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
+        fontSize = 16.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
     ),
     labelMedium = TextStyle(
         fontFamily = GoogleSansRounded,
         fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
+        fontSize = 14.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     ),
@@ -212,6 +224,5 @@ internal val AuriyaTypography = Typography(
         fontSize = 11.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
-    ),
+    )
 )
-
