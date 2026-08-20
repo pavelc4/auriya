@@ -1,5 +1,6 @@
 package dev.auriya.app.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -58,6 +59,9 @@ fun AppearanceScreen(
     var showCornerRadiusScreen by remember { mutableStateOf(false) }
 
     if (showCornerRadiusScreen) {
+        BackHandler {
+            showCornerRadiusScreen = false
+        }
         AdjustCornerRadiusScreen(
             cornerRadius = currentPrefs.cornerRadius,
             onCornerRadiusChange = themeViewModel::setCornerRadius,

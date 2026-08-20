@@ -79,18 +79,19 @@ fun AuriyaNavigation(
         BackHandler {
             editingGameProfile = null
         }
-    }
-    if (selectedGameProfile != null) {
+    } else if (selectedGameProfile != null) {
         BackHandler {
             selectedGameProfile = null
         }
-    }
-    if (subScreen != SubScreen.None) {
+    } else if (subScreen in listOf(SubScreen.Appearance, SubScreen.Language, SubScreen.About)) {
+        BackHandler {
+            subScreen = SubScreen.Settings
+        }
+    } else if (subScreen == SubScreen.Settings) {
         BackHandler {
             subScreen = SubScreen.None
         }
-    }
-    if (activeTab != NavigationTab.HOME && subScreen == SubScreen.None) {
+    } else if (activeTab != NavigationTab.HOME) {
         BackHandler {
             activeTab = NavigationTab.HOME
         }
@@ -183,13 +184,13 @@ fun AuriyaNavigation(
                             }
                             AppRoute.Appearance -> AppearanceScreen(
                                 themeViewModel = themeViewModel,
-                                onDismiss = { subScreen = SubScreen.None },
+                                onDismiss = { subScreen = SubScreen.Settings },
                             )
                             AppRoute.Language -> LanguageScreen(
-                                onDismiss = { subScreen = SubScreen.None },
+                                onDismiss = { subScreen = SubScreen.Settings },
                             )
                             AppRoute.About -> AboutScreen(
-                                onDismiss = { subScreen = SubScreen.None },
+                                onDismiss = { subScreen = SubScreen.Settings },
                             )
                             AppRoute.Settings -> SettingsScreen(
                                 viewModel = viewModel,
