@@ -59,6 +59,13 @@ class UiViewModel(
         dev.auriya.app.data.AppPrefs
             .getInstance(application)
 
+    private val _rootEnvironment =
+        MutableStateFlow(
+            dev.auriya.app.data
+                .RootEnvironmentInfo(),
+        )
+    val rootEnvironment: StateFlow<dev.auriya.app.data.RootEnvironmentInfo> = _rootEnvironment.asStateFlow()
+
     private val _liveStats = MutableStateFlow<Stats?>(null)
     val liveStats: StateFlow<Stats?> = _liveStats.asStateFlow()
 
@@ -175,6 +182,7 @@ class UiViewModel(
                     loadAvailableGovernors()
                     loadConfigurations()
                     initSystemInfoStatic()
+                    detectRootEnvironment()
                 }
             } finally {
                 _isCheckingRoot.value = false
@@ -197,7 +205,17 @@ class UiViewModel(
                 loadAvailableGovernors()
                 loadConfigurations()
                 initSystemInfoStatic()
+                detectRootEnvironment()
             }
+        }
+    }
+
+    fun detectRootEnvironment() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val env =
+                dev.auriya.app.data.RootManagerDetector
+                    .detect(getApplication<Application>())
+            _rootEnvironment.value = env
         }
     }
 
@@ -208,6 +226,7 @@ class UiViewModel(
             if (root) {
                 loadAvailableGovernors()
                 loadConfigurations()
+                detectRootEnvironment()
                 runCatching { pollOnce() }
             }
             withContext(Dispatchers.Main) {
@@ -220,6 +239,7 @@ class UiViewModel(
         checkRoot()
         loadConfigurations()
         initSystemInfoStatic()
+        detectRootEnvironment()
         startMonitoring()
     }
 
