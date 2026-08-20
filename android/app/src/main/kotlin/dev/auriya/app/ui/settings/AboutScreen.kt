@@ -14,10 +14,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.LocalCafe
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Palette
@@ -82,23 +84,13 @@ fun AboutScreen(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val fallbackContributors = remember {
-        listOf(
-            Contributor(
-                login = "Btema2",
-                avatarUrl = "https://github.com/Btema2.png",
-                htmlUrl = "https://github.com/Btema2",
-                contributions = 1,
-                role = "Community Contributor"
-            )
-        )
-    }
+    val fallbackContributors = remember { emptyList<Contributor>() }
 
     var repoInfo by remember { mutableStateOf<RepoInfo?>(RepoInfo(REPO_NAME, APP_TAGLINE, "2.0.0")) }
     var ownerInfo by remember { mutableStateOf<OwnerInfo?>(AboutCache.getCachedOwner(context)) }
     var contributors by remember {
         val cached = AboutCache.getCachedContributors(context)
-        mutableStateOf(if (cached.isNotEmpty()) cached else fallbackContributors)
+        mutableStateOf(cached)
     }
     var isLoadingInfo by remember { mutableStateOf(false) }
     var isLoadingOwner by remember { mutableStateOf(false) }
@@ -133,8 +125,7 @@ fun AboutScreen(onDismiss: () -> Unit) {
 
     // Filter out repo owner and automated bot accounts
     val filteredContributors = remember(contributors) {
-        val raw = if (contributors.isNotEmpty()) contributors else fallbackContributors
-        raw.filter { contributor ->
+        contributors.filter { contributor ->
             val login = contributor.login.lowercase()
             login != OWNER_LOGIN.lowercase() &&
                     !login.endsWith("[bot]") &&
@@ -215,7 +206,39 @@ fun AboutScreen(onDismiss: () -> Unit) {
                     )
                 }
 
-                // 2. Maintainer Section
+                // 2. Licenses Section (Moved below Auriya Card, above Maintainer)
+                item(key = "license_header") {
+                    SectionHeader(
+                        title = "License",
+                        subtitle = "Open source license and terms."
+                    )
+                }
+
+                item(key = "license_card") {
+                    LicenseAndSpecsCard(
+                        onLicenseClick = {
+                            openUrl(context, "https://github.com/$OWNER_LOGIN/$REPO_NAME/blob/main/LICENSE")
+                        }
+                    )
+                }
+
+                // 3. Documentation Section
+                item(key = "docs_header") {
+                    SectionHeader(
+                        title = "Documentation",
+                        subtitle = "Explore More Abour Auriya."
+                    )
+                }
+
+                item(key = "docs_card") {
+                    DocumentationCard(
+                        onDocsClick = {
+                            openUrl(context, "https://auriya.pages.dev/")
+                        }
+                    )
+                }
+
+                // 4. Maintainer Section
                 item(key = "maintainer_header") {
                     SectionHeader(
                         title = "Maintainer",
@@ -231,7 +254,7 @@ fun AboutScreen(onDismiss: () -> Unit) {
                     )
                 }
 
-                // 3. Support Section (Directly under Maintainer)
+                // 5. Support Section (Directly under Maintainer)
                 item(key = "support_header") {
                     SectionHeader(
                         title = "Support",
@@ -247,7 +270,7 @@ fun AboutScreen(onDismiss: () -> Unit) {
                     )
                 }
 
-                // 4. Community Contributors Section
+                // 6. Community Contributors Section
                 item(key = "spotlight_header") {
                     SectionHeader(
                         title = "Contributors",
@@ -302,22 +325,6 @@ fun AboutScreen(onDismiss: () -> Unit) {
                             onContributorClick = { url -> openUrl(context, url) }
                         )
                     }
-                }
-
-                // 5. Licenses Section
-                item(key = "license_header") {
-                    SectionHeader(
-                        title = "License",
-                        subtitle = "Open source license and terms."
-                    )
-                }
-
-                item(key = "license_card") {
-                    LicenseAndSpecsCard(
-                        onLicenseClick = {
-                            openUrl(context, "https://github.com/$OWNER_LOGIN/$REPO_NAME/blob/main/LICENSE")
-                        }
-                    )
                 }
             }
         }
@@ -543,13 +550,14 @@ private fun MaintainerCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
+                val bioText = owner?.bio?.takeIf { it.isNotBlank() }
+                    ?: "Rust daemon, eBPF telemetry, and Android Kotlin UI"
+
                 Text(
-                    text = "maintainer",
+                    text = bioText,
                     style = MaterialTheme.typography.bodySmall,
-                    fontFamily = GoogleSansRounded,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -794,6 +802,64 @@ private fun LicenseAndSpecsCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun DocumentationCard(
+    onDocsClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onDocsClick,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Documentation & Guides",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Architecture specs, FAS governor guide & settings manual",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }

@@ -176,11 +176,11 @@ fun ConfigScreen(
             Column(modifier = Modifier.weight(1f)) {
                 val title = when (activeSubScreen) {
                     ConfigSubScreen.NONE -> "Config"
-                    ConfigSubScreen.DAEMON -> "Daemon Engine"
+                    ConfigSubScreen.DAEMON -> "Daemon"
                     ConfigSubScreen.CPU -> "CPU Governor"
                     ConfigSubScreen.FAS -> "FAS Regulator"
                     ConfigSubScreen.DYNAMIC_GOVERNOR -> "Dynamic Governor"
-                    ConfigSubScreen.DND -> "Gaming DND"
+                    ConfigSubScreen.DND -> "DND"
                     ConfigSubScreen.PROFILES -> "Preset Tuning"
                 }
                 val subtitle = when (activeSubScreen) {
@@ -276,7 +276,7 @@ fun ConfigScreen(
 
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.Dns,
-                                        title = "Daemon Engine",
+                                        title = "Daemon",
                                         subtitle = "Idle profile: ${defaultMode.replaceFirstChar { it.uppercase() }} · Check: ${checkIntervalMs.roundToInt()}ms",
                                         onClick = { activeSubScreen = ConfigSubScreen.DAEMON },
                                         shape = itemShapeFor(0, total),
@@ -308,7 +308,7 @@ fun ConfigScreen(
 
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.DoNotDisturbOn,
-                                        title = "Gaming DND",
+                                        title = "DND",
                                         subtitle = if (dndEnabled) "Auto-mute notifications during gameplay" else "Disabled",
                                         onClick = { activeSubScreen = ConfigSubScreen.DND },
                                         shape = itemShapeFor(4, total),

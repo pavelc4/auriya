@@ -15,7 +15,7 @@ fun LazyListScope.dndConfigPane(
     item {
         PopupInfoCard(
             icon = Icons.Outlined.DoNotDisturbOn,
-            title = "Do Not Disturb (Gaming DND)",
+            title = "Do Not Disturb (DND)",
             description = "Automatically silences notifications, pop-up banners, and call rings whenever a listed game enters the foreground, restoring normal state on exit."
         )
     }

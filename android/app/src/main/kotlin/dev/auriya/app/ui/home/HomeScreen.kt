@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -178,19 +179,45 @@ fun HomeScreen(
                     item { SystemMetricsList(systemInfo = systemInfo) }
                     item {
                         LinkRow(
-                            iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_github),
-                            title = "Learn more about Auriya",
-                            subtitle = "github.com/Pavelc4/Auriya",
+                            iconVector = Icons.AutoMirrored.Outlined.MenuBook,
+                            title = "Documentation & Manual",
+                            subtitle = "Explore More About Auriya.",
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            onContainerColor = MaterialTheme.colorScheme.onTertiaryContainer,
                             onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pavelc4/Auriya")))
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://auriya.pages.dev")
+                                    )
+                                )
+                            },
+                        )
+                    }
+                    item {
+                        LinkRow(
+                            iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_github),
+                            title = "Star on GitHub",
+                            subtitle = "Give a star to support project development.",
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            onContainerColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            onClick = {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://github.com/Pavelc4/Auriya")
+                                    )
+                                )
                             },
                         )
                     }
                     item {
                         LinkRow(
                             iconPainter = androidx.compose.ui.res.painterResource(dev.auriya.app.R.drawable.ic_telegram),
-                            title = "Join Telegram updates channel",
-                            subtitle = "Latest tuner updates",
+                            title = "Telegram Channel",
+                            subtitle = "Official announcements & updates",
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             onClick = {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/pvlcply")))
                             },
@@ -208,8 +235,10 @@ private fun HeroCard(
     systemInfo: SystemInfo,
     onInfoClick: () -> Unit
 ) {
-    val cardBg = if (isDaemonRunning) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer
-    val onCardBg = if (isDaemonRunning) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+    val cardBg =
+        if (isDaemonRunning) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer
+    val onCardBg =
+        if (isDaemonRunning) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
 
     Surface(
         shape = RoundedCornerShape(24.dp),
@@ -465,43 +494,64 @@ private fun MetricRowItem(row: MetricRow) {
 
 @Composable
 private fun LinkRow(
-    iconPainter: androidx.compose.ui.graphics.painter.Painter,
     title: String,
     subtitle: String,
     onClick: () -> Unit,
+    iconPainter: androidx.compose.ui.graphics.painter.Painter? = null,
+    iconVector: ImageVector? = null,
+    containerColor: Color = MaterialTheme.colorScheme.tertiaryContainer,
+    onContainerColor: Color = MaterialTheme.colorScheme.onTertiaryContainer,
 ) {
     Surface(
-        shape = RoundedCornerShape(AuriyaTokens.rounding.xl),
+        shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(AuriyaTokens.rounding.xl))
+            .clip(RoundedCornerShape(24.dp))
             .bouncyClickable(onClick = onClick),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(AuriyaTokens.padding.larger),
+                .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Icon(
-                painter = iconPainter,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(AuriyaTokens.iconSize.normal),
-            )
-            Spacer(Modifier.width(AuriyaTokens.padding.larger))
+            Surface(
+                shape = CircleShape,
+                color = containerColor,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (iconPainter != null) {
+                        Icon(
+                            painter = iconPainter,
+                            contentDescription = null,
+                            tint = onContainerColor,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    } else if (iconVector != null) {
+                        Icon(
+                            imageVector = iconVector,
+                            contentDescription = null,
+                            tint = onContainerColor,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(Modifier.height(AuriyaTokens.padding.smallest))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -585,7 +635,8 @@ private fun ProfileSelectionBottomSheet(
 
             // Balance Card
             item {
-                val isSelected = normProfile == "balance" || normProfile == "2" || normProfile.isEmpty() || normProfile == "unknown"
+                val isSelected =
+                    normProfile == "balance" || normProfile == "2" || normProfile.isEmpty() || normProfile == "unknown"
                 ProfileCard(
                     title = "Balance",
                     subtitle = "Profile 2 • Daily Dynamic Tuning",
@@ -815,9 +866,17 @@ private fun AuriyaInfoBottomSheet(
                 }
             }
 
-            // Card 2: Device Specs Info
+            // Card 2: Documentation Card
             item {
                 Surface(
+                    onClick = {
+                        context.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://auriya.pages.dev")
+                            )
+                        )
+                    },
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     modifier = Modifier.fillMaxWidth()
@@ -826,19 +885,19 @@ private fun AuriyaInfoBottomSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(18.dp),
-                        verticalAlignment = Alignment.Top,
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Outlined.PhoneAndroid,
+                                    imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -846,14 +905,14 @@ private fun AuriyaInfoBottomSheet(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "${systemInfo.codename} • ${systemInfo.androidVersion}",
+                                text = "Documentation & Manual",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "SoC: ${systemInfo.chipset} | Kernel: ${systemInfo.kernel} | API: ${systemInfo.sdk}",
+                                text = "Explore More About Auriya.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -912,7 +971,12 @@ private fun AuriyaInfoBottomSheet(
 
                         FilledTonalButton(
                             onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pavelc4/Auriya/issues")))
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://github.com/Pavelc4/Auriya/issues")
+                                    )
+                                )
                             },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
@@ -927,7 +991,12 @@ private fun AuriyaInfoBottomSheet(
 
                         Button(
                             onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Pavelc4/Auriya/issues/new")))
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://github.com/Pavelc4/Auriya/issues/new")
+                                    )
+                                )
                             },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
@@ -938,82 +1007,6 @@ private fun AuriyaInfoBottomSheet(
                             contentPadding = PaddingValues(vertical = 12.dp)
                         ) {
                             Text("Report issue or crash", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-
-            // Card 3: What to expect
-            item {
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.tertiaryContainer,
-                                modifier = Modifier.size(44.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.AutoAwesome,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-                            }
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "What to expect",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Kernel daemon features and optimizations:",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        Column(
-                            modifier = Modifier.padding(start = 6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = "• Low-overhead eBPF render thread monitoring",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "• Dynamic governor frequency scaling per frame load",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "• Per-app thermal throttle & FPS cap optimization",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "• Pure native Rust daemon with zero battery waste",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }
