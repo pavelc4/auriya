@@ -294,12 +294,24 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
         var batTempVal = "--"
         var rawBatTempNum = 0f
         runCatching {
-            val file = java.io.File("/sys/class/power_supply/battery/temp")
-            if (file.exists()) {
-                val raw = file.readText().trim().toFloatOrNull() ?: 0f
-                val c = if (raw > 1000f) raw / 10f else raw
-                batTempVal = "%.0f°C".format(c)
-                rawBatTempNum = c
+            val intent = registerReceiver(null, android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
+            val raw = intent?.getIntExtra(android.os.BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
+            val tempC = if (raw > 0) {
+                raw / 10.0f
+            } else {
+                val file = java.io.File("/sys/class/power_supply/battery/temp")
+                if (file.exists()) {
+                    val rawF = file.readText().trim().toFloatOrNull() ?: 0f
+                    when {
+                        rawF > 1000f -> rawF / 1000f
+                        rawF > 100f -> rawF / 10f
+                        else -> rawF
+                    }
+                } else 0f
+            }
+            if (tempC > 0f) {
+                batTempVal = "%.0f°C".format(tempC)
+                rawBatTempNum = tempC
             }
         }
 
@@ -492,8 +504,12 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                             if (!first) {
                                 Text("·", fontSize = subTextSize, color = Color.White.copy(alpha = 0.35f), maxLines = 1, softWrap = false)
                             }
+                            val cpuText = when {
+                                isMinimal -> data.cpuClusters.joinToString("/") + "G"
+                                else -> "CPU " + data.cpuClusters.joinToString("/") + " GHz"
+                            }
                             Text(
-                                text = if (isMinimal) data.cpuClusters.joinToString("·") else "CPU " + data.cpuClusters.joinToString("·"),
+                                text = cpuText,
                                 fontSize = subTextSize,
                                 fontFamily = GoogleSansRounded,
                                 fontWeight = FontWeight.SemiBold,
@@ -624,8 +640,12 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                         )
                                     }
                                 }
+                                val cpuText = when {
+                                    isMinimal -> data.cpuClusters.joinToString("/") + "G"
+                                    else -> data.cpuClusters.joinToString(" / ") + " GHz"
+                                }
                                 Text(
-                                    text = if (isMinimal) data.cpuClusters.joinToString(" · ") else data.cpuClusters.joinToString(" · "),
+                                    text = cpuText,
                                     fontSize = subTextSize,
                                     fontFamily = GoogleSansRounded,
                                     fontWeight = FontWeight.Medium,
