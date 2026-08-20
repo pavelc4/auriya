@@ -108,14 +108,18 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         ));
                     }
                     if let Some(ref thermal) = st.thermal_telemetry {
+                        let bat_c = crate::core::telemetry::battery::snapshot().temp_c;
                         telemetry_lines.push_str(&format!(
-                            "TEMP_CPU={} TEMP_GPU={}\n",
+                            "TEMP_CPU={} TEMP_GPU={} TEMP_BAT={}\n",
                             thermal
                                 .cpu_temp_c
                                 .map(|v| format!("{:.1}", v))
                                 .unwrap_or_else(|| "N/A".to_string()),
                             thermal
                                 .gpu_temp_c
+                                .map(|v| format!("{:.1}", v))
+                                .unwrap_or_else(|| "N/A".to_string()),
+                            bat_c
                                 .map(|v| format!("{:.1}", v))
                                 .unwrap_or_else(|| "N/A".to_string()),
                         ));

@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import dev.auriya.app.ui.theme.GoogleSansRounded
 import dev.auriya.app.data.RootShell
+import dev.auriya.app.data.stats.StatsParser
 import dev.auriya.app.ui.theme.AuriyaTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -205,117 +206,99 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
     }
 
     private fun queryTelemetry(): TelemetryData {
-        // 1. Query FPS
+        // 1. Fetch structured telemetry snapshot directly from IPC via StatsParser
+        val stats = StatsParser.fetchStats()
+
+        // 2. FPS
         var fpsVal = "0"
         var rawFpsNum = 0f
-        runCatching {
-            val out = RootShell.run("printf 'GET_FPS\nQUIT\n' | timeout 2 nc -U /dev/socket/auriya.sock 2>/dev/null")
-            val fpsLine = out.lines().find { it.startsWith("FPS=") }
-            if (fpsLine != null) {
-                val num = fpsLine.split(" ").firstOrNull()?.removePrefix("FPS=")?.toFloatOrNull() ?: 0f
-                if (num > 0f) {
-                    fpsVal = "%.1f".format(num)
-                    rawFpsNum = num
+        if (stats?.fps != null && stats.fps.avg > 0) {
+            fpsVal = "%.1f".format(stats.fps.avg)
+            rawFpsNum = stats.fps.avg.toFloat()
+        } else {
+            runCatching {
+                val out = RootShell.run("printf 'GET_FPS\nQUIT\n' | timeout 2 nc -U /dev/socket/auriya.sock 2>/dev/null")
+                val fpsLine = out.lines().find { it.startsWith("FPS=") }
+                if (fpsLine != null) {
+                    val num = fpsLine.split(" ").firstOrNull()?.removePrefix("FPS=")?.toFloatOrNull() ?: 0f
+                    if (num > 0f) {
+                        fpsVal = "%.1f".format(num)
+                        rawFpsNum = num
+                    }
                 }
             }
         }
 
-        // 2. Query Status
-        var cpuClusters = mutableListOf<String>()
-        var gpuFreqVal = "--"
-        var gpuLoadVal = "--"
-        var cpuTempVal = "--"
-        var rawCpuTempNum = 0f
-        var hasGpuDevice = false
-
-        runCatching {
-            val out = RootShell.run("printf 'STATUS\nQUIT\n' | timeout 2 nc -U /dev/socket/auriya.sock 2>/dev/null")
-            val lines = out.lines()
-
-            // CPU clusters
+        // 3. CPU Clusters
+        val cpuClusters = mutableListOf<String>()
+        stats?.cpu?.cores?.let { cores ->
             val clustersMap = mutableMapOf<Int, MutableList<Long>>()
-            lines.forEach { line ->
-                if (line.contains("CORE_") && line.contains("freq=")) {
-                    val tokens = line.split(" ")
-                    val freq = tokens.find { it.startsWith("freq=") }?.removePrefix("freq=")?.toLongOrNull()
-                    val clusterStr = tokens.find { it.startsWith("cluster=") }?.removePrefix("cluster=")
-                    val cleanCluster = clusterStr?.lowercase()?.removeSurrounding("[", "]")?.removeSurrounding("some(", ")")?.trim()
-                    val cluster = when (cleanCluster) {
-                        "little", "0" -> 0
-                        "big", "mid", "1" -> 1
-                        "prime", "2" -> 2
-                        else -> cleanCluster?.toIntOrNull() ?: 0
-                    }
-                    if (freq != null && freq > 0) {
-                        clustersMap.getOrPut(cluster) { mutableListOf() }.add(freq)
-                    }
+            cores.forEach { core ->
+                val cluster = when (core.cluster.lowercase().trim()) {
+                    "little", "0" -> 0
+                    "big", "mid", "1" -> 1
+                    "prime", "2" -> 2
+                    else -> core.cluster.toIntOrNull() ?: 0
+                }
+                if (core.khz > 0) {
+                    clustersMap.getOrPut(cluster) { mutableListOf() }.add(core.khz)
                 }
             }
-            // Sort by cluster id and get average freq in GHz
             clustersMap.keys.sorted().forEach { cId ->
                 val freqs = clustersMap[cId]!!
                 val avgFreqKHz = freqs.average()
                 val freqGHz = avgFreqKHz / 1_000_000.0
-                cpuClusters.add("%.1fG".format(freqGHz))
-            }
-
-            // GPU
-            val gpuLine = lines.find { it.contains("GPU_FREQ=") }
-            if (gpuLine != null) {
-                val tokens = gpuLine.split(" ")
-                val freq = tokens.find { it.startsWith("GPU_FREQ=") }?.removePrefix("GPU_FREQ=")?.toIntOrNull()
-                val load = tokens.find { it.startsWith("GPU_LOAD=") }?.removePrefix("GPU_LOAD=")?.toIntOrNull()
-                val vendor = tokens.find { it.startsWith("GPU_VENDOR=") }?.removePrefix("GPU_VENDOR=")
-                if (vendor != null && vendor != "None" && !vendor.contains("None")) {
-                    hasGpuDevice = true
-                }
-                if (freq != null && freq > 0) {
-                    gpuFreqVal = "${freq}M"
-                    hasGpuDevice = true
-                }
-                if (load != null) {
-                    gpuLoadVal = "$load%"
-                }
-            }
-
-            // CPU Temp
-            val tempLine = lines.find { it.contains("TEMP_CPU=") }
-            if (tempLine != null) {
-                val tokens = tempLine.split(" ")
-                val tempCpu = tokens.find { it.startsWith("TEMP_CPU=") }?.removePrefix("TEMP_CPU=")?.toFloatOrNull()
-                if (tempCpu != null) {
-                    cpuTempVal = "%.0f°C".format(tempCpu)
-                    rawCpuTempNum = tempCpu
-                }
+                cpuClusters.add("%.1f".format(freqGHz))
             }
         }
 
-        // 3. Battery Temp
+        // 4. GPU
+        var gpuFreqVal = "--"
+        var gpuLoadVal = "--"
+        var hasGpuDevice = false
+        stats?.gpu?.let { gpu ->
+            if (gpu.vendor != null && gpu.vendor != "None" && !gpu.vendor.contains("None")) {
+                hasGpuDevice = true
+            }
+            if (gpu.mhz != null && gpu.mhz > 0) {
+                gpuFreqVal = "${gpu.mhz}M"
+                hasGpuDevice = true
+            }
+            if (gpu.load_pct != null) {
+                gpuLoadVal = "${gpu.load_pct}%"
+            }
+        }
+
+        // 5. CPU Temp
+        var cpuTempVal = "--"
+        var rawCpuTempNum = 0f
+        stats?.thermal?.cpu_c?.let { temp ->
+            if (temp > 0f) {
+                cpuTempVal = "%.0f°C".format(temp)
+                rawCpuTempNum = temp
+            }
+        }
+
+        // 6. Battery Temp (from IPC stats.thermal.battery_c with BatteryManager fallback)
         var batTempVal = "--"
         var rawBatTempNum = 0f
-        runCatching {
-            val intent = registerReceiver(null, android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
-            val raw = intent?.getIntExtra(android.os.BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
-            val tempC = if (raw > 0) {
-                raw / 10.0f
-            } else {
-                val file = java.io.File("/sys/class/power_supply/battery/temp")
-                if (file.exists()) {
-                    val rawF = file.readText().trim().toFloatOrNull() ?: 0f
-                    when {
-                        rawF > 1000f -> rawF / 1000f
-                        rawF > 100f -> rawF / 10f
-                        else -> rawF
-                    }
-                } else 0f
-            }
-            if (tempC > 0f) {
-                batTempVal = "%.0f°C".format(tempC)
-                rawBatTempNum = tempC
+        val ipcBatTemp = stats?.thermal?.battery_c
+        if (ipcBatTemp != null && ipcBatTemp > 0f) {
+            batTempVal = "%.0f°C".format(ipcBatTemp)
+            rawBatTempNum = ipcBatTemp
+        } else {
+            runCatching {
+                val intent = registerReceiver(null, android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
+                val raw = intent?.getIntExtra(android.os.BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
+                if (raw > 0) {
+                    val c = raw / 10.0f
+                    batTempVal = "%.0f°C".format(c)
+                    rawBatTempNum = c
+                }
             }
         }
 
-        // 4. Memory (RAM)
+        // 7. Memory (RAM)
         var ramVal = "--"
         runCatching {
             val actManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
