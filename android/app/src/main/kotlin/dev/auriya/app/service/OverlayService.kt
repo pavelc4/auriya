@@ -72,7 +72,8 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
         val ram: String = "--",
         val rawFps: Float = 0f,
         val rawCpuTemp: Float = 0f,
-        val rawBatTemp: Float = 0f
+        val rawBatTemp: Float = 0f,
+        val hasGpu: Boolean = false,
     )
 
     private val telemetryState = mutableStateOf(TelemetryData())
@@ -225,6 +226,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
         var gpuLoadVal = "--"
         var cpuTempVal = "--"
         var rawCpuTempNum = 0f
+        var hasGpuDevice = false
 
         runCatching {
             val out = RootShell.run("printf 'STATUS\nQUIT\n' | timeout 2 nc -U /dev/socket/auriya.sock 2>/dev/null")
@@ -233,12 +235,18 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
             // CPU clusters
             val clustersMap = mutableMapOf<Int, MutableList<Long>>()
             lines.forEach { line ->
-                if (line.contains("CORE_") && line.contains("freq=") && line.contains("cluster=")) {
+                if (line.contains("CORE_") && line.contains("freq=")) {
                     val tokens = line.split(" ")
                     val freq = tokens.find { it.startsWith("freq=") }?.removePrefix("freq=")?.toLongOrNull()
                     val clusterStr = tokens.find { it.startsWith("cluster=") }?.removePrefix("cluster=")
-                    val cluster = clusterStr?.removeSurrounding("[", "]")?.removeSurrounding("Some(", ")")?.toIntOrNull()
-                    if (freq != null && cluster != null) {
+                    val cleanCluster = clusterStr?.lowercase()?.removeSurrounding("[", "]")?.removeSurrounding("some(", ")")?.trim()
+                    val cluster = when (cleanCluster) {
+                        "little", "0" -> 0
+                        "big", "mid", "1" -> 1
+                        "prime", "2" -> 2
+                        else -> cleanCluster?.toIntOrNull() ?: 0
+                    }
+                    if (freq != null && freq > 0) {
                         clustersMap.getOrPut(cluster) { mutableListOf() }.add(freq)
                     }
                 }
@@ -257,8 +265,17 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                 val tokens = gpuLine.split(" ")
                 val freq = tokens.find { it.startsWith("GPU_FREQ=") }?.removePrefix("GPU_FREQ=")?.toIntOrNull()
                 val load = tokens.find { it.startsWith("GPU_LOAD=") }?.removePrefix("GPU_LOAD=")?.toIntOrNull()
-                if (freq != null) gpuFreqVal = "${freq}M"
-                if (load != null) gpuLoadVal = "$load%"
+                val vendor = tokens.find { it.startsWith("GPU_VENDOR=") }?.removePrefix("GPU_VENDOR=")
+                if (vendor != null && vendor != "None" && !vendor.contains("None")) {
+                    hasGpuDevice = true
+                }
+                if (freq != null && freq > 0) {
+                    gpuFreqVal = "${freq}M"
+                    hasGpuDevice = true
+                }
+                if (load != null) {
+                    gpuLoadVal = "$load%"
+                }
             }
 
             // CPU Temp
@@ -307,7 +324,8 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
             ram = ramVal,
             rawFps = rawFpsNum,
             rawCpuTemp = rawCpuTempNum,
-            rawBatTemp = rawBatTempNum
+            rawBatTemp = rawBatTempNum,
+            hasGpu = hasGpuDevice
         )
     }
 
@@ -391,22 +409,19 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                 basePrimary
             }
 
-            val cpuColor = if (monetEnabled) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                baseSecondary
+            val cpuColor = when {
+                monetEnabled -> MaterialTheme.colorScheme.onSurface
+                else -> baseSecondary
             }
 
-            val gpuColor = if (monetEnabled) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                baseTertiary
+            val gpuColor = when {
+                monetEnabled -> MaterialTheme.colorScheme.onSurfaceVariant
+                else -> baseTertiary
             }
 
-            val ramColor = if (monetEnabled) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                baseSecondary
+            val ramColor = when {
+                monetEnabled -> MaterialTheme.colorScheme.onSurfaceVariant
+                else -> baseSecondary
             }
 
             val cpuTempDotColor = when {
@@ -416,12 +431,10 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                 else -> Color(0xFF888888)
             }
 
-            val cpuTempColor = if (monetEnabled) {
-                MaterialTheme.colorScheme.secondary
-            } else if (overlayPreset == "custom") {
-                baseTertiary
-            } else {
-                cpuTempDotColor
+            val cpuTempColor = when {
+                monetEnabled -> MaterialTheme.colorScheme.secondary
+                overlayPreset == "custom" -> baseTertiary
+                else -> cpuTempDotColor
             }
 
             val batTempDotColor = when {
@@ -431,12 +444,10 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                 else -> Color(0xFF888888)
             }
 
-            val batTempColor = if (monetEnabled) {
-                MaterialTheme.colorScheme.tertiary
-            } else if (overlayPreset == "custom") {
-                baseTertiary
-            } else {
-                batTempDotColor
+            val batTempColor = when {
+                monetEnabled -> MaterialTheme.colorScheme.tertiary
+                overlayPreset == "custom" -> baseTertiary
+                else -> batTempDotColor
             }
 
             val isMinimal = overlayMode == "Minimal"
@@ -493,7 +504,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                             first = false
                         }
 
-                        if (showGpu && data.gpuFreq != "--") {
+                        if (showGpu && data.hasGpu && data.gpuFreq != "--") {
                             if (!first) {
                                 Text("·", fontSize = subTextSize, color = Color.White.copy(alpha = 0.35f), maxLines = 1, softWrap = false)
                             }
@@ -625,7 +636,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                             }
                         }
 
-                        if (showGpu && data.gpuFreq != "--") {
+                        if (showGpu && data.hasGpu && data.gpuFreq != "--") {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)

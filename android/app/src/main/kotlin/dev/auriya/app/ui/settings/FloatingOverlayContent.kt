@@ -25,9 +25,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.data.RootShell
 import dev.auriya.app.ui.components.*
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.ui.theme.GoogleSansRounded
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class ColorPreset(
     val id: String,
@@ -110,6 +113,27 @@ fun FloatingOverlayContent(
         }
     }
 
+    var isGpuAvailable by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            val out = RootShell.run("printf 'STATUS\nQUIT\n' | timeout 2 nc -U /dev/socket/auriya.sock 2>/dev/null")
+            val gpuLine = out.lines().find { it.contains("GPU_FREQ=") }
+            val hasGpuIpc = if (gpuLine != null) {
+                val vendor = gpuLine.split(" ").find { it.startsWith("GPU_VENDOR=") }?.removePrefix("GPU_VENDOR=")
+                val freq = gpuLine.split(" ").find { it.startsWith("GPU_FREQ=") }?.removePrefix("GPU_FREQ=")?.toIntOrNull()
+                (vendor != null && vendor != "None" && !vendor.contains("None")) || (freq != null && freq > 0)
+            } else {
+                false
+            }
+            val sysfsGpu = java.io.File("/sys/class/kgsl/kgsl-3d0/gpuclk").exists() ||
+                    java.io.File("/sys/class/kgsl/kgsl-3d0/clock_mhz").exists() ||
+                    java.io.File("/sys/kernel/gpu/gpu_clock").exists() ||
+                    java.io.File("/sys/kernel/ged/gpu/gpu_cur_freq").exists()
+            isGpuAvailable = hasGpuIpc || sysfsGpu
+        }
+    }
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -132,7 +156,15 @@ fun FloatingOverlayContent(
 
         // --- 2. TELEMETRY METRICS SUBSECTION ---
         SettingsSubsection(title = "TELEMETRY METRICS") {
-            val totalMetrics = 6
+            val metricsList = buildList {
+                add("fps")
+                add("cpu")
+                if (isGpuAvailable) add("gpu")
+                add("ram")
+                add("temp")
+                add("battery")
+            }
+            val totalMetrics = metricsList.size
 
             SwitchSettingItem(
                 title = "FPS Counter",
@@ -145,7 +177,7 @@ fun FloatingOverlayContent(
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.Speed,
-                shape = itemShapeFor(0, totalMetrics)
+                shape = itemShapeFor(metricsList.indexOf("fps"), totalMetrics)
             )
 
             SwitchSettingItem(
@@ -159,22 +191,24 @@ fun FloatingOverlayContent(
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.Memory,
-                shape = itemShapeFor(1, totalMetrics)
+                shape = itemShapeFor(metricsList.indexOf("cpu"), totalMetrics)
             )
 
-            SwitchSettingItem(
-                title = "GPU Metrics",
-                subtitle = "Display GPU frequency & load percentage",
-                checked = showGpu,
-                enabled = enableOverlay,
-                onCheckedChange = {
-                    showGpu = it
-                    prefs.edit().putBoolean("show_gpu", it).apply()
-                    restartOverlay(context)
-                },
-                icon = Icons.Rounded.DeveloperBoard,
-                shape = itemShapeFor(2, totalMetrics)
-            )
+            if (isGpuAvailable) {
+                SwitchSettingItem(
+                    title = "GPU Metrics",
+                    subtitle = "Display GPU frequency & load percentage",
+                    checked = showGpu,
+                    enabled = enableOverlay,
+                    onCheckedChange = {
+                        showGpu = it
+                        prefs.edit().putBoolean("show_gpu", it).apply()
+                        restartOverlay(context)
+                    },
+                    icon = Icons.Rounded.DeveloperBoard,
+                    shape = itemShapeFor(metricsList.indexOf("gpu"), totalMetrics)
+                )
+            }
 
             SwitchSettingItem(
                 title = "RAM Usage",
@@ -187,7 +221,7 @@ fun FloatingOverlayContent(
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.PieChart,
-                shape = itemShapeFor(3, totalMetrics)
+                shape = itemShapeFor(metricsList.indexOf("ram"), totalMetrics)
             )
 
             SwitchSettingItem(
@@ -201,7 +235,7 @@ fun FloatingOverlayContent(
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.Thermostat,
-                shape = itemShapeFor(4, totalMetrics)
+                shape = itemShapeFor(metricsList.indexOf("temp"), totalMetrics)
             )
 
             SwitchSettingItem(
@@ -215,7 +249,7 @@ fun FloatingOverlayContent(
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.BatteryChargingFull,
-                shape = itemShapeFor(5, totalMetrics)
+                shape = itemShapeFor(metricsList.indexOf("battery"), totalMetrics)
             )
         }
 
