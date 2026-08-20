@@ -60,6 +60,7 @@ fun FloatingOverlayContent(
 
     var layoutStyle by remember { mutableStateOf(prefs.getString("layout_style", "Horizontal") ?: "Horizontal") }
     var overlayMode by remember { mutableStateOf(prefs.getString("overlay_mode", "Full") ?: "Full") }
+    var cpuStyle by remember { mutableStateOf(prefs.getString("cpu_style", "tags") ?: "tags") }
     var updateIntervalMs by remember { mutableStateOf(prefs.getLong("update_interval_ms", 1000L)) }
     
     var textSizeSp by remember { mutableStateOf(prefs.getFloat("text_size_sp", 12f)) }
@@ -255,7 +256,7 @@ fun FloatingOverlayContent(
 
         // --- 3. DISPLAY & LAYOUT FORMAT SUBSECTION ---
         SettingsSubsection(title = "DISPLAY & LAYOUT") {
-            val totalLayoutItems = 2
+            val totalLayoutItems = 3
 
             SegmentedSettingItem(
                 title = "HUD Format Mode",
@@ -273,6 +274,36 @@ fun FloatingOverlayContent(
             )
 
             SegmentedSettingItem(
+                title = "CPU Metric Style",
+                subtitle = when (cpuStyle) {
+                    "tags" -> "Cluster tags (e.g. L1.5 B1.8 P0.8)"
+                    "load_peak" -> "Load % & Peak clock (e.g. 40% @ 1.8G)"
+                    "pipe" -> "Pipe separator (e.g. 1.5 | 1.8 | 0.8G)"
+                    else -> "Classic slash (e.g. 1.5/1.8/0.8 GHz)"
+                },
+                icon = Icons.Rounded.Memory,
+                items = listOf("Tags", "Load+Peak", "Pipe", "Slash"),
+                selectedIndex = when (cpuStyle) {
+                    "tags" -> 0
+                    "load_peak" -> 1
+                    "pipe" -> 2
+                    else -> 3
+                },
+                onItemSelected = {
+                    cpuStyle = when (it) {
+                        0 -> "tags"
+                        1 -> "load_peak"
+                        2 -> "pipe"
+                        else -> "slash"
+                    }
+                    prefs.edit().putString("cpu_style", cpuStyle).apply()
+                    restartOverlay(context)
+                },
+                shape = itemShapeFor(1, totalLayoutItems),
+                enabled = enableOverlay
+            )
+
+            SegmentedSettingItem(
                 title = "Layout Orientation",
                 subtitle = if (layoutStyle == "Horizontal") "Horizontal wide floating bar" else "Vertical compact stack",
                 icon = Icons.Rounded.ViewAgenda,
@@ -283,7 +314,7 @@ fun FloatingOverlayContent(
                     prefs.edit().putString("layout_style", layoutStyle).apply()
                     restartOverlay(context)
                 },
-                shape = itemShapeFor(1, totalLayoutItems),
+                shape = itemShapeFor(2, totalLayoutItems),
                 enabled = enableOverlay
             )
         }

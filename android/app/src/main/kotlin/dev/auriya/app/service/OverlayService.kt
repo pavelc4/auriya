@@ -66,6 +66,9 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
     data class TelemetryData(
         val fps: String = "--",
         val cpuClusters: List<String> = emptyList(),
+        val cpuClusterLabels: List<String> = emptyList(),
+        val cpuLoadPct: Float = 0f,
+        val maxCpuFreqGHz: Float = 0f,
         val gpuFreq: String = "--",
         val gpuLoad: String = "--",
         val cpuTemp: String = "--",
@@ -126,6 +129,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                     val cornerRadiusDp = prefs.getFloat("corner_radius_dp", 16f)
                     val layoutStyle = prefs.getString("layout_style", "Horizontal") ?: "Horizontal"
                     val overlayMode = prefs.getString("overlay_mode", "Full") ?: "Full"
+                    val cpuStyle = prefs.getString("cpu_style", "tags") ?: "tags"
 
                     if (hasAnyMetric) {
                         OverlayChip(
@@ -147,6 +151,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                             cornerRadiusDp = cornerRadiusDp,
                             layoutStyle = layoutStyle,
                             overlayMode = overlayMode,
+                            cpuStyle = cpuStyle,
                             onDrag = { dx, dy ->
                                 val displayMetrics = resources.displayMetrics
                                 val screenWidth = displayMetrics.widthPixels
@@ -193,7 +198,8 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
 
     private fun startPolling() {
         val prefs = getSharedPreferences("auriya_overlay", MODE_PRIVATE)
-        val interval = prefs.getLong("update_interval_ms", 1000L)
+        val interval = prefs.getLong("update_interval_ms", 1000L).coerceAtLeast(200L)
+
         pollingJob = CoroutineScope(Dispatchers.IO + Job()).launch {
             while (isActive) {
                 val data = queryTelemetry()
@@ -206,7 +212,6 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
     }
 
     private fun queryTelemetry(): TelemetryData {
-        // 1. Fetch structured telemetry snapshot directly from IPC via StatsParser
         val stats = StatsParser.fetchStats()
 
         // 2. FPS
@@ -229,19 +234,26 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
             }
         }
 
-        // 3. CPU Clusters
+        // 3. CPU Clusters & Load
         val cpuClusters = mutableListOf<String>()
+        val cpuClusterLabels = mutableListOf<String>()
+        var maxFreqKHz = 0L
+        val cpuLoadPct = stats?.cpu?.load_pct ?: 0f
+
         stats?.cpu?.cores?.let { cores ->
             val clustersMap = mutableMapOf<Int, MutableList<Long>>()
+            val clusterNameMap = mutableMapOf<Int, String>()
             cores.forEach { core ->
-                val cluster = when (core.cluster.lowercase().trim()) {
-                    "little", "0" -> 0
-                    "big", "mid", "1" -> 1
-                    "prime", "2" -> 2
-                    else -> core.cluster.toIntOrNull() ?: 0
+                val (clusterId, label) = when (core.cluster.lowercase().trim()) {
+                    "little", "0" -> Pair(0, "L")
+                    "big", "mid", "1" -> Pair(1, if (cores.any { it.cluster.equals("prime", ignoreCase = true) }) "M" else "B")
+                    "prime", "2" -> Pair(2, "P")
+                    else -> Pair(core.cluster.toIntOrNull() ?: 0, "C${core.cluster}")
                 }
                 if (core.khz > 0) {
-                    clustersMap.getOrPut(cluster) { mutableListOf() }.add(core.khz)
+                    clustersMap.getOrPut(clusterId) { mutableListOf() }.add(core.khz)
+                    clusterNameMap[clusterId] = label
+                    if (core.khz > maxFreqKHz) maxFreqKHz = core.khz
                 }
             }
             clustersMap.keys.sorted().forEach { cId ->
@@ -249,8 +261,10 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                 val avgFreqKHz = freqs.average()
                 val freqGHz = avgFreqKHz / 1_000_000.0
                 cpuClusters.add("%.1f".format(freqGHz))
+                cpuClusterLabels.add(clusterNameMap[cId] ?: "C")
             }
         }
+        val maxCpuFreqGHz = if (maxFreqKHz > 0) maxFreqKHz / 1_000_000f else 0f
 
         // 4. GPU
         var gpuFreqVal = "--"
@@ -312,6 +326,9 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
         return TelemetryData(
             fps = fpsVal,
             cpuClusters = cpuClusters,
+            cpuClusterLabels = cpuClusterLabels,
+            cpuLoadPct = cpuLoadPct,
+            maxCpuFreqGHz = maxCpuFreqGHz,
             gpuFreq = gpuFreqVal,
             gpuLoad = gpuLoadVal,
             cpuTemp = cpuTempVal,
@@ -352,6 +369,7 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
             cornerRadiusDp: Float,
             layoutStyle: String,
             overlayMode: String,
+            cpuStyle: String = "tags",
             onDrag: (Float, Float) -> Unit,
             onDragEnd: () -> Unit
         ) {
@@ -483,13 +501,31 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                             first = false
                         }
 
-                        if (showCpu && data.cpuClusters.isNotEmpty()) {
+                        if (showCpu && (data.cpuClusters.isNotEmpty() || data.cpuLoadPct > 0f)) {
                             if (!first) {
                                 Text("·", fontSize = subTextSize, color = Color.White.copy(alpha = 0.35f), maxLines = 1, softWrap = false)
                             }
-                            val cpuText = when {
-                                isMinimal -> data.cpuClusters.joinToString("/") + "G"
-                                else -> "CPU " + data.cpuClusters.joinToString("/") + " GHz"
+                            val cpuText = when (cpuStyle) {
+                                "tags" -> {
+                                    val tagged = if (data.cpuClusterLabels.isNotEmpty()) {
+                                        data.cpuClusterLabels.zip(data.cpuClusters).joinToString(" ") { (lbl, frq) -> "$lbl$frq" }
+                                    } else {
+                                        data.cpuClusters.joinToString(" ")
+                                    }
+                                    if (isMinimal) tagged else "CPU $tagged"
+                                }
+                                "load_peak" -> {
+                                    if (isMinimal) "%.0f%% @ %.1fG".format(data.cpuLoadPct, data.maxCpuFreqGHz)
+                                    else "CPU %.0f%% @ %.1f GHz".format(data.cpuLoadPct, data.maxCpuFreqGHz)
+                                }
+                                "pipe" -> {
+                                    val piped = data.cpuClusters.joinToString(" | ") + "G"
+                                    if (isMinimal) piped else "CPU $piped"
+                                }
+                                else -> {
+                                    if (isMinimal) data.cpuClusters.joinToString("/") + "G"
+                                    else "CPU " + data.cpuClusters.joinToString("/") + " GHz"
+                                }
                             }
                             Text(
                                 text = cpuText,
@@ -623,9 +659,26 @@ class OverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStat
                                         )
                                     }
                                 }
-                                val cpuText = when {
-                                    isMinimal -> data.cpuClusters.joinToString("/") + "G"
-                                    else -> data.cpuClusters.joinToString(" / ") + " GHz"
+                                val cpuText = when (cpuStyle) {
+                                    "tags" -> {
+                                        if (isMinimal) {
+                                            data.cpuClusterLabels.zip(data.cpuClusters).joinToString(" ") { (lbl, frq) -> "$lbl$frq" }
+                                        } else {
+                                            data.cpuClusterLabels.zip(data.cpuClusters).joinToString("   ") { (lbl, frq) -> "$lbl: ${frq}G" }
+                                        }
+                                    }
+                                    "load_peak" -> {
+                                        if (isMinimal) "%.0f%% @ %.1fG".format(data.cpuLoadPct, data.maxCpuFreqGHz)
+                                        else "%.0f%%  (Peak %.1f GHz)".format(data.cpuLoadPct, data.maxCpuFreqGHz)
+                                    }
+                                    "pipe" -> {
+                                        if (isMinimal) data.cpuClusters.joinToString(" | ") + "G"
+                                        else data.cpuClusters.joinToString("  |  ") + " GHz"
+                                    }
+                                    else -> {
+                                        if (isMinimal) data.cpuClusters.joinToString("/") + "G"
+                                        else data.cpuClusters.joinToString(" / ") + " GHz"
+                                    }
                                 }
                                 Text(
                                     text = cpuText,
