@@ -75,8 +75,12 @@ class BenchmarkRepository(
     }
 
     fun deleteSession(id: String) {
+        deleteSessions(setOf(id))
+    }
+
+    fun deleteSessions(ids: Set<String>) {
         try {
-            val current = getAllSessions().filter { it.id != id }
+            val current = getAllSessions().filter { it.id !in ids }
             val array = JSONArray()
             current.forEach { array.put(serializeSession(it)) }
             sessionsFile.writeText(array.toString(2))

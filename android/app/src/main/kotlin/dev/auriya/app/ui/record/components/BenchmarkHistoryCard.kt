@@ -1,6 +1,8 @@
 package dev.auriya.app.ui.record.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,10 +26,14 @@ import dev.auriya.app.data.stats.BenchmarkSession
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BenchmarkSessionCard(
     session: BenchmarkSession,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -43,14 +49,24 @@ fun BenchmarkSessionCard(
             AppIconCache.load(context.packageManager, session.packageName)
         }
 
+    val cardColor =
+        if (isSelected) {
+            MaterialTheme.colorScheme.surfaceContainerHighest
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        }
+
     Surface(
         shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = cardColor,
         modifier =
             modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .clickable { onClick() },
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick,
+                ),
     ) {
         Row(
             modifier =
@@ -155,12 +171,25 @@ fun BenchmarkSessionCard(
                 }
             }
 
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.size(20.dp),
-            )
+            if (isSelectionMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = null,
+                    colors =
+                        CheckboxDefaults.colors(
+                            checkedColor = MaterialTheme.colorScheme.primary,
+                            checkmarkColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    modifier = Modifier.size(24.dp),
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
     }
 }

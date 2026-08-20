@@ -448,6 +448,10 @@ class UiViewModel(
         benchmarkRecorder.deleteSession(id)
     }
 
+    fun deleteBenchmarkSessions(ids: Set<String>) {
+        benchmarkRecorder.deleteSessions(ids)
+    }
+
     fun clearAllBenchmarkSessions() {
         benchmarkRecorder.clearAllSessions()
     }

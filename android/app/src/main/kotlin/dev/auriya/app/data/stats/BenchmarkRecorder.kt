@@ -170,6 +170,11 @@ class BenchmarkRecorder private constructor(
         loadSessions()
     }
 
+    fun deleteSessions(ids: Set<String>) {
+        repository.deleteSessions(ids)
+        loadSessions()
+    }
+
     fun clearAllSessions() {
         repository.clearAll()
         loadSessions()

@@ -528,6 +528,7 @@ fun RecordScreen(
                             activeSubScreen = RecordSubScreen.SESSION_DETAIL
                         },
                         onDeleteSession = { viewModel.deleteBenchmarkSession(it) },
+                        onDeleteSessions = { viewModel.deleteBenchmarkSessions(it) },
                     )
                 }
 
