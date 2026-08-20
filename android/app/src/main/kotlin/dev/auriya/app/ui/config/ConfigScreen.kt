@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -100,22 +101,25 @@ fun ConfigScreen(
     var dgCvThreshold by remember(settings) { mutableFloatStateOf(settings.dynamicGovernor.cvThreshold.toFloat()) }
     var dgDebounceFrames by remember(settings) { mutableFloatStateOf(settings.dynamicGovernor.debounceFrames.toFloat()) }
 
-    var selectedModeKey by remember { mutableStateOf("balance") }
-    val modesMap by remember(settings) {
-        mutableStateOf(
-            if (settings.modes.isNotEmpty()) settings.modes
-            else mapOf(
-                "powersave" to FasMode(margin = 5.0, thermalThreshold = 80.0),
-                "balance" to FasMode(margin = 2.0, thermalThreshold = 90.0),
-                "performance" to FasMode(margin = 1.0, thermalThreshold = 95.0),
-                "fast" to FasMode(margin = 0.0, thermalThreshold = 95.0)
-            )
+    val defaultModes = remember {
+        mapOf(
+            "powersave" to FasMode(margin = 5.0, thermalThreshold = 80.0),
+            "balance" to FasMode(margin = 2.0, thermalThreshold = 90.0),
+            "performance" to FasMode(margin = 1.0, thermalThreshold = 95.0),
+            "fast" to FasMode(margin = 0.0, thermalThreshold = 95.0)
         )
     }
+    val effectiveModes = remember(settings.modes) {
+        if (settings.modes.isNotEmpty()) defaultModes + settings.modes else defaultModes
+    }
 
-    val currentMode = modesMap[selectedModeKey] ?: FasMode(margin = 2.0, thermalThreshold = 90.0)
-    var modeMargin by remember(selectedModeKey, currentMode) { mutableFloatStateOf(currentMode.margin.toFloat()) }
-    var modeThermal by remember(selectedModeKey, currentMode) { mutableFloatStateOf(currentMode.thermalThreshold.toFloat()) }
+    var selectedModeKey by rememberSaveable(settings.daemon.defaultMode) {
+        mutableStateOf(settings.daemon.defaultMode.ifEmpty { "balance" })
+    }
+
+    val currentMode = effectiveModes[selectedModeKey] ?: defaultModes[selectedModeKey] ?: FasMode(margin = 2.0, thermalThreshold = 90.0)
+    var modeMargin by remember(selectedModeKey, currentMode.margin) { mutableFloatStateOf(currentMode.margin.toFloat()) }
+    var modeThermal by remember(selectedModeKey, currentMode.thermalThreshold) { mutableFloatStateOf(currentMode.thermalThreshold.toFloat()) }
 
     val governorsFromVm by viewModel.availableGovernors.collectAsState()
     val effectiveGovernors = remember(governorsFromVm, defaultGov) {
@@ -428,7 +432,7 @@ fun ConfigScreen(
                                 onOpenTuneProfilePicker = { showTuneProfilePopup = true },
                                 onMarginChange = { modeMargin = it },
                                 onMarginFinished = {
-                                    val updatedModes = modesMap.toMutableMap().apply {
+                                    val updatedModes = effectiveModes.toMutableMap().apply {
                                         this[selectedModeKey] = FasMode(margin = modeMargin.toDouble(), thermalThreshold = modeThermal.toDouble())
                                     }
                                     val updated = settings.copy(modes = updatedModes)
@@ -436,7 +440,7 @@ fun ConfigScreen(
                                 },
                                 onThermalChange = { modeThermal = it },
                                 onThermalFinished = {
-                                    val updatedModes = modesMap.toMutableMap().apply {
+                                    val updatedModes = effectiveModes.toMutableMap().apply {
                                         this[selectedModeKey] = FasMode(margin = modeMargin.toDouble(), thermalThreshold = modeThermal.toDouble())
                                     }
                                     val updated = settings.copy(modes = updatedModes)
@@ -505,6 +509,9 @@ fun ConfigScreen(
         sheetState = tuneProfilePopupState,
         onSelect = { key ->
             selectedModeKey = key
+            val targetMode = effectiveModes[key] ?: defaultModes[key] ?: FasMode(margin = 2.0, thermalThreshold = 90.0)
+            modeMargin = targetMode.margin.toFloat()
+            modeThermal = targetMode.thermalThreshold.toFloat()
             showTuneProfilePopup = false
         },
         onDismiss = { showTuneProfilePopup = false }

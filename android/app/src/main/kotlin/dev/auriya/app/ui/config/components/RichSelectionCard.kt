@@ -23,6 +23,7 @@ fun RichSelectionCard(
     description: String,
     icon: ImageVector,
     selected: Boolean,
+    badgeText: String = "ACTIVE",
     onClick: () -> Unit
 ) {
     val cardBg = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
@@ -77,7 +78,7 @@ fun RichSelectionCard(
                             color = MaterialTheme.colorScheme.primary,
                         ) {
                             Text(
-                                text = "ACTIVE",
+                                text = badgeText,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontFamily = GoogleSansRounded,
                                 fontWeight = FontWeight.Bold,

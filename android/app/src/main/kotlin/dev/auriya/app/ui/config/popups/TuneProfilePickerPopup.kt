@@ -76,6 +76,7 @@ fun TuneProfilePickerPopup(
                     description = desc,
                     icon = icon,
                     selected = isSelected,
+                    badgeText = "TUNING",
                     onClick = { onSelect(key) }
                 )
             }
