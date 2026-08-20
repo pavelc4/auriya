@@ -20,9 +20,9 @@ fun LinearWavyProgress(
     modifier: Modifier = Modifier,
     trackColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
     indicatorColor: Color = MaterialTheme.colorScheme.primary,
-    waveLength: Float = 16f,
-    amplitude: Float = 2.5f,
-    strokeWidth: Float = 4f,
+    waveLength: Float = 72f,
+    amplitude: Float = 6f,
+    strokeWidth: Float = 10f,
 ) {
     val animated by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),

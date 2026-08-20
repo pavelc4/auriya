@@ -125,8 +125,8 @@ fun BatteryDetailPane(
                                 color = MaterialTheme.colorScheme.primary,
                                 trackColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                                 strokeWidth = 4.dp,
-                                amplitude = 1.6.dp,
-                                wavelength = 10.dp,
+                                amplitude = 2.2.dp,
+                                wavelength = 28.dp,
                             )
                         }
                     }

@@ -262,9 +262,9 @@ fun ThermalInsightCard(
                         progress = 1f,
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        strokeWidth = 12.dp,
+                        strokeWidth = 6.dp,
                         amplitude = 2.dp,
-                        frequency = 14,
+                        frequency = 10,
                     )
 
                     // Active Progress (scaled to 0-85°C max)
@@ -273,9 +273,9 @@ fun ThermalInsightCard(
                         progress = if (maxTemp > 0f) progressFraction else 0f,
                         modifier = Modifier.fillMaxSize(),
                         color = primaryColor,
-                        strokeWidth = 12.dp,
+                        strokeWidth = 6.dp,
                         amplitude = 2.dp,
-                        frequency = 14,
+                        frequency = 10,
                     )
 
                     Column(
@@ -343,39 +343,6 @@ fun ThermalInsightCard(
                             },
                         icon = Icons.Outlined.DeviceThermostat,
                         color = primaryColor,
-                    )
-                }
-            }
-
-            // Flavor Insight Context Note
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        text =
-                            when {
-                                maxTemp >= 70f -> "High thermal load detected. Silicon governors are regulating clock frequencies."
-                                maxTemp >= 50f -> "Moderate core temperature under gaming load. Heat dissipation is working normally."
-                                maxTemp > 0f -> "All sensor zones are running in optimal range. Zero thermal throttling active."
-                                else -> "Polling thermal telemetry directly from kernel sysfs sensor zones."
-                            },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp,
-                        lineHeight = 15.sp,
                     )
                 }
             }
@@ -455,8 +422,8 @@ fun WavyLinearProgressIndicator(
     color: Color = MaterialTheme.colorScheme.primary,
     trackColor: Color = MaterialTheme.colorScheme.surfaceContainerLowest,
     strokeWidth: Dp = 4.dp,
-    amplitude: Dp = 1.6.dp,
-    wavelength: Dp = 10.dp,
+    amplitude: Dp = 2.2.dp,
+    wavelength: Dp = 28.dp,
 ) {
     val strokeWidthPx = with(LocalDensity.current) { strokeWidth.toPx() }
     val amplitudePx = with(LocalDensity.current) { amplitude.toPx() }
@@ -716,8 +683,8 @@ private fun SensorDetailCard(
                 color = tempColor,
                 trackColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                 strokeWidth = 4.dp,
-                amplitude = 1.6.dp,
-                wavelength = 10.dp,
+                amplitude = 2.2.dp,
+                wavelength = 28.dp,
             )
         }
     }
