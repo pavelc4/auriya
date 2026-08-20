@@ -49,16 +49,19 @@ pub fn request_dnd(filter: DndFilter) {
             debug!(target: "auriya::profile", "Requested DnD filter {:?}", filter);
         }
     } else {
-        let val = match filter {
-            DndFilter::All => "0",
-            DndFilter::Priority => "1",
+        let (zen_val, dnd_arg) = match filter {
+            DndFilter::All => ("0", "all"),
+            DndFilter::Priority => ("1", "priority"),
         };
         debug!(
             target: "auriya::profile",
-            "DnD fallback (companion dead): zen_mode={val}"
+            "DnD fallback (companion dead): zen_mode={zen_val}"
         );
+        let _ = std::process::Command::new("su")
+            .args(["2000", "-c", &format!("cmd notification set_dnd {dnd_arg}")])
+            .status();
         let _ = std::process::Command::new("settings")
-            .args(["put", "global", "zen_mode", val])
+            .args(["put", "global", "zen_mode", zen_val])
             .status();
     }
 }
@@ -69,6 +72,7 @@ pub enum ProfileMode {
     #[default]
     Balance,
     Powersave,
+    Fast,
 }
 
 impl std::fmt::Display for ProfileMode {
@@ -77,6 +81,7 @@ impl std::fmt::Display for ProfileMode {
             ProfileMode::Performance => write!(f, "Performance"),
             ProfileMode::Balance => write!(f, "Balance"),
             ProfileMode::Powersave => write!(f, "Powersave"),
+            ProfileMode::Fast => write!(f, "Fast"),
         }
     }
 }
@@ -85,9 +90,10 @@ impl std::str::FromStr for ProfileMode {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "performance" => Ok(ProfileMode::Performance),
-            "balance" => Ok(ProfileMode::Balance),
-            "powersave" => Ok(ProfileMode::Powersave),
+            "performance" | "1" => Ok(ProfileMode::Performance),
+            "balance" | "2" => Ok(ProfileMode::Balance),
+            "powersave" | "3" => Ok(ProfileMode::Powersave),
+            "fast" | "4" => Ok(ProfileMode::Fast),
             _ => Err(()),
         }
     }
@@ -146,6 +152,11 @@ pub fn apply_performance_with_config(
 }
 
 pub fn apply_performance() -> Result<()> {
+    apply_performance_with_config("performance", true, None)
+}
+
+pub fn apply_fast() -> Result<()> {
+    debug!(target: "auriya::profile", "Applying FAST profile (zero margin boost)");
     apply_performance_with_config("performance", true, None)
 }
 

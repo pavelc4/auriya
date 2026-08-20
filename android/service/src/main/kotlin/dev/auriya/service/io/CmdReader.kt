@@ -43,21 +43,23 @@ class CmdReader(
         handler.removeCallbacks(pollRunnable)
     }
 
-    private val pollRunnable = object : Runnable {
-        override fun run() {
-            parseAndDispatch()
-            handler.postDelayed(this, POLL_MS)
+    private val pollRunnable =
+        object : Runnable {
+            override fun run() {
+                parseAndDispatch()
+                handler.postDelayed(this, POLL_MS)
+            }
         }
-    }
 
     private fun parseAndDispatch() {
         if (!target.exists()) return
-        val text = try {
-            target.readText(Charsets.UTF_8)
-        } catch (t: Throwable) {
-            Log.w(TAG, "failed to read ${target.path}: ${t.message}")
-            return
-        }
+        val text =
+            try {
+                target.readText(Charsets.UTF_8)
+            } catch (t: Throwable) {
+                Log.w(TAG, "failed to read ${target.path}: ${t.message}")
+                return
+            }
         val cmd = CmdFormat.decode(text) ?: return
         // Skip only an exact duplicate of the last command we applied. A
         // lower seq means the daemon restarted (its counter reset) — that

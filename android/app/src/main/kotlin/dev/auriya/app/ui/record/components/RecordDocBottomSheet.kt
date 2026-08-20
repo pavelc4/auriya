@@ -22,7 +22,7 @@ import dev.auriya.app.ui.theme.ExpTitleTypography
 data class DocItem(
     val title: String,
     val description: String,
-    val icon: ImageVector
+    val icon: ImageVector,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,44 +32,47 @@ fun RecordDocBottomSheet(
     subtitle: String,
     items: List<DocItem>,
     onDismiss: () -> Unit,
-    sheetState: SheetState
+    sheetState: SheetState,
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = { AuriyaDragHandle() },
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(top = 8.dp, bottom = 48.dp)
+            contentPadding = PaddingValues(top = 8.dp, bottom = 48.dp),
         ) {
             item {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
                         text = title,
-                        style = ExpTitleTypography.titleMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 26.sp,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center
-                        )
+                        style =
+                            ExpTitleTypography.titleMedium.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 26.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
+                            ),
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -78,26 +81,27 @@ fun RecordDocBottomSheet(
                 Surface(
                     shape = RoundedCornerShape(22.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
                         verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         Surface(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(42.dp)
+                            modifier = Modifier.size(42.dp),
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = item.icon,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                         }
@@ -107,14 +111,14 @@ fun RecordDocBottomSheet(
                                 text = item.title,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
                                 text = item.description,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 20.sp
+                                lineHeight = 20.sp,
                             )
                         }
                     }

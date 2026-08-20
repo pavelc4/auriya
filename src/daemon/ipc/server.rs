@@ -46,7 +46,7 @@ pub struct IpcHandles {
     pub profile_lock: Arc<Mutex<()>>,
 
     pub current_state: Arc<RwLock<CurrentState>>,
-    pub balance_governor: String,
+    pub balance_governor: Arc<RwLock<String>>,
     /// Default `enable_dnd` for a game created via `ADD_GAME`, from
     /// `settings.dnd.default_enable`. Snapshotted at IPC init.
     pub dnd_default: bool,

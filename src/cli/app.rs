@@ -59,6 +59,7 @@ pub enum ProfileMode {
     Performance,
     Balance,
     Powersave,
+    Fast,
 }
 
 impl ProfileMode {
@@ -67,12 +68,14 @@ impl ProfileMode {
             Self::Performance => "PERFORMANCE",
             Self::Balance => "BALANCE",
             Self::Powersave => "POWERSAVE",
+            Self::Fast => "FAST",
         }
     }
 }
 
 #[derive(Clone, ValueEnum)]
 pub enum LogLevel {
+    Trace,
     Debug,
     Info,
     Warn,
@@ -82,6 +85,7 @@ pub enum LogLevel {
 impl LogLevel {
     pub fn to_upper_str(&self) -> &'static str {
         match self {
+            Self::Trace => "TRACE",
             Self::Debug => "DEBUG",
             Self::Info => "INFO",
             Self::Warn => "WARN",

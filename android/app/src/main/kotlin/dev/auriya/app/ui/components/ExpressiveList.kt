@@ -12,7 +12,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.auriya.app.ui.theme.AuriyaTokens
 
-
 @Composable
 fun ExpressiveList(
     count: Int,
@@ -26,24 +25,34 @@ fun ExpressiveList(
     if (count == 0) return
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(gap)) {
         for (i in 0 until count) {
-            val shape = when {
-                count == 1 -> RoundedCornerShape(cornerLarge)
-                i == 0 -> RoundedCornerShape(
-                    topStart = cornerLarge,
-                    topEnd = cornerLarge,
-                    bottomStart = cornerSmall,
-                    bottomEnd = cornerSmall
-                )
+            val shape =
+                when {
+                    count == 1 -> {
+                        RoundedCornerShape(cornerLarge)
+                    }
 
-                i == count - 1 -> RoundedCornerShape(
-                    topStart = cornerSmall,
-                    topEnd = cornerSmall,
-                    bottomStart = cornerLarge,
-                    bottomEnd = cornerLarge
-                )
+                    i == 0 -> {
+                        RoundedCornerShape(
+                            topStart = cornerLarge,
+                            topEnd = cornerLarge,
+                            bottomStart = cornerSmall,
+                            bottomEnd = cornerSmall,
+                        )
+                    }
 
-                else -> RoundedCornerShape(cornerSmall)
-            }
+                    i == count - 1 -> {
+                        RoundedCornerShape(
+                            topStart = cornerSmall,
+                            topEnd = cornerSmall,
+                            bottomStart = cornerLarge,
+                            bottomEnd = cornerLarge,
+                        )
+                    }
+
+                    else -> {
+                        RoundedCornerShape(cornerSmall)
+                    }
+                }
             Surface(
                 shape = shape,
                 color = containerColor,

@@ -40,19 +40,20 @@ fun ConfigActionsPopup(
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = { AuriyaDragHandle() },
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp),
         ) {
             item {
                 BottomSheetHeader(
                     title = "Config Actions",
-                    subtitle = "Backup, import, or reset settings.toml"
+                    subtitle = "Backup, import, or reset settings.toml",
                 )
             }
 
@@ -65,15 +66,16 @@ fun ConfigActionsPopup(
                     selected = false,
                     onClick = {
                         val content = TomlParser.serializeSettings(settings)
-                        val sendIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, content)
-                            putExtra(Intent.EXTRA_TITLE, "settings.toml")
-                            type = "text/plain"
-                        }
+                        val sendIntent =
+                            Intent().apply {
+                                action = Intent.ACTION_SEND
+                                putExtra(Intent.EXTRA_TEXT, content)
+                                putExtra(Intent.EXTRA_TITLE, "settings.toml")
+                                type = "text/plain"
+                            }
                         context.startActivity(Intent.createChooser(sendIntent, "Export settings.toml"))
                         onDismiss()
-                    }
+                    },
                 )
             }
 
@@ -87,7 +89,7 @@ fun ConfigActionsPopup(
                     onClick = {
                         onImportRequest()
                         onDismiss()
-                    }
+                    },
                 )
             }
 
@@ -101,7 +103,7 @@ fun ConfigActionsPopup(
                     onClick = {
                         onResetRequest()
                         onDismiss()
-                    }
+                    },
                 )
             }
         }

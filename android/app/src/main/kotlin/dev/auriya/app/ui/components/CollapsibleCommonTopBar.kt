@@ -50,7 +50,7 @@ fun ExpressiveTopBarContent(
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     fadeSubtitleOnCollapse: Boolean = true,
-    supportingContent: (@Composable () -> Unit)? = null
+    supportingContent: (@Composable () -> Unit)? = null,
 ) {
     val clampedFraction = collapseFraction.coerceIn(0f, 1f)
     val titleScale = lerp(titleScaleRange.first, titleScaleRange.second, clampedFraction)
@@ -63,34 +63,37 @@ fun ExpressiveTopBarContent(
 
     Box(modifier = modifier.fillMaxSize()) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = titlePaddingStart, end = titlePaddingEnd),
-            contentAlignment = animatedTitleAlignment
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(start = titlePaddingStart, end = titlePaddingEnd),
+            contentAlignment = animatedTitleAlignment,
         ) {
             androidx.compose.foundation.layout.Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
             ) {
                 Text(
                     text = title,
-                    style = titleStyle.copy(
-                        fontFamily = AuriyaFontFamily,
-                        fontSize = titleFontSize,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor
-                    ),
+                    style =
+                        titleStyle.copy(
+                            fontFamily = AuriyaFontFamily,
+                            fontSize = titleFontSize,
+                            fontWeight = FontWeight.Bold,
+                            color = contentColor,
+                        ),
                     maxLines = maxLines,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
                 if (!subtitle.isNullOrBlank() && subtitleAlpha > 0.05f) {
                     Text(
                         text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = subtitleColor.copy(alpha = subtitleAlpha)
-                        ),
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                color = subtitleColor.copy(alpha = subtitleAlpha),
+                            ),
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -115,22 +118,24 @@ fun CollapsibleCommonTopBar(
     containerColor: Color? = null,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    actions: @Composable RowScope.() -> Unit = {}
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     val solidAlpha = (collapseFraction * 2f).coerceIn(0f, 1f)
     val backgroundColor = containerColor ?: MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = solidAlpha)
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(headerHeight)
-            .background(backgroundColor)
-            .zIndex(5f)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(headerHeight)
+                .background(backgroundColor)
+                .zIndex(5f),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding(),
         ) {
             ExpressiveTopBarContent(
                 title = title,
@@ -143,32 +148,35 @@ fun CollapsibleCommonTopBar(
                 expandedTitleEndPadding = expandedTitleEndPadding,
                 titleStyle = titleStyle,
                 contentColor = contentColor,
-                subtitleColor = subtitleColor
+                subtitleColor = subtitleColor,
             )
 
             FilledIconButton(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 4.dp)
-                    .zIndex(1f),
+                modifier =
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 4.dp)
+                        .zIndex(1f),
                 onClick = onBackClick,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                )
+                colors =
+                    IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = "Back",
                 )
             }
 
             Row(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 4.dp, end = 12.dp)
-                    .zIndex(1f),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 4.dp, end = 12.dp)
+                        .zIndex(1f),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 actions()
             }

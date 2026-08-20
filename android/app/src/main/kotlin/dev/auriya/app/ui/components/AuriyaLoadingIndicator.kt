@@ -30,44 +30,47 @@ fun AuriyaLoadingIndicator(
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(3000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "rotation",
     )
 
     // Pulsing expand/shrink animation (calm 1.5 seconds loop with standard M3 curve)
     val scaleFactor by infiniteTransition.animateFloat(
         initialValue = 0.92f,
         targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(1500, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "scale",
     )
 
     Box(
-        modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(containerColor),
-        contentAlignment = Alignment.Center
+        modifier =
+            modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(containerColor),
+        contentAlignment = Alignment.Center,
     ) {
         // We use graphicsLayer to offload rotation, scale, and shape clipping to the GPU.
         // This avoids layout invalidation and recomposition on every frame, delivering 60fps/120fps.
         Box(
-            modifier = Modifier
-                .size(indicatorSize)
-                .graphicsLayer {
-                    rotationZ = rotation
-                    scaleX = scaleFactor
-                    scaleY = scaleFactor
-                    clip = true
-                    shape = MaterialShapes.Puffy
-                }
-                .background(indicatorColor)
+            modifier =
+                Modifier
+                    .size(indicatorSize)
+                    .graphicsLayer {
+                        rotationZ = rotation
+                        scaleX = scaleFactor
+                        scaleY = scaleFactor
+                        clip = true
+                        shape = MaterialShapes.Puffy
+                    }.background(indicatorColor),
         )
     }
 }

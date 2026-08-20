@@ -23,7 +23,8 @@ fun RichSelectionCard(
     description: String,
     icon: ImageVector,
     selected: Boolean,
-    onClick: () -> Unit
+    badgeText: String = "ACTIVE",
+    onClick: () -> Unit,
 ) {
     val cardBg = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
     val onCardBg = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
@@ -34,26 +35,27 @@ fun RichSelectionCard(
         onClick = onClick,
         shape = RoundedCornerShape(24.dp),
         color = cardBg,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Surface(
                 shape = CircleShape,
                 color = iconContainerColor,
-                modifier = Modifier.size(44.dp)
+                modifier = Modifier.size(44.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = iconTint,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(22.dp),
                     )
                 }
             }
@@ -62,14 +64,14 @@ fun RichSelectionCard(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium,
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold,
-                        color = onCardBg
+                        color = onCardBg,
                     )
                     if (selected) {
                         Surface(
@@ -77,12 +79,12 @@ fun RichSelectionCard(
                             color = MaterialTheme.colorScheme.primary,
                         ) {
                             Text(
-                                text = "ACTIVE",
+                                text = badgeText,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontFamily = GoogleSansRounded,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             )
                         }
                     }
@@ -92,14 +94,14 @@ fun RichSelectionCard(
                     text = subtitle,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Medium,
-                    color = if (selected) onCardBg.copy(alpha = 0.8f) else MaterialTheme.colorScheme.primary
+                    color = if (selected) onCardBg.copy(alpha = 0.8f) else MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (selected) onCardBg.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 19.sp
+                    lineHeight = 19.sp,
                 )
             }
         }

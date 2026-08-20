@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Article
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Tune
@@ -28,8 +28,8 @@ fun LazyListScope.daemonConfigPane(
     item {
         PopupInfoCard(
             icon = Icons.Outlined.Dns,
-            title = "Auriya Daemon Engine",
-            description = "The Auriya background daemon monitors foreground games, manages CPU frequencies via Unix sockets, and enforces scheduling policies."
+            title = "Auriya Daemon",
+            description = "The Auriya background daemon monitors foreground games, manages CPU frequencies via Unix sockets, and enforces scheduling policies.",
         )
     }
     item {
@@ -46,7 +46,7 @@ fun LazyListScope.daemonConfigPane(
                 title = "Log Verbosity",
                 subtitle = "Logging level: ${logLevel.uppercase()}",
                 onClick = onOpenLogLevelPicker,
-                icon = Icons.Outlined.Article,
+                icon = Icons.AutoMirrored.Outlined.Article,
                 shape = itemShapeFor(1, total),
             )
             SliderSettingItem(

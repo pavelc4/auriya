@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 fun DeveloperOptionsContent(
     viewModel: UiViewModel,
     onResetOobe: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -34,7 +34,7 @@ fun DeveloperOptionsContent(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // --- 1. DAEMON & OPERATIONS ---
         SettingsSubsection(title = "DAEMON & OPERATIONS") {
@@ -53,7 +53,7 @@ fun DeveloperOptionsContent(
                 iconTint = MaterialTheme.colorScheme.onErrorContainer,
                 actionContainerColor = MaterialTheme.colorScheme.errorContainer,
                 actionContentColor = MaterialTheme.colorScheme.onErrorContainer,
-                shape = itemShapeFor(0, totalOps)
+                shape = itemShapeFor(0, totalOps),
             )
 
             SwitchSettingItem(
@@ -66,16 +66,17 @@ fun DeveloperOptionsContent(
                         val cmd = if (debugMode) "SETLOG DEBUG" else "SETLOG INFO"
                         RootShell.exec("echo \"$cmd\" | nc -U /dev/socket/auriya.sock")
                     }
-                    Toast.makeText(
-                        context,
-                        "Debug logs ${if (debugMode) "enabled" else "disabled"}",
-                        Toast.LENGTH_SHORT,
-                    ).show()
+                    Toast
+                        .makeText(
+                            context,
+                            "Debug logs ${if (debugMode) "enabled" else "disabled"}",
+                            Toast.LENGTH_SHORT,
+                        ).show()
                 },
                 icon = Icons.Rounded.BugReport,
                 iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                 iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = itemShapeFor(1, totalOps)
+                shape = itemShapeFor(1, totalOps),
             )
 
             ClickableSettingItem(
@@ -83,30 +84,32 @@ fun DeveloperOptionsContent(
                 subtitle = "Saves logs to Downloads/AuriyaLogs.tar.gz",
                 onClick = {
                     coroutineScope.launch(Dispatchers.IO) {
-                        val cmd = """
+                        val cmd =
+                            """
                             mkdir -p /sdcard/Download/AuriyaLogs &&
                             cp /data/adb/auriya/daemon.log /sdcard/Download/AuriyaLogs/auriya.log 2>/dev/null;
                             dmesg > /sdcard/Download/AuriyaLogs/kernel.log 2>/dev/null;
                             tar -czf /sdcard/Download/AuriyaLogs.tar.gz -C /sdcard/Download AuriyaLogs
-                        """.trimIndent()
+                            """.trimIndent()
                         val rc = RootShell.exec(cmd)
                         launch(Dispatchers.Main) {
-                            Toast.makeText(
-                                context,
-                                if (rc == 0) {
-                                    "Logs exported to Downloads/AuriyaLogs.tar.gz"
-                                } else {
-                                    "Export failed (rc=$rc); check root grant"
-                                },
-                                Toast.LENGTH_LONG,
-                            ).show()
+                            Toast
+                                .makeText(
+                                    context,
+                                    if (rc == 0) {
+                                        "Logs exported to Downloads/AuriyaLogs.tar.gz"
+                                    } else {
+                                        "Export failed (rc=$rc); check root grant"
+                                    },
+                                    Toast.LENGTH_LONG,
+                                ).show()
                         }
                     }
                 },
                 icon = Icons.Rounded.UploadFile,
                 iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                 iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = itemShapeFor(2, totalOps)
+                shape = itemShapeFor(2, totalOps),
             )
         }
 
@@ -124,7 +127,7 @@ fun DeveloperOptionsContent(
                 icon = Icons.Rounded.Shield,
                 iconContainerColor = if (hasRoot) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
                 iconTint = if (hasRoot) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
-                shape = itemShapeFor(0, totalDiag)
+                shape = itemShapeFor(0, totalDiag),
             )
 
             InfoSettingItem(
@@ -132,12 +135,26 @@ fun DeveloperOptionsContent(
                 subtitle = "Current active daemon state",
                 valueText = systemInfo.daemonStatus.uppercase(),
                 valueBadge = true,
-                valueContainerColor = if (systemInfo.daemonStatus == "working") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                valueContentColor = if (systemInfo.daemonStatus == "working") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                valueContainerColor =
+                    if (systemInfo.daemonStatus ==
+                        "working"
+                    ) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    },
+                valueContentColor =
+                    if (systemInfo.daemonStatus ==
+                        "working"
+                    ) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 icon = Icons.Rounded.Info,
                 iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                 iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = itemShapeFor(1, totalDiag)
+                shape = itemShapeFor(1, totalDiag),
             )
         }
 
@@ -156,7 +173,7 @@ fun DeveloperOptionsContent(
                 iconTint = MaterialTheme.colorScheme.onErrorContainer,
                 actionContainerColor = MaterialTheme.colorScheme.errorContainer,
                 actionContentColor = MaterialTheme.colorScheme.onErrorContainer,
-                shape = itemShapeFor(0, 1)
+                shape = itemShapeFor(0, 1),
             )
         }
     }

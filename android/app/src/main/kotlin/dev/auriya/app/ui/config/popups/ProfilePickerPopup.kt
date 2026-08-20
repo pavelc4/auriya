@@ -31,44 +31,59 @@ fun ProfilePickerPopup(
 ) {
     if (!show) return
 
-    val presets = listOf(
-        Triple("powersave", "Battery Preservation", "Limits clock frequencies and aggressively throttles background tasks to maximize battery life."),
-        Triple("balance", "Daily Dynamic Tuning", "Dynamic optimization and adaptive frequency scaling for smooth responsiveness and efficiency."),
-        Triple("performance", "Maximum Power", "Unlocks high clock frequencies and unthrottled rendering for demanding gaming sessions."),
-        Triple("fast", "Ultra Low Latency", "Zero-margin frame delivery with rapid clock ramp-up for competitive response.")
-    )
+    val presets =
+        listOf(
+            Triple(
+                "powersave",
+                "Battery Preservation",
+                "Limits clock frequencies and aggressively throttles background tasks to maximize battery life.",
+            ),
+            Triple(
+                "balance",
+                "Daily Dynamic Tuning",
+                "Dynamic optimization and adaptive frequency scaling for smooth responsiveness and efficiency.",
+            ),
+            Triple(
+                "performance",
+                "Maximum Power",
+                "Unlocks high clock frequencies and unthrottled rendering for demanding gaming sessions.",
+            ),
+            Triple("fast", "Ultra Low Latency", "Zero-margin frame delivery with rapid clock ramp-up for competitive response."),
+        )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = { AuriyaDragHandle() },
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp),
         ) {
             item {
                 BottomSheetHeader(
                     title = "Default Profile",
-                    subtitle = "Active: ${defaultMode.replaceFirstChar { it.uppercase() }}"
+                    subtitle = "Active: ${defaultMode.replaceFirstChar { it.uppercase() }}",
                 )
             }
 
             items(presets.size) { index ->
                 val (key, sub, desc) = presets[index]
                 val isSelected = key.equals(defaultMode, ignoreCase = true)
-                val icon = when (key) {
-                    "powersave" -> Icons.Outlined.Eco
-                    "balance" -> Icons.Outlined.Tune
-                    "performance" -> Icons.Outlined.Bolt
-                    "fast" -> Icons.Outlined.RocketLaunch
-                    else -> Icons.Outlined.Speed
-                }
+                val icon =
+                    when (key) {
+                        "powersave" -> Icons.Outlined.Eco
+                        "balance" -> Icons.Outlined.Tune
+                        "performance" -> Icons.Outlined.Bolt
+                        "fast" -> Icons.Outlined.RocketLaunch
+                        else -> Icons.Outlined.Speed
+                    }
 
                 RichSelectionCard(
                     title = key.replaceFirstChar { it.uppercase() },
@@ -76,7 +91,7 @@ fun ProfilePickerPopup(
                     description = desc,
                     icon = icon,
                     selected = isSelected,
-                    onClick = { onSelect(key) }
+                    onClick = { onSelect(key) },
                 )
             }
         }

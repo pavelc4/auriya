@@ -3,9 +3,9 @@ package dev.auriya.app.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.data.NavMode
 import dev.auriya.app.data.NavType
-import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.data.ThemePrefs
 import dev.auriya.app.data.ThemeRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,21 +13,31 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class ThemeViewModel(app: Application) : AndroidViewModel(app) {
+class ThemeViewModel(
+    app: Application,
+) : AndroidViewModel(app) {
     private val repo = ThemeRepository(app.applicationContext)
 
-    val prefs: StateFlow<ThemePrefs?> = repo.prefs.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = null,
-    )
+    val prefs: StateFlow<ThemePrefs?> =
+        repo.prefs.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null,
+        )
 
     fun setSeedColor(color: Int) = viewModelScope.launch { repo.setSeedColor(color) }
+
     fun setUseDynamicColor(enabled: Boolean) = viewModelScope.launch { repo.setUseDynamicColor(enabled) }
+
     fun setNavMode(mode: NavMode) = viewModelScope.launch { repo.setNavMode(mode) }
+
     fun setNavType(type: NavType) = viewModelScope.launch { repo.setNavType(type) }
+
     fun setCornerRadius(radius: Int) = viewModelScope.launch { repo.setCornerRadius(radius) }
+
     fun setDarkThemeMode(mode: DarkThemeMode) = viewModelScope.launch { repo.setDarkThemeMode(mode) }
+
     fun setAmoled(enabled: Boolean) = viewModelScope.launch { repo.setAmoled(enabled) }
+
     fun setOobeCompleted(completed: Boolean) = viewModelScope.launch { repo.setOobeCompleted(completed) }
 }

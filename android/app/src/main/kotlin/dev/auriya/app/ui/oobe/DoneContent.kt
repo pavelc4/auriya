@@ -28,46 +28,50 @@ import dev.auriya.app.viewmodel.ThemeViewModel
 fun DoneContent(
     isDark: Boolean,
     themeViewModel: ThemeViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val imageLoader = remember(context) {
-        ImageLoader.Builder(context)
-            .components {
-                if (Build.VERSION.SDK_INT >= 28) {
-                    add(AnimatedImageDecoder.Factory())
-                } else {
-                    add(GifDecoder.Factory())
-                }
-            }
-            .build()
-    }
+    val imageLoader =
+        remember(context) {
+            ImageLoader
+                .Builder(context)
+                .components {
+                    if (Build.VERSION.SDK_INT >= 28) {
+                        add(AnimatedImageDecoder.Factory())
+                    } else {
+                        add(GifDecoder.Factory())
+                    }
+                }.build()
+        }
 
-    val platformColor = if (isDark) {
-        MaterialTheme.colorScheme.surfaceContainerHigh
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHighest
-    }
+    val platformColor =
+        if (isDark) {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHighest
+        }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 20.dp),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier.padding(top = 8.dp),
         ) {
             Text(
                 text = "You're All Set!",
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                textAlign = TextAlign.Center
+                style =
+                    MaterialTheme.typography.displayMedium.copy(
+                        fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                textAlign = TextAlign.Center,
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -76,33 +80,36 @@ fun DoneContent(
                 text = "Your appearance preferences are active and Auriya kernel daemon optimizations are configured.",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
         // Center Stage with Distinct Solid Pedestal Platform & Character
         Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            contentAlignment = Alignment.Center,
         ) {
             Box(
-                modifier = Modifier
-                    .size(width = 280.dp, height = 230.dp),
-                contentAlignment = Alignment.BottomCenter
+                modifier =
+                    Modifier
+                        .size(width = 280.dp, height = 230.dp),
+                contentAlignment = Alignment.BottomCenter,
             ) {
                 // 1. Single Solid Floor Platform Oval (No inner circle, no border)
                 Canvas(
-                    modifier = Modifier
-                        .width(280.dp)
-                        .height(56.dp)
-                        .align(Alignment.BottomCenter)
+                    modifier =
+                        Modifier
+                            .width(280.dp)
+                            .height(56.dp)
+                            .align(Alignment.BottomCenter),
                 ) {
                     drawOval(
                         color = platformColor,
                         topLeft = Offset(0f, 0f),
-                        size = Size(size.width, size.height)
+                        size = Size(size.width, size.height),
                     )
                 }
 
@@ -112,10 +119,11 @@ fun DoneContent(
                     imageLoader = imageLoader,
                     contentDescription = "Kuru Kuru Spinning",
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .size(200.dp)
-                        .padding(bottom = 16.dp)
-                        .align(Alignment.BottomCenter)
+                    modifier =
+                        Modifier
+                            .size(200.dp)
+                            .padding(bottom = 16.dp)
+                            .align(Alignment.BottomCenter),
                 )
             }
         }
@@ -123,30 +131,29 @@ fun DoneContent(
         // Bottom Clean Text (No Card)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
         ) {
             Text(
                 text = "Let's explore Auriya",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                ),
+                style =
+                    MaterialTheme.typography.titleMedium.copy(
+                        fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                    ),
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Tap the checkmark button below to get started.",
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
-
-
-

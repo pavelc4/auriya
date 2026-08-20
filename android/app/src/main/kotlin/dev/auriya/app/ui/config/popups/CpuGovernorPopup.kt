@@ -36,51 +36,70 @@ fun CpuGovernorPopup(
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = { AuriyaDragHandle() },
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp)
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp),
         ) {
             item {
                 BottomSheetHeader(
                     title = "CPU Governor",
-                    subtitle = "Active: $defaultGov"
+                    subtitle = "Active: $defaultGov",
                 )
             }
 
             items(availableGovernors.size) { index ->
                 val gov = availableGovernors[index]
                 val isSelected = gov.equals(defaultGov, ignoreCase = true)
-                val icon = when (gov.lowercase()) {
-                    "schedutil" -> Icons.Outlined.AutoMode
-                    "performance" -> Icons.Outlined.Bolt
-                    "powersave" -> Icons.Outlined.Eco
-                    else -> Icons.Outlined.Speed
-                }
-                val subtitle = when (gov.lowercase()) {
-                    "schedutil" -> "Energy-Aware Dynamic Tuning"
-                    "performance" -> "Maximum Clocks Locked"
-                    "powersave" -> "Battery Preservation"
-                    else -> "Kernel Scaling Driver"
-                }
-                val description = when (gov.lowercase()) {
-                    "schedutil" -> "Calculates CPU frequency dynamically based on scheduler load and EAS energy models. Best balance for gaming."
-                    "performance" -> "Locks all CPU cores to maximum frequency without downclocking. Highest FPS stability at high power."
-                    "powersave" -> "Locks CPU to minimum frequencies to maximize battery life."
-                    else -> "Standard Linux kernel governor for frequency management."
-                }
+                val icon =
+                    when (gov.lowercase()) {
+                        "schedutil" -> Icons.Outlined.AutoMode
+                        "performance" -> Icons.Outlined.Bolt
+                        "powersave" -> Icons.Outlined.Eco
+                        else -> Icons.Outlined.Speed
+                    }
+                val subtitle =
+                    when (gov.lowercase()) {
+                        "schedutil" -> "Energy-Aware Dynamic Tuning"
+                        "performance" -> "Maximum Clocks Locked"
+                        "powersave" -> "Battery Preservation"
+                        else -> "Kernel Scaling Driver"
+                    }
+                val title =
+                    gov.replaceFirstChar {
+                        if (it.isLowerCase()) it.titlecase() else it.toString()
+                    }
+                val description =
+                    when (gov.lowercase()) {
+                        "schedutil" -> {
+                            "Calculates CPU frequency dynamically based on scheduler load. Best balance for gaming."
+                        }
+
+                        "performance" -> {
+                            "Locks all CPU cores to maximum frequency without downclocking. Highest FPS stability."
+                        }
+
+                        "powersave" -> {
+                            "Locks CPU to minimum frequencies to maximize battery life."
+                        }
+
+                        else -> {
+                            "Standard Linux kernel governor for frequency management."
+                        }
+                    }
 
                 RichSelectionCard(
-                    title = gov.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
+                    title = title,
                     subtitle = subtitle,
                     description = description,
                     icon = icon,
                     selected = isSelected,
-                    onClick = { onSelect(gov) }
+                    onClick = { onSelect(gov) },
                 )
             }
         }

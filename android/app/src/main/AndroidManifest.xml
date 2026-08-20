@@ -28,6 +28,7 @@
         <service
             android:name=".service.OverlayService"
             android:exported="false"
+            android:foregroundServiceType="specialUse"
             android:stopWithTask="false" />
 
         <service
@@ -39,7 +40,10 @@
             android:name=".receiver.AuriyaActionReceiver"
             android:exported="true">
             <intent-filter>
+                <action android:name="dev.auriya.app.ACTION_GAME_ENTER" />
+                <action android:name="dev.auriya.app.ACTION_GAME_EXIT" />
                 <action android:name="dev.auriya.app.ACTION_SHOW_TOAST" />
+                <action android:name="dev.auriya.app.TOAST" />
             </intent-filter>
         </receiver>
 
@@ -54,16 +58,7 @@
             </intent-filter>
         </service>
 
-        <receiver
-            android:name=".widget.AuriyaWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_info" />
-        </receiver>
+
 
         <provider
             android:name="androidx.core.content.FileProvider"

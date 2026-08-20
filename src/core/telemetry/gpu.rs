@@ -79,21 +79,28 @@ impl GpuCollector {
             .as_ref()
             .and_then(|p| fs::read_to_string(p).ok())
             .and_then(|s| s.split_whitespace().next()?.parse::<u64>().ok())
-            .map(|hz| {
-                if hz > 1_000_000 {
-                    hz / 1_000_000
-                } else if hz > 1_000 {
-                    hz / 1_000
-                } else {
-                    hz
-                }
+            .map(|hz| match hz {
+                h if h > 1_000_000 => h / 1_000_000,
+                h if h > 1_000 => h / 1_000,
+                h => h,
             });
 
         let load_pct = self
             .load_path
             .as_ref()
             .and_then(|p| fs::read_to_string(p).ok())
-            .and_then(|s| s.trim().parse::<u32>().ok());
+            .and_then(|s| {
+                let parts: Vec<&str> = s.split_whitespace().collect();
+                match parts.as_slice() {
+                    [pct, "%", ..] => pct.parse::<u32>().ok(),
+                    [busy, total, ..] => match (busy.parse::<u64>(), total.parse::<u64>()) {
+                        (Ok(b), Ok(t)) => (b * 100).checked_div(t).map(|v| v.min(100) as u32),
+                        _ => busy.trim_end_matches('%').parse::<u32>().ok(),
+                    },
+                    [single] => single.trim_end_matches('%').parse::<u32>().ok(),
+                    [] => None,
+                }
+            });
 
         GpuSnapshot {
             vendor: self.vendor.clone(),

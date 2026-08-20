@@ -1,4 +1,4 @@
-use crate::core::config::{GameList, gamelist_path, settings_path};
+use crate::core::config::{GameList, gamelist_path};
 use crate::daemon::event::{DaemonEvent, EventSender};
 use notify::{EventKind, RecursiveMode, Watcher};
 use std::path::PathBuf;
@@ -10,7 +10,6 @@ const MODULE_PATH: &str = "/data/adb/modules/auriya";
 pub fn start_config_watcher(shared_gamelist: Arc<RwLock<Arc<GameList>>>) -> mpsc::Receiver<String> {
     let (watch_tx, watch_rx) = mpsc::channel::<String>(10);
     let gamelist_path = Arc::new(gamelist_path());
-    let settings_path = Arc::new(settings_path());
 
     std::thread::spawn(move || {
         let tx = watch_tx;
@@ -89,16 +88,15 @@ pub fn start_config_watcher(shared_gamelist: Arc<RwLock<Arc<GameList>>>) -> mpsc
             }
         };
 
-        if let Err(e) = watcher.watch(&gamelist_path, RecursiveMode::NonRecursive) {
-            error!(target: "auriya::daemon", "Failed to watch gamelist file: {}", e);
-            return;
-        }
-        if let Err(e) = watcher.watch(&settings_path, RecursiveMode::NonRecursive) {
-            error!(target: "auriya::daemon", "Failed to watch settings file: {}", e);
+        let config_dir = std::path::Path::new(crate::core::config::CONFIG_DIR);
+        let _ = std::fs::create_dir_all(config_dir);
+
+        if let Err(e) = watcher.watch(config_dir, RecursiveMode::NonRecursive) {
+            error!(target: "auriya::daemon", "Failed to watch config directory {}: {}", config_dir.display(), e);
             return;
         }
 
-        debug!(target: "auriya::daemon", "Config file watchers started");
+        debug!(target: "auriya::daemon", "Config directory watcher started on {}", config_dir.display());
         loop {
             std::thread::sleep(std::time::Duration::from_secs(3600));
         }

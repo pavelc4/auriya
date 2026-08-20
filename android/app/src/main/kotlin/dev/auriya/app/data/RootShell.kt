@@ -42,6 +42,7 @@ object RootShell {
         Log.d(TAG, "hasCachedRoot() cached=$cached isRoot=$result")
         return result
     }
+
     fun run(cmd: String): String {
         val res = Shell.cmd(cmd).exec()
         return res.out.joinToString("\n").trim()
@@ -54,28 +55,37 @@ object RootShell {
     }
 
     /** Read the full contents of [path] as UTF-8 (root file access). */
-    fun readText(path: String): String? = try {
-        SuFileInputStream.open(SuFile(path)).bufferedReader().use { it.readText() }
-    } catch (_: Throwable) {
-        null
-    }
+    fun readText(path: String): String? =
+        try {
+            SuFileInputStream.open(SuFile(path)).bufferedReader().use { it.readText() }
+        } catch (_: Throwable) {
+            null
+        }
 
     /** Read the last [tailLines] lines of [path]. Cheaper than full read. */
-    fun tail(path: String, tailLines: Int = 100): String =
-        run("tail -n $tailLines '$path' 2>/dev/null")
+    fun tail(
+        path: String,
+        tailLines: Int = 100,
+    ): String = run("tail -n $tailLines '$path' 2>/dev/null")
 
     /** True when the file exists (with root visibility). */
     fun exists(path: String): Boolean = SuFile(path).exists()
 
     /** Atomic-ish write: write tmp, then `mv`. Caller responsible for chmod. */
-    fun writeText(path: String, content: String): Boolean = try {
-        val tmp = "$path.tmp.${System.currentTimeMillis()}"
-        SuFileOutputStream.open(SuFile(tmp)).use { out ->
-            out.write(content.toByteArray(Charsets.UTF_8))
+    fun writeText(
+        path: String,
+        content: String,
+    ): Boolean =
+        try {
+            val targetFile = SuFile(path)
+            targetFile.parentFile?.mkdirs()
+            val tmp = "$path.tmp.${System.currentTimeMillis()}.${(1000..9999).random()}"
+            SuFileOutputStream.open(SuFile(tmp)).use { out ->
+                out.write(content.toByteArray(Charsets.UTF_8))
+            }
+            run("mv '$tmp' '$path' && chmod 0644 '$path'")
+            true
+        } catch (_: Throwable) {
+            false
         }
-        run("mv '$tmp' '$path' && chmod 0644 '$path'")
-        true
-    } catch (_: Throwable) {
-        false
-    }
 }

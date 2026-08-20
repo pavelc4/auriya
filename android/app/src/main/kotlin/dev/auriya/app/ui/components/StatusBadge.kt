@@ -24,14 +24,15 @@ fun StatusBadge(
     containerColor: Color? = null,
     contentColor: Color? = null,
 ) {
-    val (defaultBg, defaultFg) = when (tone) {
-        StatusTone.PRIMARY -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
-        StatusTone.SECONDARY -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-        StatusTone.SUCCESS -> AuriyaTheme.semantic.successContainer to AuriyaTheme.semantic.onSuccessContainer
-        StatusTone.WARNING -> AuriyaTheme.semantic.warningContainer to AuriyaTheme.semantic.onWarningContainer
-        StatusTone.ERROR -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-        StatusTone.OUTLINE -> Color.Transparent to MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val (defaultBg, defaultFg) =
+        when (tone) {
+            StatusTone.PRIMARY -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+            StatusTone.SECONDARY -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+            StatusTone.SUCCESS -> AuriyaTheme.semantic.successContainer to AuriyaTheme.semantic.onSuccessContainer
+            StatusTone.WARNING -> AuriyaTheme.semantic.warningContainer to AuriyaTheme.semantic.onWarningContainer
+            StatusTone.ERROR -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+            StatusTone.OUTLINE -> Color.Transparent to MaterialTheme.colorScheme.onSurfaceVariant
+        }
     val bg = containerColor ?: defaultBg
     val fg = contentColor ?: defaultFg
     Text(
@@ -39,9 +40,10 @@ fun StatusBadge(
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.ExtraBold,
         color = fg,
-        modifier = modifier
-            .clip(RoundedCornerShape(AuriyaTokens.rounding.full))
-            .background(bg)
-            .padding(horizontal = 10.dp, vertical = 2.dp),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(AuriyaTokens.rounding.full))
+                .background(bg)
+                .padding(horizontal = 10.dp, vertical = 2.dp),
     )
 }

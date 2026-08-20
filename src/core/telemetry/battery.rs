@@ -7,7 +7,7 @@
 //
 // Standard node: /sys/class/power_supply/battery/{capacity,temp,current_now,
 // voltage_now,status,health}. Every field is best-effort — a missing or
-// unparseable node degrades that field to `None`, never fails the snapshot.
+// unparsable node degrades that field to `None`, never fails the snapshot.
 
 use std::fs;
 

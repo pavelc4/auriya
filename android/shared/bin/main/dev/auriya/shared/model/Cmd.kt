@@ -26,11 +26,14 @@ data class Cmd(
  *   NONE     → total silence
  *   ALARMS   → alarms only
  */
-enum class DndFilter(val wire: Int) {
+enum class DndFilter(
+    val wire: Int,
+) {
     ALL(0),
     PRIORITY(1),
     NONE(2),
-    ALARMS(3);
+    ALARMS(3),
+    ;
 
     companion object {
         fun fromWire(value: Int): DndFilter? = entries.firstOrNull { it.wire == value }

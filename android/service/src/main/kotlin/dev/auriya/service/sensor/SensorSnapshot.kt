@@ -22,14 +22,15 @@ data class SensorSnapshot(
      * Overlay `update` on top of this snapshot — non-null fields in
      * `update` win, the rest are preserved.
      */
-    fun merge(update: SensorSnapshot): SensorSnapshot = SensorSnapshot(
-        focusedApp = update.focusedApp ?: focusedApp,
-        focusedPid = update.focusedPid ?: focusedPid,
-        focusedUid = update.focusedUid ?: focusedUid,
-        screenAwake = update.screenAwake ?: screenAwake,
-        batterySaver = update.batterySaver ?: batterySaver,
-        zenMode = update.zenMode ?: zenMode,
-    )
+    fun merge(update: SensorSnapshot): SensorSnapshot =
+        SensorSnapshot(
+            focusedApp = update.focusedApp ?: focusedApp,
+            focusedPid = update.focusedPid ?: focusedPid,
+            focusedUid = update.focusedUid ?: focusedUid,
+            screenAwake = update.screenAwake ?: screenAwake,
+            batterySaver = update.batterySaver ?: batterySaver,
+            zenMode = update.zenMode ?: zenMode,
+        )
 
     /**
      * True when the snapshot actually differs from `other` in at least

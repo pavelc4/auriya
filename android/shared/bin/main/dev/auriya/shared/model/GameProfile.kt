@@ -10,5 +10,5 @@ data class GameProfile(
 )
 
 data class GameList(
-    val games: List<GameProfile> = emptyList()
+    val games: List<GameProfile> = emptyList(),
 )

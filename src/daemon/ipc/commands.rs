@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogLevelCmd {
+    Trace,
     Debug,
     Info,
     Warn,
@@ -13,6 +14,7 @@ pub enum ProfileMode {
     Performance,
     Balance,
     Powersave,
+    Fast,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,6 +32,7 @@ pub enum Command {
     Ping,
     Quit,
     SetProfile(ProfileMode),
+    SetGovernor(String),
     AddGame(String),
     RemoveGame(String),
     ListPackages,
@@ -68,11 +71,12 @@ impl FromStr for Command {
             ["GET_GAMELIST"] | ["GETGAMELIST"] => Ok(Command::GetGameList),
 
             ["SETLOG", level] | ["SET_LOG", level] => match level.to_uppercase().as_str() {
+                "TRACE" => Ok(Command::SetLog(LogLevelCmd::Trace)),
                 "DEBUG" => Ok(Command::SetLog(LogLevelCmd::Debug)),
                 "INFO" => Ok(Command::SetLog(LogLevelCmd::Info)),
                 "WARN" => Ok(Command::SetLog(LogLevelCmd::Warn)),
                 "ERROR" => Ok(Command::SetLog(LogLevelCmd::Error)),
-                _ => Err("usage: SETLOG <DEBUG|INFO|WARN|ERROR>"),
+                _ => Err("usage: SETLOG <TRACE|DEBUG|INFO|WARN|ERROR>"),
             },
 
             ["SET_FPS", fps] | ["SETFPS", fps] => match fps.parse::<u32>() {
@@ -88,11 +92,16 @@ impl FromStr for Command {
             ["CLEAR_INJECT"] | ["CLEARINJECT"] => Ok(Command::ClearInject),
 
             ["SET_PROFILE", mode] | ["SETPROFILE", mode] => match mode.to_uppercase().as_str() {
-                "PERFORMANCE" => Ok(Command::SetProfile(ProfileMode::Performance)),
-                "BALANCE" => Ok(Command::SetProfile(ProfileMode::Balance)),
-                "POWERSAVE" => Ok(Command::SetProfile(ProfileMode::Powersave)),
-                _ => Err("usage: SETPROFILE <PERFORMANCE|BALANCE|POWERSAVE>"),
+                "PERFORMANCE" | "1" => Ok(Command::SetProfile(ProfileMode::Performance)),
+                "BALANCE" | "2" => Ok(Command::SetProfile(ProfileMode::Balance)),
+                "POWERSAVE" | "3" => Ok(Command::SetProfile(ProfileMode::Powersave)),
+                "FAST" | "4" => Ok(Command::SetProfile(ProfileMode::Fast)),
+                _ => Err("usage: SETPROFILE <PERFORMANCE|BALANCE|POWERSAVE|FAST>"),
             },
+
+            ["SET_GOVERNOR", gov] | ["SETGOVERNOR", gov] => {
+                Ok(Command::SetGovernor(gov.to_string()))
+            }
 
             ["ADD_GAME", pkg] | ["ADDGAME", pkg] => Ok(Command::AddGame(pkg.to_string())),
             ["REMOVE_GAME", pkg] | ["REMOVEGAME", pkg] => Ok(Command::RemoveGame(pkg.to_string())),

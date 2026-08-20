@@ -26,7 +26,7 @@ fun LazyListScope.dynamicGovernorConfigPane(
         PopupInfoCard(
             icon = Icons.Outlined.DynamicForm,
             title = "Dynamic Governor Switching",
-            description = "Detects micro-stutter and frame time variance. When jitter exceeds the CV threshold for consecutive debounce frames, Auriya temporarily switches to an aggressive governor to smooth out spikes."
+            description = "Detects micro-stutter and frame time variance. When jitter exceeds the CV threshold for consecutive debounce frames, Auriya temporarily switches to an aggressive governor to smooth out spikes.",
         )
     }
     item {
@@ -51,7 +51,7 @@ fun LazyListScope.dynamicGovernorConfigPane(
                 steps = 8,
                 displayValueFormatter = { String.format("%.2f", it) },
                 shape = itemShapeFor(1, total),
-                enabled = dgEnabled
+                enabled = dgEnabled,
             )
             SliderSettingItem(
                 title = "Debounce Frames",
@@ -64,7 +64,7 @@ fun LazyListScope.dynamicGovernorConfigPane(
                 steps = 8,
                 displayValueFormatter = { "${it.roundToInt()} frames" },
                 shape = itemShapeFor(2, total),
-                enabled = dgEnabled
+                enabled = dgEnabled,
             )
         }
     }

@@ -70,8 +70,14 @@ impl FpsMeter {
             last_poll: Instant::now(),
             cached_sysfs: None,
             last_ebpf_frame: Instant::now(),
-            ebpf_timeout: Duration::from_secs(3),
+            ebpf_timeout: Duration::from_millis(1500),
         }
+    }
+
+    /// Clear all cached readings and frame queues when exiting game
+    pub fn clear(&mut self) {
+        self.frametimes.clear();
+        self.cached_sysfs = None;
     }
 
     fn detect_sysfs() -> Option<String> {

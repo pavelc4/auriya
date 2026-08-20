@@ -27,32 +27,37 @@ fun SegmentedControl(
     inactiveTextColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     cornerRadius: Int = 14,
     itemCornerRadius: Int = 10,
-    verticalPadding: Int = 10
+    verticalPadding: Int = 10,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(cornerRadius.dp))
-            .background(containerColor)
-            .padding(4.dp)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(cornerRadius.dp))
+                .background(containerColor)
+                .padding(4.dp),
     ) {
         items.forEachIndexed { index, title ->
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(itemCornerRadius.dp))
-                    .background(if (selectedIndex == index) activeColor else Color.Transparent)
-                    .clickable { onItemSelected(index) }
-                    .padding(vertical = verticalPadding.dp),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(itemCornerRadius.dp))
+                        .background(if (selectedIndex == index) activeColor else Color.Transparent)
+                        .clickable { onItemSelected(index) }
+                        .padding(vertical = verticalPadding.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontFamily = GoogleSansRounded,
-                        fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium
-                    ),
-                    color = if (selectedIndex == index) activeTextColor else inactiveTextColor
+                    style =
+                        MaterialTheme.typography.labelMedium.copy(
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium,
+                        ),
+                    color = if (selectedIndex == index) activeTextColor else inactiveTextColor,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
         }

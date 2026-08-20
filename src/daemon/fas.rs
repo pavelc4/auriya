@@ -164,6 +164,15 @@ impl FasController {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.package.clear();
+        self.pid = None;
+        self.last_attached_pkg.clear();
+        self.buffer.clear();
+        self.bottleneck.reset();
+        self.transition_not_working();
+    }
+
     pub fn set_package(&mut self, package: String, pid: Option<i32>) {
         if self.package != package {
             tracing::debug!(target: "auriya::fas", "Switching to package: {}", package);
@@ -174,6 +183,12 @@ impl FasController {
             self.bottleneck.reset();
             self.transition_not_working();
         }
+    }
+
+    pub fn set_tuning(&mut self, tuning: FasTuning) {
+        self.tuning = tuning;
+        self.bottleneck =
+            BottleneckDetector::new(self.tuning.cv_threshold, self.tuning.debounce_frames);
     }
 
     pub fn set_target_fps(&mut self, fps: u32) {
@@ -196,6 +211,17 @@ impl FasController {
     /// computed on request from the frame deque already held by the buffer.
     /// Reuses the public `FrameBuffer::recent_frametimes`; no per-tick cost.
     pub fn fps_stats(&self) -> crate::core::stats::FpsStats {
+        if self.package.is_empty()
+            || self.buffer.time_since_last_frame() >= Duration::from_millis(1500)
+        {
+            return crate::core::stats::FpsStats {
+                avg: 0.0,
+                peak: 0.0,
+                low_1pct: 0.0,
+                jank: 0,
+                frames: 0,
+            };
+        }
         crate::core::stats::fps_stats_from_frametimes(
             &self.buffer.recent_frametimes(600),
             self.get_target_fps(),

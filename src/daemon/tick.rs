@@ -148,14 +148,28 @@ impl Daemon {
 
         if self.last.pkg.as_deref() == Some(pkg.as_str()) && pid_still_valid {
             let fas_clone = self.fas_controller.clone();
-            if let Some(fas) = fas_clone
+            let (fas_enabled, global_dnd) = self
+                ._shared_settings
+                .read()
+                .map(|s| (s.fas.enabled, s.dnd.default_enable))
+                .unwrap_or((true, true));
+
+            if fas_enabled
+                && let Some(fas) = fas_clone
                 && gamelist.game.iter().any(|a| a.package == pkg)
             {
                 let game_cfg = gamelist.find(&pkg);
+                let default_gov = self
+                    .balance_governor
+                    .read()
+                    .ok()
+                    .map(|g| g.clone())
+                    .unwrap_or_else(|| "schedutil".to_string());
                 let governor = game_cfg
-                    .map(|c| c.cpu_governor.clone())
-                    .unwrap_or_else(|| self.balance_governor.clone());
-                let enable_dnd = game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
+                    .filter(|c| !c.cpu_governor.is_empty())
+                    .map(|c| c.cpu_governor.as_str())
+                    .unwrap_or(&default_gov);
+                let enable_dnd = global_dnd && game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
 
                 if let Some(cfg) = game_cfg
                     && let Some(ref fps_cfg) = cfg.target_fps
@@ -175,7 +189,7 @@ impl Daemon {
                 }
 
                 match self
-                    .run_fas_tick(&fas, &pkg, &governor, self.last.pid, enable_dnd)
+                    .run_fas_tick(&fas, &pkg, governor, self.last.pid, enable_dnd)
                     .await
                 {
                     Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
@@ -221,16 +235,30 @@ impl Daemon {
                     }
                 }
 
+                let (fas_enabled, global_dnd) = self
+                    ._shared_settings
+                    .read()
+                    .map(|s| (s.fas.enabled, s.dnd.default_enable))
+                    .unwrap_or((true, true));
+                let _ = fas_enabled;
                 let game_cfg = gamelist.find(pkg);
+                let default_gov = self
+                    .balance_governor
+                    .read()
+                    .ok()
+                    .map(|g| g.clone())
+                    .unwrap_or_else(|| "schedutil".to_string());
                 let governor = game_cfg
-                    .map(|c| &c.cpu_governor[..])
-                    .unwrap_or(&self.balance_governor);
-                let enable_dnd = game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
+                    .filter(|c| !c.cpu_governor.is_empty())
+                    .map(|c| c.cpu_governor.as_str())
+                    .unwrap_or(&default_gov);
+                let enable_dnd = global_dnd && game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
                 let target_mode = game_cfg
                     .and_then(|c| c.mode.as_deref())
                     .map(|m| match m.to_lowercase().as_str() {
-                        "powersave" => ProfileMode::Powersave,
-                        "balance" => ProfileMode::Balance,
+                        "powersave" | "3" => ProfileMode::Powersave,
+                        "balance" | "2" => ProfileMode::Balance,
+                        "fast" | "fas" | "4" => ProfileMode::Fast,
                         _ => ProfileMode::Performance,
                     })
                     .unwrap_or(ProfileMode::Performance);
@@ -243,20 +271,14 @@ impl Daemon {
                         ProfileMode::Performance => "Performance",
                         ProfileMode::Balance => "Balance",
                         ProfileMode::Powersave => "Powersave",
+                        ProfileMode::Fast => "FAS",
                     };
-                    let msg = format!("Auriya: Tweaks applied ({})", mode_str);
-                    debug!(target: "auriya::daemon", "Sending toast broadcast for game launch: {}", msg);
-                    let _ = std::process::Command::new("am")
-                        .args([
-                            "broadcast",
-                            "-a",
-                            "dev.auriya.app.ACTION_SHOW_TOAST",
-                            "--es",
-                            "message",
-                            &msg,
-                            "dev.auriya.app/.receiver.AuriyaActionReceiver",
-                        ])
-                        .spawn();
+                    let app_name = pkg.rsplit('.').next().unwrap_or(pkg);
+                    let msg = format!("Auriya: Applied {} Profile ({})", mode_str, app_name);
+                    broadcast_intent(
+                        "dev.auriya.app.ACTION_GAME_ENTER",
+                        &[("pkg", pkg), ("mode", mode_str), ("message", &msg)],
+                    );
                 }
 
                 if self.last.profile_mode != Some(target_mode) {
@@ -264,12 +286,10 @@ impl Daemon {
                         ProfileMode::Performance => {
                             profile::apply_performance_with_config(governor, enable_dnd, Some(pid))
                         }
-                        ProfileMode::Balance => profile::apply_balance(
-                            game_cfg
-                                .filter(|c| !c.cpu_governor.is_empty())
-                                .map(|c| &c.cpu_governor[..])
-                                .unwrap_or(&self.balance_governor),
-                        ),
+                        ProfileMode::Fast => {
+                            profile::apply_performance_with_config(governor, enable_dnd, Some(pid))
+                        }
+                        ProfileMode::Balance => profile::apply_balance(governor),
                         ProfileMode::Powersave => profile::apply_powersave(),
                     };
 
@@ -323,9 +343,15 @@ impl Daemon {
         }
 
         if self.last.profile_mode != Some(self.default_mode) {
+            let gov_guard = self.balance_governor.read();
+            let default_gov = gov_guard
+                .as_deref()
+                .map(|s| s.as_str())
+                .unwrap_or("schedutil");
             let res = match self.default_mode {
                 ProfileMode::Performance => profile::apply_performance(),
-                ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
+                ProfileMode::Fast => profile::apply_fast(),
+                ProfileMode::Balance => profile::apply_balance(default_gov),
                 ProfileMode::Powersave => profile::apply_powersave(),
             };
 
@@ -339,7 +365,24 @@ impl Daemon {
 
         self.apply_ceiling_for_state(None, None);
         self.ebpf_detach();
+        if let Some(mut f) = self
+            .fas_controller
+            .as_ref()
+            .and_then(|fas| fas.try_lock().ok())
+        {
+            f.reset();
+        }
+        self.fps_meter.clear();
         self.sync_dnd(crate::core::cmd_writer::DndFilter::All);
+        let was_game = self
+            .last
+            .pkg
+            .as_ref()
+            .is_some_and(|p| self.cached_whitelist.contains(p));
+        if was_game {
+            let last_p = self.last.pkg.clone().unwrap_or_default();
+            broadcast_intent("dev.auriya.app.ACTION_GAME_EXIT", &[("pkg", &last_p)]);
+        }
 
         if self.last.pkg.as_deref() != Some(pkg) {
             debug!(target: "auriya::daemon", "Foreground: {} ({})", pkg, reason);
@@ -404,9 +447,15 @@ impl Daemon {
         use crate::core::profile;
 
         if self.last.profile_mode != Some(self.default_mode) {
+            let gov_guard = self.balance_governor.read();
+            let default_gov = gov_guard
+                .as_deref()
+                .map(|s| s.as_str())
+                .unwrap_or("schedutil");
             let res = match self.default_mode {
                 ProfileMode::Performance => profile::apply_performance(),
-                ProfileMode::Balance => profile::apply_balance(&self.balance_governor),
+                ProfileMode::Fast => profile::apply_fast(),
+                ProfileMode::Balance => profile::apply_balance(default_gov),
                 ProfileMode::Powersave => profile::apply_powersave(),
             };
 
@@ -420,9 +469,27 @@ impl Daemon {
 
         self.apply_ceiling_for_state(None, None);
         self.ebpf_detach();
+        if let Some(mut f) = self
+            .fas_controller
+            .as_ref()
+            .and_then(|fas| fas.try_lock().ok())
+        {
+            f.reset();
+        }
+        self.fps_meter.clear();
         self.sync_dnd(crate::core::cmd_writer::DndFilter::All);
 
         if self.last.pkg.is_some() || self.last.pid.is_some() {
+            let was_game = self
+                .last
+                .pkg
+                .as_ref()
+                .is_some_and(|p| self.cached_whitelist.contains(p));
+            if was_game {
+                let last_p = self.last.pkg.clone().unwrap_or_default();
+                broadcast_intent("dev.auriya.app.ACTION_GAME_EXIT", &[("pkg", &last_p)]);
+            }
+
             self.vendor_lock.unlock_all();
 
             if should_log_change(&self.last, &self.cfg) {
@@ -494,7 +561,7 @@ impl Daemon {
             ScalingAction::Reduce => {
                 if self.last.profile_mode != Some(self.default_mode) {
                     let res = match self.default_mode {
-                        ProfileMode::Performance => {
+                        ProfileMode::Performance | ProfileMode::Fast => {
                             profile::apply_performance_with_config(game_governor, enable_dnd, None)
                         }
                         ProfileMode::Balance => {
@@ -539,4 +606,17 @@ impl Daemon {
         profile::apply_ceiling(&mut self.ceiling_controller, level, &self.ceiling_config);
         self.current_ceiling = Some(level);
     }
+}
+
+fn broadcast_intent(action: &str, extras: &[(&str, &str)]) {
+    let mut cmd_str = format!("am broadcast -a {action} -f 0x01000020 --include-stopped-packages");
+    for (k, v) in extras {
+        let escaped_v = v.replace('\"', "\\\"");
+        cmd_str.push_str(&format!(" --es {k} \"{escaped_v}\""));
+    }
+    let _ = std::process::Command::new("su")
+        .args(["2000", "-c", &cmd_str])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn();
 }

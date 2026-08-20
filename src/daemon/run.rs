@@ -60,6 +60,7 @@ pub(crate) fn update_current_profile_file(mode: ProfileMode) {
         ProfileMode::Performance => "1",
         ProfileMode::Balance => "2",
         ProfileMode::Powersave => "3",
+        ProfileMode::Fast => "4",
     };
 
     let config_path = crate::core::config::CONFIG_DIR;
@@ -125,7 +126,7 @@ pub struct Daemon {
     companion_restart_cooldown: Option<std::time::Instant>,
 
     pub(crate) fas_controller: Option<Arc<tokio::sync::Mutex<crate::daemon::fas::FasController>>>,
-    pub(crate) balance_governor: String,
+    pub(crate) balance_governor: Arc<RwLock<String>>,
     pub(crate) default_mode: ProfileMode,
     /// Idle/foreground (non-game) tick cadence in ms, from
     /// `daemon.check_interval_ms`. The in-game (500 ms) and screen-off
@@ -174,7 +175,7 @@ impl Daemon {
         let shared_current = Arc::new(RwLock::new(CurrentState::default()));
         let override_foreground = Arc::new(RwLock::new(None));
 
-        let balance_governor = cfg.settings.cpu.default_governor.clone();
+        let balance_governor = Arc::new(RwLock::new(cfg.settings.cpu.default_governor.clone()));
         let default_mode = cfg
             .settings
             .daemon
@@ -314,14 +315,24 @@ impl Daemon {
     fn reload_settings(&mut self) {
         match crate::core::config::Settings::load(crate::core::config::settings_path()) {
             Ok(new_settings) => {
-                if self.balance_governor != new_settings.cpu.default_governor {
-                    self.balance_governor = new_settings.cpu.default_governor.clone();
-                    debug!(target: "auriya::daemon", "Settings reloaded. New default governor: {}", self.balance_governor);
+                let mut gov_changed = false;
+                if let Ok(mut g) = self.balance_governor.write()
+                    && *g != new_settings.cpu.default_governor
+                {
+                    *g = new_settings.cpu.default_governor.clone();
+                    gov_changed = true;
+                }
 
-                    if self.last.profile_mode == Some(ProfileMode::Balance) {
+                if gov_changed {
+                    let new_gov = &new_settings.cpu.default_governor;
+                    debug!(target: "auriya::daemon", "Settings reloaded. New default governor: {}", new_gov);
+
+                    if !self.is_in_game_session()
+                        && (self.last.profile_mode.is_none()
+                            || self.last.profile_mode == Some(ProfileMode::Balance))
+                    {
                         debug!(target: "auriya::daemon", "Applying new default governor immediately...");
-                        if let Err(e) = crate::core::profile::apply_balance(&self.balance_governor)
-                        {
+                        if let Err(e) = crate::core::profile::apply_balance(new_gov) {
                             error!(target: "auriya::profile", ?e, "Failed to apply new balance governor");
                         }
                     }
@@ -336,12 +347,23 @@ impl Daemon {
                 if self.default_mode != new_default_mode {
                     debug!(target: "auriya::daemon", "Settings reloaded. New default mode: {:?} → {:?}", self.default_mode, new_default_mode);
                     self.default_mode = new_default_mode;
+                    if !self.is_in_game_session() {
+                        self.last.profile_mode = None;
+                    }
                 }
 
                 let new_interval = new_settings.daemon.check_interval_ms.max(100);
                 if self.normal_interval_ms != new_interval {
                     debug!(target: "auriya::daemon", "Settings reloaded. Normal tick interval: {}ms → {}ms", self.normal_interval_ms, new_interval);
                     self.normal_interval_ms = new_interval;
+                }
+
+                if let Some(ref fas_arc) = self.fas_controller {
+                    let tuning = crate::daemon::fas::FasTuning::from_settings(&new_settings);
+                    if let Ok(mut f) = fas_arc.try_lock() {
+                        f.set_tuning(tuning);
+                        debug!(target: "auriya::daemon", "Settings reloaded. Updated FAS tuning parameters.");
+                    }
                 }
             }
             Err(e) => {
@@ -422,6 +444,7 @@ impl Daemon {
         let set_log_level = Arc::new(move |lvl| {
             use crate::daemon::ipc::LogLevelCmd;
             let filter_str = match lvl {
+                LogLevelCmd::Trace => "trace",
                 LogLevelCmd::Debug => "debug",
                 LogLevelCmd::Info => "info",
                 LogLevelCmd::Warn => "warn",
@@ -452,7 +475,7 @@ impl Daemon {
             get_fps_stats,
             profile_lock: Arc::new(std::sync::Mutex::new(())),
             current_state: current_state.clone(),
-            balance_governor: cfg.settings.cpu.default_governor.clone(),
+            balance_governor: self.balance_governor.clone(),
             dnd_default: cfg.settings.dnd.default_enable,
             current_log_level,
             supported_modes: self.supported_modes.clone(),
@@ -697,6 +720,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
             Some(msg) = watch_rx.recv() => {
                 if msg == "settings" {
                      daemon.reload_settings();
+                     daemon.tick().await;
                 } else {
                      daemon.rebuild_whitelist();
                      debug!(target: "auriya::daemon", "Gamelist reload notification received, triggering instant tick");

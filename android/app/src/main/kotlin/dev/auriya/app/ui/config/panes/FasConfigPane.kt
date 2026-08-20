@@ -30,7 +30,7 @@ fun LazyListScope.fasConfigPane(
         PopupInfoCard(
             icon = Icons.Outlined.AutoGraph,
             title = "Frame-Aware Scheduling",
-            description = "FAS calculates real-time frametimes from SurfaceFlinger or eBPF. It scales frequencies up when frames drop and lowers them during calm scenes to prevent thermal throttling."
+            description = "FAS calculates real-time frametimes from SurfaceFlinger or eBPF. It scales frequencies up when frames drop and lowers them during calm scenes to prevent thermal throttling.",
         )
     }
     item {
@@ -55,7 +55,7 @@ fun LazyListScope.fasConfigPane(
                 steps = 26,
                 displayValueFormatter = { "${it.roundToInt()} FPS" },
                 shape = itemShapeFor(1, total),
-                enabled = fasEnabled
+                enabled = fasEnabled,
             )
             SliderSettingItem(
                 title = "Calculation Poll Interval",
@@ -68,7 +68,7 @@ fun LazyListScope.fasConfigPane(
                 steps = 18,
                 displayValueFormatter = { "${it.roundToInt()} ms" },
                 shape = itemShapeFor(2, total),
-                enabled = fasEnabled
+                enabled = fasEnabled,
             )
             SliderSettingItem(
                 title = "Global Thermal Limit",
@@ -81,7 +81,7 @@ fun LazyListScope.fasConfigPane(
                 steps = 8,
                 displayValueFormatter = { "${it.roundToInt()} °C" },
                 shape = itemShapeFor(3, total),
-                enabled = fasEnabled
+                enabled = fasEnabled,
             )
         }
     }

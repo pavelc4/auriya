@@ -11,19 +11,24 @@ import dev.auriya.app.data.stats.BenchmarkRecorder
 import dev.auriya.app.data.stats.BenchmarkSession
 import dev.auriya.app.data.stats.Stats
 import dev.auriya.app.data.stats.StatsParser
+import dev.auriya.app.service.OverlayService
 import dev.auriya.shared.config.ConfigPaths
 import dev.auriya.shared.config.TomlParser
 import dev.auriya.shared.model.*
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 
-data class AppInfoItem(val packageName: String, val label: String)
+data class AppInfoItem(
+    val packageName: String,
+    val label: String,
+)
 
 data class SystemInfo(
     val version: String = "...",
@@ -35,7 +40,9 @@ data class SystemInfo(
     val kernel: String = "...",
     val chipset: String = "...",
     val codename: String = android.os.Build.DEVICE,
-    val sdk: String = android.os.Build.VERSION.SDK_INT.toString(),
+    val sdk: String =
+        android.os.Build.VERSION.SDK_INT
+            .toString(),
     val androidVersion: String = "Android ${android.os.Build.VERSION.RELEASE}",
     val battery: String = "...",
     val temp: String = "...",
@@ -44,17 +51,34 @@ data class SystemInfo(
     val ram: String = "-",
 )
 
-class UiViewModel(application: Application) : AndroidViewModel(application) {
-
+class UiViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val benchmarkRecorder = BenchmarkRecorder.getInstance(application)
+    private val appPrefs =
+        dev.auriya.app.data.AppPrefs
+            .getInstance(application)
+
+    private val _rootEnvironment =
+        MutableStateFlow(
+            dev.auriya.app.data
+                .RootEnvironmentInfo(),
+        )
+    val rootEnvironment: StateFlow<dev.auriya.app.data.RootEnvironmentInfo> = _rootEnvironment.asStateFlow()
 
     private val _liveStats = MutableStateFlow<Stats?>(null)
     val liveStats: StateFlow<Stats?> = _liveStats.asStateFlow()
+
+    val roundFps: StateFlow<Boolean> = appPrefs.roundFps
 
     val isRecording: StateFlow<Boolean> = benchmarkRecorder.isRecording
     val currentRecordingDurationSec: StateFlow<Long> = benchmarkRecorder.currentRecordingDurationSec
     val currentSamplesCount: StateFlow<Int> = benchmarkRecorder.currentSamplesCount
     val benchmarkSessions: StateFlow<List<BenchmarkSession>> = benchmarkRecorder.sessions
+
+    fun setRoundFps(enabled: Boolean) {
+        appPrefs.setRoundFps(enabled)
+    }
 
     private val _settings = MutableStateFlow(Settings())
     val settings: StateFlow<Settings> = _settings.asStateFlow()
@@ -101,20 +125,26 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
     private val _isAppsLoading = MutableStateFlow(false)
     val isAppsLoading: StateFlow<Boolean> = _isAppsLoading.asStateFlow()
 
+    private var saveSettingsJob: Job? = null
+    private var updateProfileJob: Job? = null
+    private var gameListJob: Job? = null
+
     fun loadInstalledApps(pm: PackageManager) {
         if (_installedApps.value.isNotEmpty() || _isAppsLoading.value) return
         viewModelScope.launch(Dispatchers.IO) {
             _isAppsLoading.value = true
             try {
-                val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-                    .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
-                    .map { appInfo ->
-                        val label = runCatching {
-                            pm.getApplicationLabel(appInfo).toString()
-                        }.getOrDefault(appInfo.packageName)
-                        AppInfoItem(packageName = appInfo.packageName, label = label)
-                    }
-                    .sortedBy { it.label.lowercase() }
+                val apps =
+                    pm
+                        .getInstalledApplications(PackageManager.GET_META_DATA)
+                        .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
+                        .map { appInfo ->
+                            val label =
+                                runCatching {
+                                    pm.getApplicationLabel(appInfo).toString()
+                                }.getOrDefault(appInfo.packageName)
+                            AppInfoItem(packageName = appInfo.packageName, label = label)
+                        }.sortedBy { it.label.lowercase() }
                 _installedApps.value = apps
                 _isAppsLoading.value = false
 
@@ -152,6 +182,7 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
                     loadAvailableGovernors()
                     loadConfigurations()
                     initSystemInfoStatic()
+                    detectRootEnvironment()
                 }
             } finally {
                 _isCheckingRoot.value = false
@@ -174,7 +205,17 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
                 loadAvailableGovernors()
                 loadConfigurations()
                 initSystemInfoStatic()
+                detectRootEnvironment()
             }
+        }
+    }
+
+    fun detectRootEnvironment() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val env =
+                dev.auriya.app.data.RootManagerDetector
+                    .detect(getApplication<Application>())
+            _rootEnvironment.value = env
         }
     }
 
@@ -185,6 +226,7 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
             if (root) {
                 loadAvailableGovernors()
                 loadConfigurations()
+                detectRootEnvironment()
                 runCatching { pollOnce() }
             }
             withContext(Dispatchers.Main) {
@@ -197,18 +239,25 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
         checkRoot()
         loadConfigurations()
         initSystemInfoStatic()
+        detectRootEnvironment()
         startMonitoring()
     }
 
     private fun loadAvailableGovernors() {
         // Sysfs is world-readable for governor list, but reading via
         // RootShell keeps a single code path for /sys access.
-        val raw = RootShell.run("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors 2>/dev/null")
-        val parsed = raw.split(Regex("\\s+")).filter { it.isNotBlank() }
-        _availableGovernors.value = parsed.ifEmpty {
-            // Fallback so the dropdown is never empty on weirder kernels.
-            listOf("performance", "schedutil", "powersave")
-        }
+        val raw =
+            RootShell.run(
+                "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors " +
+                    "/sys/devices/system/cpu/cpufreq/policy0/scaling_available_governors " +
+                    "/sys/devices/system/cpu/cpu*/cpufreq/scaling_available_governors 2>/dev/null",
+            )
+        val parsed = raw.split(Regex("\\s+")).filter { it.isNotBlank() }.distinct()
+        _availableGovernors.value =
+            parsed.ifEmpty {
+                // Fallback so the dropdown is never empty on weirder kernels.
+                listOf("performance", "schedutil", "powersave")
+            }
     }
 
     fun loadConfigurations() {
@@ -227,44 +276,48 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
     private fun initSystemInfoStatic() {
         viewModelScope.launch(Dispatchers.IO) {
             val modPath = "/data/adb/modules/auriya"
-            val out = RootShell.run(
-                """
-                grep "^version=" $modPath/module.prop | cut -d= -f2; echo "|||";
-                grep "^versionCode=" $modPath/module.prop | cut -d= -f2; echo "|||";
-                getprop ro.product.cpu.abi; echo "|||";
-                stat -c %Y $modPath/module.prop
-                """.trimIndent(),
-            )
+            val out =
+                RootShell.run(
+                    """
+                    grep "^version=" $modPath/module.prop | cut -d= -f2; echo "|||";
+                    grep "^versionCode=" $modPath/module.prop | cut -d= -f2; echo "|||";
+                    getprop ro.product.cpu.abi; echo "|||";
+                    stat -c %Y $modPath/module.prop
+                    """.trimIndent(),
+                )
             if (out.isEmpty()) return@launch
             val parts = out.split("|||").map { it.trim() }
             val version = parts.getOrNull(0)?.ifEmpty { "Unknown" } ?: "Unknown"
             val commit = parts.getOrNull(1)?.ifEmpty { "Unknown" } ?: "Unknown"
             var arch = parts.getOrNull(2)?.ifEmpty { "Unknown" } ?: "Unknown"
-            arch = when {
-                arch.contains("arm64") -> "v8a"
-                arch.contains("armeabi") -> "v7a"
-                arch.contains("x86_64") -> "x64"
-                arch.contains("x86") -> "x86"
-                else -> arch
-            }
+            arch =
+                when {
+                    arch.contains("arm64") -> "v8a"
+                    arch.contains("armeabi") -> "v7a"
+                    arch.contains("x86_64") -> "x64"
+                    arch.contains("x86") -> "x86"
+                    else -> arch
+                }
 
             var updateTimeStr = "Unknown"
             parts.getOrNull(3)?.toLongOrNull()?.let { modTime ->
                 val diff = (System.currentTimeMillis() / 1000) - modTime
-                updateTimeStr = when {
-                    diff < 3600 -> "Updated ${diff / 60}m ago"
-                    diff < 86400 -> "Updated ${diff / 3600}h ago"
-                    else -> "Updated ${diff / 86400}d ago"
-                }
+                updateTimeStr =
+                    when {
+                        diff < 3600 -> "Updated ${diff / 60}m ago"
+                        diff < 86400 -> "Updated ${diff / 3600}h ago"
+                        else -> "Updated ${diff / 86400}d ago"
+                    }
             }
 
-            _systemInfo.value = _systemInfo.value.copy(
-                version = version,
-                commit = commit,
-                arch = arch,
-                deviceArch = arch,
-                updateTime = updateTimeStr,
-            )
+            _systemInfo.value =
+                _systemInfo.value.copy(
+                    version = version,
+                    commit = commit,
+                    arch = arch,
+                    deviceArch = arch,
+                    updateTime = updateTimeStr,
+                )
         }
     }
 
@@ -293,7 +346,8 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
         // Pull the active mode from [daemon].default_mode in settings.toml.
         // The legacy /current_profile (1/2/3 codes) is no longer the
         // source of truth — user edits settings.toml directly.
-        val cmd = """
+        val cmd =
+            """
             awk '/^\[daemon\]/{flag=1;next}/^\[/{flag=0}flag && /default_mode/{gsub(/.*= *"/,"");gsub(/".*/,"");print;exit}' $configPath/settings.toml 2>/dev/null; echo "|||";
             uname -r 2>/dev/null; echo "|||";
             getprop ro.board.platform; echo "|||";
@@ -304,7 +358,7 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
             cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | head -n 5; echo "|||";
             PID=${'$'}(pidof auriya || echo "null"); echo ${'$'}PID; echo "|||";
             if [ "${'$'}PID" != "null" ]; then grep VmRSS /proc/${'$'}PID/status 2>/dev/null | awk '{print ${'$'}2}'; else echo "-"; fi
-        """.trimIndent()
+            """.trimIndent()
 
         val out = RootShell.run(cmd)
         if (out.isNotEmpty()) {
@@ -313,20 +367,26 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
             // settings.toml stores the mode as a TOML string
             // ("balance" / "performance" / "powersave" / "fast"). The
             // old 0..3 numeric mapping is gone — just title-case it.
-            val profileStr = when (rawProfile.lowercase()) {
-                "performance" -> "Performance"
-                "balance" -> "Balance"
-                "powersave" -> "Powersave"
-                "fast" -> "Fast"
-                "" -> "Unknown"
-                else -> rawProfile.replaceFirstChar { it.uppercase() }
-            }
+            val profileStr =
+                when (rawProfile.lowercase()) {
+                    "performance" -> "Performance"
+                    "balance" -> "Balance"
+                    "powersave" -> "Powersave"
+                    "fast" -> "Fast"
+                    "" -> "Unknown"
+                    else -> rawProfile.replaceFirstChar { it.uppercase() }
+                }
 
             val kernel = parts.getOrNull(1)?.ifEmpty { "Unknown" } ?: "Unknown"
             val chipset = parts.getOrNull(2)?.ifEmpty { android.os.Build.BOARD } ?: android.os.Build.BOARD
             val codename = parts.getOrNull(3)?.ifEmpty { android.os.Build.DEVICE } ?: android.os.Build.DEVICE
             val releaseVer = parts.getOrNull(4)?.ifEmpty { android.os.Build.VERSION.RELEASE } ?: android.os.Build.VERSION.RELEASE
-            val sdk = parts.getOrNull(5)?.ifEmpty { android.os.Build.VERSION.SDK_INT.toString() } ?: android.os.Build.VERSION.SDK_INT.toString()
+            val sdk =
+                parts.getOrNull(5)?.ifEmpty {
+                    android.os.Build.VERSION.SDK_INT
+                        .toString()
+                } ?: android.os.Build.VERSION.SDK_INT
+                    .toString()
             val androidVersion = "Android $releaseVer"
 
             val batteryPercent = parts.getOrNull(6)
@@ -348,35 +408,38 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
             val daemonActiveBool = pid != "null" && pid.isNotEmpty()
             _daemonActive.value = daemonActiveBool
 
-            val ram = if (daemonActiveBool && rss != null && rss != "-" && rss.toIntOrNull() != null) {
-                "${String.format("%.1f", rss.toDouble() / 1024.0)} MB"
-            } else {
-                "-"
-            }
+            val ram =
+                if (daemonActiveBool && rss != null && rss != "-" && rss.toIntOrNull() != null) {
+                    "${String.format("%.1f", rss.toDouble() / 1024.0)} MB"
+                } else {
+                    "-"
+                }
 
-            _systemInfo.value = _systemInfo.value.copy(
-                profile = profileStr,
-                kernel = kernel,
-                chipset = chipset,
-                codename = codename,
-                sdk = sdk,
-                androidVersion = androidVersion,
-                battery = battery,
-                temp = temp,
-                pid = if (pid == "null") null else pid,
-                daemonStatus = if (daemonActiveBool) "working" else "stopped",
-                ram = ram,
-            )
+            _systemInfo.value =
+                _systemInfo.value.copy(
+                    profile = profileStr,
+                    kernel = kernel,
+                    chipset = chipset,
+                    codename = codename,
+                    sdk = sdk,
+                    androidVersion = androidVersion,
+                    battery = battery,
+                    temp = temp,
+                    pid = if (pid == "null") null else pid,
+                    daemonStatus = if (daemonActiveBool) "working" else "stopped",
+                    ram = ram,
+                )
             if (rawProfile.isNotEmpty()) _currentProfile.value = rawProfile
         }
 
         // Foreground app from status file (root-only read).
         RootShell.readText(ConfigPaths.STATUS_FILE)?.let { contents ->
             val focusedAppLine = contents.lineSequence().firstOrNull { it.startsWith("focused_app") }
-            _foregroundApp.value = focusedAppLine
-                ?.split(" ")
-                ?.filter { it.isNotEmpty() }
-                ?.getOrNull(1)
+            _foregroundApp.value =
+                focusedAppLine
+                    ?.split(" ")
+                    ?.filter { it.isNotEmpty() }
+                    ?.getOrNull(1)
         }
 
         // Daemon log tail.
@@ -388,14 +451,21 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // Live performance stats & telemetry for Recording / Benchmark
-        runCatching {
-            val stats = StatsParser.fetchStats()
-            _liveStats.value = stats
-            stats?.let { benchmarkRecorder.processStats(it) }
+        if (_daemonActive.value) {
+            runCatching {
+                val stats = StatsParser.fetchStats()
+                _liveStats.value = stats
+                stats?.let { benchmarkRecorder.processStats(it) }
+            }
+        } else {
+            _liveStats.value = null
         }
     }
 
-    fun startRecording(pkg: String? = null, profile: String = "balance") {
+    fun startRecording(
+        pkg: String? = null,
+        profile: String = "balance",
+    ) {
         benchmarkRecorder.startManualRecording(pkg, profile)
     }
 
@@ -407,6 +477,10 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
         benchmarkRecorder.deleteSession(id)
     }
 
+    fun deleteBenchmarkSessions(ids: Set<String>) {
+        benchmarkRecorder.deleteSessions(ids)
+    }
+
     fun clearAllBenchmarkSessions() {
         benchmarkRecorder.clearAllSessions()
     }
@@ -416,80 +490,84 @@ class UiViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateProfile(mode: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val modeString = when (mode.lowercase()) {
+        val modeString =
+            when (mode.lowercase()) {
                 "1", "performance" -> "performance"
                 "2", "balance" -> "balance"
                 "3", "powersave" -> "powersave"
                 "4", "fast" -> "fast"
                 else -> "balance"
             }
-
-            // 1. Notify the daemon immediately via UDS Unix Socket
-            RootShell.exec("echo 'SET_PROFILE ${modeString.uppercase()}' | nc -U /dev/socket/auriya.sock")
-
-            // 2. Persist profile choice directly to settings.toml
-            val current = _settings.value
-            val updated = current.copy(
+        _currentProfile.value = modeString
+        val current = _settings.value
+        val updated =
+            current.copy(
                 daemon = current.daemon.copy(defaultMode = modeString),
-                fas = current.fas.copy(defaultMode = modeString)
+                fas = current.fas.copy(defaultMode = modeString),
             )
-            val content = TomlParser.serializeSettings(updated)
-            if (RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)) {
-                _settings.value = updated
+        _settings.value = updated
+        _systemInfo.value =
+            _systemInfo.value.copy(
+                profile = modeString.replaceFirstChar { it.uppercase() },
+            )
+
+        updateProfileJob?.cancel()
+        updateProfileJob =
+            viewModelScope.launch(Dispatchers.IO) {
+                val content = TomlParser.serializeSettings(updated)
+                RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)
+                RootShell.exec(
+                    "printf 'SET_PROFILE ${modeString.uppercase()}\\nRELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null",
+                )
             }
-
-            // 3. Keep current profile state updated in UI
-            _currentProfile.value = mode
-
-            // 4. Poll immediately to update systemInfo profile state on the UI
-            runCatching { pollOnce() }
-        }
     }
 
     fun saveSettings(newSettings: Settings) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val content = TomlParser.serializeSettings(newSettings)
-            if (RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)) {
-                _settings.value = newSettings
+        _settings.value = newSettings
+        val gov = newSettings.cpu.defaultGovernor
+        saveSettingsJob?.cancel()
+        saveSettingsJob =
+            viewModelScope.launch(Dispatchers.IO) {
+                val content = TomlParser.serializeSettings(newSettings)
+                RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)
+                val cmd = "printf 'SET_GOVERNOR $gov\\nRELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null || for p in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do [ -w \"\$p\" ] && echo $gov > \"\$p\" 2>/dev/null; done"
+                RootShell.exec(cmd)
             }
-            val gov = newSettings.cpu.defaultGovernor
-            RootShell.exec(
-                "for p in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo $gov > \"\$p\"; done",
-            )
-            RootShell.exec(
-                "for p in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do echo $gov > \"\$p\"; done",
-            )
-        }
     }
 
     fun addGame(profile: GameProfile) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val games = _gameList.value.games.toMutableList().also {
+        val games =
+            _gameList.value.games.toMutableList().also {
                 it.removeAll { g -> g.packageName == profile.packageName }
                 it.add(profile)
             }
-            val newList = GameList(games)
-            val content = TomlParser.serializeGameList(newList)
-            if (RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)) {
-                _gameList.value = newList
+        val newList = GameList(games)
+        _gameList.value = newList
+
+        gameListJob?.cancel()
+        gameListJob =
+            viewModelScope.launch(Dispatchers.IO) {
+                val content = TomlParser.serializeGameList(newList)
+                RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)
+                RootShell.exec("printf 'RELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null")
             }
-            RootShell.exec("echo 'ADD_GAME ${profile.packageName}' | nc -U /dev/socket/auriya.sock")
-        }
     }
 
     fun removeGame(packageName: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val games = _gameList.value.games.toMutableList().also {
+        val games =
+            _gameList.value.games.toMutableList().also {
                 it.removeAll { g -> g.packageName == packageName }
             }
-            val newList = GameList(games)
-            val content = TomlParser.serializeGameList(newList)
-            if (RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)) {
-                _gameList.value = newList
+        val newList = GameList(games)
+        _gameList.value = newList
+
+        gameListJob?.cancel()
+        gameListJob =
+            viewModelScope.launch(Dispatchers.IO) {
+                val content = TomlParser.serializeGameList(newList)
+                RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)
+                RootShell.exec("printf 'RELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null")
             }
-            RootShell.exec("echo 'REMOVE_GAME $packageName' | nc -U /dev/socket/auriya.sock")
-        }
     }
 
     fun restartDaemon() {

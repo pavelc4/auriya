@@ -24,18 +24,19 @@ fun LazyListScope.profileTuningConfigPane(
         PopupInfoCard(
             icon = Icons.Outlined.Tune,
             title = "Mode Presets Tuning",
-            description = "Each performance mode (Powersave, Balance, Performance, Fast) balances power consumption and smoothness through FPS Margin and Thermal Limits."
+            description = "Each performance mode (Powersave, Balance, Performance, Fast) balances power consumption and smoothness through FPS Margin and Thermal Limits.",
         )
     }
     item {
         SettingsSubsection(title = "PRESET SELECTION & TUNING") {
-            val icon = when (selectedModeKey) {
-                "powersave" -> Icons.Outlined.Eco
-                "balance" -> Icons.Outlined.Tune
-                "performance" -> Icons.Outlined.Bolt
-                "fast" -> Icons.Outlined.RocketLaunch
-                else -> Icons.Outlined.Tune
-            }
+            val icon =
+                when (selectedModeKey) {
+                    "powersave" -> Icons.Outlined.Eco
+                    "balance" -> Icons.Outlined.Tune
+                    "performance" -> Icons.Outlined.Bolt
+                    "fast" -> Icons.Outlined.RocketLaunch
+                    else -> Icons.Outlined.Tune
+                }
 
             ClickableSettingItem(
                 title = "Profile to Tune",

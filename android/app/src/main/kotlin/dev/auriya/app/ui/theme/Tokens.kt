@@ -41,13 +41,15 @@ object AuriyaTokens {
     }
 
     class Motion {
-        val emphasized = SpringSpec<Float>(
-            dampingRatio = 0.6f,
-            stiffness = Spring.StiffnessMediumLow
-        )
-        val standard = SpringSpec<Float>(
-            dampingRatio = 0.8f,
-            stiffness = Spring.StiffnessMedium
-        )
+        val emphasized =
+            SpringSpec<Float>(
+                dampingRatio = 0.6f,
+                stiffness = Spring.StiffnessMediumLow,
+            )
+        val standard =
+            SpringSpec<Float>(
+                dampingRatio = 0.8f,
+                stiffness = Spring.StiffnessMedium,
+            )
     }
 }

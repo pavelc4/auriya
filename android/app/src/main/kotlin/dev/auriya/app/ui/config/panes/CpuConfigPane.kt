@@ -16,7 +16,7 @@ fun LazyListScope.cpuConfigPane(
         PopupInfoCard(
             icon = Icons.Outlined.Speed,
             title = "CPU Frequency Governor",
-            description = "Governors dictate how the Linux kernel scales CPU clock speeds between idle and load. Tap below to choose or inspect active scaling governors."
+            description = "Governors dictate how the Linux kernel scales CPU clock speeds between idle and load. Tap below to choose or inspect active scaling governors.",
         )
     }
     item {
