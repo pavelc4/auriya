@@ -33,7 +33,7 @@ pub struct FpsStats {
     pub avg: f64,
     /// Fastest single frame (`1 / min frametime`).
     pub peak: f64,
-    /// Mean FPS of the worst 1% of frames — the gamer-standard stutter metric.
+    /// FPS of the worst 1% of presented time — the gamer-standard stutter metric.
     pub low_1pct: f64,
     /// Frames slower than `target * JANK_FACTOR`.
     pub jank: u32,
@@ -68,15 +68,25 @@ pub fn fps_stats_from_frametimes(frametimes: &[Duration], target_fps: u32) -> Fp
     let min_ft = ft.iter().copied().fold(f64::INFINITY, f64::min);
     let peak = if min_ft > 0.0 { 1.0 / min_ft } else { 0.0 };
 
-    // Sort ascending by frametime; the slowest 1% sit at the tail.
-    ft.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-    let one_pct = ((frames as f64 * 0.01).ceil() as usize).max(1);
-    let worst = &ft[frames - one_pct..];
-    let worst_mean = worst.iter().sum::<f64>() / one_pct as f64;
-    let low_1pct = if worst_mean > 0.0 {
-        1.0 / worst_mean
-    } else {
-        0.0
+    // Time-weighted 1% low: the smallest set of the largest deltas whose
+    // summed *time* reaches 1% of the window's total presented time. A single
+    // long stutter is weighted by how long it was actually on screen, not by
+    // its count share, so a clean frame is never dragged into the bucket.
+    let total: f64 = ft.iter().sum();
+    let threshold = total * 0.01;
+    ft.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
+    let mut acc = 0.0;
+    let mut worst = 0usize;
+    for (i, &s) in ft.iter().enumerate() {
+        acc += s;
+        worst = i + 1;
+        if acc >= threshold {
+            break;
+        }
+    }
+    let low_1pct = match acc {
+        a if a > 0.0 => worst as f64 / a,
+        _ => 0.0,
     };
 
     let target_interval = if target_fps > 0 {
