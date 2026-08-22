@@ -163,43 +163,48 @@ object RootManagerDetector {
                 }
 
             // 2. Discover Manager App via SHA-256 Checksum or Package/Intent Search
-            var managerPkg: String? = null
-            var managerLabel: String? = null
-            var isSpoofed = false
-            var managerIcon: ImageBitmap? = null
+            data class ManagerCandidate(
+                val packageName: String,
+                val certHash: String?,
+                val forkName: String?,
+                val isSpoofed: Boolean,
+                val priority: Int,
+            )
 
-            // Get list of 3rd-party installed applications
             val installedApps =
                 pm
                     .getInstalledApplications(PackageManager.GET_META_DATA)
                     .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
 
-            var detectedForkName: String? = null
+            val candidates = mutableListOf<ManagerCandidate>()
 
-            // Method A: Check by SHA-256 Cert Checksum
             for (app in installedApps) {
                 val certHash = getAppSignatureSha256(pm, app.packageName)
                 if (certHash != null && KSU_HASH_MAP.containsKey(certHash)) {
-                    managerPkg = app.packageName
-                    detectedForkName = KSU_HASH_MAP[certHash]
-                    isSpoofed = !KNOWN_MANAGER_PACKAGES.contains(app.packageName)
-                    break
-                }
-            }
-
-            // Method B: Check by known manager packages if not found
-            if (managerPkg == null) {
-                for (pkg in KNOWN_MANAGER_PACKAGES) {
-                    if (installedApps.any { it.packageName == pkg }) {
-                        managerPkg = pkg
-                        isSpoofed = false
-                        break
+                    val fork = KSU_HASH_MAP[certHash]
+                    val isKnownPkg = KNOWN_MANAGER_PACKAGES.contains(app.packageName)
+                    var prio = 50
+                    if (rootType == RootType.KERNELSU_NEXT && certHash == "79e590113c4c4c0c222978e413a5faa801666957b1212a328e46c00c69821bf7") {
+                        prio = 100
+                    } else if (rootType == RootType.SUKISU && (certHash == "d3469712b6214462764a1d8d3e5cbe1d6819a0b629791b9f4101867821f1df64" || certHash == "947ae944f3de4ed4c21a7e4f7953ecf351bfa2b36239da37a34111ad29993eef")) {
+                        prio = 100
+                    } else if (rootType == RootType.KOWSU && certHash == "484fcba6e6c43b1fb09700633bf2fb4758f13cb0b2f4457b80d075084b26c588") {
+                        prio = 100
                     }
+                    if (isKnownPkg) prio += 10
+                    candidates.add(ManagerCandidate(app.packageName, certHash, fork, !isKnownPkg, prio))
+                } else if (KNOWN_MANAGER_PACKAGES.contains(app.packageName)) {
+                    var prio = 40
+                    if (rootType == RootType.MAGISK && app.packageName.contains("magisk")) prio = 90
+                    if (rootType == RootType.APATCH && app.packageName.contains("apatch")) prio = 90
+                    candidates.add(ManagerCandidate(app.packageName, certHash, null, false, prio))
                 }
             }
 
-            // Method C: Check by FlashModule / application/zip handler
-            if (managerPkg == null) {
+            var bestCandidate = candidates.maxByOrNull { it.priority }
+
+            // Method C: Check by FlashModule / application/zip handler if no candidate found
+            if (bestCandidate == null) {
                 val zipIntent =
                     Intent(Intent.ACTION_VIEW).apply {
                         setDataAndType(android.net.Uri.parse("content://fake/module.zip"), "application/zip")
@@ -214,20 +219,79 @@ object RootManagerDetector {
                         )
                     }
                 if (match != null) {
-                    managerPkg = match.activityInfo.packageName
-                    isSpoofed = !KNOWN_MANAGER_PACKAGES.contains(managerPkg)
+                    val p = match.activityInfo.packageName
+                    val cHash = getAppSignatureSha256(pm, p)
+                    val fork = if (cHash != null) KSU_HASH_MAP[cHash] else null
+                    bestCandidate = ManagerCandidate(p, cHash, fork, !KNOWN_MANAGER_PACKAGES.contains(p), 20)
                 }
             }
 
-            var managerSignatureHash: String? = null
+            val managerPkg = bestCandidate?.packageName
+            val isSpoofed = bestCandidate?.isSpoofed ?: false
+            var managerLabel: String? = null
+            var managerIcon: ImageBitmap? = null
+            var managerSignatureHash = bestCandidate?.certHash
+
+            var finalRootName = rootName
+            var finalRootType = rootType
+
+            // Re-align rootName and rootType with detected fork certificate
+            when (bestCandidate?.certHash) {
+                "d3469712b6214462764a1d8d3e5cbe1d6819a0b629791b9f4101867821f1df64" -> {
+                    finalRootName = "ReSukiSU"
+                    finalRootType = RootType.SUKISU
+                }
+
+                "947ae944f3de4ed4c21a7e4f7953ecf351bfa2b36239da37a34111ad29993eef" -> {
+                    finalRootName = "SukiSU Ultra"
+                    finalRootType = RootType.SUKISU
+                }
+
+                "52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4" -> {
+                    finalRootName = "WildKernelSU"
+                    finalRootType = RootType.KERNELSU
+                }
+
+                "f415f4ed9435427e1fdf7f1fccd4dbc07b3d6b8751e4dbcec6f19671f427870b" -> {
+                    finalRootName = "RKSU"
+                    finalRootType = RootType.KERNELSU
+                }
+
+                "484fcba6e6c43b1fb09700633bf2fb4758f13cb0b2f4457b80d075084b26c588" -> {
+                    finalRootName = "KnowSU"
+                    finalRootType = RootType.KOWSU
+                }
+
+                "79e590113c4c4c0c222978e413a5faa801666957b1212a328e46c00c69821bf7" -> {
+                    if (finalRootType == RootType.KERNELSU) {
+                        finalRootName = "KernelSU Next"
+                        finalRootType = RootType.KERNELSU_NEXT
+                    }
+                }
+            }
+
             // Load Manager App Label, Icon & Signature Hash if found
             if (managerPkg != null) {
-                managerSignatureHash = getAppSignatureSha256(pm, managerPkg)
+                if (managerSignatureHash == null) {
+                    managerSignatureHash = getAppSignatureSha256(pm, managerPkg)
+                }
                 try {
                     val appInfo = pm.getApplicationInfo(managerPkg, 0)
                     managerLabel = pm.getApplicationLabel(appInfo).toString()
                     val iconDrawable = pm.getApplicationIcon(appInfo)
-                    managerIcon = iconDrawable.toBitmap().asImageBitmap()
+                    val safeBitmap =
+                        if (iconDrawable is android.graphics.drawable.BitmapDrawable && iconDrawable.bitmap != null) {
+                            iconDrawable.bitmap
+                        } else {
+                            val w = if (iconDrawable.intrinsicWidth > 0) iconDrawable.intrinsicWidth else 144
+                            val h = if (iconDrawable.intrinsicHeight > 0) iconDrawable.intrinsicHeight else 144
+                            val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+                            val canvas = android.graphics.Canvas(bmp)
+                            iconDrawable.setBounds(0, 0, canvas.width, canvas.height)
+                            iconDrawable.draw(canvas)
+                            bmp
+                        }
+                    managerIcon = safeBitmap.asImageBitmap()
                 } catch (_: Throwable) {
                     // Fallback to null
                 }
@@ -235,8 +299,8 @@ object RootManagerDetector {
 
             RootEnvironmentInfo(
                 hasRoot = true,
-                rootName = rootName,
-                rootType = rootType,
+                rootName = finalRootName,
+                rootType = finalRootType,
                 coreVersion = coreVersion,
                 kernelVersion = kVer,
                 managerPackage = managerPkg,

@@ -401,7 +401,7 @@ fun SettingsScreen(
                                     onClick = onNavigateToLanguage,
                                     icon = Icons.Filled.Translate,
                                     shape = itemShapeFor(0, 2),
-                                    showChevron = true,
+                                    showChevron = false,
                                 )
 
                                 ClickableSettingItem(
@@ -410,7 +410,7 @@ fun SettingsScreen(
                                     onClick = { activeSubScreen = SettingsSubScreen.DEVELOPER_OPTIONS },
                                     icon = Icons.Filled.Code,
                                     shape = itemShapeFor(1, 2),
-                                    showChevron = true,
+                                    showChevron = false,
                                 )
                             }
                         }
