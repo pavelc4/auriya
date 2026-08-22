@@ -37,13 +37,23 @@ fun DeveloperOptionsContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // --- 1. DAEMON & OPERATIONS ---
-        SettingsSubsection(title = "DAEMON & OPERATIONS") {
+        SettingsSubsection(
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.dev_daemon_ops),
+        ) {
             val totalOps = 3
 
             ActionSettingItem(
-                title = "Restart Tuner Daemon",
-                subtitle = "Force restart background eBPF daemon",
-                actionText = "Restart",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.dev_restart_daemon),
+                subtitle =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.dev_restart_daemon_desc),
+                actionText =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.common_restart),
                 onAction = {
                     viewModel.restartDaemon()
                     Toast.makeText(context, "Restarting Auriya daemon...", Toast.LENGTH_SHORT).show()
@@ -57,8 +67,12 @@ fun DeveloperOptionsContent(
             )
 
             SwitchSettingItem(
-                title = "Debug Logs Mode",
-                subtitle = "Increase log verbosity for troubleshooting",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.dev_debug_logs),
+                subtitle =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.dev_debug_logs_desc),
                 checked = debugMode,
                 onCheckedChange = {
                     debugMode = it
@@ -80,8 +94,12 @@ fun DeveloperOptionsContent(
             )
 
             ClickableSettingItem(
-                title = "Export System Logs",
-                subtitle = "Saves logs to Downloads/AuriyaLogs.tar.gz",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.dev_export_logs),
+                subtitle =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.dev_export_logs_desc),
                 onClick = {
                     coroutineScope.launch(Dispatchers.IO) {
                         val cmd =
@@ -114,13 +132,25 @@ fun DeveloperOptionsContent(
         }
 
         // --- 2. PRIVILEGES & DIAGNOSTICS ---
-        SettingsSubsection(title = "PRIVILEGES & DIAGNOSTICS") {
+        SettingsSubsection(
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.dev_root_diagnostics),
+        ) {
             val totalDiag = 2
 
             InfoSettingItem(
-                title = "Root Verified",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.dev_root_verified),
                 subtitle = if (hasRoot) "Privileged su access active" else "Non-root restricted execution",
-                valueText = if (hasRoot) "ACTIVE" else "DENIED",
+                valueText =
+                    if (hasRoot) {
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.common_active)
+                    } else {
+                        "DENIED"
+                    },
                 valueBadge = true,
                 valueContainerColor = if (hasRoot) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
                 valueContentColor = if (hasRoot) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
@@ -131,8 +161,12 @@ fun DeveloperOptionsContent(
             )
 
             InfoSettingItem(
-                title = "Daemon Status",
-                subtitle = "Current active daemon state",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.dev_daemon_status),
+                subtitle =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.dev_daemon_status_sub),
                 valueText = systemInfo.daemonStatus.uppercase(),
                 valueBadge = true,
                 valueContainerColor =
@@ -159,11 +193,21 @@ fun DeveloperOptionsContent(
         }
 
         // --- 3. APPLICATION STATE ---
-        SettingsSubsection(title = "APPLICATION STATE") {
+        SettingsSubsection(
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.dev_sec_app_state),
+        ) {
             ActionSettingItem(
-                title = "Reset Setup Wizard",
-                subtitle = "Re-enable OOBE setup flow next launch",
-                actionText = "Reset",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.dev_reset_oobe),
+                subtitle =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.dev_reset_oobe_desc),
+                actionText =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.common_reset),
                 onAction = {
                     onResetOobe()
                     Toast.makeText(context, "OOBE State reset. Showing setup...", Toast.LENGTH_SHORT).show()

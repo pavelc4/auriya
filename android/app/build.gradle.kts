@@ -64,10 +64,6 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
-    androidResources {
-        localeFilters += listOf("en", "id")
-    }
-
     signingConfigs {
         if (signingProperties.isNotEmpty()) {
             create("release") {

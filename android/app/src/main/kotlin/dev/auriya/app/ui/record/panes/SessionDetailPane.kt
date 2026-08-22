@@ -267,19 +267,25 @@ fun SessionDetailPane(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             DetailStatItem(
-                                title = "Peak FPS",
+                                title =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.record_fps_peak),
                                 value =
                                     dev.auriya.app.data.AppPrefs
                                         .formatFps(session.maxFps, roundFps),
                                 icon = Icons.AutoMirrored.Filled.TrendingUp,
                             )
                             DetailStatItem(
-                                title = "Jank Stutter",
+                                title =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.record_jank_stutter),
                                 value = "$displayJank frames",
                                 icon = Icons.Outlined.WarningAmber,
                             )
                             DetailStatItem(
-                                title = "Avg CPU Load",
+                                title =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.record_avg_cpu_load),
                                 value = "%.1f%%".format(session.avgCpuLoad),
                                 icon = Icons.Outlined.Memory,
                             )
@@ -497,7 +503,9 @@ fun SessionDetailPane(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     SessionCharacteristicCard(
-                        title = "Peak CPU Temp",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_peak_cpu_temp),
                         value = if (session.maxCpuTemp != null) "%.1f°C".format(session.maxCpuTemp) else "--",
                         desc = "Max junction silicon heat",
                         icon = Icons.Outlined.Memory,
@@ -507,7 +515,9 @@ fun SessionDetailPane(
                                 .fillMaxHeight(),
                     )
                     SessionCharacteristicCard(
-                        title = "Peak Battery Temp",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_peak_battery_temp),
                         value = if (session.maxBatteryTemp != null) "%.1f°C".format(session.maxBatteryTemp) else "--",
                         desc = "Max cell pack thermal",
                         icon = Icons.Outlined.BatteryChargingFull,

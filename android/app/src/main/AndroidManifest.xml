@@ -14,11 +14,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:allowBackup="false"
+        android:localeConfig="@xml/locales_config"
         android:theme="@style/Theme.Auriya">
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|locale|fontScale|keyboardHidden">
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|fontScale|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

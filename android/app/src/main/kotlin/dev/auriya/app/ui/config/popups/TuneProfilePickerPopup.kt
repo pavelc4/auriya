@@ -23,13 +23,11 @@ import dev.auriya.app.ui.config.components.RichSelectionCard
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TuneProfilePickerPopup(
-    show: Boolean,
     selectedMode: String,
-    sheetState: SheetState,
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    if (!show) return
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val presets =
         listOf(
@@ -68,8 +66,10 @@ fun TuneProfilePickerPopup(
         ) {
             item {
                 BottomSheetHeader(
-                    title = "Profile to Tune",
-                    subtitle = "Currently customizing: ${selectedMode.replaceFirstChar { it.uppercase() }}",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_profile_to_tune),
+                    subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.common_active)}: ${selectedMode.replaceFirstChar { it.uppercase() }}",
                 )
             }
 

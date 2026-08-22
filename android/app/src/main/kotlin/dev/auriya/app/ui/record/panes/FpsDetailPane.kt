@@ -78,14 +78,23 @@ fun FpsDetailPane(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
+                            val activeGameText =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.record_active_game)
+                            val systemIdleText =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.record_system_idle)
+                            val standbyText =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.record_standby)
                             Text(
                                 text =
                                     if (isLive) {
-                                        (session.pkg?.substringAfterLast('.') ?: "Active Game")
+                                        (session.pkg?.substringAfterLast('.') ?: activeGameText)
                                     } else if (lastSession != null) {
                                         lastSession.appLabel
                                     } else {
-                                        "System Idle"
+                                        systemIdleText
                                     },
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
@@ -113,7 +122,7 @@ fun FpsDetailPane(
                                         } else if (lastSession != null) {
                                             lastSession.profile.uppercase()
                                         } else {
-                                            "STANDBY"
+                                            standbyText
                                         },
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
@@ -160,7 +169,9 @@ fun FpsDetailPane(
                                     ),
                             )
                             Text(
-                                text = "FPS (Mean)",
+                                text =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.record_fps_mean),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -302,7 +313,9 @@ fun FpsDetailPane(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     DetailCard(
-                        title = "1% Low FPS",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_fps_low),
                         value = low1Pct,
                         desc = "Mean of slowest 1% frames (stutter)",
                         icon = Icons.AutoMirrored.Filled.TrendingDown,
@@ -312,7 +325,9 @@ fun FpsDetailPane(
                                 .fillMaxHeight(),
                     )
                     DetailCard(
-                        title = "Peak FPS",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_fps_peak),
                         value = peakFps,
                         desc = "Fastest single frame render",
                         icon = Icons.Outlined.Speed,
@@ -351,7 +366,9 @@ fun FpsDetailPane(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     DetailCard(
-                        title = "Jank Stutter",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_jank_stutter),
                         value = jank,
                         desc = "Frames slower than target × 1.5",
                         icon = Icons.Outlined.WarningAmber,
@@ -361,7 +378,9 @@ fun FpsDetailPane(
                                 .fillMaxHeight(),
                     )
                     DetailCard(
-                        title = "Sample Window",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_sample_window),
                         value = samples,
                         desc = "Frame sample data points",
                         icon = Icons.Outlined.Analytics,

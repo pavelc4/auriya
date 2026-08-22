@@ -1,4 +1,456 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Auriya</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_games">Games</string>
+    <string name="nav_config">Config</string>
+    <string name="nav_record">Record</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Headers (Short & Clean) -->
+    <string name="home_title">Auriya</string>
+    <string name="games_title">Games</string>
+    <string name="games_subtitle">Per-game tuning</string>
+    <string name="config_title">Config</string>
+    <string name="config_subtitle">Daemon &amp; kernel tuning</string>
+    <string name="record_title">Record</string>
+    <string name="record_subtitle">FPS &amp; telemetry stats</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">App &amp; daemon preferences</string>
+
+    <!-- Setup Wizard -->
+    <string name="setup_title">Setup</string>
+    <string name="setup_welcome_title">Welcome to Auriya</string>
+    <string name="setup_welcome_subtitle">A performance management and frame scheduling system for rooted Android devices.</string>
+    <string name="setup_lang_title">Choose Language</string>
+    <string name="setup_lang_subtitle">Select your preferred application display language</string>
+    <string name="setup_lang_system">Follow System</string>
+    <string name="setup_lang_system_desc">Match current device system language</string>
+    <string name="setup_lang_en">English</string>
+    <string name="setup_lang_en_desc">English</string>
+    <string name="setup_lang_id">Indonesia</string>
+    <string name="setup_lang_id_desc">Indonesia</string>
+    <string name="setup_root_title">Root Access Required</string>
+    <string name="setup_root_subtitle">Auriya needs superuser permissions to adjust kernel frequencies, configure frame schedulers, and apply system optimizations.</string>
+    <string name="setup_root_btn_grant">Grant Root Permission</string>
+    <string name="setup_root_granted">Root Access Granted</string>
+    <string name="setup_overlay_title">Floating Overlay Permission</string>
+    <string name="setup_overlay_subtitle">Display real-time FPS, temperature, and performance telemetry on-screen while gaming.</string>
+    <string name="setup_overlay_btn_grant">Grant Overlay Permission</string>
+    <string name="setup_overlay_granted">Overlay Permission Granted</string>
+    <string name="setup_coloring_title">Appearance &amp; Theme</string>
+    <string name="setup_coloring_subtitle">Customize accent colors, dynamic palette, corner radius, and dark mode preferences.</string>
+    <string name="setup_navbar_title">Navigation Style</string>
+    <string name="setup_navbar_subtitle">Choose your preferred navigation bar style (Standard or Floating Pill).</string>
+    <string name="setup_done_title">You\'re All Set!</string>
+    <string name="setup_done_subtitle">Auriya is configured and ready to optimize your device.</string>
+    <string name="setup_btn_next">Next</string>
+    <string name="setup_btn_back">Back</string>
+    <string name="setup_btn_finish">Get Started</string>
+
+    <!-- Home -->
+    <string name="home_status_active">Active</string>
+    <string name="home_status_inactive">Sleep</string>
+    <string name="home_stopped">Sleep</string>
+    <string name="home_active_profile">Active Profile</string>
+    <string name="home_governor">Governor</string>
+    <string name="home_cpu_temp">CPU Temp</string>
+    <string name="home_gpu_temp">GPU Temp</string>
+    <string name="home_battery_temp">Battery Temp</string>
+    <string name="home_fps">Current FPS</string>
+    <string name="home_quick_actions">Quick Actions</string>
+    <string name="home_open_overlay">Open Floating HUD</string>
+    <string name="home_system_metrics">SYSTEM METRICS</string>
+    <string name="home_performance_profile">Performance Profile</string>
+    <string name="home_profile_powersave">Power Save</string>
+    <string name="home_profile_powersave_sub">Profile 3 • Battery Preservation</string>
+    <string name="home_profile_powersave_desc">Limits clock frequencies and aggressively throttles background tasks to maximize battery life.</string>
+    <string name="home_profile_balance">Balance</string>
+    <string name="home_profile_balance_sub">Profile 2 • Daily Smoothness</string>
+    <string name="home_profile_balance_desc">Standard daily profile. Balances high frame stability and optimal thermals for general usage.</string>
+    <string name="home_profile_performance">Performance</string>
+    <string name="home_profile_performance_sub">Profile 1 • Competitive Gaming</string>
+    <string name="home_profile_performance_desc">Elevates CPU ceilings and optimizes scheduling responsiveness for demanding workloads.</string>
+    <string name="home_profile_fast">Fast</string>
+    <string name="home_profile_fast_sub">Profile 0 • Maximum Clocks</string>
+    <string name="home_profile_fast_desc">Removes thermal limits and locks maximum CPU governor frequencies with zero throttle.</string>
+    <string name="home_documentation">Documentation</string>
+    <string name="home_doc_desc">Explore technical guides and tuning behavior.</string>
+    <string name="home_github_star">Star on GitHub</string>
+    <string name="home_github_star_desc">Give a star to support project development.</string>
+    <string name="home_telegram_channel">Telegram Channel</string>
+    <string name="home_telegram_channel_desc">Official announcements &amp; updates</string>
+    <string name="home_open_issues">Open existing issues</string>
+    <string name="home_report_issue">Report issue or crash</string>
+
+    <!-- Games & Profile Tuning -->
+    <string name="games_add">Add Game</string>
+    <string name="games_search">Search games or packages...</string>
+    <string name="games_empty">No games added yet</string>
+    <string name="games_not_found">No applications found</string>
+    <string name="games_not_found_desc">Try searching with a different term.</string>
+    <string name="games_target_fps">Target FPS</string>
+    <string name="games_profile_mode">Profile Mode</string>
+    <string name="games_profile_mode_desc">Select optimization &amp; power preset for this game</string>
+    <string name="games_dnd">Auto Do Not Disturb</string>
+    <string name="games_auto_record">Auto Record Benchmark</string>
+    <string name="games_refresh_rate">Target Refresh Rate</string>
+    <string name="games_profile_tuning">Profile Tuning</string>
+    <string name="games_profile_tuning_desc">Per-game optimization settings</string>
+    <string name="games_profile_actions">Profile Actions</string>
+    <string name="games_reset_defaults">Reset to Defaults</string>
+    <string name="games_reset_defaults_desc">Restore default governor, 60 FPS cap, and system defaults.</string>
+    <string name="games_remove_profile">Remove Profile</string>
+    <string name="games_remove_profile_desc">Delete saved tuning profile and revert to global policy.</string>
+    <string name="games_cpu_governor">CPU Governor</string>
+    <string name="games_cpu_governor_desc">Select scheduling frequency policy for this app</string>
+    <string name="games_cpu_ceiling">CPU Ceiling</string>
+    <string name="games_cpu_ceiling_desc">Set max power cap and thermal throttling threshold</string>
+    <string name="games_tuner_title">Games Tuner</string>
+    <string name="games_tuner_subtitle">Tune CPU governor, target FPS, refresh rate and DnD per game.</string>
+    <string name="games_dialog_delete_title">Remove Tuning Profile?</string>
+    <string name="games_dialog_delete_desc">This will delete the custom tuning profile and revert back to global policy.</string>
+    <string name="games_dialog_reset_title">Reset to Defaults?</string>
+    <string name="games_dialog_reset_desc">This will reset all tuning values for this app to system defaults.</string>
+
+    <!-- Config Sub-screens -->
+    <string name="config_daemon">Daemon</string>
+    <string name="config_daemon_sub">Daemon health check, logging, and idle mode</string>
+    <string name="config_cpu">CPU Governor</string>
+    <string name="config_cpu_sub">Kernel CPU frequency scaling governor</string>
+    <string name="config_fas">FAS Regulator</string>
+    <string name="config_fas_sub">Frame-Aware Scheduling and thermal control</string>
+    <string name="config_dynamic_gov">Dynamic Governor</string>
+    <string name="config_dynamic_gov_sub">Adaptive governor switching on jitter</string>
+    <string name="config_dnd">DND</string>
+    <string name="config_dnd_sub">Do Not Disturb automation for games</string>
+    <string name="config_profiles">Preset Tuning</string>
+    <string name="config_profiles_sub">Fine-tune margins and thermal thresholds</string>
+
+    <!-- Record & Benchmark -->
+    <string name="record_stats_title">Record &amp; Stats</string>
+    <string name="record_stats_sub">Live performance &amp; session benchmark</string>
+    <string name="record_fps_details">FPS &amp; Frametimes</string>
+    <string name="record_fps_details_sub">Real-time frame rates and stability</string>
+    <string name="record_thermals">Thermals</string>
+    <string name="record_thermals_sub">CPU and Battery temperature sensors</string>
+    <string name="record_battery">Battery</string>
+    <string name="record_battery_sub">Battery discharge rate &amp; health</string>
+    <string name="record_sessions">Benchmark History</string>
+    <string name="record_sessions_sub">Saved gameplay benchmark recordings</string>
+    <string name="record_start">Start Recording</string>
+    <string name="record_stop">Stop Recording</string>
+    <string name="record_history">Session History</string>
+    <string name="record_avg_fps">Average FPS</string>
+    <string name="record_low_fps">1% Low FPS</string>
+    <string name="record_stutters">Stutters</string>
+    <string name="record_battery_drain">Battery Drain</string>
+
+    <!-- Guides & Documentation Popups (?) -->
+    <string name="guide_overview">Overview of metrics and behavior for this screen</string>
+    <string name="guide_telemetry_title">Telemetry &amp; Record Guide</string>
+    <string name="guide_telemetry_1_title">Live Hardware Telemetry</string>
+    <string name="guide_telemetry_1_desc">Auriya polls hardware metrics from the root daemon at 1 Hz with zero background overhead.</string>
+    <string name="guide_telemetry_2_title">Session Benchmarks</string>
+    <string name="guide_telemetry_2_desc">Record frame rates, 1% lows, and thermal spikes during gameplay matches to compare profile performance.</string>
+    <string name="guide_telemetry_3_title">Auto Record Trigger</string>
+    <string name="guide_telemetry_3_desc">Enable Auto Record in any Game Profile to automatically start recording when that game launches.</string>
+    <string name="guide_fps_title">FPS Metrics Guide</string>
+    <string name="guide_fps_avg_title">Average FPS</string>
+    <string name="guide_fps_avg_desc">Mean frame rate calculated over the active measurement window.</string>
+    <string name="guide_fps_low_title">1% Low FPS</string>
+    <string name="guide_fps_low_desc" formatted="false">The average of the slowest 1% of frames rendered. A high 1% Low means zero stutter.</string>
+    <string name="guide_fps_peak_title">Peak Frame Rate</string>
+    <string name="guide_fps_peak_desc">The highest instantaneous rendering speed achieved during the session.</string>
+    <string name="guide_fps_jank_title">Jank &amp; Missed VSYNC</string>
+    <string name="guide_fps_jank_desc">Frames that took longer than 1.5x of the display refresh period.</string>
+    <string name="guide_thermals_title">Thermals Guide</string>
+    <string name="guide_thermals_cpu_title">CPU Junction</string>
+    <string name="guide_thermals_cpu_desc">Primary ARM core cluster temperatures polled directly from kernel thermal zones.</string>
+    <string name="guide_thermals_battery_title">Battery Cell</string>
+    <string name="guide_thermals_battery_desc">Battery pack temperature to monitor chemical integrity.</string>
+    <string name="guide_battery_title">Battery Guide</string>
+    <string name="guide_sessions_title">Benchmark History Guide</string>
+    <string name="guide_games_title">Games Tuner Guide</string>
+    <string name="guide_config_title">Configuration Guide</string>
+
+    <!-- Settings -->
+    <string name="settings_root_env">ROOT ENVIRONMENT</string>
+    <string name="settings_hero_title">Root Environment</string>
+    <string name="settings_kernel_interface">Kernel Interface</string>
+    <string name="settings_manager_identity">Manager Identity</string>
+    <string name="settings_display_metrics">DISPLAY &amp; METRICS</string>
+    <string name="settings_round_fps">Round FPS Values</string>
+    <string name="settings_round_fps_desc">Format FPS to whole numbers in UI &amp; overlay</string>
+    <string name="settings_general_tools">GENERAL &amp; TOOLS</string>
+    <string name="settings_app_language">App Language</string>
+    <string name="settings_app_language_desc">Select application display language</string>
+    <string name="settings_dev_options">Developer Options</string>
+    <string name="settings_dev_options_desc">Advanced logging, internal IPC debug, and diagnostics</string>
+    <string name="settings_appearance">Appearance &amp; Theme</string>
+    <string name="settings_appearance_desc">Dynamic colors, dark theme, and navigation style</string>
+    <string name="settings_floating_overlay">Floating Overlay</string>
+    <string name="settings_floating_overlay_desc">Customize HUD position, transparency, and metrics</string>
+    <string name="settings_about">About Auriya</string>
+    <string name="settings_about_desc">Version, authors, license, and repository links</string>
+
+    <!-- Appearance -->
+    <string name="appearance_title">Appearance</string>
+    <string name="appearance_subtitle">Theme mode, colors, and navigation layout</string>
+    <string name="appearance_global_theme">GLOBAL THEME</string>
+    <string name="appearance_theme_mode">Theme Mode</string>
+    <string name="appearance_dark_theme">Dark Theme</string>
+    <string name="appearance_light_theme">Light Theme</string>
+    <string name="appearance_follow_system">Follow System</string>
+    <string name="appearance_amoled">Pure AMOLED Black</string>
+    <string name="appearance_amoled_desc">Save power on OLED displays with deep black background</string>
+    <string name="appearance_dynamic_color">Dynamic Color (Material You)</string>
+    <string name="appearance_dynamic_color_desc">Sync theme accents with system wallpaper colors</string>
+    <string name="appearance_seed_palette">Color Palette</string>
+    <string name="appearance_card_corners">CARD CORNERS</string>
+    <string name="appearance_corner_radius">Corner Radius</string>
+    <string name="appearance_nav_layout">NAVIGATION LAYOUT</string>
+    <string name="appearance_nav_mode">Navigation Mode</string>
+    <string name="appearance_nav_standard">Standard Bar</string>
+    <string name="appearance_nav_floating">Floating Pill</string>
+
+    <!-- Language -->
+    <string name="language_title">App Language</string>
+    <string name="language_subtitle">Select application display language</string>
+    <string name="language_system">Follow System</string>
+    <string name="language_system_desc">Match current device system language</string>
+    <string name="language_en">English</string>
+    <string name="language_en_desc">English</string>
+    <string name="language_id">Indonesia</string>
+    <string name="language_id_desc">Indonesia</string>
+    <string name="language_applied">Language applied successfully</string>
+    <string name="language_active_badge">Active</string>
+
+    <!-- Overlay HUD -->
+    <string name="overlay_title">Floating Overlay</string>
+    <string name="overlay_enable">Enable Floating HUD</string>
+    <string name="overlay_enable_desc">Show real-time performance stats over apps</string>
+    <string name="overlay_metrics">METRICS DISPLAY</string>
+    <string name="overlay_fps">FPS Counter</string>
+    <string name="overlay_cpu">CPU Metrics</string>
+    <string name="overlay_gpu">GPU Metrics</string>
+    <string name="overlay_ram">RAM Usage</string>
+    <string name="overlay_temp_cpu">CPU Temperature</string>
+    <string name="overlay_temp_battery">Battery Temperature</string>
+    <string name="overlay_layout">DISPLAY &amp; LAYOUT</string>
+    <string name="overlay_style">Preset Style</string>
+    <string name="overlay_mode">HUD Format Mode</string>
+    <string name="overlay_position">Screen Position</string>
+    <string name="overlay_text_size">Text Size</string>
+    <string name="overlay_opacity">Background Opacity</string>
+    <string name="overlay_padding">Padding &amp; Margin</string>
+    <string name="overlay_corner_radius">Corner Radius</string>
+
+    <!-- Developer Options -->
+    <string name="dev_title">Developer Options</string>
+    <string name="dev_daemon_ops">DAEMON &amp; OPERATIONS</string>
+    <string name="dev_restart_daemon">Restart Tuner Daemon</string>
+    <string name="dev_restart_daemon_desc">Force restart background eBPF daemon</string>
+    <string name="dev_debug_logs">Debug Logs Mode</string>
+    <string name="dev_debug_logs_desc">Increase log verbosity for troubleshooting</string>
+    <string name="dev_export_logs">Export System Logs</string>
+    <string name="dev_export_logs_desc">Saves logs to Downloads/AuriyaLogs.tar.gz</string>
+    <string name="dev_root_diagnostics">ROOT &amp; DIAGNOSTICS</string>
+    <string name="dev_selinux_mode">SELinux Enforcement</string>
+    <string name="dev_ipc_socket">IPC Unix Socket</string>
+    <string name="dev_reset_oobe">Reset Setup Wizard</string>
+    <string name="dev_reset_oobe_desc">Re-run the initial configuration wizard on next launch</string>
+
+    <!-- About -->
+    <string name="about_title">About Auriya</string>
+    <string name="about_tagline">Technical documentation for Auriya and personal optimization experiments.</string>
+    <string name="about_owner">Core Developer</string>
+    <string name="about_contributors">Community Contributors</string>
+    <string name="about_license">Open Source License</string>
+    <string name="about_version">Version</string>
+    <string name="about_source_code">Source Code</string>
+    <string name="about_releases">Releases &amp; Changelog</string>
+
+    <!-- Common / Dialogs / Printilan -->
+    <string name="common_cancel">Cancel</string>
+    <string name="common_save">Save</string>
+    <string name="common_apply">Apply</string>
+    <string name="common_confirm">Confirm</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_restart">Restart</string>
+    <string name="common_reset">Reset</string>
+    <string name="common_done">Done</string>
+    <string name="common_back">Back</string>
+    <string name="common_close">Close</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_export">Export</string>
+    <string name="common_import">Import</string>
+    <string name="common_copied">Copied to clipboard</string>
+    <string name="common_loading">Loading…</string>
+    <string name="common_unknown">Unknown</string>
+    <string name="common_active">ACTIVE</string>
+    <string name="common_disabled">DISABLED</string>
+    <string name="common_enabled">ENABLED</string>
+
+    <!-- Config Sub-Panes -->
+    <string name="config_sec_daemon_controls">DAEMON CONTROLS</string>
+    <string name="config_daemon_info_title">Auriya Daemon</string>
+    <string name="config_daemon_info_desc">The Auriya background daemon monitors foreground games, manages CPU frequencies via Unix sockets, and enforces scheduling policies.</string>
+    <string name="config_default_profile">Default Profile</string>
+    <string name="config_log_verbosity">Log Verbosity</string>
+    <string name="config_check_interval">Check Interval</string>
+    <string name="config_check_interval_desc">Daemon health status poll frequency</string>
+
+    <string name="config_sec_scaling">SCALING SETTINGS</string>
+    <string name="config_cpu_info_title">CPU Frequency Governor</string>
+    <string name="config_cpu_info_desc">Governors dictate how the Linux kernel scales CPU clock speeds between idle and load. Tap below to choose or inspect active scaling governors.</string>
+
+    <string name="config_sec_dnd_auto">DND AUTOMATION</string>
+    <string name="config_dnd_info_title">Do Not Disturb (DND)</string>
+    <string name="config_dnd_info_desc">Automatically silences notifications, pop-up banners, and call rings whenever a listed game enters the foreground, restoring normal state on exit.</string>
+    <string name="config_dnd_auto_game">Auto Game DND</string>
+    <string name="config_dnd_auto_game_desc">Mute notifications automatically when games launch</string>
+
+    <string name="config_sec_dynamic_gov">DYNAMIC GOVERNOR CONTROLS</string>
+    <string name="config_dynamic_gov_info_title">Dynamic Governor Switching</string>
+    <string name="config_dynamic_gov_info_desc">Detects micro-stutter and frame time variance. When jitter exceeds the CV threshold for consecutive debounce frames, Auriya temporarily switches to an aggressive governor to smooth out spikes.</string>
+    <string name="config_adaptive_gov">Adaptive Governor</string>
+    <string name="config_adaptive_gov_desc">Dynamically switch governor on frame jitter</string>
+    <string name="config_cv_jitter">CV Jitter Threshold</string>
+    <string name="config_cv_jitter_desc">Coefficient of variation sensitivity trigger</string>
+    <string name="config_debounce_frames">Debounce Frames</string>
+    <string name="config_debounce_frames_desc">Consecutive jitter frames required to switch</string>
+
+    <string name="config_sec_fas">FAS CONFIGURATION</string>
+    <string name="config_fas_info_title">Frame-Aware Scheduling</string>
+    <string name="config_fas_info_desc">FAS calculates real-time frametimes from SurfaceFlinger or eBPF. It scales frequencies up when frames drop and lowers them during calm scenes to prevent thermal throttling.</string>
+    <string name="config_fas_enable">Enable FAS Engine</string>
+    <string name="config_fas_enable_desc">Adaptive frame regulator for steady frame rates</string>
+    <string name="config_fallback_fps">Fallback Target FPS</string>
+    <string name="config_fallback_fps_desc">Default frame rate target cap</string>
+    <string name="config_poll_interval">Calculation Poll Interval</string>
+    <string name="config_poll_interval_desc">How often FAS recalculates frame stats</string>
+    <string name="config_thermal_limit">Global Thermal Limit</string>
+    <string name="config_thermal_limit_desc">Safe device temperature limit before clock throttling</string>
+
+    <string name="config_sec_preset_tuning">PRESET SELECTION &amp; TUNING</string>
+    <string name="config_preset_info_title">Mode Presets Tuning</string>
+    <string name="config_preset_info_desc">Each performance mode balances power consumption and smoothness through FPS Margin and Thermal Limits.</string>
+    <string name="config_profile_to_tune">Profile to Tune</string>
+    <string name="config_fps_margin">FPS Margin</string>
+    <string name="config_fps_margin_desc">FPS drop margin before frequency ramp-up</string>
+
+    <!-- Overlay HUD Extra -->
+    <string name="overlay_sec_monet">MONET &amp; COLOR THEME</string>
+    <string name="overlay_monet_theme">Dynamic Monet Theming</string>
+    <string name="overlay_monet_theme_desc">Match overlay colors with system wallpaper theme</string>
+    <string name="overlay_color_presets">Color Presets</string>
+    <string name="overlay_sec_tuning">OVERLAY TUNING</string>
+    <string name="overlay_update_interval">Update Interval</string>
+    <string name="overlay_update_interval_desc">Frequency of telemetry metrics query</string>
+
+    <!-- Record Panes Extra -->
+    <string name="record_system_idle">System Idle</string>
+    <string name="record_active_game">Active Game</string>
+    <string name="record_fps_mean">FPS (Mean)</string>
+    <string name="record_standby">STANDBY</string>
+
+    <!-- Config Actions Popup -->
+    <string name="config_actions_title">Config Actions</string>
+    <string name="config_actions_subtitle">Backup, import, or reset settings.toml</string>
+    <string name="config_export">Export Configuration</string>
+    <string name="config_export_sub">Share &amp; Backup TOML</string>
+    <string name="config_export_desc">Export and share your active settings.toml to device storage, cloud, or messaging apps.</string>
+    <string name="config_import">Import Configuration</string>
+    <string name="config_import_sub">Load from File</string>
+    <string name="config_import_desc">Select a valid settings.toml file from your phone storage to import and apply tuning immediately.</string>
+    <string name="config_reset_factory">Reset to Default</string>
+    <string name="config_reset_factory_sub">Restore Factory Preset</string>
+    <string name="config_reset_factory_desc">Revert all daemon health intervals, CPU scaling governors, FAS thresholds, and profile margins back to default factory values.</string>
+
+    <!-- Record Panes & Metrics Full Localization -->
+    <string name="record_sec_electrical">ELECTRICAL SPECIFICATIONS</string>
+    <string name="record_battery_power_state">Battery Power State</string>
+    <string name="record_voltage">Voltage</string>
+    <string name="record_health">Health</string>
+    <string name="record_chemistry">Chemistry</string>
+    <string name="record_charge_rate">Charge Rate</string>
+    <string name="record_discharge">Discharge</string>
+    <string name="record_input_current">Input current</string>
+    <string name="record_power_drain">Power drain</string>
+    <string name="record_terminal_potential">Terminal potential</string>
+    <string name="record_pack_integrity">Pack integrity</string>
+    <string name="record_fps_frametimes">FPS &amp; Frametimes</string>
+    <string name="record_recorded_sessions">Recorded Sessions</string>
+    <string name="record_fps_low" formatted="false">1% Low FPS</string>
+    <string name="record_fps_peak">Peak FPS</string>
+    <string name="record_jank_stutter">Jank Stutter</string>
+    <string name="record_sample_window">Sample Window</string>
+    <string name="record_avg_cpu_load">Avg CPU Load</string>
+    <string name="record_peak_cpu_temp">Peak CPU Temp</string>
+    <string name="record_peak_battery_temp">Peak Battery Temp</string>
+    <string name="record_thermal_headroom">Headroom</string>
+    <string name="record_thermal_headroom_desc">Safe limit margin</string>
+    <string name="record_cooling_profile">Cooling Profile</string>
+    <string name="record_governor_state">Governor state</string>
+    <string name="record_sec_thermal_characteristics">THERMAL CHARACTERISTICS</string>
+    <string name="record_sec_sensor_zones">SENSOR ZONES</string>
+    <string name="record_cpu_processor">CPU Processor</string>
+    <string name="record_battery_cell">Battery Cell</string>
+    <string name="record_session_actions">Session Actions</string>
+    <string name="record_session_actions_sub">Export dataset, share file, or manage recording</string>
+    <string name="record_save_csv">Save CSV to Storage</string>
+    <string name="record_save_csv_sub">Saved to Download/auriya/</string>
+    <string name="record_share_csv">Share CSV File</string>
+    <string name="record_share_csv_sub">Open in Sheets / Excel / WhatsApp</string>
+    <string name="record_copy_markdown">Copy Markdown Summary</string>
+    <string name="record_copy_markdown_sub">Clipboard Export</string>
+    <string name="record_delete_session">Delete Benchmark Session</string>
+    <string name="record_delete_session_sub">Permanent Removal</string>
+
+    <!-- Settings, About & Floating Overlay Full Localization -->
+    <string name="about_sec_license">License</string>
+    <string name="about_license_sub">Open source license and terms.</string>
+    <string name="about_documentation">Documentation</string>
+    <string name="about_doc_sub">Explore More About Auriya.</string>
+    <string name="about_maintainer">Maintainer</string>
+    <string name="about_maintainer_sub">The person behind Auriya.</string>
+    <string name="about_support">Support</string>
+    <string name="about_support_sub">Help fuel ongoing development and updates.</string>
+    <string name="about_sec_contributors">Contributors</string>
+    <string name="about_contributors_sub">Collaborators and contributors to the project.</string>
+    <string name="appearance_floating_island">Floating Island Layout</string>
+    <string name="appearance_navbar_radius_sub">Adjust the corner radius of the navigation bar.</string>
+    <string name="dev_root_verified">Root Verified</string>
+    <string name="dev_daemon_status">Daemon Status</string>
+    <string name="dev_daemon_status_sub">Current active daemon state</string>
+    <string name="dev_sec_app_state">APPLICATION STATE</string>
+    <string name="overlay_sec_activation">OVERLAY ACTIVATION</string>
+    <string name="overlay_show">Show Floating Overlay</string>
+    <string name="overlay_sec_telemetry">TELEMETRY METRICS</string>
+    <string name="overlay_fps_counter">FPS Counter</string>
+    <string name="overlay_fps_counter_sub">Display active frame rate monitoring</string>
+    <string name="overlay_cpu_clusters">CPU Clusters</string>
+    <string name="overlay_cpu_clusters_sub">Monitor Little, Mid, Big core frequencies</string>
+    <string name="overlay_gpu_metrics">GPU Metrics</string>
+    <string name="overlay_gpu_metrics_sub">Display GPU frequency &amp; load percentage</string>
+    <string name="overlay_ram_usage">RAM Usage</string>
+    <string name="overlay_ram_usage_sub">Display active memory usage statistics</string>
+    <string name="overlay_cpu_temp">CPU Temperature</string>
+    <string name="overlay_cpu_temp_sub">Monitor core thermal metrics in real-time</string>
+    <string name="overlay_battery_temp">Battery Temperature</string>
+    <string name="overlay_battery_temp_sub">Display current battery thermal metrics</string>
+    <string name="overlay_sec_display_layout">DISPLAY &amp; LAYOUT</string>
+    <string name="overlay_hud_mode">HUD Format Mode</string>
+    <string name="overlay_cpu_style">CPU Metric Style</string>
+    <string name="overlay_layout_orientation">Layout Orientation</string>
+    <string name="settings_app_title">App</string>
+    <string name="settings_app_sub">General application settings, language, and developer tools</string>
+    <string name="settings_sec_root_env">ROOT ENVIRONMENT</string>
+    <string name="games_priority_notif_sub">Priority notifications on launch</string>
+    <string name="games_auto_bench_sub">Record benchmark session automatically on game launch</string>
+    <string name="games_dialog_remove_title">Remove profile?</string>
+    <string name="games_dialog_remove_desc">%1$s will be removed from the active profile list. You can re-add it from the Games tab.</string>
 </resources>

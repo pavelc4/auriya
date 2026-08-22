@@ -97,25 +97,25 @@ fun RecordScreen(
     }
 
     // Documentation items per sub-screen
-    val docData =
+    val (docTitleRes, docItems) =
         when (activeSubScreen) {
             RecordSubScreen.NONE -> {
                 Pair(
-                    "Telemetry & Record",
+                    dev.auriya.app.R.string.guide_telemetry_title,
                     listOf(
                         DocItem(
-                            "Live Hardware Telemetry",
-                            "Auriya polls hardware metrics from the root daemon at 1 Hz with zero background overhead.",
+                            dev.auriya.app.R.string.guide_telemetry_1_title,
+                            dev.auriya.app.R.string.guide_telemetry_1_desc,
                             Icons.Outlined.Analytics,
                         ),
                         DocItem(
-                            "Session Benchmarks",
-                            "Record frame rates, 1% lows, and thermal spikes during gameplay matches to compare profile performance.",
+                            dev.auriya.app.R.string.guide_telemetry_2_title,
+                            dev.auriya.app.R.string.guide_telemetry_2_desc,
                             Icons.Outlined.FiberManualRecord,
                         ),
                         DocItem(
-                            "Auto Record Trigger",
-                            "Enable Auto Record in any Game Profile to automatically start recording when that game launches.",
+                            dev.auriya.app.R.string.guide_telemetry_3_title,
+                            dev.auriya.app.R.string.guide_telemetry_3_desc,
                             Icons.Outlined.Bolt,
                         ),
                     ),
@@ -124,32 +124,27 @@ fun RecordScreen(
 
             RecordSubScreen.FPS_DETAILS -> {
                 Pair(
-                    "FPS & Frametimes Guide",
+                    dev.auriya.app.R.string.guide_fps_title,
                     listOf(
                         DocItem(
-                            "Average FPS",
-                            "Mean frame rate calculated over the active measurement window, representing overall target fluidity.",
+                            dev.auriya.app.R.string.guide_fps_avg_title,
+                            dev.auriya.app.R.string.guide_fps_avg_desc,
                             Icons.Outlined.Speed,
                         ),
                         DocItem(
-                            "1% Low FPS",
-                            "The average of the slowest 1% of frames rendered. A high 1% Low means zero stutter and consistent pace.",
+                            dev.auriya.app.R.string.guide_fps_low_title,
+                            dev.auriya.app.R.string.guide_fps_low_desc,
                             Icons.AutoMirrored.Filled.TrendingDown,
                         ),
                         DocItem(
-                            "Peak Frame Rate",
-                            "The highest instantaneous rendering speed achieved during the current active rendering session.",
+                            dev.auriya.app.R.string.guide_fps_peak_title,
+                            dev.auriya.app.R.string.guide_fps_peak_desc,
                             Icons.AutoMirrored.Filled.TrendingUp,
                         ),
                         DocItem(
-                            "Jank & Missed VSYNC",
-                            "Frames that took longer than 1.5x of the display refresh period, causing noticeable visual hitching.",
+                            dev.auriya.app.R.string.guide_fps_jank_title,
+                            dev.auriya.app.R.string.guide_fps_jank_desc,
                             Icons.Outlined.WarningAmber,
-                        ),
-                        DocItem(
-                            "Render Sparkline",
-                            "Real-time rolling waveform showing rendering stability and frame variance over time.",
-                            Icons.AutoMirrored.Filled.ShowChart,
                         ),
                     ),
                 )
@@ -157,32 +152,17 @@ fun RecordScreen(
 
             RecordSubScreen.THERMALS -> {
                 Pair(
-                    "Thermals Guide",
+                    dev.auriya.app.R.string.guide_thermals_title,
                     listOf(
                         DocItem(
-                            "Thermal Insight",
-                            "Global silicon thermal state analysis and kernel thermal mitigation detection.",
-                            Icons.Outlined.DeviceThermostat,
-                        ),
-                        DocItem(
-                            "CPU Junction",
-                            "Primary ARM core cluster temperatures polled directly from kernel thermal zone sysfs interfaces.",
+                            dev.auriya.app.R.string.guide_thermals_cpu_title,
+                            dev.auriya.app.R.string.guide_thermals_cpu_desc,
                             Icons.Outlined.Memory,
                         ),
                         DocItem(
-                            "Battery Cell",
-                            "Lithium polymer pack temperature. Maintained within safe thresholds to prevent chemical degradation.",
+                            dev.auriya.app.R.string.guide_thermals_battery_title,
+                            dev.auriya.app.R.string.guide_thermals_battery_desc,
                             Icons.Outlined.BatteryChargingFull,
-                        ),
-                        DocItem(
-                            "Headroom Margin",
-                            "The temperature buffer available before kernel thermal mitigation throttles CPU frequencies.",
-                            Icons.Outlined.Shield,
-                        ),
-                        DocItem(
-                            "Cooling Profile",
-                            "Indicates whether governors are operating at peak boost or under active thermal mitigation.",
-                            Icons.Outlined.Air,
                         ),
                     ),
                 )
@@ -190,73 +170,25 @@ fun RecordScreen(
 
             RecordSubScreen.BATTERY -> {
                 Pair(
-                    "Battery Power Guide",
+                    dev.auriya.app.R.string.guide_battery_title,
                     listOf(
                         DocItem(
-                            "Current Flow (mA)",
-                            "Net electrical current entering (+) or exiting (-) the battery cells in real-time.",
+                            dev.auriya.app.R.string.guide_battery_title,
+                            dev.auriya.app.R.string.record_battery_sub,
                             Icons.Outlined.ElectricBolt,
                         ),
-                        DocItem(
-                            "Active Wattage (W)",
-                            "Real-time power consumption calculated using instantaneous voltage and current (P = V × I).",
-                            Icons.Outlined.Bolt,
-                        ),
-                        DocItem(
-                            "Terminal Voltage (V)",
-                            "Operating potential of the battery cell pack. Decreases linearly as charge is consumed.",
-                            Icons.Outlined.ElectricalServices,
-                        ),
-                        DocItem(
-                            "Health Condition",
-                            "Internal state of health reported by the fuel-gauge IC, reflecting chemical cycle integrity.",
-                            Icons.Outlined.HealthAndSafety,
-                        ),
                     ),
                 )
             }
 
-            RecordSubScreen.SESSIONS -> {
+            RecordSubScreen.SESSIONS, RecordSubScreen.SESSION_DETAIL -> {
                 Pair(
-                    "Benchmark History Guide",
+                    dev.auriya.app.R.string.guide_sessions_title,
                     listOf(
                         DocItem(
-                            "Recorded Sessions",
-                            "Historical records of gameplay sessions with duration, average FPS, 1% low, and sample count.",
+                            dev.auriya.app.R.string.record_sessions,
+                            dev.auriya.app.R.string.record_sessions_sub,
                             Icons.Outlined.History,
-                        ),
-                        DocItem(
-                            "Spreadsheet Export (CSV)",
-                            "Export full benchmark datasets to Microsoft Excel or Google Sheets for in-depth data analysis.",
-                            Icons.Outlined.TableChart,
-                        ),
-                        DocItem(
-                            "Sandbox Storage",
-                            "Saved benchmark files are securely stored in the app sandbox without requiring storage permissions.",
-                            Icons.Outlined.Storage,
-                        ),
-                    ),
-                )
-            }
-
-            RecordSubScreen.SESSION_DETAIL -> {
-                Pair(
-                    "Session Report Guide",
-                    listOf(
-                        DocItem(
-                            "Excel & Google Sheets",
-                            "Export complete second-by-second FPS, thermal, and load telemetry to CSV format.",
-                            Icons.Outlined.TableChart,
-                        ),
-                        DocItem(
-                            "1% Low Metric",
-                            "Represents the bottom 1% frame rate threshold, proving whether gameplay maintained smooth pacing.",
-                            Icons.AutoMirrored.Filled.TrendingDown,
-                        ),
-                        DocItem(
-                            "Thermal Headroom",
-                            "Monitors peak CPU and Battery heat reached during heavy multiplayer match combat.",
-                            Icons.Outlined.DeviceThermostat,
                         ),
                     ),
                 )
@@ -265,9 +197,9 @@ fun RecordScreen(
 
     if (showDocSheet) {
         RecordDocBottomSheet(
-            title = docData.first,
-            subtitle = "Overview of metrics and behavior for this screen",
-            items = docData.second,
+            titleRes = docTitleRes,
+            subtitleRes = dev.auriya.app.R.string.guide_overview,
+            items = docItems,
             onDismiss = { showDocSheet = false },
             sheetState = docSheetState,
         )
@@ -335,60 +267,68 @@ fun RecordScreen(
                     }
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text =
-                            when (activeSubScreen) {
-                                RecordSubScreen.NONE -> "Record & Stats"
-                                RecordSubScreen.FPS_DETAILS -> "FPS & Frametimes"
-                                RecordSubScreen.THERMALS -> "Thermals"
-                                RecordSubScreen.BATTERY -> "Battery"
-                                RecordSubScreen.SESSIONS -> "Benchmark History"
-                                RecordSubScreen.SESSION_DETAIL -> selectedSession?.appLabel ?: "Benchmark"
-                            },
-                        style =
-                            ExpTitleTypography.titleMedium.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 24.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text =
-                            when (activeSubScreen) {
-                                RecordSubScreen.NONE -> {
-                                    "Live performance & session benchmark"
-                                }
+                AnimatedContent(
+                    targetState = activeSubScreen,
+                    transitionSpec = {
+                        (fadeIn(tween(200, easing = EaseOutCubic)) + slideInVertically(initialOffsetY = { -it / 4 }))
+                            .togetherWith(fadeOut(tween(150, easing = EaseInCubic)) + slideOutVertically(targetOffsetY = { it / 4 }))
+                    },
+                    label = "RecordHeaderTransition",
+                    modifier = Modifier.weight(1f),
+                ) { targetSubScreen ->
+                    Column {
+                        val titleRes =
+                            when (targetSubScreen) {
+                                RecordSubScreen.NONE -> dev.auriya.app.R.string.record_title
+                                RecordSubScreen.FPS_DETAILS -> dev.auriya.app.R.string.record_fps_details
+                                RecordSubScreen.THERMALS -> dev.auriya.app.R.string.record_thermals
+                                RecordSubScreen.BATTERY -> dev.auriya.app.R.string.record_battery
+                                RecordSubScreen.SESSIONS -> dev.auriya.app.R.string.record_sessions
+                                RecordSubScreen.SESSION_DETAIL -> null
+                            }
+                        val subtitleRes =
+                            when (targetSubScreen) {
+                                RecordSubScreen.NONE -> dev.auriya.app.R.string.record_subtitle
+                                RecordSubScreen.FPS_DETAILS -> dev.auriya.app.R.string.record_fps_details_sub
+                                RecordSubScreen.THERMALS -> dev.auriya.app.R.string.record_thermals_sub
+                                RecordSubScreen.BATTERY -> dev.auriya.app.R.string.record_battery_sub
+                                RecordSubScreen.SESSIONS -> dev.auriya.app.R.string.record_sessions_sub
+                                RecordSubScreen.SESSION_DETAIL -> null
+                            }
 
-                                RecordSubScreen.FPS_DETAILS -> {
-                                    "Real-time frame rates and stability"
-                                }
-
-                                RecordSubScreen.THERMALS -> {
-                                    "CPU and Battery temperature sensors"
-                                }
-
-                                RecordSubScreen.BATTERY -> {
-                                    "Power level, discharge rate, and health"
-                                }
-
-                                RecordSubScreen.SESSIONS -> {
-                                    "${benchmarkSessions.size} saved benchmark sessions"
-                                }
-
-                                RecordSubScreen.SESSION_DETAIL -> {
+                        Text(
+                            text =
+                                if (titleRes != null) {
+                                    androidx.compose.ui.res
+                                        .stringResource(titleRes)
+                                } else {
+                                    (selectedSession?.appLabel ?: "Benchmark")
+                                },
+                            style =
+                                ExpTitleTypography.titleMedium.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 24.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text =
+                                if (subtitleRes != null) {
+                                    androidx.compose.ui.res
+                                        .stringResource(subtitleRes)
+                                } else {
                                     selectedSession?.let {
                                         "${it.profile.uppercase()} • ${formatDuration(it.durationSeconds)} • ${it.samplesCount} samples"
                                     } ?: "Performance metrics"
-                                }
-                            },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                                },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
 
@@ -631,7 +571,9 @@ fun RecordScreen(
                                                                     .background(MaterialTheme.colorScheme.tertiary),
                                                         )
                                                         Text(
-                                                            text = "ACTIVE",
+                                                            text =
+                                                                androidx.compose.ui.res
+                                                                    .stringResource(dev.auriya.app.R.string.common_active),
                                                             style = MaterialTheme.typography.labelSmall,
                                                             fontWeight = FontWeight.Bold,
                                                             color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -725,7 +667,9 @@ fun RecordScreen(
                                     // Item 0: FPS & Frametimes
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.Speed,
-                                        title = "FPS & Frametimes",
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.record_fps_frametimes),
                                         subtitle =
                                             if (fps != null && liveStats?.session?.active == true) {
                                                 "Avg ${dev.auriya.app.data.AppPrefs.formatFps(fps.avg, roundFps)} FPS • 1% Low ${dev.auriya.app.data.AppPrefs.formatFps(fps.low_1pct, roundFps)} FPS • ${fps.jank} Jank"
@@ -739,7 +683,9 @@ fun RecordScreen(
                                     // Item 1: Thermals
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.DeviceThermostat,
-                                        title = "Thermals",
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.record_thermals),
                                         subtitle =
                                             if (thermal != null && (thermal.cpu_c != null || thermal.battery_c != null)) {
                                                 val tStr = if (thermal.cpu_c != null) "CPU %.1f°C".format(thermal.cpu_c) else ""
@@ -755,7 +701,9 @@ fun RecordScreen(
                                     // Item 2: Battery
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.BatteryChargingFull,
-                                        title = "Battery",
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.record_battery),
                                         subtitle =
                                             if (battery?.pct != null) {
                                                 "${battery.pct}% • ${battery.current_ma ?: 0} mA • ${battery.status ?: "Discharging"}"
@@ -773,7 +721,9 @@ fun RecordScreen(
                                 SettingsSubsection("BENCHMARK SESSIONS") {
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.Analytics,
-                                        title = "Recorded Sessions",
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.record_recorded_sessions),
                                         subtitle =
                                             if (benchmarkSessions.isNotEmpty()) {
                                                 "${benchmarkSessions.size} sessions recorded • Tap to inspect & export reports"

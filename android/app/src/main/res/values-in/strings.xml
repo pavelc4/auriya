@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Auriya</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Beranda</string>
+    <string name="nav_games">Game</string>
+    <string name="nav_config">Konfigurasi</string>
+    <string name="nav_record">Rekam</string>
+    <string name="nav_settings">Setelan</string>
+
+    <!-- Headers (Short & Clean) -->
+    <string name="home_title">Auriya</string>
+    <string name="games_title">Game</string>
+    <string name="games_subtitle">Tuning per-game</string>
+    <string name="config_title">Konfigurasi</string>
+    <string name="config_subtitle">Tuning daemon &amp; kernel</string>
+    <string name="record_title">Rekam</string>
+    <string name="record_subtitle">Statistik FPS &amp; telemetri</string>
+    <string name="settings_title">Setelan</string>
+    <string name="settings_subtitle">Preferensi aplikasi &amp; daemon</string>
+
+    <!-- Setup Wizard -->
+    <string name="setup_title">Setup</string>
+    <string name="setup_welcome_title">Selamat Datang di Auriya</string>
+    <string name="setup_welcome_subtitle">Sistem manajemen performa dan penjadwalan frame tingkat lanjut untuk perangkat Android root.</string>
+    <string name="setup_lang_title">Pilih Bahasa</string>
+    <string name="setup_lang_subtitle">Pilih bahasa tampilan aplikasi yang Anda inginkan</string>
+    <string name="setup_lang_system">Ikuti Sistem</string>
+    <string name="setup_lang_system_desc">Gunakan bahasa sesuai setelan sistem perangkat</string>
+    <string name="setup_lang_en">English</string>
+    <string name="setup_lang_en_desc">English</string>
+    <string name="setup_lang_id">Indonesia</string>
+    <string name="setup_lang_id_desc">Indonesia</string>
+    <string name="setup_root_title">Akses Root Diperlukan</string>
+    <string name="setup_root_subtitle">Auriya membutuhkan izin superuser untuk mengatur frekuensi kernel, mengonfigurasi frame scheduler, dan menerapkan optimasi sistem.</string>
+    <string name="setup_root_btn_grant">Berikan Izin Root</string>
+    <string name="setup_root_granted">Akses Root Diberikan</string>
+    <string name="setup_overlay_title">Izin Jendela Mengambang</string>
+    <string name="setup_overlay_subtitle">Tampilkan FPS real-time, suhu, dan telemetri performa di atas layar saat sedang bermain game.</string>
+    <string name="setup_overlay_btn_grant">Berikan Izin Overlay</string>
+    <string name="setup_overlay_granted">Izin Overlay Diberikan</string>
+    <string name="setup_coloring_title">Tampilan &amp; Tema</string>
+    <string name="setup_coloring_subtitle">Sesuaikan aksen warna, palet dinamis, radius sudut kartu, dan preferensi tema gelap.</string>
+    <string name="setup_navbar_title">Gaya Navigasi</string>
+    <string name="setup_navbar_subtitle">Pilih gaya bilah navigasi yang Anda sukai (Standar atau Floating Pill).</string>
+    <string name="setup_done_title">Semua Sudah Siap!</string>
+    <string name="setup_done_subtitle">Auriya telah terkonfigurasi dan siap mengoptimalkan performa perangkat Anda.</string>
+    <string name="setup_btn_next">Lanjut</string>
+    <string name="setup_btn_back">Kembali</string>
+    <string name="setup_btn_finish">Mulai Sekarang</string>
+
+    <!-- Home -->
+    <string name="home_status_active">Aktif</string>
+    <string name="home_status_inactive">Sleep</string>
+    <string name="home_stopped">Sleep</string>
+    <string name="home_active_profile">Profil Aktif</string>
+    <string name="home_governor">Governor</string>
+    <string name="home_cpu_temp">Suhu CPU</string>
+    <string name="home_gpu_temp">Suhu GPU</string>
+    <string name="home_battery_temp">Suhu Baterai</string>
+    <string name="home_fps">FPS Saat Ini</string>
+    <string name="home_quick_actions">Aksi Cepat</string>
+    <string name="home_open_overlay">Buka HUD Mengambang</string>
+    <string name="home_system_metrics">METRIK SISTEM</string>
+    <string name="home_performance_profile">Profil Performa</string>
+    <string name="home_profile_powersave">Hemat Daya</string>
+    <string name="home_profile_powersave_sub">Profil 3 • Hemat Baterai</string>
+    <string name="home_profile_powersave_desc">Membatasi frekuensi CPU dan tugas latar belakang untuk memaksimalkan daya tahan baterai.</string>
+    <string name="home_profile_balance">Seimbang</string>
+    <string name="home_profile_balance_sub">Profil 2 • Harian Lancar</string>
+    <string name="home_profile_balance_desc">Profil harian standar. Menyeimbangkan stabilitas frame dan suhu optimal untuk penggunaan umum.</string>
+    <string name="home_profile_performance">Performa</string>
+    <string name="home_profile_performance_sub">Profil 1 • Game Kompetitif</string>
+    <string name="home_profile_performance_desc">Meningkatkan batas frekuensi CPU dan responsivitas penjadwalan untuk beban berat.</string>
+    <string name="home_profile_fast">Maksimal</string>
+    <string name="home_profile_fast_sub">Profil 0 • Kecepatan Penuh</string>
+    <string name="home_profile_fast_desc">Membuka batas suhu dan mengunci frekuensi CPU maksimum tanpa throttling.</string>
+    <string name="home_documentation">Dokumentasi</string>
+    <string name="home_doc_desc">Pelajari Lebih Lanjut Tentang Auriya.</string>
+    <string name="home_github_star">Bintang di GitHub</string>
+    <string name="home_github_star_desc">Beri bintang untuk mendukung pengembangan proyek.</string>
+    <string name="home_telegram_channel">Kanal Telegram</string>
+    <string name="home_telegram_channel_desc">Pengumuman &amp; pembaruan resmi</string>
+    <string name="home_open_issues">Lihat isu yang ada</string>
+    <string name="home_report_issue">Laporkan masalah atau crash</string>
+
+    <!-- Games & Profile Tuning -->
+    <string name="games_add">Tambah Game</string>
+    <string name="games_search">Cari game atau nama paket...</string>
+    <string name="games_empty">Belum ada game yang ditambahkan</string>
+    <string name="games_not_found">Aplikasi tidak ditemukan</string>
+    <string name="games_not_found_desc">Coba cari dengan kata kunci lain.</string>
+    <string name="games_target_fps">Target FPS</string>
+    <string name="games_profile_mode">Mode Profil</string>
+    <string name="games_profile_mode_desc">Pilih preset optimasi &amp; daya untuk game ini</string>
+    <string name="games_dnd">Jangan Ganggu Otomatis</string>
+    <string name="games_auto_record">Rekam Benchmark Otomatis</string>
+    <string name="games_refresh_rate">Target Refresh Rate</string>
+    <string name="games_profile_tuning">Tuning Profil</string>
+    <string name="games_profile_tuning_desc">Pengaturan optimasi per-game</string>
+    <string name="games_profile_actions">Aksi Profil</string>
+    <string name="games_reset_defaults">Kembalikan ke Default</string>
+    <string name="games_reset_defaults_desc">Kembalikan governor default, batas 60 FPS, dan setelan sistem.</string>
+    <string name="games_remove_profile">Hapus Profil</string>
+    <string name="games_remove_profile_desc">Hapus profil tuning yang tersimpan dan kembali ke kebijakan global.</string>
+    <string name="games_cpu_governor">CPU Governor</string>
+    <string name="games_cpu_governor_desc">Pilih kebijakan frekuensi untuk aplikasi ini</string>
+    <string name="games_cpu_ceiling">CPU Ceiling</string>
+    <string name="games_cpu_ceiling_desc">Atur batas daya maksimum dan ambang batas suhu</string>
+    <string name="games_tuner_title">Games Tuner</string>
+    <string name="games_tuner_subtitle">Sesuaikan governor CPU, target FPS, refresh rate, dan DnD per game.</string>
+    <string name="games_dialog_delete_title">Hapus Profil Tuning?</string>
+    <string name="games_dialog_delete_desc">Ini akan menghapus profil tuning kustom dan kembali ke kebijakan global.</string>
+    <string name="games_dialog_reset_title">Kembalikan ke Default?</string>
+    <string name="games_dialog_reset_desc">Ini akan mereset semua nilai tuning untuk aplikasi ini ke pengaturan default.</string>
+
+    <!-- Config Sub-screens -->
+    <string name="config_daemon">Daemon</string>
+    <string name="config_daemon_sub">Status daemon, logging, dan mode idle</string>
+    <string name="config_cpu">CPU Governor</string>
+    <string name="config_cpu_sub">Governor frekuensi CPU kernel</string>
+    <string name="config_fas">Regulator FAS</string>
+    <string name="config_fas_sub">Penjadwalan sadar frame dan kontrol termal</string>
+    <string name="config_dynamic_gov">Dynamic Governor</string>
+    <string name="config_dynamic_gov_sub">Peralihan governor adaptif saat terjadi jitter</string>
+    <string name="config_dnd">Jangan Ganggu</string>
+    <string name="config_dnd_sub">Otomatisasi Jangan Ganggu untuk game</string>
+    <string name="config_profiles">Tuning Preset</string>
+    <string name="config_profiles_sub">Atur margin performa dan batas termal</string>
+
+    <!-- Record & Benchmark -->
+    <string name="record_stats_title">Rekam &amp; Statistik</string>
+    <string name="record_stats_sub">Performa langsung &amp; sesi benchmark</string>
+    <string name="record_fps_details">FPS &amp; Frametime</string>
+    <string name="record_fps_details_sub">Frame rate &amp; stabilitas real-time</string>
+    <string name="record_thermals">Suhu &amp; Termal</string>
+    <string name="record_thermals_sub">Sensor suhu CPU &amp; baterai</string>
+    <string name="record_battery">Baterai</string>
+    <string name="record_battery_sub">Tingkat pemakaian &amp; kesehatan baterai</string>
+    <string name="record_sessions">Riwayat Benchmark</string>
+    <string name="record_sessions_sub">Rekaman benchmark game yang tersimpan</string>
+    <string name="record_start">Mulai Rekam</string>
+    <string name="record_stop">Hentikan Rekaman</string>
+    <string name="record_history">Riwayat Sesi</string>
+    <string name="record_avg_fps">Rata-rata FPS</string>
+    <string name="record_low_fps">FPS 1% Low</string>
+    <string name="record_stutters">Stutter</string>
+    <string name="record_battery_drain">Pemakaian Baterai</string>
+
+    <!-- Guides & Documentation Popups (?) -->
+    <string name="guide_overview">Ringkasan metrik dan panduan untuk layar ini</string>
+    <string name="guide_telemetry_title">Panduan Telemetri &amp; Rekam</string>
+    <string name="guide_telemetry_1_title">Telemetri Perangkat Keras Langsung</string>
+    <string name="guide_telemetry_1_desc">Auriya membaca metrik perangkat keras dari daemon root pada 1 Hz tanpa beban latar belakang.</string>
+    <string name="guide_telemetry_2_title">Benchmark Sesi</string>
+    <string name="guide_telemetry_2_desc">Rekam frame rate, 1% low, dan suhu selama bermain game untuk menguji kestabilan performa.</string>
+    <string name="guide_telemetry_3_title">Pemicu Rekam Otomatis</string>
+    <string name="guide_telemetry_3_desc">Aktifkan Rekam Otomatis di Profil Game untuk mulai merekam secara otomatis saat game dibuka.</string>
+    <string name="guide_fps_title">Panduan Metrik FPS</string>
+    <string name="guide_fps_avg_title">Rata-rata FPS</string>
+    <string name="guide_fps_avg_desc">Rata-rata frame rate yang dihitung selama sesi berlangsung.</string>
+    <string name="guide_fps_low_title">FPS 1% Low</string>
+    <string name="guide_fps_low_desc" formatted="false">Rata-rata dari 1% frame terlambat. Nilai 1% Low tinggi berarti bebas stutter.</string>
+    <string name="guide_fps_peak_title">Frame Rate Puncak</string>
+    <string name="guide_fps_peak_desc">Kecepatan render tertinggi yang tercapai selama sesi.</string>
+    <string name="guide_fps_jank_title">Jank &amp; VSYNC Terlewat</string>
+    <string name="guide_fps_jank_desc">Frame yang membutuhkan waktu lebih dari 1,5x periode refresh layar.</string>
+    <string name="guide_thermals_title">Panduan Suhu &amp; Termal</string>
+    <string name="guide_thermals_cpu_title">Suhu CPU</string>
+    <string name="guide_thermals_cpu_desc">Suhu kluster inti CPU ARM yang dibaca langsung dari kernel thermal zone.</string>
+    <string name="guide_thermals_battery_title">Suhu Baterai</string>
+    <string name="guide_thermals_battery_desc">Suhu baterai untuk memantau keamanan dan mencegah degradasi sel.</string>
+    <string name="guide_battery_title">Panduan Baterai</string>
+    <string name="guide_sessions_title">Panduan Riwayat Benchmark</string>
+    <string name="guide_games_title">Panduan Tuner Game</string>
+    <string name="guide_config_title">Panduan Konfigurasi</string>
+
+    <!-- Settings -->
+    <string name="settings_root_env">LINGKUNGAN ROOT</string>
+    <string name="settings_hero_title">Lingkungan Root</string>
+    <string name="settings_kernel_interface">Antarmuka Kernel</string>
+    <string name="settings_manager_identity">Identitas Manajer</string>
+    <string name="settings_display_metrics">TAMPILAN &amp; METRIK</string>
+    <string name="settings_round_fps">Bulatkan Nilai FPS</string>
+    <string name="settings_round_fps_desc">Format FPS ke angka bulat di UI &amp; overlay</string>
+    <string name="settings_general_tools">UMUM &amp; ALAT</string>
+    <string name="settings_app_language">Bahasa Aplikasi</string>
+    <string name="settings_app_language_desc">Pilih bahasa tampilan aplikasi</string>
+    <string name="settings_dev_options">Opsi Pengembang</string>
+    <string name="settings_dev_options_desc">Logging lanjutan, debug IPC internal, dan diagnostik</string>
+    <string name="settings_appearance">Tampilan &amp; Tema</string>
+    <string name="settings_appearance_desc">Warna dinamis, tema gelap, dan gaya navigasi</string>
+    <string name="settings_floating_overlay">Overlay Mengambang</string>
+    <string name="settings_floating_overlay_desc">Sesuaikan posisi HUD, transparansi, dan metrik</string>
+    <string name="settings_about">Tentang Auriya</string>
+    <string name="settings_about_desc">Versi, pembuat, lisensi, dan tautan repositori</string>
+
+    <!-- Appearance -->
+    <string name="appearance_title">Tampilan</string>
+    <string name="appearance_subtitle">Mode tema, warna, dan tata letak navigasi</string>
+    <string name="appearance_global_theme">TEMA GLOBAL</string>
+    <string name="appearance_theme_mode">Mode Tema</string>
+    <string name="appearance_dark_theme">Tema Gelap</string>
+    <string name="appearance_light_theme">Tema Terang</string>
+    <string name="appearance_follow_system">Ikuti Sistem</string>
+    <string name="appearance_amoled">Hitam AMOLED Murni</string>
+    <string name="appearance_amoled_desc">Hemat daya pada layar OLED dengan latar belakang hitam pekat</string>
+    <string name="appearance_dynamic_color">Warna Dinamis (Material You)</string>
+    <string name="appearance_dynamic_color_desc">Sinkronkan warna aksen tema dengan wallpaper sistem</string>
+    <string name="appearance_seed_palette">Palet Warna</string>
+    <string name="appearance_card_corners">SUDUT KARTU</string>
+    <string name="appearance_corner_radius">Radius Sudut</string>
+    <string name="appearance_nav_layout">TATA LETAK NAVIGASI</string>
+    <string name="appearance_nav_mode">Mode Navigasi</string>
+    <string name="appearance_nav_standard">Bilah Standar</string>
+    <string name="appearance_nav_floating">Floating Pill</string>
+
+    <!-- Language -->
+    <string name="language_title">Bahasa Aplikasi</string>
+    <string name="language_subtitle">Pilih bahasa tampilan aplikasi</string>
+    <string name="language_system">Ikuti Sistem</string>
+    <string name="language_system_desc">Gunakan bahasa sesuai setelan sistem perangkat</string>
+    <string name="language_en">English</string>
+    <string name="language_en_desc">English</string>
+    <string name="language_id">Indonesia</string>
+    <string name="language_id_desc">Indonesia</string>
+    <string name="language_applied">Bahasa berhasil diterapkan</string>
+    <string name="language_active_badge">Aktif</string>
+
+    <!-- Overlay HUD -->
+    <string name="overlay_title">Overlay Mengambang</string>
+    <string name="overlay_enable">Aktifkan HUD Mengambang</string>
+    <string name="overlay_enable_desc">Tampilkan statistik performa real-time di atas aplikasi</string>
+    <string name="overlay_metrics">TAMPILAN METRIK</string>
+    <string name="overlay_fps">Penghitung FPS</string>
+    <string name="overlay_cpu">Metrik CPU</string>
+    <string name="overlay_gpu">Metrik GPU</string>
+    <string name="overlay_ram">Penggunaan RAM</string>
+    <string name="overlay_temp_cpu">Suhu CPU</string>
+    <string name="overlay_temp_battery">Suhu Baterai</string>
+    <string name="overlay_layout">TAMPILAN &amp; TATA LETAK</string>
+    <string name="overlay_style">Gaya Preset</string>
+    <string name="overlay_mode">Mode Format HUD</string>
+    <string name="overlay_position">Posisi Layar</string>
+    <string name="overlay_text_size">Ukuran Teks</string>
+    <string name="overlay_opacity">Transparansi Latar Belakang</string>
+    <string name="overlay_padding">Bantalan &amp; Margin</string>
+    <string name="overlay_corner_radius">Radius Sudut</string>
+
+    <!-- Developer Options -->
+    <string name="dev_title">Opsi Pengembang</string>
+    <string name="dev_daemon_ops">DAEMON &amp; OPERASI</string>
+    <string name="dev_restart_daemon">Mulai Ulang Daemon Tuner</string>
+    <string name="dev_restart_daemon_desc">Mulai ulang daemon eBPF latar belakang secara paksa</string>
+    <string name="dev_debug_logs">Mode Log Debug</string>
+    <string name="dev_debug_logs_desc">Tingkatkan kerincian log untuk pemecahan masalah</string>
+    <string name="dev_export_logs">Ekspor Log Sistem</string>
+    <string name="dev_export_logs_desc">Simpan log ke Downloads/AuriyaLogs.tar.gz</string>
+    <string name="dev_root_diagnostics">ROOT &amp; DIAGNOSTIK</string>
+    <string name="dev_selinux_mode">Mode Penegakan SELinux</string>
+    <string name="dev_ipc_socket">Soket Unix IPC</string>
+    <string name="dev_reset_oobe">Reset Wizard Setup</string>
+    <string name="dev_reset_oobe_desc">Jalankan ulang wizard konfigurasi awal pada peluncuran berikutnya</string>
+
+    <!-- About -->
+    <string name="about_title">Tentang Auriya</string>
+    <string name="about_tagline">Dokumentasi teknis untuk Auriya dan eksperimen optimasi performa.</string>
+    <string name="about_owner">Pengembang Utama</string>
+    <string name="about_contributors">Kontributor Komunitas</string>
+    <string name="about_license">Lisensi Open Source</string>
+    <string name="about_version">Versi</string>
+    <string name="about_source_code">Kode Sumber</string>
+    <string name="about_releases">Rilis &amp; Catatan Perubahan</string>
+
+    <!-- Common / Dialogs / Printilan -->
+    <string name="common_cancel">Batal</string>
+    <string name="common_save">Simpan</string>
+    <string name="common_apply">Terapkan</string>
+    <string name="common_confirm">Konfirmasi</string>
+    <string name="common_delete">Hapus</string>
+    <string name="common_restart">Mulai Ulang</string>
+    <string name="common_reset">Reset</string>
+    <string name="common_done">Selesai</string>
+    <string name="common_back">Kembali</string>
+    <string name="common_close">Tutup</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_export">Ekspor</string>
+    <string name="common_import">Impor</string>
+    <string name="common_copied">Disalin ke papan klip</string>
+    <string name="common_loading">Memuat…</string>
+    <string name="common_unknown">Tidak Diketahui</string>
+    <string name="common_active">AKTIF</string>
+    <string name="common_disabled">NONAKTIF</string>
+    <string name="common_enabled">DIAKTIFKAN</string>
+
+    <!-- Config Sub-Panes -->
+    <string name="config_sec_daemon_controls">KONTROL DAEMON</string>
+    <string name="config_daemon_info_title">Daemon Auriya</string>
+    <string name="config_daemon_info_desc">Daemon latar belakang Auriya memantau game di latar depan, mengatur frekuensi CPU melalui soket Unix, dan menegakkan kebijakan penjadwalan.</string>
+    <string name="config_default_profile">Profil Default</string>
+    <string name="config_log_verbosity">Tingkat Log</string>
+    <string name="config_check_interval">Interval Pengecekan</string>
+    <string name="config_check_interval_desc">Frekuensi polling status kesehatan daemon</string>
+
+    <string name="config_sec_scaling">PENGATURAN SKALA</string>
+    <string name="config_cpu_info_title">Governor Frekuensi CPU</string>
+    <string name="config_cpu_info_desc">Governor menentukan cara kernel Linux menyesuaikan frekuensi CPU antara idle dan beban kerja. Ketuk di bawah untuk memilih governor aktif.</string>
+
+    <string name="config_sec_dnd_auto">OTOMATISASI JANGAN GANGGU</string>
+    <string name="config_dnd_info_title">Jangan Ganggu (DND)</string>
+    <string name="config_dnd_info_desc">Secara otomatis membisukan notifikasi, banner pop-up, dan panggilan saat game yang terdaftar berjalan di latar depan.</string>
+    <string name="config_dnd_auto_game">DND Game Otomatis</string>
+    <string name="config_dnd_auto_game_desc">Bisukan notifikasi secara otomatis saat game dibuka</string>
+
+    <string name="config_sec_dynamic_gov">KONTROL DYNAMIC GOVERNOR</string>
+    <string name="config_dynamic_gov_info_title">Peralihan Governor Dinamis</string>
+    <string name="config_dynamic_gov_info_desc">Mendeteksi micro-stutter dan variasi waktu frame. Saat jitter melebihi ambang batas, Auriya beralih sementara ke governor agresif untuk menghaluskan performa.</string>
+    <string name="config_adaptive_gov">Governor Adaptif</string>
+    <string name="config_adaptive_gov_desc">Beralih governor secara dinamis saat terjadi jitter frame</string>
+    <string name="config_cv_jitter">Ambang Batas Jitter CV</string>
+    <string name="config_cv_jitter_desc">Sensitivitas pemicu koefisien variasi</string>
+    <string name="config_debounce_frames">Frame Debounce</string>
+    <string name="config_debounce_frames_desc">Jumlah frame jitter berurutan yang dibutuhkan untuk beralih</string>
+
+    <string name="config_sec_fas">KONFIGURASI FAS</string>
+    <string name="config_fas_info_title">Frame-Aware Scheduling (FAS)</string>
+    <string name="config_fas_info_desc">FAS menghitung frametime real-time dari SurfaceFlinger atau eBPF, meningkatkan frekuensi saat frame turun dan menurunkannya saat adegan tenang untuk mencegah throttling.</string>
+    <string name="config_fas_enable">Aktifkan Mesin FAS</string>
+    <string name="config_fas_enable_desc">Regulator frame adaptif untuk frame rate stabil</string>
+    <string name="config_fallback_fps">Target FPS Cadangan</string>
+    <string name="config_fallback_fps_desc">Batas target frame rate bawaan</string>
+    <string name="config_poll_interval">Interval Polling Kalkulasi</string>
+    <string name="config_poll_interval_desc">Frekuensi FAS menghitung ulang statistik frame</string>
+    <string name="config_thermal_limit">Batas Termal Global</string>
+    <string name="config_thermal_limit_desc">Batas suhu aman sebelum terjadi throttling frekuensi</string>
+
+    <string name="config_sec_preset_tuning">PEMILIHAN PRESET &amp; TUNING</string>
+    <string name="config_preset_info_title">Tuning Preset Mode</string>
+    <string name="config_preset_info_desc">Setiap mode performa menyeimbangkan konsumsi daya dan kelancaran melalui Margin FPS dan Batas Termal.</string>
+    <string name="config_profile_to_tune">Profil untuk Diatur</string>
+    <string name="config_fps_margin">Margin FPS</string>
+    <string name="config_fps_margin_desc">Margin penurunan FPS sebelum frekuensi dinaikkan</string>
+
+    <!-- Overlay HUD Extra -->
+    <string name="overlay_sec_monet">TEMA WARNA &amp; MONET</string>
+    <string name="overlay_monet_theme">Tema Monet Dinamis</string>
+    <string name="overlay_monet_theme_desc">Sesuaikan warna overlay dengan tema wallpaper sistem</string>
+    <string name="overlay_color_presets">Preset Warna</string>
+    <string name="overlay_sec_tuning">TUNING OVERLAY</string>
+    <string name="overlay_update_interval">Interval Pembaruan</string>
+    <string name="overlay_update_interval_desc">Frekuensi query metrik telemetri</string>
+
+    <!-- Record Panes Extra -->
+    <string name="record_system_idle">Sistem Idle</string>
+    <string name="record_active_game">Game Aktif</string>
+    <string name="record_fps_mean">FPS (Rata-rata)</string>
+    <string name="record_standby">STANDBY</string>
+
+    <!-- Config Actions Popup -->
+    <string name="config_actions_title">Aksi Konfigurasi</string>
+    <string name="config_actions_subtitle">Cadangkan, impor, atau reset settings.toml</string>
+    <string name="config_export">Ekspor Konfigurasi</string>
+    <string name="config_export_sub">Bagikan &amp; Cadangkan TOML</string>
+    <string name="config_export_desc">Ekspor dan bagikan file settings.toml aktif ke penyimpanan perangkat atau aplikasi lain.</string>
+    <string name="config_import">Impor Konfigurasi</string>
+    <string name="config_import_sub">Muat dari File</string>
+    <string name="config_import_desc">Pilih file settings.toml yang valid dari penyimpanan untuk langsung menerapkan konfigurasi.</string>
+    <string name="config_reset_factory">Reset ke Default</string>
+    <string name="config_reset_factory_sub">Kembalikan Preset Bawaan</string>
+    <string name="config_reset_factory_desc">Kembalikan interval kesehatan daemon, governor CPU, ambang batas FAS, dan margin profil ke nilai bawaan pabrik.</string>
+
+    <!-- Record Panes & Metrics Full Localization -->
+    <string name="record_sec_electrical">SPESIFIKASI KELISTRIKAN</string>
+    <string name="record_battery_power_state">Status Daya Baterai</string>
+    <string name="record_voltage">Tegangan</string>
+    <string name="record_health">Kesehatan</string>
+    <string name="record_chemistry">Kimia</string>
+    <string name="record_charge_rate">Laju Pengisian</string>
+    <string name="record_discharge">Pengurasan</string>
+    <string name="record_input_current">Arus masuk</string>
+    <string name="record_power_drain">Daya terkuras</string>
+    <string name="record_terminal_potential">Potensial terminal</string>
+    <string name="record_pack_integrity">Integritas baterai</string>
+    <string name="record_fps_frametimes">FPS &amp; Waktu Frame</string>
+    <string name="record_recorded_sessions">Sesi Rekaman</string>
+    <string name="record_fps_low" formatted="false">1% Low FPS</string>
+    <string name="record_fps_peak">FPS Puncak</string>
+    <string name="record_jank_stutter">Jank / Stutter</string>
+    <string name="record_sample_window">Jendela Sampel</string>
+    <string name="record_avg_cpu_load">Rata-rata Beban CPU</string>
+    <string name="record_peak_cpu_temp">Suhu Puncak CPU</string>
+    <string name="record_peak_battery_temp">Suhu Puncak Baterai</string>
+    <string name="record_thermal_headroom">Batas Aman</string>
+    <string name="record_thermal_headroom_desc">Margin batas aman</string>
+    <string name="record_cooling_profile">Profil Pendinginan</string>
+    <string name="record_governor_state">Status governor</string>
+    <string name="record_sec_thermal_characteristics">KARAKTERISTIK TERMAL</string>
+    <string name="record_sec_sensor_zones">ZONA SENSOR</string>
+    <string name="record_cpu_processor">Prosesor CPU</string>
+    <string name="record_battery_cell">Sel Baterai</string>
+    <string name="record_session_actions">Aksi Sesi</string>
+    <string name="record_session_actions_sub">Ekspor dataset, bagikan file, atau kelola rekaman</string>
+    <string name="record_save_csv">Simpan CSV ke Penyimpanan</string>
+    <string name="record_save_csv_sub">Disimpan ke Download/auriya/</string>
+    <string name="record_share_csv">Bagikan File CSV</string>
+    <string name="record_share_csv_sub">Buka di Sheets / Excel / WhatsApp</string>
+    <string name="record_copy_markdown">Salin Ringkasan Markdown</string>
+    <string name="record_copy_markdown_sub">Ekspor ke Papan Klip</string>
+    <string name="record_delete_session">Hapus Sesi Benchmark</string>
+    <string name="record_delete_session_sub">Penghapusan Permanen</string>
+
+    <!-- Settings, About & Floating Overlay Full Localization -->
+    <string name="about_sec_license">Lisensi</string>
+    <string name="about_license_sub">Lisensi dan ketentuan sumber terbuka.</string>
+    <string name="about_documentation">Dokumentasi</string>
+    <string name="about_doc_sub">Pelajari lebih lanjut tentang Auriya.</string>
+    <string name="about_maintainer">Pemelihara</string>
+    <string name="about_maintainer_sub">Pengembang di balik Auriya.</string>
+    <string name="about_support">Dukungan</string>
+    <string name="about_support_sub">Bantu mendukung kelangsungan pengembangan proyek.</string>
+    <string name="about_sec_contributors">Kontributor</string>
+    <string name="about_contributors_sub">Kolaborator dan kontributor proyek.</string>
+    <string name="appearance_floating_island">Tata Letak Floating Island</string>
+    <string name="appearance_navbar_radius_sub">Atur kelengkungan sudut bilah navigasi.</string>
+    <string name="dev_root_verified">Root Terverifikasi</string>
+    <string name="dev_daemon_status">Status Daemon</string>
+    <string name="dev_daemon_status_sub">Status aktif daemon saat ini</string>
+    <string name="dev_sec_app_state">STATUS APLIKASI</string>
+    <string name="overlay_sec_activation">AKTIVASI OVERLAY</string>
+    <string name="overlay_show">Tampilkan Floating Overlay</string>
+    <string name="overlay_sec_telemetry">METRIK TELEMETRI</string>
+    <string name="overlay_fps_counter">Penghitung FPS</string>
+    <string name="overlay_fps_counter_sub">Tampilkan pemantauan frame rate aktif</string>
+    <string name="overlay_cpu_clusters">Kluster CPU</string>
+    <string name="overlay_cpu_clusters_sub">Pantau frekuensi inti Little, Mid, Big</string>
+    <string name="overlay_gpu_metrics">Metrik GPU</string>
+    <string name="overlay_gpu_metrics_sub">Tampilkan frekuensi &amp; beban GPU</string>
+    <string name="overlay_ram_usage">Penggunaan RAM</string>
+    <string name="overlay_ram_usage_sub">Tampilkan statistik pemakaian memori</string>
+    <string name="overlay_cpu_temp">Suhu CPU</string>
+    <string name="overlay_cpu_temp_sub">Pantau metrik suhu inti secara real-time</string>
+    <string name="overlay_battery_temp">Suhu Baterai</string>
+    <string name="overlay_battery_temp_sub">Tampilkan metrik suhu baterai</string>
+    <string name="overlay_sec_display_layout">TAMPILAN &amp; TATA LETAK</string>
+    <string name="overlay_hud_mode">Mode Format HUD</string>
+    <string name="overlay_cpu_style">Gaya Metrik CPU</string>
+    <string name="overlay_layout_orientation">Orientasi Tata Letak</string>
+    <string name="settings_app_title">Aplikasi</string>
+    <string name="settings_app_sub">Pengaturan umum aplikasi, bahasa, dan opsi pengembang</string>
+    <string name="settings_sec_root_env">LINGKUNGAN ROOT</string>
+    <string name="games_priority_notif_sub">Notifikasi prioritas saat diluncurkan</string>
+    <string name="games_auto_bench_sub">Rekam sesi benchmark otomatis saat game dimulai</string>
+    <string name="games_dialog_remove_title">Hapus profil?</string>
+    <string name="games_dialog_remove_desc">%1$s akan dihapus dari daftar profil aktif. Anda dapat menambahkannya kembali dari tab Game.</string>
+</resources>

@@ -109,7 +109,8 @@ fun LiveFpsHeroCard(
                                 if (session.active && !session.pkg.isNullOrEmpty()) {
                                     session.pkg.substringAfterLast('.')
                                 } else {
-                                    "System Idle"
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.record_system_idle)
                                 },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
@@ -159,7 +160,13 @@ fun LiveFpsHeroCard(
                             },
                     ) {
                         Text(
-                            text = if (session.active) "MONITORING" else "STANDBY",
+                            text =
+                                if (session.active) {
+                                    "MONITORING"
+                                } else {
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.record_standby)
+                                },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color =

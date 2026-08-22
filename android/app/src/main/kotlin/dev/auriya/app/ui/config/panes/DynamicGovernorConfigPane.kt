@@ -2,9 +2,9 @@ package dev.auriya.app.ui.config.panes
 
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.DynamicForm
 import androidx.compose.material.icons.outlined.Layers
-import androidx.compose.material.icons.outlined.ShowChart
 import dev.auriya.app.ui.components.SettingsSubsection
 import dev.auriya.app.ui.components.SliderSettingItem
 import dev.auriya.app.ui.components.SwitchSettingItem
@@ -25,25 +25,41 @@ fun LazyListScope.dynamicGovernorConfigPane(
     item {
         PopupInfoCard(
             icon = Icons.Outlined.DynamicForm,
-            title = "Dynamic Governor Switching",
-            description = "Detects micro-stutter and frame time variance. When jitter exceeds the CV threshold for consecutive debounce frames, Auriya temporarily switches to an aggressive governor to smooth out spikes.",
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_dynamic_gov_info_title),
+            description =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_dynamic_gov_info_desc),
         )
     }
     item {
-        SettingsSubsection(title = "DYNAMIC GOVERNOR CONTROLS") {
+        SettingsSubsection(
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_sec_dynamic_gov),
+        ) {
             val total = 3
             SwitchSettingItem(
-                title = "Adaptive Governor",
-                subtitle = "Dynamically switch governor on frame jitter",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_adaptive_gov),
+                subtitle =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_adaptive_gov_desc),
                 checked = dgEnabled,
                 onCheckedChange = onDgEnabledChange,
                 icon = Icons.Outlined.DynamicForm,
                 shape = itemShapeFor(0, total),
             )
             SliderSettingItem(
-                title = "CV Jitter Threshold",
-                description = "Coefficient of variation sensitivity trigger",
-                icon = Icons.Outlined.ShowChart,
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_cv_jitter),
+                description =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_cv_jitter_desc),
+                icon = Icons.AutoMirrored.Outlined.ShowChart,
                 value = dgCvThreshold,
                 onValueChange = onCvThresholdChange,
                 onValueChangeFinished = onCvThresholdFinished,
@@ -54,8 +70,12 @@ fun LazyListScope.dynamicGovernorConfigPane(
                 enabled = dgEnabled,
             )
             SliderSettingItem(
-                title = "Debounce Frames",
-                description = "Consecutive jitter frames required to switch",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_debounce_frames),
+                description =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_debounce_frames_desc),
                 icon = Icons.Outlined.Layers,
                 value = dgDebounceFrames,
                 onValueChange = onDebounceFramesChange,

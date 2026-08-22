@@ -758,8 +758,9 @@ fun SliderSettingItem(
                 }
             }
 
+            val safeValue = if (value.isNaN()) valueRange.start else value.coerceIn(valueRange.start, valueRange.endInclusive)
             Slider(
-                value = value,
+                value = safeValue,
                 onValueChange = onValueChange,
                 onValueChangeFinished = onValueChangeFinished,
                 valueRange = valueRange,
@@ -1098,8 +1099,9 @@ fun SettingsSliderCard(
                     )
                 }
 
+                val safeValue = if (value.isNaN()) valueRange.start else value.coerceIn(valueRange.start, valueRange.endInclusive)
                 Slider(
-                    value = value,
+                    value = safeValue,
                     onValueChange = onValueChange,
                     onValueChangeFinished = onValueChangeFinished,
                     valueRange = valueRange,

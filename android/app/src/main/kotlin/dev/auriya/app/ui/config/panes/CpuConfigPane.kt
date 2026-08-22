@@ -15,16 +15,26 @@ fun LazyListScope.cpuConfigPane(
     item {
         PopupInfoCard(
             icon = Icons.Outlined.Speed,
-            title = "CPU Frequency Governor",
-            description = "Governors dictate how the Linux kernel scales CPU clock speeds between idle and load. Tap below to choose or inspect active scaling governors.",
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_cpu_info_title),
+            description =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_cpu_info_desc),
         )
     }
     item {
-        SettingsSubsection(title = "SCALING SETTINGS") {
+        SettingsSubsection(
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_sec_scaling),
+        ) {
             val total = 1
             ClickableSettingItem(
-                title = "CPU Governor",
-                subtitle = "Current governor: $defaultGov (Tap to switch)",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_cpu_governor),
+                subtitle = "Governor: $defaultGov",
                 onClick = onOpenGovPicker,
                 icon = Icons.Outlined.Speed,
                 shape = itemShapeFor(0, total),

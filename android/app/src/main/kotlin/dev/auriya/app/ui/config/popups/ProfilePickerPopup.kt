@@ -23,13 +23,11 @@ import dev.auriya.app.ui.config.components.RichSelectionCard
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfilePickerPopup(
-    show: Boolean,
     defaultMode: String,
-    sheetState: SheetState,
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    if (!show) return
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val presets =
         listOf(
@@ -68,8 +66,10 @@ fun ProfilePickerPopup(
         ) {
             item {
                 BottomSheetHeader(
-                    title = "Default Profile",
-                    subtitle = "Active: ${defaultMode.replaceFirstChar { it.uppercase() }}",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_default_profile),
+                    subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.common_active)}: ${defaultMode.replaceFirstChar { it.uppercase() }}",
                 )
             }
 

@@ -28,30 +28,46 @@ fun LazyListScope.daemonConfigPane(
     item {
         PopupInfoCard(
             icon = Icons.Outlined.Dns,
-            title = "Auriya Daemon",
-            description = "The Auriya background daemon monitors foreground games, manages CPU frequencies via Unix sockets, and enforces scheduling policies.",
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_daemon_info_title),
+            description =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_daemon_info_desc),
         )
     }
     item {
-        SettingsSubsection(title = "DAEMON CONTROLS") {
+        SettingsSubsection(
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_sec_daemon_controls),
+        ) {
             val total = 3
             ClickableSettingItem(
-                title = "Default Profile",
-                subtitle = "Base system profile: ${defaultMode.replaceFirstChar { it.uppercase() }}",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_default_profile),
+                subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.home_active_profile)}: ${defaultMode.replaceFirstChar { it.uppercase() }}",
                 onClick = onOpenPresetPicker,
                 icon = Icons.Outlined.Tune,
                 shape = itemShapeFor(0, total),
             )
             ClickableSettingItem(
-                title = "Log Verbosity",
-                subtitle = "Logging level: ${logLevel.uppercase()}",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_log_verbosity),
+                subtitle = "Level: ${logLevel.uppercase()}",
                 onClick = onOpenLogLevelPicker,
                 icon = Icons.AutoMirrored.Outlined.Article,
                 shape = itemShapeFor(1, total),
             )
             SliderSettingItem(
-                title = "Check Interval",
-                description = "Daemon health status poll frequency",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_check_interval),
+                description =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_check_interval_desc),
                 icon = Icons.Outlined.Timer,
                 value = checkIntervalMs,
                 onValueChange = onCheckIntervalChange,

@@ -22,14 +22,12 @@ import dev.auriya.app.ui.config.components.RichSelectionCard
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CpuGovernorPopup(
-    show: Boolean,
     defaultGov: String,
     availableGovernors: List<String>,
-    sheetState: SheetState,
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    if (!show) return
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -48,8 +46,10 @@ fun CpuGovernorPopup(
         ) {
             item {
                 BottomSheetHeader(
-                    title = "CPU Governor",
-                    subtitle = "Active: $defaultGov",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.games_cpu_governor),
+                    subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.common_active)}: $defaultGov",
                 )
             }
 

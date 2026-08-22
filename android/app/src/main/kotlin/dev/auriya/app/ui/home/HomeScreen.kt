@@ -2,6 +2,9 @@ package dev.auriya.app.ui.home
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -187,8 +191,12 @@ fun HomeScreen(
                     item {
                         LinkRow(
                             iconVector = Icons.AutoMirrored.Outlined.MenuBook,
-                            title = "Documentation",
-                            subtitle = "Technical documentation & personal experiments.",
+                            title =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.home_documentation),
+                            subtitle =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.home_doc_desc),
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             onClick = {
@@ -206,8 +214,12 @@ fun HomeScreen(
                             iconPainter =
                                 androidx.compose.ui.res
                                     .painterResource(dev.auriya.app.R.drawable.ic_github),
-                            title = "Star on GitHub",
-                            subtitle = "Give a star to support project development.",
+                            title =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.home_github_star),
+                            subtitle =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.home_github_star_desc),
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             onContainerColor = MaterialTheme.colorScheme.onSecondaryContainer,
                             onClick = {
@@ -225,8 +237,12 @@ fun HomeScreen(
                             iconPainter =
                                 androidx.compose.ui.res
                                     .painterResource(dev.auriya.app.R.drawable.ic_telegram),
-                            title = "Telegram Channel",
-                            subtitle = "Official announcements & updates",
+                            title =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.home_telegram_channel),
+                            subtitle =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.home_telegram_channel_desc),
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             onClick = {
@@ -246,10 +262,16 @@ private fun HeroCard(
     systemInfo: SystemInfo,
     onInfoClick: () -> Unit,
 ) {
-    val cardBg =
-        if (isDaemonRunning) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer
-    val onCardBg =
-        if (isDaemonRunning) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+    val cardBg by animateColorAsState(
+        targetValue = if (isDaemonRunning) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "HeroCardBg",
+    )
+    val onCardBg by animateColorAsState(
+        targetValue = if (isDaemonRunning) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "HeroCardOnBg",
+    )
 
     Surface(
         shape = RoundedCornerShape(24.dp),
@@ -268,12 +290,29 @@ private fun HeroCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                    Text(
-                        text = if (isDaemonRunning) "Auriya is working" else "Auriya is stopped",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = onCardBg,
-                    )
+                    AnimatedContent(
+                        targetState = isDaemonRunning,
+                        transitionSpec = {
+                            (fadeIn(tween(200)) + slideInVertically(initialOffsetY = { -it / 3 }))
+                                .togetherWith(fadeOut(tween(150)) + slideOutVertically(targetOffsetY = { it / 3 }))
+                        },
+                        label = "HeroStatusText",
+                    ) { running ->
+                        Text(
+                            text =
+                                if (running) {
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.home_status_active)
+                                } else {
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.home_status_inactive)
+                                },
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = onCardBg,
+                        )
+                    }
+
                     val cleanVersion = systemInfo.version.removePrefix("v").removePrefix("V")
                     Text(
                         text = "v$cleanVersion",
@@ -313,7 +352,9 @@ private fun HeroCard(
                     )
                 } else {
                     StatusBadge(
-                        label = "Stopped",
+                        label =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.home_stopped),
                         containerColor = onCardBg.copy(alpha = 0.16f),
                         contentColor = onCardBg,
                     )
@@ -357,7 +398,9 @@ private fun MiniCardRow(
                     .fillMaxHeight(),
             icon = Icons.Outlined.SportsEsports,
             value = gameCount.toString(),
-            label = "Games",
+            label =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.nav_games),
             accentColor = MaterialTheme.colorScheme.primary,
             onClick = onGamesClick,
         )
@@ -368,7 +411,9 @@ private fun MiniCardRow(
                     .fillMaxHeight(),
             icon = Icons.Outlined.Tune,
             value = profileShort,
-            label = "Profile",
+            label =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.home_active_profile),
             accentColor = MaterialTheme.colorScheme.primary,
             onClick = onProfileClick,
         )
@@ -450,7 +495,9 @@ private fun SystemMetricsList(systemInfo: SystemInfo) {
         }
     Column {
         Text(
-            text = "SYSTEM METRICS",
+            text =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.home_system_metrics),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.primary,
@@ -624,7 +671,9 @@ private fun ProfileSelectionBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "Performance Profile",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.home_performance_profile),
                         style =
                             dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
                                 fontWeight = FontWeight.ExtraBold,
@@ -635,7 +684,7 @@ private fun ProfileSelectionBottomSheet(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Active: $displayProfile",
+                        text = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.home_active_profile)}: $displayProfile",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.primary,
@@ -648,9 +697,15 @@ private fun ProfileSelectionBottomSheet(
             item {
                 val isSelected = normProfile == "powersave" || normProfile == "3"
                 ProfileCard(
-                    title = "Power Save",
-                    subtitle = "Profile 3 • Battery Preservation",
-                    description = "Limits clock frequencies and aggressively throttles background tasks to maximize battery life.",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_powersave),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_powersave_sub),
+                    description =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_powersave_desc),
                     icon = Icons.Outlined.Eco,
                     iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
                     iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -667,9 +722,15 @@ private fun ProfileSelectionBottomSheet(
                 val isSelected =
                     normProfile == "balance" || normProfile == "2" || normProfile.isEmpty() || normProfile == "unknown"
                 ProfileCard(
-                    title = "Balance",
-                    subtitle = "Profile 2 • Daily Dynamic Tuning",
-                    description = "Dynamic optimization and adaptive frequency scaling for smooth daily responsiveness and efficiency.",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_balance),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_balance_sub),
+                    description =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_balance_desc),
                     icon = Icons.Outlined.Tune,
                     iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
                     iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -685,9 +746,15 @@ private fun ProfileSelectionBottomSheet(
             item {
                 val isSelected = normProfile == "performance" || normProfile == "1"
                 ProfileCard(
-                    title = "Performance",
-                    subtitle = "Profile 1 • Maximum Power",
-                    description = "Unlocks high clock frequencies and unthrottled rendering for demanding gaming sessions.",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_performance),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_performance_sub),
+                    description =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_performance_desc),
                     icon = Icons.Outlined.Bolt,
                     iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
                     iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -703,9 +770,15 @@ private fun ProfileSelectionBottomSheet(
             item {
                 val isSelected = normProfile == "fast" || normProfile == "4"
                 ProfileCard(
-                    title = "Fast",
-                    subtitle = "Profile 4 • Ultra Low Latency",
-                    description = "Zero-margin frame delivery with rapid clock ramp-up for competitive response.",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_fast),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_fast_sub),
+                    description =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.home_profile_fast_desc),
                     icon = Icons.Outlined.RocketLaunch,
                     iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
                     iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -731,10 +804,22 @@ private fun ProfileCard(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val animatedBg by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "ProfileCardBg",
+    )
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f) else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "ProfileCardBorder",
+    )
+
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(24.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = animatedBg,
+        border = BorderStroke(1.5.dp, animatedBorderColor),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -772,13 +857,20 @@ private fun ProfileCard(
                         fontWeight = FontWeight.Bold,
                         color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                     )
-                    if (selected) {
+
+                    AnimatedVisibility(
+                        visible = selected,
+                        enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
+                        exit = scaleOut() + fadeOut(),
+                    ) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.primary,
                         ) {
                             Text(
-                                text = "ACTIVE",
+                                text =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.common_active),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimary,
@@ -958,14 +1050,18 @@ private fun AuriyaInfoBottomSheet(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Documentation",
+                                text =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.home_documentation),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "Explore More About Auriya.",
+                                text =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.home_doc_desc),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -1011,14 +1107,18 @@ private fun AuriyaInfoBottomSheet(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "GitHub issue shortcut",
+                                    text =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.home_github_star),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
                                 Spacer(Modifier.height(4.dp))
                                 Text(
-                                    text = "Search first, then open a focused report for bugs, crashes, requests, or questions.",
+                                    text =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.home_github_star_desc),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -1043,7 +1143,11 @@ private fun AuriyaInfoBottomSheet(
                                 ),
                             contentPadding = PaddingValues(vertical = 12.dp),
                         ) {
-                            Text("Open existing issues", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.home_open_issues),
+                                fontWeight = FontWeight.SemiBold,
+                            )
                         }
 
                         Button(
@@ -1064,7 +1168,11 @@ private fun AuriyaInfoBottomSheet(
                                 ),
                             contentPadding = PaddingValues(vertical = 12.dp),
                         ) {
-                            Text("Report issue or crash", fontWeight = FontWeight.Bold)
+                            Text(
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.home_report_issue),
+                                fontWeight = FontWeight.Bold,
+                            )
                         }
                     }
                 }

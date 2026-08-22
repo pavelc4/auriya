@@ -25,15 +25,13 @@ import dev.auriya.shared.model.Settings
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfigActionsPopup(
-    show: Boolean,
     settings: Settings,
-    sheetState: SheetState,
     onImportRequest: () -> Unit,
     onResetRequest: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    if (!show) return
     val context = LocalContext.current
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -52,16 +50,26 @@ fun ConfigActionsPopup(
         ) {
             item {
                 BottomSheetHeader(
-                    title = "Config Actions",
-                    subtitle = "Backup, import, or reset settings.toml",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_actions_title),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_actions_subtitle),
                 )
             }
 
             item {
                 RichSelectionCard(
-                    title = "Export Configuration",
-                    subtitle = "Share & Backup TOML",
-                    description = "Export and share your active settings.toml to device storage, cloud, or messaging apps.",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_export),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_export_sub),
+                    description =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_export_desc),
                     icon = Icons.Outlined.Share,
                     selected = false,
                     onClick = {
@@ -81,9 +89,15 @@ fun ConfigActionsPopup(
 
             item {
                 RichSelectionCard(
-                    title = "Import Configuration",
-                    subtitle = "Load from File",
-                    description = "Select a valid settings.toml file from your phone storage to import and apply tuning immediately.",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_import),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_import_sub),
+                    description =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_import_desc),
                     icon = Icons.Outlined.FileUpload,
                     selected = false,
                     onClick = {
@@ -95,9 +109,15 @@ fun ConfigActionsPopup(
 
             item {
                 RichSelectionCard(
-                    title = "Reset to Default",
-                    subtitle = "Restore Factory Preset",
-                    description = "Revert all daemon health intervals, CPU scaling governors, FAS thresholds, and profile margins back to default factory values.",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_reset_factory),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_reset_factory_sub),
+                    description =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_reset_factory_desc),
                     icon = Icons.Outlined.RestartAlt,
                     selected = false,
                     onClick = {

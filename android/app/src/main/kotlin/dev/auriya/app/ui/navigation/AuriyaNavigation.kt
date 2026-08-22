@@ -43,13 +43,13 @@ import dev.auriya.app.viewmodel.UiViewModel
 import dev.auriya.shared.model.GameProfile
 
 enum class NavigationTab(
-    val title: String,
+    val titleRes: Int,
     val icon: ImageVector,
 ) {
-    HOME("Home", Icons.Filled.Home),
-    GAMES("Games", Icons.Filled.SportsEsports),
-    RECORD("Record", Icons.Filled.Analytics),
-    CONFIG("Config", Icons.Filled.Tune),
+    HOME(dev.auriya.app.R.string.nav_home, Icons.Filled.Home),
+    GAMES(dev.auriya.app.R.string.nav_games, Icons.Filled.SportsEsports),
+    RECORD(dev.auriya.app.R.string.nav_record, Icons.Filled.Analytics),
+    CONFIG(dev.auriya.app.R.string.nav_config, Icons.Filled.Tune),
 }
 
 private enum class SubScreen { None, Language, About, Appearance, Settings }
@@ -252,7 +252,14 @@ fun AuriyaNavigation(
                             }
 
                             AppRoute.Main -> {
-                                val navItems = NavigationTab.entries.map { AuriyaNavItem(it.title, it.icon) }
+                                val navItems =
+                                    NavigationTab.entries.map {
+                                        AuriyaNavItem(
+                                            androidx.compose.ui.res
+                                                .stringResource(it.titleRes),
+                                            it.icon,
+                                        )
+                                    }
                                 val selectedIndex = NavigationTab.entries.indexOf(activeTab)
                                 val navMode = themePrefs?.navMode ?: NavMode.STANDARD
                                 val navType = themePrefs?.navType ?: NavType.LEGACY

@@ -19,13 +19,11 @@ import dev.auriya.app.ui.config.components.RichSelectionCard
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogLevelPickerPopup(
-    show: Boolean,
     logLevel: String,
-    sheetState: SheetState,
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    if (!show) return
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val levels =
         listOf(
@@ -53,8 +51,10 @@ fun LogLevelPickerPopup(
         ) {
             item {
                 BottomSheetHeader(
-                    title = "Daemon Log Level",
-                    subtitle = "Active: ${logLevel.uppercase()}",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_log_verbosity),
+                    subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.common_active)}: ${logLevel.uppercase()}",
                 )
             }
 
