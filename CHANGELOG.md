@@ -1,5 +1,46 @@
 # Changelog
 
+## 2.1.0
+
+### Added
+- In-app language picker with seamless reactive switching and full Indonesian translations
+- Root environment detection (KernelSU / Magisk / APatch forks) in Settings
+- FPS value rounding preference, synchronized across overlay and record screens
+- Multi-select batch deletion in benchmark history
+- Per-game profile mode selector with FAS support and game-enter toast
+- Documentation cards, with the license section reordered in About
+- Dynamic polling interval and expanded update-frequency range in overlay
+- Configurable CPU metric style picker
+- Trace log level with dynamic toggle-reload support
+
+### Changed
+- Telemetry now streams through a unified IPC command (`GET_STATS`)
+- Optimized APK size, refined typography, updated app icon
+- Adaptive layout insets; CPU metric style renamed to "Overview"
+- Refined wavy progress indicators; removed thermal insight banner
+- Simplified FAS label; header metric chips now use `FlowRow`
+
+### Fixed
+- DnD sync on game exit and actuator reliability
+- Battery temperature reading and CPU cluster layout
+- Back navigation in Appearance and Settings sub-screens
+- Bottom sheet gesture conflicts via `skipPartiallyExpanded`
+- CPU governor switching lag with `SET_GOVERNOR` IPC
+- 1% low now weighted by presented time instead of frame count
+- Tuning profile persistence and slider state on selection
+- Profile state persistence and config sync
+
+### Dependencies
+- **Rust:** clap 4.6.1 → 4.6.6, anyhow 1.0.103 → 1.0.104, serde 1.0.228 → 1.0.229, serde_json 1.0.150 → 1.0.151, tokio 1.52.3 → 1.53.1, time 0.3.51 → 0.3.55, libc 0.2.186 → 0.2.189, memchr 2.8.2 → 2.8.3, toml 1.1.2 → 1.1.4
+- **Android:** AGP 9.2.1 → 9.3.1, Kotlin 2.4.0 → 2.4.10, Compose BOM 2026.06.00 → 2026.06.01, material-kolor 4.1.1 → 5.0.0, Glance 1.1.0 → 1.1.1
+- **Gradle:** Wrapper 9.6.0 → 9.7.0
+- **CI:** actions/cache 4 → 6, actions/download-artifact 7 → 8
+
+### Docs
+- Added i18n support for Bahasa Indonesia and polished existing documentation
+- Added preview manager and a documentation website
+- Moved the documentation website to its own standalone repository
+
 ## v2.0.0
 
 ### New Features

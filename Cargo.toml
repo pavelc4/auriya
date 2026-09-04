@@ -1,8 +1,9 @@
 [package]
 name = "auriya"
-version = "2.0.0"
+version = "2.1.0"
 edition = "2024"
 license = "GPL-3.0"
+authors = ["pavelc4"]
 
 [workspace]
 
