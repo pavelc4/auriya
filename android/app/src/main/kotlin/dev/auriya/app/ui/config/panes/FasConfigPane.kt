@@ -29,24 +29,40 @@ fun LazyListScope.fasConfigPane(
     item {
         PopupInfoCard(
             icon = Icons.Outlined.AutoGraph,
-            title = "Frame-Aware Scheduling",
-            description = "FAS calculates real-time frametimes from SurfaceFlinger or eBPF. It scales frequencies up when frames drop and lowers them during calm scenes to prevent thermal throttling.",
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_fas_info_title),
+            description =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_fas_info_desc),
         )
     }
     item {
-        SettingsSubsection(title = "FAS CONFIGURATION") {
+        SettingsSubsection(
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_sec_fas),
+        ) {
             val total = 4
             SwitchSettingItem(
-                title = "Enable FAS Engine",
-                subtitle = "Adaptive frame regulator for steady frame rates",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_fas_enable),
+                subtitle =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_fas_enable_desc),
                 checked = fasEnabled,
                 onCheckedChange = onFasEnabledChange,
                 icon = Icons.Outlined.AutoGraph,
                 shape = itemShapeFor(0, total),
             )
             SliderSettingItem(
-                title = "Fallback Target FPS",
-                description = "Default frame rate target cap",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_fallback_fps),
+                description =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_fallback_fps_desc),
                 icon = Icons.Outlined.VideoSettings,
                 value = fasTargetFps,
                 onValueChange = onTargetFpsChange,
@@ -58,8 +74,12 @@ fun LazyListScope.fasConfigPane(
                 enabled = fasEnabled,
             )
             SliderSettingItem(
-                title = "Calculation Poll Interval",
-                description = "How often FAS recalculates frame stats",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_poll_interval),
+                description =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_poll_interval_desc),
                 icon = Icons.Outlined.HourglassEmpty,
                 value = fasPollIntervalMs,
                 onValueChange = onPollIntervalChange,
@@ -71,8 +91,12 @@ fun LazyListScope.fasConfigPane(
                 enabled = fasEnabled,
             )
             SliderSettingItem(
-                title = "Global Thermal Limit",
-                description = "Safe device temperature limit before clock throttling",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_thermal_limit),
+                description =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_thermal_limit_desc),
                 icon = Icons.Outlined.DeviceThermostat,
                 value = fasThermalThreshold,
                 onValueChange = onThermalThresholdChange,

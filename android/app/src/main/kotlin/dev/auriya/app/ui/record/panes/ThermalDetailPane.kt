@@ -58,7 +58,9 @@ fun ThermalDetailPane(
             // 2. Thermal Headroom & Characteristics (Compact & Uniform)
             item {
                 Text(
-                    text = "THERMAL CHARACTERISTICS",
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_sec_thermal_characteristics),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -78,9 +80,13 @@ fun ThermalDetailPane(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     ThermalCharacteristicCard(
-                        title = "Headroom",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_thermal_headroom),
                         value = if (maxTemp > 0f) "+%.1f°C".format(headroom) else "--",
-                        desc = "Safe limit margin",
+                        desc =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_thermal_headroom_desc),
                         icon = Icons.Outlined.Shield,
                         modifier =
                             Modifier
@@ -88,7 +94,9 @@ fun ThermalDetailPane(
                                 .fillMaxHeight(),
                     )
                     ThermalCharacteristicCard(
-                        title = "Cooling Profile",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_cooling_profile),
                         value =
                             if (maxTemp >= 70f) {
                                 "Throttled"
@@ -97,7 +105,9 @@ fun ThermalDetailPane(
                             } else {
                                 "Nominal"
                             },
-                        desc = "Governor state",
+                        desc =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_governor_state),
                         icon = Icons.Outlined.Air,
                         modifier =
                             Modifier
@@ -110,7 +120,9 @@ fun ThermalDetailPane(
             // 3. Sensor Zones Breakdown
             item {
                 Text(
-                    text = "SENSOR ZONES",
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_sec_sensor_zones),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -121,7 +133,9 @@ fun ThermalDetailPane(
             if (thermal.cpu_c != null) {
                 item {
                     SensorDetailCard(
-                        title = "CPU Processor",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_cpu_processor),
                         temp = thermal.cpu_c,
                         icon = Icons.Outlined.Memory,
                         desc = "Primary core cluster junction • Target < 75°C",
@@ -132,7 +146,9 @@ fun ThermalDetailPane(
             if (thermal.battery_c != null) {
                 item {
                     SensorDetailCard(
-                        title = "Battery Cell",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_battery_cell),
                         temp = thermal.battery_c,
                         icon = Icons.Outlined.BatteryChargingFull,
                         desc = "Lithium cell core pack • Safe range < 45°C",

@@ -173,14 +173,18 @@ fun AboutScreen(onDismiss: () -> Unit) {
 
             Column {
                 Text(
-                    text = "About",
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.about_title),
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
                     fontSize = 26.sp,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Developer information and project specs",
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.settings_about_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -215,8 +219,12 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 // 2. Licenses Section (Moved below Auriya Card, above Maintainer)
                 item(key = "license_header") {
                     SectionHeader(
-                        title = "License",
-                        subtitle = "Open source license and terms.",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.about_sec_license),
+                        subtitle =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.about_license_sub),
                     )
                 }
 
@@ -231,8 +239,12 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 // 3. Documentation Section
                 item(key = "docs_header") {
                     SectionHeader(
-                        title = "Documentation",
-                        subtitle = "Explore More About Auriya.",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.about_documentation),
+                        subtitle =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.about_doc_sub),
                     )
                 }
 
@@ -247,8 +259,12 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 // 4. Maintainer Section
                 item(key = "maintainer_header") {
                     SectionHeader(
-                        title = "Maintainer",
-                        subtitle = "The person behind Auriya.",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.about_maintainer),
+                        subtitle =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.about_maintainer_sub),
                     )
                 }
 
@@ -263,8 +279,12 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 // 5. Support Section (Directly under Maintainer)
                 item(key = "support_header") {
                     SectionHeader(
-                        title = "Support",
-                        subtitle = "Help fuel ongoing development and updates.",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.about_support),
+                        subtitle =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.about_support_sub),
                     )
                 }
 
@@ -279,8 +299,12 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 // 6. Community Contributors Section
                 item(key = "spotlight_header") {
                     SectionHeader(
-                        title = "Contributors",
-                        subtitle = "Collaborators and contributors to the project.",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.about_sec_contributors),
+                        subtitle =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.about_contributors_sub),
                     )
                 }
 

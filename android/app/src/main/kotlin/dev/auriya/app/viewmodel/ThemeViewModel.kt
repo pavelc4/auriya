@@ -39,5 +39,7 @@ class ThemeViewModel(
 
     fun setAmoled(enabled: Boolean) = viewModelScope.launch { repo.setAmoled(enabled) }
 
-    fun setOobeCompleted(completed: Boolean) = viewModelScope.launch { repo.setOobeCompleted(completed) }
+    fun setSetupCompleted(completed: Boolean) = viewModelScope.launch { repo.setSetupCompleted(completed) }
+
+    fun setOobeCompleted(completed: Boolean) = setSetupCompleted(completed)
 }

@@ -1,6 +1,7 @@
 package dev.auriya.app
 
 import android.app.Application
+import android.content.Context
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -10,10 +11,15 @@ import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.topjohnwu.superuser.Shell
+import dev.auriya.app.util.LocaleHelper
 
 class AuriyaApplication :
     Application(),
     SingletonImageLoader.Factory {
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(LocaleHelper.wrapContext(base))
+    }
+
     override fun onCreate() {
         // Configure the global libsu Shell BEFORE super.onCreate so any
         // early IO that touches /data/adb/* uses the cached root shell.
@@ -27,6 +33,7 @@ class AuriyaApplication :
                 .setTimeout(10),
         )
         super.onCreate()
+        LocaleHelper.applySavedLocale(this)
         dev.auriya.app.data.stats.BenchmarkRecorder
             .getInstance(this)
     }

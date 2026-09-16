@@ -65,7 +65,7 @@ android {
     }
 
     androidResources {
-        localeFilters += listOf("en", "id")
+        localeFilters += listOf("en", "id", "in")
     }
 
     signingConfigs {

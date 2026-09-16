@@ -23,12 +23,20 @@ fun LazyListScope.profileTuningConfigPane(
     item {
         PopupInfoCard(
             icon = Icons.Outlined.Tune,
-            title = "Mode Presets Tuning",
-            description = "Each performance mode (Powersave, Balance, Performance, Fast) balances power consumption and smoothness through FPS Margin and Thermal Limits.",
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_preset_info_title),
+            description =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_preset_info_desc),
         )
     }
     item {
-        SettingsSubsection(title = "PRESET SELECTION & TUNING") {
+        SettingsSubsection(
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_sec_preset_tuning),
+        ) {
             val icon =
                 when (selectedModeKey) {
                     "powersave" -> Icons.Outlined.Eco
@@ -39,16 +47,20 @@ fun LazyListScope.profileTuningConfigPane(
                 }
 
             ClickableSettingItem(
-                title = "Profile to Tune",
-                subtitle = "Currently customizing: ${selectedModeKey.replaceFirstChar { it.uppercase() }} mode",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_profile_to_tune),
+                subtitle = "${selectedModeKey.replaceFirstChar { it.uppercase() }}",
                 onClick = onOpenTuneProfilePicker,
                 icon = icon,
                 shape = itemShapeFor(0, 3),
             )
 
             SliderSettingItem(
-                title = "${selectedModeKey.replaceFirstChar { it.uppercase() }} Margin",
-                description = "FPS drop margin before frequency ramp-up",
+                title = "${selectedModeKey.replaceFirstChar { it.uppercase() }} ${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.config_fps_margin)}",
+                description =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_fps_margin_desc),
                 icon = Icons.Outlined.Speed,
                 value = modeMargin,
                 onValueChange = onMarginChange,
@@ -60,8 +72,10 @@ fun LazyListScope.profileTuningConfigPane(
             )
 
             SliderSettingItem(
-                title = "${selectedModeKey.replaceFirstChar { it.uppercase() }} Thermal Limit",
-                description = "Maximum temperature threshold for $selectedModeKey mode",
+                title = "${selectedModeKey.replaceFirstChar { it.uppercase() }} ${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.config_thermal_limit)}",
+                description =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_thermal_limit_desc),
                 icon = Icons.Outlined.DeviceThermostat,
                 value = modeThermal,
                 onValueChange = onThermalChange,

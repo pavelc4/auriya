@@ -102,7 +102,9 @@ fun RootCheckContent(
             modifier = Modifier.padding(top = 8.dp),
         ) {
             Text(
-                text = "Superuser Access",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.setup_root_title),
                 style =
                     MaterialTheme.typography.displayMedium.copy(
                         fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
@@ -115,7 +117,9 @@ fun RootCheckContent(
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "Auriya requires root permissions to optimize CPU/GPU governors, set thread affinities, and manage daemon scheduling.",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.setup_root_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -218,7 +222,8 @@ fun RootCheckContent(
                             Icon(Icons.Rounded.Check, null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "Permission Granted",
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.setup_root_granted),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -239,7 +244,9 @@ fun RootCheckContent(
                         }
                     } else {
                         Text(
-                            text = "Grant Root Permission",
+                            text =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.setup_root_btn_grant),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )

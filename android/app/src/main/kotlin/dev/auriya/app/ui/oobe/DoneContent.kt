@@ -64,7 +64,9 @@ fun DoneContent(
             modifier = Modifier.padding(top = 8.dp),
         ) {
             Text(
-                text = "You're All Set!",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(R.string.setup_done_title),
                 style =
                     MaterialTheme.typography.displayMedium.copy(
                         fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
@@ -77,7 +79,9 @@ fun DoneContent(
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "Your appearance preferences are active and Auriya kernel daemon optimizations are configured.",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(R.string.setup_done_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

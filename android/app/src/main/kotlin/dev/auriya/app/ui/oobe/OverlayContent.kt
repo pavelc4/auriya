@@ -82,7 +82,9 @@ fun OverlayContent(
             modifier = Modifier.padding(top = 8.dp),
         ) {
             Text(
-                text = "Overlay Permission",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.setup_overlay_title),
                 style =
                     MaterialTheme.typography.displayMedium.copy(
                         fontFamily = GoogleSansRounded,
@@ -95,7 +97,9 @@ fun OverlayContent(
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "Grant permission to display real-time telemetry HUD for FPS, CPU, GPU, RAM, and thermals on top of running games.",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.setup_overlay_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -205,7 +209,9 @@ fun OverlayContent(
                             Icon(Icons.Rounded.Check, null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Permission Granted",
+                                text =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.setup_overlay_granted),
                                 style =
                                     MaterialTheme.typography.titleMedium.copy(
                                         fontFamily = GoogleSansRounded,
@@ -215,7 +221,9 @@ fun OverlayContent(
                         }
                     } else {
                         Text(
-                            text = "Grant Overlay Permission",
+                            text =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.setup_overlay_btn_grant),
                             style =
                                 MaterialTheme.typography.titleMedium.copy(
                                     fontFamily = GoogleSansRounded,

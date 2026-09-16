@@ -1,5 +1,6 @@
 package dev.auriya.app.ui.record.components
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -20,16 +22,16 @@ import dev.auriya.app.ui.components.AuriyaDragHandle
 import dev.auriya.app.ui.theme.ExpTitleTypography
 
 data class DocItem(
-    val title: String,
-    val description: String,
+    @StringRes val titleRes: Int,
+    @StringRes val descriptionRes: Int,
     val icon: ImageVector,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordDocBottomSheet(
-    title: String,
-    subtitle: String,
+    @StringRes titleRes: Int,
+    @StringRes subtitleRes: Int,
     items: List<DocItem>,
     onDismiss: () -> Unit,
     sheetState: SheetState,
@@ -58,7 +60,7 @@ fun RecordDocBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = title,
+                        text = stringResource(titleRes),
                         style =
                             ExpTitleTypography.titleMedium.copy(
                                 fontWeight = FontWeight.ExtraBold,
@@ -69,7 +71,7 @@ fun RecordDocBottomSheet(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = subtitle,
+                        text = stringResource(subtitleRes),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -106,19 +108,21 @@ fun RecordDocBottomSheet(
                             }
                         }
 
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
                             Text(
-                                text = item.title,
+                                text = stringResource(item.titleRes),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
-                            Spacer(Modifier.height(4.dp))
                             Text(
-                                text = item.description,
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = stringResource(item.descriptionRes),
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 20.sp,
+                                lineHeight = 18.sp,
                             )
                         }
                     }

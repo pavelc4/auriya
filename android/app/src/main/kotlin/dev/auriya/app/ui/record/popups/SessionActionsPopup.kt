@@ -51,16 +51,24 @@ fun SessionActionsPopup(
         ) {
             item {
                 BottomSheetHeader(
-                    title = "Session Actions",
-                    subtitle = "Export dataset, share file, or manage recording",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_session_actions),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_session_actions_sub),
                 )
             }
 
             // 1. Export CSV directly to Download/auriya (No popup share sheet)
             item {
                 RichSelectionCard(
-                    title = "Save CSV to Storage",
-                    subtitle = "Saved to Download/auriya/",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_save_csv),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_save_csv_sub),
                     description = "Generates and saves the full second-by-second CSV dataset directly to your Download/auriya directory without opening share dialogs.",
                     icon = Icons.Outlined.TableChart,
                     selected = false,
@@ -74,8 +82,12 @@ fun SessionActionsPopup(
             // 2. Share CSV File via App Chooser (Optional sharing)
             item {
                 RichSelectionCard(
-                    title = "Share CSV File",
-                    subtitle = "Open in Sheets / Excel / WhatsApp",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_share_csv),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_share_csv_sub),
                     description = "Open Android's sharing sheet to send the CSV file directly to Google Sheets, Microsoft Excel, Drive, or messaging apps.",
                     icon = Icons.Outlined.Share,
                     selected = false,
@@ -89,8 +101,12 @@ fun SessionActionsPopup(
             // 3. Copy Markdown Summary
             item {
                 RichSelectionCard(
-                    title = "Copy Markdown Summary",
-                    subtitle = "Clipboard Export",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_copy_markdown),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_copy_markdown_sub),
                     description = "Formats benchmark stats into clean Markdown text and copies it to your clipboard for quick sharing in chats and forums.",
                     icon = Icons.Outlined.ContentCopy,
                     selected = false,
@@ -104,8 +120,12 @@ fun SessionActionsPopup(
             // 4. Delete Session
             item {
                 RichSelectionCard(
-                    title = "Delete Benchmark Session",
-                    subtitle = "Permanent Removal",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_delete_session),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_delete_session_sub),
                     description = "Permanently remove this recording file from your device local storage.",
                     icon = Icons.Outlined.DeleteOutline,
                     selected = false,

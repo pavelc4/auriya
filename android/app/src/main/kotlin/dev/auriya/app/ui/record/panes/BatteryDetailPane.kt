@@ -65,7 +65,9 @@ fun BatteryDetailPane(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = "Battery Power State",
+                                text =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.record_battery_power_state),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -136,7 +138,9 @@ fun BatteryDetailPane(
             // Power Metrics Section
             item {
                 Text(
-                    text = "ELECTRICAL SPECIFICATIONS",
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.record_sec_electrical),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -154,9 +158,23 @@ fun BatteryDetailPane(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     BatteryMetricCard(
-                        title = if (isCharging) "Charge Rate" else "Discharge",
+                        title =
+                            if (isCharging) {
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.record_charge_rate)
+                            } else {
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.record_discharge)
+                            },
                         value = if (battery.current_ma != null) "${abs(battery.current_ma)} mA" else "--",
-                        desc = if (isCharging) "Input current" else "Power drain",
+                        desc =
+                            if (isCharging) {
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.record_input_current)
+                            } else {
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.record_power_drain)
+                            },
                         icon = if (isCharging) Icons.Outlined.Bolt else Icons.Outlined.ElectricBolt,
                         modifier =
                             Modifier
@@ -164,9 +182,13 @@ fun BatteryDetailPane(
                                 .fillMaxHeight(),
                     )
                     BatteryMetricCard(
-                        title = "Voltage",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_voltage),
                         value = if (battery.voltage_v != null) "%.2f V".format(battery.voltage_v) else "--",
-                        desc = "Terminal potential",
+                        desc =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_terminal_potential),
                         icon = Icons.Outlined.ElectricalServices,
                         modifier =
                             Modifier
@@ -186,9 +208,13 @@ fun BatteryDetailPane(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     BatteryMetricCard(
-                        title = "Health",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_health),
                         value = battery.health ?: "Good",
-                        desc = "Pack integrity",
+                        desc =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_pack_integrity),
                         icon = Icons.Outlined.HealthAndSafety,
                         modifier =
                             Modifier
@@ -196,7 +222,9 @@ fun BatteryDetailPane(
                                 .fillMaxHeight(),
                     )
                     BatteryMetricCard(
-                        title = "Chemistry",
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.record_chemistry),
                         value = "Li-Po / Li-ion",
                         desc = "Cell chemistry",
                         icon = Icons.Outlined.BatteryChargingFull,

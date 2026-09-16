@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.R
 import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.data.NavMode
 import dev.auriya.app.ui.components.SegmentedControl
@@ -137,14 +138,18 @@ fun AppearanceScreen(
 
             Column {
                 Text(
-                    text = "Appearance",
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(R.string.appearance_title),
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Theme mode, colors, and navigation layout",
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(R.string.appearance_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -170,7 +175,11 @@ fun AppearanceScreen(
             ) {
                 // --- 1. GLOBAL THEME SUBSECTION ---
                 item {
-                    SettingsSubsection(title = "GLOBAL THEME") {
+                    SettingsSubsection(
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.appearance_global_theme),
+                    ) {
                         val isCustomPaletteVisible = !currentPrefs.useDynamicColor
                         val isAmoledVisible = isDarkActive
                         val themeItemCount = 2 + (if (isCustomPaletteVisible) 1 else 0) + (if (isAmoledVisible) 1 else 0)
@@ -185,8 +194,12 @@ fun AppearanceScreen(
 
                         // 1b. Material You Dynamic Color
                         SwitchSettingItem(
-                            title = "Material You Dynamic Color",
-                            subtitle = "Match system wallpaper colors dynamically",
+                            title =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.appearance_dynamic_color),
+                            subtitle =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.appearance_dynamic_color_desc),
                             checked = currentPrefs.useDynamicColor,
                             onCheckedChange = themeViewModel::setUseDynamicColor,
                             icon = Icons.Rounded.Palette,
@@ -209,8 +222,12 @@ fun AppearanceScreen(
                         // 1d. Pure Black (AMOLED)
                         if (isAmoledVisible) {
                             SwitchSettingItem(
-                                title = "Pure Black (AMOLED)",
-                                subtitle = "Turn off OLED pixels for pure dark contrast",
+                                title =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.appearance_amoled),
+                                subtitle =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.appearance_amoled_desc),
                                 checked = currentPrefs.isAmoled,
                                 onCheckedChange = themeViewModel::setAmoled,
                                 icon = Icons.Rounded.DarkMode,
@@ -224,13 +241,19 @@ fun AppearanceScreen(
 
                 // --- 2. NAVIGATION BAR SUBSECTION ---
                 item {
-                    SettingsSubsection(title = "NAVIGATION BAR") {
+                    SettingsSubsection(
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.appearance_nav_layout),
+                    ) {
                         val navItemCount = if (!isFloating) 2 else 1
                         var navIndex = 0
 
                         // Floating Island Layout Switch
                         SwitchSettingItem(
-                            title = "Floating Island Layout",
+                            title =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.appearance_floating_island),
                             subtitle =
                                 if (isFloating) {
                                     "Floating pill capsule with rounded edges"
@@ -250,8 +273,12 @@ fun AppearanceScreen(
                         // NavBar Corner Radius Setting (Only visible when Floating is OFF!)
                         if (!isFloating) {
                             ClickableSettingItem(
-                                title = "NavBar Corner Radius",
-                                subtitle = "Adjust the corner radius of the navigation bar.",
+                                title =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.appearance_corner_radius),
+                                subtitle =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.appearance_navbar_radius_sub),
                                 onClick = { showCornerRadiusScreen = true },
                                 icon = Icons.Rounded.RoundedCorner,
                                 iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -417,13 +444,17 @@ private fun ThemeSelectorSettingItem(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "App Theme",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.appearance_theme_mode),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "Choose light, dark, or follow device settings",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.appearance_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -431,7 +462,15 @@ private fun ThemeSelectorSettingItem(
             }
 
             SegmentedControl(
-                items = listOf("System", "Light", "Dark"),
+                items =
+                    listOf(
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.appearance_follow_system),
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.appearance_light_theme),
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.appearance_dark_theme),
+                    ),
                 selectedIndex =
                     when (selectedMode) {
                         DarkThemeMode.FOLLOW_SYSTEM -> 0

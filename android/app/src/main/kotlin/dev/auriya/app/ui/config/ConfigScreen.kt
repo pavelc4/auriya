@@ -141,12 +141,6 @@ fun ConfigScreen(viewModel: UiViewModel) {
     var showTuneProfilePopup by remember { mutableStateOf(false) }
     var showConfigActionsPopup by remember { mutableStateOf(false) }
 
-    val govPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val presetPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val logLevelPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val tuneProfilePopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val configActionsPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
     Column(
         modifier =
             Modifier
@@ -182,28 +176,30 @@ fun ConfigScreen(viewModel: UiViewModel) {
             }
 
             Column(modifier = Modifier.weight(1f)) {
-                val title =
+                val titleRes =
                     when (activeSubScreen) {
-                        ConfigSubScreen.NONE -> "Config"
-                        ConfigSubScreen.DAEMON -> "Daemon"
-                        ConfigSubScreen.CPU -> "CPU Governor"
-                        ConfigSubScreen.FAS -> "FAS Regulator"
-                        ConfigSubScreen.DYNAMIC_GOVERNOR -> "Dynamic Governor"
-                        ConfigSubScreen.DND -> "DND"
-                        ConfigSubScreen.PROFILES -> "Preset Tuning"
+                        ConfigSubScreen.NONE -> dev.auriya.app.R.string.config_title
+                        ConfigSubScreen.DAEMON -> dev.auriya.app.R.string.config_daemon
+                        ConfigSubScreen.CPU -> dev.auriya.app.R.string.config_cpu
+                        ConfigSubScreen.FAS -> dev.auriya.app.R.string.config_fas
+                        ConfigSubScreen.DYNAMIC_GOVERNOR -> dev.auriya.app.R.string.config_dynamic_gov
+                        ConfigSubScreen.DND -> dev.auriya.app.R.string.config_dnd
+                        ConfigSubScreen.PROFILES -> dev.auriya.app.R.string.config_profiles
                     }
-                val subtitle =
+                val subtitleRes =
                     when (activeSubScreen) {
-                        ConfigSubScreen.NONE -> "Select a module to view use-cases & configure"
-                        ConfigSubScreen.DAEMON -> "Daemon health check, logging, and idle mode"
-                        ConfigSubScreen.CPU -> "Kernel CPU frequency scaling governor"
-                        ConfigSubScreen.FAS -> "Frame-Aware Scheduling and thermal control"
-                        ConfigSubScreen.DYNAMIC_GOVERNOR -> "Adaptive governor switching on jitter"
-                        ConfigSubScreen.DND -> "Do Not Disturb automation for games"
-                        ConfigSubScreen.PROFILES -> "Fine-tune margins and thermal thresholds"
+                        ConfigSubScreen.NONE -> dev.auriya.app.R.string.config_subtitle
+                        ConfigSubScreen.DAEMON -> dev.auriya.app.R.string.config_daemon_sub
+                        ConfigSubScreen.CPU -> dev.auriya.app.R.string.config_cpu_sub
+                        ConfigSubScreen.FAS -> dev.auriya.app.R.string.config_fas_sub
+                        ConfigSubScreen.DYNAMIC_GOVERNOR -> dev.auriya.app.R.string.config_dynamic_gov_sub
+                        ConfigSubScreen.DND -> dev.auriya.app.R.string.config_dnd_sub
+                        ConfigSubScreen.PROFILES -> dev.auriya.app.R.string.config_profiles_sub
                     }
                 Text(
-                    text = title,
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(titleRes),
                     style =
                         if (activeSubScreen == ConfigSubScreen.NONE) {
                             ExpTitleTypography.titleMedium.copy(
@@ -221,7 +217,9 @@ fun ConfigScreen(viewModel: UiViewModel) {
                         },
                 )
                 Text(
-                    text = subtitle,
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(subtitleRes),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -290,41 +288,53 @@ fun ConfigScreen(viewModel: UiViewModel) {
 
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.Dns,
-                                        title = "Daemon",
-                                        subtitle = "Idle profile: ${defaultMode.replaceFirstChar {
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.config_daemon),
+                                        subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.home_active_profile)}: ${defaultMode.replaceFirstChar {
                                             it.uppercase()
-                                        }} · Check: ${checkIntervalMs.roundToInt()}ms",
+                                        }} · ${checkIntervalMs.roundToInt()}ms",
                                         onClick = { activeSubScreen = ConfigSubScreen.DAEMON },
                                         shape = itemShapeFor(0, total),
                                     )
 
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.Speed,
-                                        title = "CPU Governor",
-                                        subtitle = "Default scaling: $defaultGov",
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.config_cpu),
+                                        subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.games_cpu_governor)}: $defaultGov",
                                         onClick = { activeSubScreen = ConfigSubScreen.CPU },
                                         shape = itemShapeFor(1, total),
                                     )
 
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.AutoGraph,
-                                        title = "FAS Frame Regulator",
-                                        subtitle = if (fasEnabled) "Active · Target ${fasTargetFps.roundToInt()} FPS · Limit ${fasThermalThreshold.roundToInt()}°C" else "Disabled",
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.config_fas),
+                                        subtitle =
+                                            if (fasEnabled) {
+                                                "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.common_active)} · Target ${fasTargetFps.roundToInt()} FPS · ${fasThermalThreshold.roundToInt()}°C"
+                                            } else {
+                                                androidx.compose.ui.res
+                                                    .stringResource(dev.auriya.app.R.string.common_disabled)
+                                            },
                                         onClick = { activeSubScreen = ConfigSubScreen.FAS },
                                         shape = itemShapeFor(2, total),
                                     )
 
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.DynamicForm,
-                                        title = "Dynamic Governor",
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.config_dynamic_gov),
                                         subtitle =
                                             if (dgEnabled) {
-                                                "Active · Jitter CV: ${String.format(
-                                                    "%.2f",
-                                                    dgCvThreshold,
-                                                )} · Debounce: ${dgDebounceFrames.roundToInt()}f"
+                                                "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.common_active)} · Jitter CV: ${String.format(java.util.Locale.US, "%.2f", dgCvThreshold)} · ${dgDebounceFrames.roundToInt()}f"
                                             } else {
-                                                "Disabled"
+                                                androidx.compose.ui.res
+                                                    .stringResource(dev.auriya.app.R.string.common_disabled)
                                             },
                                         onClick = { activeSubScreen = ConfigSubScreen.DYNAMIC_GOVERNOR },
                                         shape = itemShapeFor(3, total),
@@ -332,16 +342,29 @@ fun ConfigScreen(viewModel: UiViewModel) {
 
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.DoNotDisturbOn,
-                                        title = "DND",
-                                        subtitle = if (dndEnabled) "Auto-mute notifications during gameplay" else "Disabled",
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.config_dnd),
+                                        subtitle =
+                                            if (dndEnabled) {
+                                                androidx.compose.ui.res
+                                                    .stringResource(dev.auriya.app.R.string.config_dnd_auto_game_desc)
+                                            } else {
+                                                androidx.compose.ui.res
+                                                    .stringResource(dev.auriya.app.R.string.common_disabled)
+                                            },
                                         onClick = { activeSubScreen = ConfigSubScreen.DND },
                                         shape = itemShapeFor(4, total),
                                     )
 
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.Tune,
-                                        title = "Mode Presets Tuning",
-                                        subtitle = "Fine-tune margins & thermal ceilings per profile",
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.config_profiles),
+                                        subtitle =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.config_profiles_sub),
                                         onClick = { activeSubScreen = ConfigSubScreen.PROFILES },
                                         shape = itemShapeFor(5, total),
                                     )
@@ -490,91 +513,91 @@ fun ConfigScreen(viewModel: UiViewModel) {
     }
 
     // --- POPUPS & BOTTOM SHEETS ---
-    CpuGovernorPopup(
-        show = showGovPopup,
-        defaultGov = defaultGov,
-        availableGovernors = effectiveGovernors,
-        sheetState = govPopupState,
-        onSelect = { gov ->
-            defaultGov = gov
-            val currentSettings = viewModel.settings.value
-            val updated = currentSettings.copy(cpu = currentSettings.cpu.copy(defaultGovernor = gov))
-            persistChanges(updated)
-            Toast.makeText(context, "Governor set to $gov", Toast.LENGTH_SHORT).show()
-            showGovPopup = false
-        },
-        onDismiss = { showGovPopup = false },
-    )
+    if (showGovPopup) {
+        CpuGovernorPopup(
+            defaultGov = defaultGov,
+            availableGovernors = effectiveGovernors,
+            onSelect = { gov ->
+                defaultGov = gov
+                val currentSettings = viewModel.settings.value
+                val updated = currentSettings.copy(cpu = currentSettings.cpu.copy(defaultGovernor = gov))
+                persistChanges(updated)
+                Toast.makeText(context, "Governor set to $gov", Toast.LENGTH_SHORT).show()
+                showGovPopup = false
+            },
+            onDismiss = { showGovPopup = false },
+        )
+    }
 
-    ProfilePickerPopup(
-        show = showPresetPopup,
-        defaultMode = defaultMode,
-        sheetState = presetPopupState,
-        onSelect = { key ->
-            defaultMode = key
-            val currentSettings = viewModel.settings.value
-            val updated =
-                currentSettings.copy(
-                    daemon = currentSettings.daemon.copy(defaultMode = key),
-                    fas = currentSettings.fas.copy(defaultMode = key),
-                )
-            persistChanges(updated)
-            viewModel.updateProfile(key)
-            Toast.makeText(context, "Default profile set to ${key.replaceFirstChar { c -> c.uppercase() }}", Toast.LENGTH_SHORT).show()
-            showPresetPopup = false
-        },
-        onDismiss = { showPresetPopup = false },
-    )
+    if (showPresetPopup) {
+        ProfilePickerPopup(
+            defaultMode = defaultMode,
+            onSelect = { key ->
+                defaultMode = key
+                val currentSettings = viewModel.settings.value
+                val updated =
+                    currentSettings.copy(
+                        daemon = currentSettings.daemon.copy(defaultMode = key),
+                        fas = currentSettings.fas.copy(defaultMode = key),
+                    )
+                persistChanges(updated)
+                viewModel.updateProfile(key)
+                Toast.makeText(context, "Default profile set to ${key.replaceFirstChar { c -> c.uppercase() }}", Toast.LENGTH_SHORT).show()
+                showPresetPopup = false
+            },
+            onDismiss = { showPresetPopup = false },
+        )
+    }
 
-    LogLevelPickerPopup(
-        show = showLogLevelPopup,
-        logLevel = logLevel,
-        sheetState = logLevelPopupState,
-        onSelect = { key ->
-            logLevel = key
-            val updated = settings.copy(daemon = settings.daemon.copy(logLevel = key))
-            persistChanges(updated)
-            dev.auriya.app.data.RootShell
-                .exec("echo 'SETLOG ${key.uppercase()}' | nc -U /dev/socket/auriya.sock")
-            Toast.makeText(context, "Log level set to ${key.uppercase()}", Toast.LENGTH_SHORT).show()
-            showLogLevelPopup = false
-        },
-        onDismiss = { showLogLevelPopup = false },
-    )
+    if (showLogLevelPopup) {
+        LogLevelPickerPopup(
+            logLevel = logLevel,
+            onSelect = { key ->
+                logLevel = key
+                val updated = settings.copy(daemon = settings.daemon.copy(logLevel = key))
+                persistChanges(updated)
+                dev.auriya.app.data.RootShell
+                    .exec("echo 'SETLOG ${key.uppercase()}' | nc -U /dev/socket/auriya.sock")
+                Toast.makeText(context, "Log level set to ${key.uppercase()}", Toast.LENGTH_SHORT).show()
+                showLogLevelPopup = false
+            },
+            onDismiss = { showLogLevelPopup = false },
+        )
+    }
 
-    TuneProfilePickerPopup(
-        show = showTuneProfilePopup,
-        selectedMode = selectedModeKey,
-        sheetState = tuneProfilePopupState,
-        onSelect = { key ->
-            selectedModeKey = key
-            val targetMode = effectiveModes[key] ?: defaultModes[key] ?: FasMode(margin = 2.0, thermalThreshold = 90.0)
-            modeMargin = targetMode.margin.toFloat()
-            modeThermal = targetMode.thermalThreshold.toFloat()
-            showTuneProfilePopup = false
-        },
-        onDismiss = { showTuneProfilePopup = false },
-    )
+    if (showTuneProfilePopup) {
+        TuneProfilePickerPopup(
+            selectedMode = selectedModeKey,
+            onSelect = { key ->
+                selectedModeKey = key
+                val targetMode = effectiveModes[key] ?: defaultModes[key] ?: FasMode(margin = 2.0, thermalThreshold = 90.0)
+                modeMargin = targetMode.margin.toFloat()
+                modeThermal = targetMode.thermalThreshold.toFloat()
+                showTuneProfilePopup = false
+            },
+            onDismiss = { showTuneProfilePopup = false },
+        )
+    }
 
-    ConfigActionsPopup(
-        show = showConfigActionsPopup,
-        settings = settings,
-        sheetState = configActionsPopupState,
-        onImportRequest = { importConfigLauncher.launch("*/*") },
-        onResetRequest = {
-            val reset =
-                Settings(
-                    modes =
-                        mapOf(
-                            "powersave" to FasMode(margin = 5.0, thermalThreshold = 80.0),
-                            "balance" to FasMode(margin = 2.0, thermalThreshold = 90.0),
-                            "performance" to FasMode(margin = 1.0, thermalThreshold = 95.0),
-                            "fast" to FasMode(margin = 0.0, thermalThreshold = 95.0),
-                        ),
-                )
-            persistChanges(reset)
-            Toast.makeText(context, "Settings reset to default", Toast.LENGTH_SHORT).show()
-        },
-        onDismiss = { showConfigActionsPopup = false },
-    )
+    if (showConfigActionsPopup) {
+        ConfigActionsPopup(
+            settings = settings,
+            onImportRequest = { importConfigLauncher.launch("*/*") },
+            onResetRequest = {
+                val reset =
+                    Settings(
+                        modes =
+                            mapOf(
+                                "powersave" to FasMode(margin = 5.0, thermalThreshold = 80.0),
+                                "balance" to FasMode(margin = 2.0, thermalThreshold = 90.0),
+                                "performance" to FasMode(margin = 1.0, thermalThreshold = 95.0),
+                                "fast" to FasMode(margin = 0.0, thermalThreshold = 95.0),
+                            ),
+                    )
+                persistChanges(reset)
+                Toast.makeText(context, "Settings reset to default", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { showConfigActionsPopup = false },
+        )
+    }
 }

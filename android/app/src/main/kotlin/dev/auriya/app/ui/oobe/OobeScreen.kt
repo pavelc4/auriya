@@ -30,11 +30,7 @@ fun OobeScreen(
     val isDark = isThemeDark(prefs)
 
     // Root check is driven exclusively by the "Grant Root Permission" button in
-    // RootCheckContent — no background polling here. Polling every 2s was causing
-    // a race condition: Shell.getShell() blocks up to 20s, so 10+ concurrent IO
-    // coroutines ended up fighting over the libsu shell cache, leaving it stuck
-    // in a non-root state.
-
+    // RootCheckContent — no background polling here.
     BackHandler(enabled = step > 0) {
         step -= 1
     }

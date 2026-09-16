@@ -189,7 +189,9 @@ fun GamesScreen(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Games",
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.games_title),
                     style =
                         dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
@@ -199,7 +201,9 @@ fun GamesScreen(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Configure per-game performance profiles and options",
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.games_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -500,7 +504,9 @@ private fun GamesInfoBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "Games Tuner",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_tuner_title),
                         style =
                             dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
                                 fontWeight = FontWeight.ExtraBold,
@@ -511,7 +517,9 @@ private fun GamesInfoBottomSheet(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Per-game optimization features and tuning parameters",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_tuner_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Normal,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -523,9 +531,15 @@ private fun GamesInfoBottomSheet(
             // Card 1: Per-App Governor
             item {
                 InfoFeatureCard(
-                    title = "Dynamic CPU Governor",
-                    subtitle = "Performance, schedutil, or powersave",
-                    description = "Sets the kernel CPU governor when the game is in foreground to ensure maximum smoothness without excessive heat.",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.games_cpu_governor),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_cpu_sub),
+                    description =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.games_cpu_governor_desc),
                     icon = Icons.Outlined.Tune,
                     iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -535,9 +549,15 @@ private fun GamesInfoBottomSheet(
             // Card 2: Target FPS & Refresh Rate
             item {
                 InfoFeatureCard(
-                    title = "Target FPS & Display Rate",
-                    subtitle = "Frame pacing and display sync",
-                    description = "Configures targeted framerates and switches display refresh rate dynamically to eliminate stutter and tearing.",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.games_target_fps),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.games_refresh_rate),
+                    description =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.guide_fps_jank_desc),
                     icon = Icons.Outlined.Speed,
                     iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -547,9 +567,15 @@ private fun GamesInfoBottomSheet(
             // Card 3: Do Not Disturb
             item {
                 InfoFeatureCard(
-                    title = "Do Not Disturb (DnD)",
-                    subtitle = "Automatic notification silence",
-                    description = "Automatically blocks intrusive heads-up notifications and alerts while your gaming session is ongoing.",
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.games_dnd),
+                    subtitle =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_dnd_sub),
+                    description =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.config_dnd_sub),
                     icon = Icons.Outlined.NotificationsOff,
                     iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -666,13 +692,17 @@ private fun HeroBanner(onDismiss: () -> Unit) {
                     )
                 }
                 Text(
-                    text = "Games Tuner",
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.games_tuner_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
-                    text = "Tune CPU governor, target FPS, refresh rate and DnD per game.",
+                    text =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.games_tuner_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
                     modifier = Modifier.padding(end = 24.dp),
@@ -881,13 +911,17 @@ private fun EmptyState() {
                 }
             }
             Text(
-                text = "No applications found",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_not_found),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "Try searching with a different term.",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_not_found_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -15,16 +15,28 @@ fun LazyListScope.dndConfigPane(
     item {
         PopupInfoCard(
             icon = Icons.Outlined.DoNotDisturbOn,
-            title = "Do Not Disturb (DND)",
-            description = "Automatically silences notifications, pop-up banners, and call rings whenever a listed game enters the foreground, restoring normal state on exit.",
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_dnd_info_title),
+            description =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_dnd_info_desc),
         )
     }
     item {
-        SettingsSubsection(title = "DND AUTOMATION") {
+        SettingsSubsection(
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.config_sec_dnd_auto),
+        ) {
             val total = 1
             SwitchSettingItem(
-                title = "Auto Game DND",
-                subtitle = "Mute notifications automatically when games launch",
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_dnd_auto_game),
+                subtitle =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.config_dnd_auto_game_desc),
                 checked = dndEnabled,
                 onCheckedChange = onDndEnabledChange,
                 icon = Icons.Outlined.DoNotDisturbOn,

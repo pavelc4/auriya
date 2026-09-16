@@ -213,7 +213,9 @@ fun GameProfileScreen(
 
                 Column {
                     Text(
-                        text = "Profile Tuning",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_profile_tuning),
                         style =
                             dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
                                 fontWeight = FontWeight.ExtraBold,
@@ -222,7 +224,9 @@ fun GameProfileScreen(
                             ),
                     )
                     Text(
-                        text = "Per-game optimization settings",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_profile_tuning_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -308,7 +312,9 @@ fun GameProfileScreen(
 
                             3 -> {
                                 SliderRow(
-                                    title = "Target FPS limit",
+                                    title =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.games_target_fps),
                                     value = targetFps,
                                     onChange = { targetFps = it },
                                     onValueChangeFinished = { updateAndSave(fps = targetFps) },
@@ -320,7 +326,9 @@ fun GameProfileScreen(
 
                             4 -> {
                                 SliderRow(
-                                    title = "Screen refresh rate",
+                                    title =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.games_refresh_rate),
                                     value = refreshRate,
                                     onChange = { refreshRate = it },
                                     onValueChangeFinished = { updateAndSave(refresh = refreshRate) },
@@ -343,8 +351,12 @@ fun GameProfileScreen(
                         when (index) {
                             0 -> {
                                 SwitchRow(
-                                    title = "Do Not Disturb",
-                                    subtitle = "Priority notifications on launch",
+                                    title =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.games_dnd),
+                                    subtitle =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.games_priority_notif_sub),
                                     checked = enableDnd,
                                     onCheck = { updateAndSave(dnd = it) },
                                 )
@@ -352,8 +364,12 @@ fun GameProfileScreen(
 
                             1 -> {
                                 SwitchRow(
-                                    title = "Auto Record FPS",
-                                    subtitle = "Record benchmark session automatically on game launch",
+                                    title =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.games_auto_record),
+                                    subtitle =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.games_auto_bench_sub),
                                     checked = autoRecord,
                                     onCheck = {
                                         autoRecord = it
@@ -371,20 +387,37 @@ fun GameProfileScreen(
     if (pendingDelete && onRemove != null) {
         AlertDialog(
             onDismissRequest = { pendingDelete = false },
-            title = { Text("Remove profile?") },
+            title = {
+                Text(
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_dialog_remove_title),
+                )
+            },
             text = {
-                Text("$appLabel will be removed from the active profile list. You can re-add it from the Games tab.")
+                Text(
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_dialog_remove_desc, appLabel),
+                )
             },
             confirmButton = {
                 TextButton(onClick = {
                     pendingDelete = false
                     onRemove()
                 }) {
-                    Text("Remove", color = MaterialTheme.colorScheme.error)
+                    Text(
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.common_delete),
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = false }) { Text("Cancel") }
+                TextButton(onClick = { pendingDelete = false }) {
+                    Text(
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.common_cancel),
+                    )
+                }
             },
         )
     }
@@ -424,7 +457,9 @@ private fun ProfileActionsBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "Profile Actions",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_profile_actions),
                         style =
                             dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
                                 fontWeight = FontWeight.ExtraBold,
@@ -479,14 +514,18 @@ private fun ProfileActionsBottomSheet(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Reset to Defaults",
+                                text =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.games_reset_defaults),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                text = "Restore default governor, 60 FPS cap, and system defaults.",
+                                text =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.games_reset_defaults_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -532,14 +571,18 @@ private fun ProfileActionsBottomSheet(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Remove Profile",
+                                    text =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.games_remove_profile),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onErrorContainer,
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
-                                    text = "Delete saved tuning profile and revert to global policy.",
+                                    text =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.games_remove_profile_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
                                 )
@@ -616,7 +659,9 @@ private fun ProfileModeSelectionBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "Profile Mode",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_profile_mode),
                         style =
                             dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
                                 fontWeight = FontWeight.ExtraBold,
@@ -627,7 +672,9 @@ private fun ProfileModeSelectionBottomSheet(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Select optimization & power preset for this game",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_profile_mode_desc),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -766,7 +813,9 @@ private fun GovernorSelectionBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "CPU Governor",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_cpu_governor),
                         style =
                             dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
                                 fontWeight = FontWeight.ExtraBold,
@@ -777,7 +826,9 @@ private fun GovernorSelectionBottomSheet(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Select scheduling frequency policy for this app",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_cpu_governor_desc),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -928,7 +979,9 @@ private fun CeilingSelectionBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "CPU Ceiling",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_cpu_ceiling),
                         style =
                             dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
                                 fontWeight = FontWeight.ExtraBold,
@@ -939,7 +992,9 @@ private fun CeilingSelectionBottomSheet(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Set max power cap and thermal throttling threshold",
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_cpu_ceiling_desc),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -1238,13 +1293,17 @@ private fun ProfileModeRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Profile Mode",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_profile_mode),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "Optimization & power preset",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_profile_mode_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1290,13 +1349,17 @@ private fun GovernorRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "CPU Governor",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_cpu_governor),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "Current scheduling policy",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_cpu_governor_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1342,13 +1405,17 @@ private fun CeilingRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "CPU Ceiling",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_cpu_ceiling),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "Max power cap level",
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_cpu_ceiling_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1409,8 +1476,9 @@ private fun SliderRow(
             )
             StatusBadge(label = valueLabel, tone = StatusTone.PRIMARY)
         }
+        val safeValue = if (value.isNaN()) range.start else value.coerceIn(range.start, range.endInclusive)
         Slider(
-            value = value,
+            value = safeValue,
             onValueChange = onChange,
             onValueChangeFinished = onValueChangeFinished,
             valueRange = range,
