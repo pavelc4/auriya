@@ -86,6 +86,9 @@ class UiViewModel(
     private val _gameList = MutableStateFlow(GameList())
     val gameList: StateFlow<GameList> = _gameList.asStateFlow()
 
+    private val _thermalAvailable = MutableStateFlow(false)
+    val thermalAvailable: StateFlow<Boolean> = _thermalAvailable.asStateFlow()
+
     private val _systemInfo = MutableStateFlow(SystemInfo())
     val systemInfo: StateFlow<SystemInfo> = _systemInfo.asStateFlow()
 
@@ -262,6 +265,10 @@ class UiViewModel(
 
     fun loadConfigurations() {
         viewModelScope.launch(Dispatchers.IO) {
+            _thermalAvailable.value =
+                RootShell
+                    .run("test -f /sys/class/thermal/thermal_message/sconfig && echo 1 || echo 0")
+                    .trim() == "1"
             runCatching {
                 RootShell.readText(ConfigPaths.SETTINGS_FILE)?.let {
                     _settings.value = TomlParser.parseSettings(it)

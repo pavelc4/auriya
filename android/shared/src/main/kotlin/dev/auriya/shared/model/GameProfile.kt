@@ -8,6 +8,7 @@ data class GameProfile(
     val refreshRate: Int? = null,
     val mode: String? = null,
     val ceiling: String? = null,
+    val thermalPreset: String? = null,
 )
 
 data class GameList(

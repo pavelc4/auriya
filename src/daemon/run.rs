@@ -257,13 +257,31 @@ impl Daemon {
         // misconfigured tiny value cannot turn the tick loop into a busy-spin.
         let normal_interval_ms = cfg.settings.daemon.check_interval_ms.max(100);
 
+        // Restore value: settings.toml wins (hot-reloaded). Only fall back to
+        // the auto-captured stock value when `[thermal] default` is unset, so
+        // no extra persisted file is needed once the user configures it.
+        let thermal_default = if cfg.settings.thermal.default.is_some() {
+            None
+        } else {
+            let stock = crate::core::tweaks::thermal::load_or_capture_rom_default(
+                &crate::core::config::thermal_default_path(),
+            );
+            if let Some(stock) = stock {
+                debug!(target: "auriya::thermal", "Stock thermal sconfig: {}", stock);
+            }
+            stock
+        };
+
         Ok(Self {
             cfg,
             _shared_settings: shared_settings,
             shared_gamelist,
             shared_current,
             override_foreground,
-            last: LastState::default(),
+            last: LastState {
+                thermal_default,
+                ..LastState::default()
+            },
             last_error: None,
             error_debounce_ms: 30_000,
             fas_controller,
@@ -364,6 +382,14 @@ impl Daemon {
                         f.set_tuning(tuning);
                         debug!(target: "auriya::daemon", "Settings reloaded. Updated FAS tuning parameters.");
                     }
+                }
+
+                // Publish the whole parsed config so every consumer that reads
+                // `_shared_settings` (thermal, dnd, fas, ...) sees the new values
+                // without a daemon restart.
+                if let Ok(mut shared) = self._shared_settings.write() {
+                    *shared = new_settings;
+                    debug!(target: "auriya::daemon", "Settings reloaded. Shared settings refreshed.");
                 }
             }
             Err(e) => {

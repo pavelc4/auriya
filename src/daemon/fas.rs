@@ -544,6 +544,7 @@ mod tests {
                 debounce_frames: 7,
             },
             ceiling: CeilingConfig::default(),
+            thermal: ThermalConfig::default(),
             modes: m,
         }
     }

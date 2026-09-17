@@ -6,6 +6,7 @@ pub mod memory;
 pub mod paths;
 pub mod sched;
 pub mod storage;
+pub mod thermal;
 pub mod touchpanel;
 pub mod vendor;
 pub mod vendor_lock;

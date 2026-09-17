@@ -14,6 +14,8 @@ pub struct Settings {
     pub dynamic_governor: DynamicGovernorConfig,
     #[serde(default)]
     pub ceiling: CeilingConfig,
+    #[serde(default)]
+    pub thermal: ThermalConfig,
     pub modes: HashMap<String, FasMode>,
 }
 
@@ -94,6 +96,25 @@ impl Default for CeilingConfig {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ThermalConfig {
+    #[serde(default = "default_thermal_enabled")]
+    pub enabled: bool,
+    /// Raw `sconfig` value to restore after a game exits. Overrides the
+    /// auto-captured stock value and is hot-reloaded from `settings.toml`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<i32>,
+}
+
+impl Default for ThermalConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_thermal_enabled(),
+            default: None,
+        }
+    }
+}
+
 impl Settings {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
@@ -139,4 +160,27 @@ fn default_dg_debounce() -> u32 {
 
 fn default_ceiling_level() -> String {
     "balance".to_string()
+}
+
+fn default_thermal_enabled() -> bool {
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn thermal_defaults_to_enabled() {
+        assert!(ThermalConfig::default().enabled);
+        let parsed: ThermalConfig = toml::from_str("").unwrap();
+        assert!(parsed.enabled);
+        assert_eq!(parsed.default, None);
+    }
+
+    #[test]
+    fn thermal_parses_explicit_default() {
+        let parsed: ThermalConfig = toml::from_str("default = 20").unwrap();
+        assert_eq!(parsed.default, Some(20));
+    }
 }

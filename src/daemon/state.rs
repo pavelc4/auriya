@@ -31,4 +31,9 @@ pub struct LastState {
     pub battery_saver: Option<bool>,
     pub last_log_ms: Option<u128>,
     pub profile_mode: Option<crate::core::profile::ProfileMode>,
+    /// Per-app thermal preset currently applied to `sconfig`; `None` when
+    /// the game session uses the stock value.
+    pub thermal_applied: Option<crate::core::tweaks::thermal::ThermalPreset>,
+    /// Persisted stock thermal value captured at first daemon start.
+    pub thermal_default: Option<i32>,
 }

@@ -31,6 +31,7 @@ import dev.auriya.app.ui.components.AuriyaDragHandle
 import dev.auriya.app.ui.components.ExpressiveList
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
+import dev.auriya.app.ui.components.getThermalInfo
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.shared.model.GameProfile
 
@@ -40,6 +41,7 @@ fun GameProfileScreen(
     game: GameProfile,
     governorOptions: List<String>,
     isExistingProfile: Boolean = true,
+    thermalAvailable: Boolean = false,
     onDismiss: () -> Unit,
     onSave: (GameProfile) -> Unit,
     onRemove: (() -> Unit)? = null,
@@ -68,9 +70,11 @@ fun GameProfileScreen(
     var refreshRate by remember(game.packageName, game.refreshRate) { mutableStateOf(game.refreshRate?.toFloat() ?: 0f) }
     var enableDnd by remember(game.packageName, game.enableDnd) { mutableStateOf(game.enableDnd) }
     var selectedCeiling by remember(game.packageName, game.ceiling) { mutableStateOf(game.ceiling ?: "default") }
+    var selectedThermal by remember(game.packageName, game.thermalPreset) { mutableStateOf(game.thermalPreset ?: "default") }
 
     val modeOptions = remember { listOf("performance", "fas", "balance", "powersave") }
     val ceilingOptions = remember { listOf("default", "low", "balance", "high") }
+    val thermalOptions = remember { listOf("default", "dynamic", "extreme", "class0", "incalls", "thermal20") }
     val effectiveGovOptions =
         remember(governorOptions, selectedGov) {
             if (selectedGov.isNotBlank() && selectedGov !in governorOptions) {
@@ -83,11 +87,13 @@ fun GameProfileScreen(
     var showModeSheet by remember { mutableStateOf(false) }
     var showGovSheet by remember { mutableStateOf(false) }
     var showCeilingSheet by remember { mutableStateOf(false) }
+    var showThermalSheet by remember { mutableStateOf(false) }
     var showActionsSheet by remember { mutableStateOf(false) }
 
     val modeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val govSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val ceilingSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val thermalSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val actionsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var pendingDelete by remember { mutableStateOf(false) }
@@ -96,6 +102,7 @@ fun GameProfileScreen(
         mode: String = selectedMode,
         gov: String = selectedGov,
         ceiling: String = selectedCeiling,
+        thermal: String = selectedThermal,
         fps: Float = targetFps,
         refresh: Float = refreshRate,
         dnd: Boolean = enableDnd,
@@ -103,6 +110,7 @@ fun GameProfileScreen(
         selectedMode = mode
         selectedGov = gov
         selectedCeiling = ceiling
+        selectedThermal = thermal
         targetFps = fps
         refreshRate = refresh
         enableDnd = dnd
@@ -115,6 +123,7 @@ fun GameProfileScreen(
                 refreshRate = if (refresh.toInt() == 0) null else refresh.toInt(),
                 mode = mode,
                 ceiling = if (ceiling == "default") null else ceiling,
+                thermalPreset = if (thermal == "default") null else thermal,
             ),
         )
     }
@@ -149,6 +158,16 @@ fun GameProfileScreen(
         )
     }
 
+    if (showThermalSheet) {
+        ThermalSelectionBottomSheet(
+            selectedThermal = selectedThermal,
+            options = thermalOptions,
+            onSelect = { updateAndSave(thermal = it) },
+            onDismiss = { showThermalSheet = false },
+            sheetState = thermalSheetState,
+        )
+    }
+
     if (showActionsSheet) {
         ProfileActionsBottomSheet(
             appLabel = appLabel,
@@ -158,6 +177,7 @@ fun GameProfileScreen(
                 updateAndSave(
                     gov = defaultGov,
                     ceiling = "default",
+                    thermal = "default",
                     fps = 60f,
                     refresh = 0f,
                     dnd = true,
@@ -287,7 +307,7 @@ fun GameProfileScreen(
                 }
 
                 item {
-                    ExpressiveList(count = 5) { index ->
+                    ExpressiveList(count = if (thermalAvailable) 6 else 5) { index ->
                         when (index) {
                             0 -> {
                                 ProfileModeRow(
@@ -336,6 +356,15 @@ fun GameProfileScreen(
                                     steps = 3,
                                     valueLabel = if (refreshRate.toInt() == 0) "System default" else "${refreshRate.toInt()} Hz",
                                 )
+                            }
+
+                            5 -> {
+                                if (thermalAvailable) {
+                                    ThermalRow(
+                                        selected = selectedThermal,
+                                        onClick = { showThermalSheet = true },
+                                    )
+                                }
                             }
                         }
                     }
@@ -1113,6 +1142,152 @@ private fun CeilingSelectionBottomSheet(
 }
 
 @Composable
+private fun ThermalSelectionBottomSheet(
+    selectedThermal: String,
+    options: List<String>,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+    sheetState: SheetState,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { AuriyaDragHandle() },
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    ) {
+        LazyColumn(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp),
+        ) {
+            item {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_thermal_preset),
+                        style =
+                            dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 28.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
+                            ),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.games_thermal_preset_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+
+            items(options) { opt ->
+                val isSelected = opt.equals(selectedThermal, ignoreCase = true)
+                val (icon, subtitle) = getThermalInfo(opt)
+
+                Surface(
+                    onClick = {
+                        onSelect(opt)
+                        onDismiss()
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color =
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color =
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.secondary
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainerHighest
+                                },
+                            modifier = Modifier.size(42.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint =
+                                        if (isSelected) {
+                                            MaterialTheme.colorScheme.onSecondary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = opt.uppercase(),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                                color =
+                                    if (isSelected) {
+                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color =
+                                    if (isSelected) {
+                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                            )
+                        }
+
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun HeroHeader(
     label: String,
     iconBitmap: androidx.compose.ui.graphics.ImageBitmap?,
@@ -1440,6 +1615,62 @@ private fun CeilingRow(
                     imageVector = Icons.Filled.ArrowDropDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThermalRow(
+    selected: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_thermal_preset),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.games_thermal_preset_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(AuriyaTokens.rounding.full),
+            color = MaterialTheme.colorScheme.secondaryContainer,
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = selected.uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+                Icon(
+                    imageVector = Icons.Filled.ArrowDropDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.size(20.dp),
                 )
             }

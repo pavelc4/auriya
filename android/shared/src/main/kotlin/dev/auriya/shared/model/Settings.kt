@@ -6,6 +6,7 @@ data class Settings(
     val dnd: DndConfig = DndConfig(),
     val fas: FasConfig = FasConfig(),
     val dynamicGovernor: DynamicGovernorConfig = DynamicGovernorConfig(),
+    val thermal: ThermalConfig = ThermalConfig(),
     val modes: Map<String, FasMode> = emptyMap(),
 )
 
@@ -35,6 +36,11 @@ data class DynamicGovernorConfig(
     val enabled: Boolean = true,
     val cvThreshold: Double = 0.15,
     val debounceFrames: Int = 3,
+)
+
+data class ThermalConfig(
+    val enabled: Boolean = true,
+    val default: Int? = null,
 )
 
 data class FasMode(

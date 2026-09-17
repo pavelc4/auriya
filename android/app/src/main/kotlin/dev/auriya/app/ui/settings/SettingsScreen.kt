@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -63,6 +64,22 @@ fun SettingsScreen(
     onResetOobe: () -> Unit,
 ) {
     var activeSubScreen by remember { mutableStateOf(SettingsSubScreen.NONE) }
+    var showThermalDefaultSheet by remember { mutableStateOf(false) }
+
+    val thermalAvailable by viewModel.thermalAvailable.collectAsState()
+    val settings by viewModel.settings.collectAsState()
+
+    if (showThermalDefaultSheet && thermalAvailable) {
+        ThermalDefaultSheet(
+            settings = settings,
+            onSelect = { value ->
+                viewModel.saveSettings(
+                    settings.copy(thermal = settings.thermal.copy(default = value)),
+                )
+            },
+            onDismiss = { showThermalDefaultSheet = false },
+        )
+    }
 
     androidx.activity.compose.BackHandler(enabled = activeSubScreen != SettingsSubScreen.NONE) {
         activeSubScreen =
@@ -491,6 +508,45 @@ fun SettingsScreen(
                             }
 
                             item {
+                                if (thermalAvailable) {
+                                    SettingsSubsection(
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(R.string.settings_sec_thermal),
+                                    ) {
+                                        SwitchSettingItem(
+                                            title =
+                                                androidx.compose.ui.res
+                                                    .stringResource(R.string.settings_perapp_thermal),
+                                            subtitle =
+                                                androidx.compose.ui.res
+                                                    .stringResource(R.string.settings_perapp_thermal_desc),
+                                            checked = settings.thermal.enabled,
+                                            onCheckedChange = { enabled ->
+                                                viewModel.saveSettings(
+                                                    settings.copy(thermal = settings.thermal.copy(enabled = enabled)),
+                                                )
+                                            },
+                                            icon = Icons.Outlined.Thermostat,
+                                            shape = itemShapeFor(0, 2),
+                                        )
+                                        ClickableSettingItem(
+                                            title =
+                                                androidx.compose.ui.res
+                                                    .stringResource(R.string.settings_thermal_default),
+                                            subtitle =
+                                                androidx.compose.ui.res
+                                                    .stringResource(R.string.settings_thermal_default_desc) +
+                                                    " (sconfig ${settings.thermal.default ?: "?"})",
+                                            onClick = { showThermalDefaultSheet = true },
+                                            icon = Icons.Outlined.DeviceThermostat,
+                                            shape = itemShapeFor(1, 2),
+                                        )
+                                    }
+                                }
+                            }
+
+                            item {
                                 val currentLangCode =
                                     dev.auriya.app.util.LocaleHelper
                                         .getCurrentLanguage(LocalContext.current)
@@ -550,6 +606,179 @@ fun SettingsScreen(
                                     onResetOobe = onResetOobe,
                                 )
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private val thermalDefaultOptions = listOf("auto", "dynamic", "extreme", "class0", "incalls", "thermal20")
+
+private fun thermalDefaultName(value: Int?): String =
+    when (value) {
+        null -> "auto"
+        10 -> "dynamic"
+        2 -> "extreme"
+        11 -> "class0"
+        8 -> "incalls"
+        20 -> "thermal20"
+        else -> value.toString()
+    }
+
+private fun thermalDefaultValue(name: String): Int? =
+    when (name.lowercase()) {
+        "auto" -> null
+        "dynamic" -> 10
+        "extreme" -> 2
+        "class0" -> 11
+        "incalls" -> 8
+        "thermal20" -> 20
+        else -> name.toIntOrNull()
+    }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThermalDefaultSheet(
+    settings: Settings,
+    onSelect: (Int?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { AuriyaDragHandle() },
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    ) {
+        val currentName = thermalDefaultName(settings.thermal.default)
+        val options =
+            if (currentName in thermalDefaultOptions) {
+                thermalDefaultOptions
+            } else {
+                thermalDefaultOptions + currentName
+            }
+        LazyColumn(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp),
+        ) {
+            item {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(R.string.settings_thermal_default),
+                        style =
+                            ExpTitleTypography.titleMedium.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 28.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
+                            ),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text =
+                            androidx.compose.ui.res
+                                .stringResource(R.string.settings_thermal_default_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+
+            items(options) { opt ->
+                val isSelected = opt == currentName
+                val (icon, subtitle) = getThermalInfo(opt)
+                val desc =
+                    if (opt == "auto") {
+                        androidx.compose.ui.res
+                            .stringResource(R.string.settings_thermal_default_auto)
+                    } else {
+                        subtitle
+                    }
+
+                Surface(
+                    onClick = {
+                        onSelect(thermalDefaultValue(opt))
+                        onDismiss()
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color =
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color =
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.secondary
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainerHighest
+                                },
+                            modifier = Modifier.size(42.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint =
+                                        if (isSelected) {
+                                            MaterialTheme.colorScheme.onSecondary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = opt.uppercase(),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = desc,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(22.dp),
+                            )
                         }
                     }
                 }

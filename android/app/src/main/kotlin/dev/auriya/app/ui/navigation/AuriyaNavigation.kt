@@ -84,6 +84,7 @@ fun AuriyaNavigation(
     val themePrefs by themeViewModel.prefs.collectAsState()
     val governors by viewModel.availableGovernors.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
+    val thermalAvailable by viewModel.thermalAvailable.collectAsState()
 
     if (editingGameProfile != null) {
         BackHandler {
@@ -204,6 +205,7 @@ fun AuriyaNavigation(
                                     game = current,
                                     governorOptions = governors,
                                     isExistingProfile = isExisting,
+                                    thermalAvailable = thermalAvailable,
                                     onDismiss = { editingGameProfile = null },
                                     onSave = { updated ->
                                         editingGameProfile = updated
@@ -337,6 +339,7 @@ fun AuriyaNavigation(
                                                             game = current,
                                                             governorOptions = governors,
                                                             isExistingProfile = isExisting,
+                                                            thermalAvailable = thermalAvailable,
                                                             onDismiss = { selectedGameProfile = null },
                                                             onSave = { updated ->
                                                                 selectedGameProfile = updated

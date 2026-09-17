@@ -22,6 +22,9 @@ object TomlParser {
         var dgCvThreshold = 0.15
         var dgDebounceFrames = 3
 
+        var thermalEnabled = true
+        var thermalDefault: Int? = null
+
         val modes = mutableMapOf<String, FasMode>()
 
         var currentSection = ""
@@ -99,6 +102,13 @@ object TomlParser {
                     }
                 }
 
+                "thermal" -> {
+                    when (key) {
+                        "enabled" -> thermalEnabled = value.toBooleanStrictOrNull() ?: true
+                        "default" -> thermalDefault = value.toIntOrNull()
+                    }
+                }
+
                 "modes" -> {
                     when (key) {
                         "margin" -> currentModeMargin = value.toDoubleOrNull()
@@ -115,6 +125,7 @@ object TomlParser {
             dnd = DndConfig(dndDefaultEnable),
             fas = FasConfig(fasEnabled, fasDefaultMode, fasThermalThreshold, fasPollIntervalMs, fasTargetFps),
             dynamicGovernor = DynamicGovernorConfig(dgEnabled, dgCvThreshold, dgDebounceFrames),
+            thermal = ThermalConfig(thermalEnabled, thermalDefault),
             modes = modes,
         )
     }
@@ -144,6 +155,11 @@ object TomlParser {
             append("cv_threshold = ").append(settings.dynamicGovernor.cvThreshold).append("\n")
             append("debounce_frames = ").append(settings.dynamicGovernor.debounceFrames).append("\n\n")
 
+            append("[thermal]\n")
+            append("enabled = ").append(settings.thermal.enabled).append("\n")
+            settings.thermal.default?.let { append("default = ").append(it).append("\n") }
+            append("\n")
+
             settings.modes.forEach { (name, mode) ->
                 append("[modes.").append(name).append("]\n")
                 append("margin = ").append(mode.margin).append("\n")
@@ -160,6 +176,7 @@ object TomlParser {
         var currentRate: Int? = null
         var currentMode: String? = null
         var currentCeiling: String? = null
+        var currentThermal: String? = null
 
         fun commitCurrentGame() {
             if (currentPkg.isNotEmpty()) {
@@ -172,6 +189,7 @@ object TomlParser {
                         refreshRate = currentRate,
                         mode = currentMode,
                         ceiling = currentCeiling,
+                        thermalPreset = currentThermal,
                     ),
                 )
             }
@@ -190,6 +208,7 @@ object TomlParser {
                 currentRate = null
                 currentMode = null
                 currentCeiling = null
+                currentThermal = null
                 return@forEach
             }
 
@@ -206,6 +225,7 @@ object TomlParser {
                 "refresh_rate" -> currentRate = value.toIntOrNull()
                 "mode" -> currentMode = parseStringValue(value)
                 "ceiling" -> currentCeiling = parseStringValue(value)
+                "thermal_preset" -> currentThermal = parseStringValue(value)
             }
         }
         commitCurrentGame()
@@ -231,6 +251,9 @@ object TomlParser {
                 }
                 if (game.ceiling != null) {
                     append("ceiling = \"").append(game.ceiling).append("\"\n")
+                }
+                if (game.thermalPreset != null) {
+                    append("thermal_preset = \"").append(game.thermalPreset).append("\"\n")
                 }
                 append("\n")
             }
