@@ -10,7 +10,11 @@ class PowerSensor(
 ) {
     private companion object {
         private const val TAG = "AuriyaPower"
-        private const val POLL_MS = 1000L
+
+        // Poll fast enough that wake/unlock restores normal CPU speed as soon
+        // as the display comes on. Writes are change-gated in the Aggregator,
+        // so the extra polls cost binder calls, not disk I/O.
+        private const val POLL_MS = 100L
     }
 
     private val handler = Handler(Looper.getMainLooper())
