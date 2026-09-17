@@ -1,7 +1,5 @@
 package dev.auriya.app.ui.home
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -26,7 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,7 +50,7 @@ fun HomeScreen(
     val systemInfo by viewModel.systemInfo.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
     val isDaemonRunning = systemInfo.pid != null && systemInfo.pid != "null"
-    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     var showProfileSheet by remember { mutableStateOf(false) }
     val profileSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -200,12 +198,7 @@ fun HomeScreen(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             onClick = {
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse("https://auriya.pages.dev"),
-                                    ),
-                                )
+                                uriHandler.openUri("https://auriya.pages.dev")
                             },
                         )
                     }
@@ -223,12 +216,7 @@ fun HomeScreen(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             onContainerColor = MaterialTheme.colorScheme.onSecondaryContainer,
                             onClick = {
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse("https://github.com/Pavelc4/Auriya"),
-                                    ),
-                                )
+                                uriHandler.openUri("https://github.com/Pavelc4/Auriya")
                             },
                         )
                     }
@@ -246,7 +234,7 @@ fun HomeScreen(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             onContainerColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/pvlcply")))
+                                uriHandler.openUri("https://t.me/pvlcply")
                             },
                         )
                     }
@@ -918,7 +906,7 @@ private fun AuriyaInfoBottomSheet(
     onDismiss: () -> Unit,
     sheetState: SheetState,
 ) {
-    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val cleanVersion = systemInfo.version.removePrefix("v").removePrefix("V")
     val cleanArch =
         when (val arch = systemInfo.deviceArch.uppercase()) {
@@ -1014,12 +1002,7 @@ private fun AuriyaInfoBottomSheet(
             item {
                 Surface(
                     onClick = {
-                        context.startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse("https://auriya.pages.dev"),
-                            ),
-                        )
+                        uriHandler.openUri("https://auriya.pages.dev")
                     },
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -1127,12 +1110,7 @@ private fun AuriyaInfoBottomSheet(
 
                         FilledTonalButton(
                             onClick = {
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse("https://github.com/Pavelc4/Auriya/issues"),
-                                    ),
-                                )
+                                uriHandler.openUri("https://github.com/Pavelc4/Auriya/issues")
                             },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
@@ -1152,12 +1130,7 @@ private fun AuriyaInfoBottomSheet(
 
                         Button(
                             onClick = {
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse("https://github.com/Pavelc4/Auriya/issues/new"),
-                                    ),
-                                )
+                                uriHandler.openUri("https://github.com/Pavelc4/Auriya/issues/new")
                             },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
