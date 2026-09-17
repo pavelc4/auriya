@@ -93,6 +93,18 @@ impl CoreLayout {
     }
 }
 
+/// Parse a `scaling_available_frequencies` payload into a sorted list of
+/// kHz values. Garbage tokens are dropped so a partially-rewritten file still
+/// yields a usable list.
+fn parse_available_freqs(text: &str) -> Vec<u64> {
+    let mut freqs: Vec<u64> = text
+        .split_whitespace()
+        .filter_map(|f| f.parse::<u64>().ok())
+        .collect();
+    freqs.sort_unstable();
+    freqs
+}
+
 fn read_available_freqs(core_ids: &[usize]) -> Vec<u64> {
     for &id in core_ids {
         let path = format!(
@@ -100,15 +112,46 @@ fn read_available_freqs(core_ids: &[usize]) -> Vec<u64> {
             id
         );
         if let Ok(s) = fs::read_to_string(&path) {
-            let mut freqs: Vec<u64> = s
-                .split_whitespace()
-                .filter_map(|f| f.parse::<u64>().ok())
-                .collect();
-            freqs.sort_unstable();
-            return freqs;
+            return parse_available_freqs(&s);
         }
     }
     Vec::new()
+}
+
+/// Extract the core number from a cpufreq sysfs path.
+/// e.g. `/sys/devices/system/cpu/cpu3/cpufreq/scaling_max_freq` → `3`
+fn core_id_from_freq_path(path: &str) -> Option<usize> {
+    let marker = "system/cpu/cpu";
+    let idx = path.find(marker)?;
+    let rest = &path[idx + marker.len()..];
+    let end = rest.find('/').unwrap_or(rest.len());
+    rest[..end].parse().ok()
+}
+
+/// Read the hardware max frequency for a single core. Tries
+/// `cpuinfo_max_freq` first; falls back to `max(scaling_available_frequencies)`
+/// when the former is unreadable (e.g. mode 0000 on some MediaTek devices).
+fn hw_max_freq_for_core(core: usize) -> Option<u64> {
+    let cpuinfo = format!(
+        "/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq",
+        core
+    );
+    if let Some(v) = fs::read_to_string(&cpuinfo)
+        .ok()
+        .and_then(|s| s.split_whitespace().next()?.parse::<u64>().ok())
+    {
+        return Some(v);
+    }
+    // Fallback: the highest frequency in scaling_available_frequencies.
+    let avail = format!(
+        "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_available_frequencies",
+        core
+    );
+    fs::read_to_string(&avail).ok().and_then(|s| {
+        s.split_whitespace()
+            .filter_map(|t| t.parse::<u64>().ok())
+            .max()
+    })
 }
 
 fn do_mount_bind(src: &str, dest: &str) -> bool {
@@ -132,19 +175,22 @@ fn do_unmount(path: &str) -> bool {
 }
 
 /// The hardware frequency limit a frozen `scaling_{max,min}_freq` node
-/// should be reset to on restore. A max-freq cap restores to
-/// `cpuinfo_max_freq`; a min-freq lock restores to `cpuinfo_min_freq`.
+/// should be reset to on restore. A max-freq cap restores to the hardware
+/// max (with a `scaling_available_frequencies` fallback — some devices make
+/// `cpuinfo_max_freq` unreadable, which used to leave clusters stuck low); a
+/// min-freq lock restores to `cpuinfo_min_freq`.
 fn hardware_limit_for(path: &str) -> Option<String> {
-    let sibling = if path.ends_with("scaling_max_freq") {
-        path.replace("scaling_max_freq", "cpuinfo_max_freq")
-    } else if path.ends_with("scaling_min_freq") {
-        path.replace("scaling_min_freq", "cpuinfo_min_freq")
-    } else {
-        return None;
-    };
-    fs::read_to_string(&sibling)
-        .ok()
-        .and_then(|s| s.split_whitespace().next().map(str::to_string))
+    let core = core_id_from_freq_path(path)?;
+    match path.rsplit('/').next() {
+        Some("scaling_max_freq") => hw_max_freq_for_core(core).map(|v| v.to_string()),
+        Some("scaling_min_freq") => {
+            let p = path.replace("scaling_min_freq", "cpuinfo_min_freq");
+            fs::read_to_string(&p)
+                .ok()
+                .and_then(|s| s.split_whitespace().next().map(str::to_string))
+        }
+        _ => None,
+    }
 }
 
 /// Tear down any leftover ceiling mount-binds from a previous daemon
@@ -268,6 +314,7 @@ impl CeilingController {
             CeilingLevel::Low => self.apply_low(config),
             CeilingLevel::Balance => {
                 self.online_all();
+                self.uncap_all_scaling_max();
                 self.current_level = Some(CeilingLevel::Balance);
                 Ok(())
             }
@@ -335,14 +382,7 @@ impl CeilingController {
         let mut freq_targets: Vec<(String, u64)> = Vec::new();
 
         for &core in all_ids {
-            let max_path = format!(
-                "/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq",
-                core
-            );
-            if let Ok(s) = fs::read_to_string(&max_path)
-                && let Some(max_str) = s.split_whitespace().next()
-                && let Ok(max_val) = max_str.parse::<u64>()
-            {
+            if let Some(max_val) = hw_max_freq_for_core(core) {
                 let min_path = format!(
                     "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_min_freq",
                     core
@@ -414,6 +454,24 @@ impl CeilingController {
             let path = format!("/sys/devices/system/cpu/cpu{}/online", core);
             if Path::new(&path).exists() {
                 let _ = fs::write(&path, "1");
+            }
+        }
+    }
+
+    /// Explicitly release any freq cap on every core: restore writable
+    /// permissions and set `scaling_max_freq` back to the hardware max.
+    /// Self-heals a stuck-low state even when no mount entry was tracked
+    /// (e.g. a previous daemon crashed mid-ceiling before this instance's
+    /// `cleanup_stale_mounts` could see the bind).
+    fn uncap_all_scaling_max(&self) {
+        for &core in &self.layout.all_core_ids {
+            let p = format!(
+                "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_max_freq",
+                core
+            );
+            let _ = fs::set_permissions(&p, PermissionsExt::from_mode(0o644));
+            if let Some(limit) = hw_max_freq_for_core(core) {
+                let _ = fs::write(&p, limit.to_string());
             }
         }
     }
@@ -503,11 +561,7 @@ mod tests {
         }
         assert!(!cores.is_empty(), "no CPU clusters detected");
 
-        let hw_max = |core: usize| {
-            read_u64(&format!(
-                "/sys/devices/system/cpu/cpu{core}/cpufreq/cpuinfo_max_freq"
-            ))
-        };
+        let hw_max = |core: usize| hw_max_freq_for_core(core);
         let hw_min = |core: usize| {
             read_u64(&format!(
                 "/sys/devices/system/cpu/cpu{core}/cpufreq/cpuinfo_min_freq"
