@@ -201,7 +201,7 @@ private fun PillNavItem(
                 .background(bg)
                 .clickable(
                     interactionSource = interactionSource,
-                    indication = null,
+                    indication = androidx.compose.material3.ripple(bounded = true),
                     onClick = onClick,
                 ).padding(horizontal = if (selected) 20.dp else 16.dp),
         contentAlignment = Alignment.Center,
@@ -395,7 +395,7 @@ private fun ModernNavItem(
                 .clickable(
                     interactionSource = interactionSource,
                     onClick = onClick,
-                    indication = null,
+                    indication = androidx.compose.material3.ripple(bounded = true),
                 ).padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,

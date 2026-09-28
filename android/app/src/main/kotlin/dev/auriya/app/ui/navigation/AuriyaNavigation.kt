@@ -254,12 +254,25 @@ fun AuriyaNavigation(
                             }
 
                             AppRoute.Main -> {
+                                val homeTitle =
+                                    androidx.compose.ui.res
+                                        .stringResource(NavigationTab.HOME.titleRes)
+                                val gamesTitle =
+                                    androidx.compose.ui.res
+                                        .stringResource(NavigationTab.GAMES.titleRes)
+                                val recordTitle =
+                                    androidx.compose.ui.res
+                                        .stringResource(NavigationTab.RECORD.titleRes)
+                                val configTitle =
+                                    androidx.compose.ui.res
+                                        .stringResource(NavigationTab.CONFIG.titleRes)
                                 val navItems =
-                                    NavigationTab.entries.map {
-                                        AuriyaNavItem(
-                                            androidx.compose.ui.res
-                                                .stringResource(it.titleRes),
-                                            it.icon,
+                                    remember(homeTitle, gamesTitle, recordTitle, configTitle) {
+                                        listOf(
+                                            AuriyaNavItem(homeTitle, NavigationTab.HOME.icon),
+                                            AuriyaNavItem(gamesTitle, NavigationTab.GAMES.icon),
+                                            AuriyaNavItem(recordTitle, NavigationTab.RECORD.icon),
+                                            AuriyaNavItem(configTitle, NavigationTab.CONFIG.icon),
                                         )
                                     }
                                 val selectedIndex = NavigationTab.entries.indexOf(activeTab)

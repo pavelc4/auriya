@@ -711,7 +711,7 @@ private fun ProfileModeSelectionBottomSheet(
                 }
             }
 
-            items(options) { opt ->
+            items(options, key = { it }) { opt ->
                 val isSelected = opt.equals(selectedMode, ignoreCase = true)
                 val (icon, subtitle) = getProfileModeInfo(opt)
                 val label =
@@ -865,7 +865,7 @@ private fun GovernorSelectionBottomSheet(
                 }
             }
 
-            items(options) { opt ->
+            items(options, key = { it }) { opt ->
                 val isSelected = opt.equals(selectedGov, ignoreCase = true)
                 val (icon, subtitle) = getGovernorInfo(opt)
 
@@ -1031,7 +1031,7 @@ private fun CeilingSelectionBottomSheet(
                 }
             }
 
-            items(options) { opt ->
+            items(options, key = { it }) { opt ->
                 val isSelected = opt.equals(selectedCeiling, ignoreCase = true)
                 val (icon, subtitle) = getCeilingInfo(opt)
 
@@ -1196,7 +1196,7 @@ private fun ThermalSelectionBottomSheet(
                 }
             }
 
-            items(options) { opt ->
+            items(options, key = { it }) { opt ->
                 val isSelected = opt.equals(selectedThermal, ignoreCase = true)
                 val (icon, subtitle) = getThermalInfo(opt)
 
