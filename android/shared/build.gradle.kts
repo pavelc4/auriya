@@ -11,8 +11,8 @@ java {
 kotlin {
     jvmToolchain(21)
     compilerOptions {
+        jvmDefault.set(org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode.NO_COMPATIBILITY)
         freeCompilerArgs.addAll(
-            "-Xjvm-default=all",
             "-Xexpect-actual-classes",
         )
     }
@@ -20,4 +20,12 @@ kotlin {
 
 dependencies {
     implementation(libs.kotlin.stdlib)
+}
+
+// Android build variant task aliases for pure JVM module compatibility
+tasks.register("compileDebugKotlin") {
+    dependsOn(tasks.named("compileKotlin"))
+}
+tasks.register("compileReleaseKotlin") {
+    dependsOn(tasks.named("compileKotlin"))
 }
