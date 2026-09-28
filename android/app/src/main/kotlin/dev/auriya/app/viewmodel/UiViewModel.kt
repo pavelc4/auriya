@@ -37,8 +37,10 @@ data class SystemInfo(
     val deviceArch: String = "...",
     val updateTime: String = "...",
     val profile: String = "...",
-    val kernel: String = "...",
-    val chipset: String = "...",
+    val kernel: String = System.getProperty("os.version") ?: "...",
+    val chipset: String =
+        android.os.Build.BOARD
+            .ifEmpty { android.os.Build.HARDWARE },
     val codename: String = android.os.Build.DEVICE,
     val sdk: String =
         android.os.Build.VERSION.SDK_INT
@@ -150,11 +152,6 @@ class UiViewModel(
                         }.sortedBy { it.label.lowercase() }
                 _installedApps.value = apps
                 _isAppsLoading.value = false
-
-                // Pre-cache all icons in RAM in background so every icon renders instantly
-                for (app in apps) {
-                    AppIconCache.load(pm, app.packageName)
-                }
             } catch (e: Throwable) {
                 e.printStackTrace()
                 _isAppsLoading.value = false
@@ -324,6 +321,15 @@ class UiViewModel(
                     arch = arch,
                     deviceArch = arch,
                     updateTime = updateTimeStr,
+                    kernel = System.getProperty("os.version") ?: "Unknown",
+                    chipset =
+                        android.os.Build.BOARD
+                            .ifEmpty { android.os.Build.HARDWARE },
+                    codename = android.os.Build.DEVICE,
+                    sdk =
+                        android.os.Build.VERSION.SDK_INT
+                            .toString(),
+                    androidVersion = "Android ${android.os.Build.VERSION.RELEASE}",
                 )
         }
     }
@@ -332,7 +338,7 @@ class UiViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             while (true) {
                 if (!_isActive.value) {
-                    delay(500)
+                    delay(1000)
                     continue
                 }
                 val cachedRoot = RootShell.hasCachedRoot()
@@ -349,68 +355,48 @@ class UiViewModel(
     }
 
     private fun pollOnce() {
-        val configPath = "/data/adb/.config/auriya"
-        // Pull the active mode from [daemon].default_mode in settings.toml.
-        // The legacy /current_profile (1/2/3 codes) is no longer the
-        // source of truth — user edits settings.toml directly.
+        val rawProfile =
+            _settings.value.daemon.defaultMode
+                .ifEmpty { _currentProfile.value }
+        val profileStr =
+            when (rawProfile.lowercase()) {
+                "performance" -> "Performance"
+                "balance" -> "Balance"
+                "powersave" -> "Powersave"
+                "fast" -> "Fast"
+                "" -> "Unknown"
+                else -> rawProfile.replaceFirstChar { it.uppercase() }
+            }
+
+        // Native battery percentage query without shell
+        val bm =
+            getApplication<Application>()
+                .getSystemService(android.content.Context.BATTERY_SERVICE) as? android.os.BatteryManager
+        val pct = bm?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
+        val battery = if (pct in 0..100) "$pct%" else "Unknown"
+
         val cmd =
             """
-            awk '/^\[daemon\]/{flag=1;next}/^\[/{flag=0}flag && /default_mode/{gsub(/.*= *"/,"");gsub(/".*/,"");print;exit}' $configPath/settings.toml 2>/dev/null; echo "|||";
-            uname -r 2>/dev/null; echo "|||";
-            getprop ro.board.platform; echo "|||";
-            getprop ro.product.device; echo "|||";
-            getprop ro.build.version.release; echo "|||";
-            getprop ro.build.version.sdk; echo "|||";
-            cat /sys/class/power_supply/battery/capacity 2>/dev/null; echo "|||";
-            cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | head -n 5; echo "|||";
             PID=${'$'}(pidof auriya || echo "null"); echo ${'$'}PID; echo "|||";
-            if [ "${'$'}PID" != "null" ]; then grep VmRSS /proc/${'$'}PID/status 2>/dev/null | awk '{print ${'$'}2}'; else echo "-"; fi
+            if [ "${'$'}PID" != "null" ]; then grep -m1 VmRSS /proc/${'$'}PID/status 2>/dev/null | awk '{print ${'$'}2}'; else echo "-"; fi; echo "|||";
+            cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | head -n 5
             """.trimIndent()
 
         val out = RootShell.run(cmd)
         if (out.isNotEmpty()) {
             val parts = out.split("|||").map { it.trim() }
-            val rawProfile = parts.getOrNull(0) ?: ""
-            // settings.toml stores the mode as a TOML string
-            // ("balance" / "performance" / "powersave" / "fast"). The
-            // old 0..3 numeric mapping is gone — just title-case it.
-            val profileStr =
-                when (rawProfile.lowercase()) {
-                    "performance" -> "Performance"
-                    "balance" -> "Balance"
-                    "powersave" -> "Powersave"
-                    "fast" -> "Fast"
-                    "" -> "Unknown"
-                    else -> rawProfile.replaceFirstChar { it.uppercase() }
-                }
-
-            val kernel = parts.getOrNull(1)?.ifEmpty { "Unknown" } ?: "Unknown"
-            val chipset = parts.getOrNull(2)?.ifEmpty { android.os.Build.BOARD } ?: android.os.Build.BOARD
-            val codename = parts.getOrNull(3)?.ifEmpty { android.os.Build.DEVICE } ?: android.os.Build.DEVICE
-            val releaseVer = parts.getOrNull(4)?.ifEmpty { android.os.Build.VERSION.RELEASE } ?: android.os.Build.VERSION.RELEASE
-            val sdk =
-                parts.getOrNull(5)?.ifEmpty {
-                    android.os.Build.VERSION.SDK_INT
-                        .toString()
-                } ?: android.os.Build.VERSION.SDK_INT
-                    .toString()
-            val androidVersion = "Android $releaseVer"
-
-            val batteryPercent = parts.getOrNull(6)
-            val battery =
-                if (batteryPercent != null && batteryPercent.toIntOrNull() != null) "$batteryPercent%" else "Unknown"
+            val pid = parts.getOrNull(0)?.ifEmpty { "null" } ?: "null"
+            val rss = parts.getOrNull(1)
+            val thermalRaw = parts.getOrNull(2)
 
             var temp = "Unknown"
-            parts.getOrNull(7)?.split("\n")?.forEach { t ->
+            thermalRaw?.split("\n")?.forEach { t ->
                 val v = t.trim().toIntOrNull()
                 if (v != null && v > 1000) {
                     temp = "${v / 1000}°C"
                     return@forEach
                 }
             }
-
-            val pid = parts.getOrNull(8)?.ifEmpty { "null" } ?: "null"
-            val rss = parts.getOrNull(9)
 
             val daemonActiveBool = pid != "null" && pid.isNotEmpty()
             _daemonActive.value = daemonActiveBool
@@ -425,11 +411,6 @@ class UiViewModel(
             _systemInfo.value =
                 _systemInfo.value.copy(
                     profile = profileStr,
-                    kernel = kernel,
-                    chipset = chipset,
-                    codename = codename,
-                    sdk = sdk,
-                    androidVersion = androidVersion,
                     battery = battery,
                     temp = temp,
                     pid = if (pid == "null") null else pid,
@@ -449,14 +430,6 @@ class UiViewModel(
                     ?.getOrNull(1)
         }
 
-        // Daemon log tail.
-        val logPath = "/data/adb/auriya/daemon.log"
-        if (RootShell.exists(logPath)) {
-            _logs.value = RootShell.tail(logPath, 100)
-        } else {
-            _logs.value = "No daemon log at $logPath"
-        }
-
         // Live performance stats & telemetry for Recording / Benchmark
         if (_daemonActive.value) {
             runCatching {
@@ -466,6 +439,18 @@ class UiViewModel(
             }
         } else {
             _liveStats.value = null
+        }
+    }
+
+    fun refreshLogs() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val logPath = "/data/adb/auriya/daemon.log"
+            _logs.value =
+                if (RootShell.exists(logPath)) {
+                    RootShell.tail(logPath, 100)
+                } else {
+                    "No daemon log at $logPath"
+                }
         }
     }
 
