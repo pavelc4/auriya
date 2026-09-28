@@ -1,6 +1,7 @@
 package dev.auriya.shared.config
 
 import dev.auriya.shared.model.*
+import java.util.Locale
 
 object TomlParser {
     fun parseSettings(content: String): Settings {
@@ -146,13 +147,13 @@ object TomlParser {
             append("[fas]\n")
             append("enabled = ").append(settings.fas.enabled).append("\n")
             append("default_mode = \"").append(settings.fas.defaultMode).append("\"\n")
-            append("thermal_threshold = ").append(settings.fas.thermalThreshold).append("\n")
+            append("thermal_threshold = ").append(formatOneDecimal(settings.fas.thermalThreshold)).append("\n")
             append("poll_interval_ms = ").append(settings.fas.pollIntervalMs).append("\n")
             append("target_fps = ").append(settings.fas.targetFps).append("\n\n")
 
             append("[dynamic_governor]\n")
             append("enabled = ").append(settings.dynamicGovernor.enabled).append("\n")
-            append("cv_threshold = ").append(settings.dynamicGovernor.cvThreshold).append("\n")
+            append("cv_threshold = ").append(formatCvThreshold(settings.dynamicGovernor.cvThreshold)).append("\n")
             append("debounce_frames = ").append(settings.dynamicGovernor.debounceFrames).append("\n\n")
 
             append("[thermal]\n")
@@ -162,8 +163,8 @@ object TomlParser {
 
             settings.modes.forEach { (name, mode) ->
                 append("[modes.").append(name).append("]\n")
-                append("margin = ").append(mode.margin).append("\n")
-                append("thermal_threshold = ").append(mode.thermalThreshold).append("\n\n")
+                append("margin = ").append(formatOneDecimal(mode.margin)).append("\n")
+                append("thermal_threshold = ").append(formatOneDecimal(mode.thermalThreshold)).append("\n\n")
             }
         }
 
@@ -266,4 +267,13 @@ object TomlParser {
         }
         return s
     }
+
+    /**
+     * Sliders carry 32-bit floats, so 0.05f widens to
+     * 0.05000000074505806 as a Double. Serialize with fixed precision so
+     * settings.toml stays clean (0.05, not the binary artifact).
+     */
+    private fun formatCvThreshold(value: Double): String = String.format(Locale.US, "%.2f", value)
+
+    private fun formatOneDecimal(value: Double): String = String.format(Locale.US, "%.1f", value)
 }
