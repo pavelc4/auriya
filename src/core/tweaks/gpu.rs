@@ -10,6 +10,15 @@ pub enum GpuVendor {
     Unknown,
 }
 
+/// Numeric min, not first entry: some devices list
+/// available_frequencies descending (max first), which would otherwise
+/// lock the GPU at the top frequency.
+fn lowest_available_freq(text: &str) -> Option<u64> {
+    text.split_whitespace()
+        .filter_map(|f| f.parse::<u64>().ok())
+        .min()
+}
+
 pub fn detect_vendor() -> GpuVendor {
     if Path::new("/sys/class/kgsl/kgsl-3d0").exists() {
         GpuVendor::Adreno
@@ -77,9 +86,9 @@ pub fn set_balanced_mode() -> Result<()> {
 
             let min_freq_path = format!("{}/devfreq/min_freq", base);
             if let Ok(avail) = fs::read_to_string(format!("{}/devfreq/available_frequencies", base))
-                && let Some(min) = avail.split_whitespace().next()
+                && let Some(min) = lowest_available_freq(&avail)
             {
-                let _ = fs::write(&min_freq_path, min);
+                let _ = fs::write(&min_freq_path, min.to_string());
             }
 
             let _ = fs::write(format!("{}/force_clk_on", base), "0");

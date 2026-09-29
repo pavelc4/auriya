@@ -23,35 +23,36 @@ fun ExpressiveList(
     item: @Composable (index: Int) -> Unit,
 ) {
     if (count == 0) return
+
+    val singleShape = androidx.compose.runtime.remember(cornerLarge) { RoundedCornerShape(cornerLarge) }
+    val topShape =
+        androidx.compose.runtime.remember(cornerLarge, cornerSmall) {
+            RoundedCornerShape(
+                topStart = cornerLarge,
+                topEnd = cornerLarge,
+                bottomStart = cornerSmall,
+                bottomEnd = cornerSmall,
+            )
+        }
+    val bottomShape =
+        androidx.compose.runtime.remember(cornerLarge, cornerSmall) {
+            RoundedCornerShape(
+                topStart = cornerSmall,
+                topEnd = cornerSmall,
+                bottomStart = cornerLarge,
+                bottomEnd = cornerLarge,
+            )
+        }
+    val middleShape = androidx.compose.runtime.remember(cornerSmall) { RoundedCornerShape(cornerSmall) }
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(gap)) {
         for (i in 0 until count) {
             val shape =
                 when {
-                    count == 1 -> {
-                        RoundedCornerShape(cornerLarge)
-                    }
-
-                    i == 0 -> {
-                        RoundedCornerShape(
-                            topStart = cornerLarge,
-                            topEnd = cornerLarge,
-                            bottomStart = cornerSmall,
-                            bottomEnd = cornerSmall,
-                        )
-                    }
-
-                    i == count - 1 -> {
-                        RoundedCornerShape(
-                            topStart = cornerSmall,
-                            topEnd = cornerSmall,
-                            bottomStart = cornerLarge,
-                            bottomEnd = cornerLarge,
-                        )
-                    }
-
-                    else -> {
-                        RoundedCornerShape(cornerSmall)
-                    }
+                    count == 1 -> singleShape
+                    i == 0 -> topShape
+                    i == count - 1 -> bottomShape
+                    else -> middleShape
                 }
             Surface(
                 shape = shape,

@@ -84,6 +84,7 @@ fun AuriyaNavigation(
     val themePrefs by themeViewModel.prefs.collectAsState()
     val governors by viewModel.availableGovernors.collectAsState()
     val gameList by viewModel.gameList.collectAsState()
+    val thermalAvailable by viewModel.thermalAvailable.collectAsState()
 
     if (editingGameProfile != null) {
         BackHandler {
@@ -204,6 +205,7 @@ fun AuriyaNavigation(
                                     game = current,
                                     governorOptions = governors,
                                     isExistingProfile = isExisting,
+                                    thermalAvailable = thermalAvailable,
                                     onDismiss = { editingGameProfile = null },
                                     onSave = { updated ->
                                         editingGameProfile = updated
@@ -252,12 +254,25 @@ fun AuriyaNavigation(
                             }
 
                             AppRoute.Main -> {
+                                val homeTitle =
+                                    androidx.compose.ui.res
+                                        .stringResource(NavigationTab.HOME.titleRes)
+                                val gamesTitle =
+                                    androidx.compose.ui.res
+                                        .stringResource(NavigationTab.GAMES.titleRes)
+                                val recordTitle =
+                                    androidx.compose.ui.res
+                                        .stringResource(NavigationTab.RECORD.titleRes)
+                                val configTitle =
+                                    androidx.compose.ui.res
+                                        .stringResource(NavigationTab.CONFIG.titleRes)
                                 val navItems =
-                                    NavigationTab.entries.map {
-                                        AuriyaNavItem(
-                                            androidx.compose.ui.res
-                                                .stringResource(it.titleRes),
-                                            it.icon,
+                                    remember(homeTitle, gamesTitle, recordTitle, configTitle) {
+                                        listOf(
+                                            AuriyaNavItem(homeTitle, NavigationTab.HOME.icon),
+                                            AuriyaNavItem(gamesTitle, NavigationTab.GAMES.icon),
+                                            AuriyaNavItem(recordTitle, NavigationTab.RECORD.icon),
+                                            AuriyaNavItem(configTitle, NavigationTab.CONFIG.icon),
                                         )
                                     }
                                 val selectedIndex = NavigationTab.entries.indexOf(activeTab)
@@ -337,6 +352,7 @@ fun AuriyaNavigation(
                                                             game = current,
                                                             governorOptions = governors,
                                                             isExistingProfile = isExisting,
+                                                            thermalAvailable = thermalAvailable,
                                                             onDismiss = { selectedGameProfile = null },
                                                             onSave = { updated ->
                                                                 selectedGameProfile = updated

@@ -77,8 +77,8 @@ object StatusFormat {
                 }
 
                 else -> {
-                    Unit
-                } // forward-compatible
+                    // forward-compatible
+                }
             }
         }
 

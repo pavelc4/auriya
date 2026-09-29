@@ -242,6 +242,7 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                         refresh_rate: None,
                         mode: Some("performance".to_string()),
                         ceiling: None,
+                        thermal_preset: None,
                     };
                     // Copy-on-write: clone the shared snapshot only when we
                     // actually mutate it (rare, IPC-driven), keeping the

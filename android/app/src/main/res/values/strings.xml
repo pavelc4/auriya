@@ -81,6 +81,8 @@
     <string name="games_cpu_governor_desc">Select scheduling frequency policy for this app</string>
     <string name="games_cpu_ceiling">CPU Ceiling</string>
     <string name="games_cpu_ceiling_desc">Set max power cap and thermal throttling threshold</string>
+    <string name="games_thermal_preset">Thermal Preset</string>
+    <string name="games_thermal_preset_desc">Vendor thermal profile applied while this game runs</string>
     <string name="games_tuner_title">Games Tuner</string>
     <string name="games_tuner_subtitle">Tune CPU governor, target FPS, refresh rate and DnD per game.</string>
 
@@ -139,6 +141,12 @@
     <string name="settings_display_metrics">DISPLAY &amp; METRICS</string>
     <string name="settings_round_fps">Round FPS Values</string>
     <string name="settings_round_fps_desc">Format FPS to whole numbers in UI &amp; overlay</string>
+    <string name="settings_sec_thermal">THERMAL</string>
+    <string name="settings_perapp_thermal">Per-app Thermal</string>
+    <string name="settings_perapp_thermal_desc">Apply per-game vendor thermal presets</string>
+    <string name="settings_thermal_default">Thermal Default</string>
+    <string name="settings_thermal_default_desc">Vendor value restored after a game exits</string>
+    <string name="settings_thermal_default_auto">Auto-detect the vendor stock value on first start</string>
     <string name="settings_general_tools">GENERAL &amp; TOOLS</string>
     <string name="settings_app_language">App Language</string>
     <string name="settings_dev_options">Developer Options</string>

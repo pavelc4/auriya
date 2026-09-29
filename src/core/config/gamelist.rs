@@ -99,6 +99,8 @@ pub struct GameProfile {
     pub mode: Option<String>,
     #[serde(default)]
     pub ceiling: Option<String>,
+    #[serde(default)]
+    pub thermal_preset: Option<String>,
 }
 
 impl GameList {

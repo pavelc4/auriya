@@ -1,6 +1,7 @@
 package dev.auriya.shared.config
 
 import dev.auriya.shared.model.*
+import java.util.Locale
 
 object TomlParser {
     fun parseSettings(content: String): Settings {
@@ -21,6 +22,9 @@ object TomlParser {
         var dgEnabled = true
         var dgCvThreshold = 0.15
         var dgDebounceFrames = 3
+
+        var thermalEnabled = true
+        var thermalDefault: Int? = null
 
         val modes = mutableMapOf<String, FasMode>()
 
@@ -99,6 +103,13 @@ object TomlParser {
                     }
                 }
 
+                "thermal" -> {
+                    when (key) {
+                        "enabled" -> thermalEnabled = value.toBooleanStrictOrNull() ?: true
+                        "default" -> thermalDefault = value.toIntOrNull()
+                    }
+                }
+
                 "modes" -> {
                     when (key) {
                         "margin" -> currentModeMargin = value.toDoubleOrNull()
@@ -115,6 +126,7 @@ object TomlParser {
             dnd = DndConfig(dndDefaultEnable),
             fas = FasConfig(fasEnabled, fasDefaultMode, fasThermalThreshold, fasPollIntervalMs, fasTargetFps),
             dynamicGovernor = DynamicGovernorConfig(dgEnabled, dgCvThreshold, dgDebounceFrames),
+            thermal = ThermalConfig(thermalEnabled, thermalDefault),
             modes = modes,
         )
     }
@@ -135,19 +147,24 @@ object TomlParser {
             append("[fas]\n")
             append("enabled = ").append(settings.fas.enabled).append("\n")
             append("default_mode = \"").append(settings.fas.defaultMode).append("\"\n")
-            append("thermal_threshold = ").append(settings.fas.thermalThreshold).append("\n")
+            append("thermal_threshold = ").append(formatOneDecimal(settings.fas.thermalThreshold)).append("\n")
             append("poll_interval_ms = ").append(settings.fas.pollIntervalMs).append("\n")
             append("target_fps = ").append(settings.fas.targetFps).append("\n\n")
 
             append("[dynamic_governor]\n")
             append("enabled = ").append(settings.dynamicGovernor.enabled).append("\n")
-            append("cv_threshold = ").append(settings.dynamicGovernor.cvThreshold).append("\n")
+            append("cv_threshold = ").append(formatCvThreshold(settings.dynamicGovernor.cvThreshold)).append("\n")
             append("debounce_frames = ").append(settings.dynamicGovernor.debounceFrames).append("\n\n")
+
+            append("[thermal]\n")
+            append("enabled = ").append(settings.thermal.enabled).append("\n")
+            settings.thermal.default?.let { append("default = ").append(it).append("\n") }
+            append("\n")
 
             settings.modes.forEach { (name, mode) ->
                 append("[modes.").append(name).append("]\n")
-                append("margin = ").append(mode.margin).append("\n")
-                append("thermal_threshold = ").append(mode.thermalThreshold).append("\n\n")
+                append("margin = ").append(formatOneDecimal(mode.margin)).append("\n")
+                append("thermal_threshold = ").append(formatOneDecimal(mode.thermalThreshold)).append("\n\n")
             }
         }
 
@@ -160,6 +177,7 @@ object TomlParser {
         var currentRate: Int? = null
         var currentMode: String? = null
         var currentCeiling: String? = null
+        var currentThermal: String? = null
 
         fun commitCurrentGame() {
             if (currentPkg.isNotEmpty()) {
@@ -172,6 +190,7 @@ object TomlParser {
                         refreshRate = currentRate,
                         mode = currentMode,
                         ceiling = currentCeiling,
+                        thermalPreset = currentThermal,
                     ),
                 )
             }
@@ -190,6 +209,7 @@ object TomlParser {
                 currentRate = null
                 currentMode = null
                 currentCeiling = null
+                currentThermal = null
                 return@forEach
             }
 
@@ -206,6 +226,7 @@ object TomlParser {
                 "refresh_rate" -> currentRate = value.toIntOrNull()
                 "mode" -> currentMode = parseStringValue(value)
                 "ceiling" -> currentCeiling = parseStringValue(value)
+                "thermal_preset" -> currentThermal = parseStringValue(value)
             }
         }
         commitCurrentGame()
@@ -232,6 +253,9 @@ object TomlParser {
                 if (game.ceiling != null) {
                     append("ceiling = \"").append(game.ceiling).append("\"\n")
                 }
+                if (game.thermalPreset != null) {
+                    append("thermal_preset = \"").append(game.thermalPreset).append("\"\n")
+                }
                 append("\n")
             }
         }
@@ -243,4 +267,13 @@ object TomlParser {
         }
         return s
     }
+
+    /**
+     * Sliders carry 32-bit floats, so 0.05f widens to
+     * 0.05000000074505806 as a Double. Serialize with fixed precision so
+     * settings.toml stays clean (0.05, not the binary artifact).
+     */
+    private fun formatCvThreshold(value: Double): String = String.format(Locale.US, "%.2f", value)
+
+    private fun formatOneDecimal(value: Double): String = String.format(Locale.US, "%.1f", value)
 }

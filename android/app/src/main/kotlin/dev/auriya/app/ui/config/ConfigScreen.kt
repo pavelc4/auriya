@@ -426,9 +426,11 @@ fun ConfigScreen(viewModel: UiViewModel) {
                                 },
                                 onThermalThresholdChange = { fasThermalThreshold = it },
                                 onThermalThresholdFinished = {
+                                    val rounded = fasThermalThreshold.roundToInt().toDouble()
+                                    fasThermalThreshold = rounded.toFloat()
                                     val updated =
                                         settings.copy(
-                                            fas = settings.fas.copy(thermalThreshold = fasThermalThreshold.toDouble()),
+                                            fas = settings.fas.copy(thermalThreshold = rounded),
                                         )
                                     persistChanges(updated)
                                 },
@@ -450,9 +452,13 @@ fun ConfigScreen(viewModel: UiViewModel) {
                                 },
                                 onCvThresholdChange = { dgCvThreshold = it },
                                 onCvThresholdFinished = {
+                                    // 0.05f widens to 0.05000000074505806 as a Double;
+                                    // round to the slider step before persisting.
+                                    val rounded = (dgCvThreshold * 100).roundToInt() / 100.0
+                                    dgCvThreshold = rounded.toFloat()
                                     val updated =
                                         settings.copy(
-                                            dynamicGovernor = settings.dynamicGovernor.copy(cvThreshold = dgCvThreshold.toDouble()),
+                                            dynamicGovernor = settings.dynamicGovernor.copy(cvThreshold = rounded),
                                         )
                                     persistChanges(updated)
                                 },
@@ -486,20 +492,26 @@ fun ConfigScreen(viewModel: UiViewModel) {
                                 onOpenTuneProfilePicker = { showTuneProfilePopup = true },
                                 onMarginChange = { modeMargin = it },
                                 onMarginFinished = {
+                                    val roundedMargin = (modeMargin * 10).roundToInt() / 10.0
+                                    val roundedThermal = modeThermal.roundToInt().toDouble()
+                                    modeMargin = roundedMargin.toFloat()
                                     val updatedModes =
                                         effectiveModes.toMutableMap().apply {
                                             this[selectedModeKey] =
-                                                FasMode(margin = modeMargin.toDouble(), thermalThreshold = modeThermal.toDouble())
+                                                FasMode(margin = roundedMargin, thermalThreshold = roundedThermal)
                                         }
                                     val updated = settings.copy(modes = updatedModes)
                                     persistChanges(updated)
                                 },
                                 onThermalChange = { modeThermal = it },
                                 onThermalFinished = {
+                                    val roundedMargin = (modeMargin * 10).roundToInt() / 10.0
+                                    val roundedThermal = modeThermal.roundToInt().toDouble()
+                                    modeThermal = roundedThermal.toFloat()
                                     val updatedModes =
                                         effectiveModes.toMutableMap().apply {
                                             this[selectedModeKey] =
-                                                FasMode(margin = modeMargin.toDouble(), thermalThreshold = modeThermal.toDouble())
+                                                FasMode(margin = roundedMargin, thermalThreshold = roundedThermal)
                                         }
                                     val updated = settings.copy(modes = updatedModes)
                                     persistChanges(updated)

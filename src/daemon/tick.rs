@@ -266,6 +266,7 @@ impl Daemon {
                 let entering_game = self.last.pkg.as_deref() != Some(pkg);
                 if entering_game {
                     self.vendor_lock.lock_all();
+                    self.apply_thermal_for_game(game_cfg);
 
                     let mode_str = match target_mode {
                         ProfileMode::Performance => "Performance",
@@ -333,6 +334,7 @@ impl Daemon {
 
         if self.last.pkg.as_deref() != Some(pkg) {
             self.vendor_lock.unlock_all();
+            self.restore_thermal_default();
 
             if self.applied_refresh_rate.is_some() {
                 debug!(target: "auriya::display", "Releasing game overrides for {} ({})", pkg, reason);
@@ -391,6 +393,65 @@ impl Daemon {
         self.last.pkg = Some(pkg.to_string());
         self.set_pid(None);
         Ok(())
+    }
+
+    /// Apply the per-game thermal preset on game enter, when the feature is
+    /// enabled and the game declares one. No-op when `sconfig` is absent.
+    fn apply_thermal_for_game(&mut self, game_cfg: Option<&crate::core::config::GameProfile>) {
+        use crate::core::tweaks::thermal::{self, ThermalPreset};
+
+        let thermal_enabled = self
+            ._shared_settings
+            .read()
+            .map(|s| s.thermal.enabled)
+            .unwrap_or(false);
+        if !thermal_enabled {
+            return;
+        }
+
+        let Some(preset_str) = game_cfg.and_then(|c| c.thermal_preset.as_deref()) else {
+            return;
+        };
+        let Ok(preset) = preset_str.parse::<ThermalPreset>() else {
+            warn!(target: "auriya::thermal", "Invalid thermal preset for game: {}", preset_str);
+            return;
+        };
+
+        match thermal::set_preset(preset) {
+            Ok(()) => {
+                debug!(target: "auriya::thermal", "Applied preset {} for game", preset);
+                self.last.thermal_applied = Some(preset);
+            }
+            Err(e) => error!(target: "auriya::thermal", ?e, "Failed to apply thermal preset"),
+        }
+    }
+
+    /// Restore the persisted stock thermal value when leaving a game session
+    /// that applied a per-app preset.
+    fn restore_thermal_default(&mut self) {
+        use crate::core::tweaks::thermal;
+
+        if self.last.thermal_applied.is_none() {
+            return;
+        }
+        self.last.thermal_applied = None;
+
+        // Prefer the explicit value from settings.toml (hot-reloaded via the
+        // config watcher); fall back to the stock value captured on first start.
+        let configured = self
+            ._shared_settings
+            .read()
+            .ok()
+            .and_then(|s| s.thermal.default);
+        let Some(value) = configured.or(self.last.thermal_default) else {
+            return;
+        };
+
+        if let Err(e) = thermal::set_value(value) {
+            warn!(target: "auriya::thermal", ?e, "Failed to restore thermal value");
+        } else {
+            debug!(target: "auriya::thermal", "Restored thermal sconfig={value}");
+        }
     }
 
     /// Attach the eBPF frame probe to a (validated) game PID. Only called

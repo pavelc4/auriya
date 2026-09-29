@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -1273,4 +1274,17 @@ fun <T> SingleChoiceDialog(
         shape = RoundedCornerShape(28.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     )
+}
+
+internal fun getThermalInfo(preset: String): Pair<ImageVector, String> {
+    val name = preset.lowercase().trim()
+    return when (name) {
+        "default" -> Icons.Outlined.Thermostat to "Leave the vendor thermal profile untouched while this game runs."
+        "dynamic" -> Icons.Outlined.Thermostat to "Adaptive thermal profile balancing sustained performance and heat."
+        "extreme" -> Icons.Outlined.LocalFireDepartment to "Max performance thermal profile; expect higher device temperatures."
+        "class0" -> Icons.Outlined.Tune to "Stock class-0 thermal profile used by most ROMs."
+        "incalls" -> Icons.Outlined.Call to "Relaxed thermal profile that keeps limits loose during calls."
+        "thermal20" -> Icons.Outlined.DeviceThermostat to "Loose thermal ceiling shipped as default by some ROMs."
+        else -> Icons.Outlined.Thermostat to "Vendor thermal value applied without a per-game preset."
+    }
 }
