@@ -16,7 +16,7 @@
 //   - subscribe()   — get a new broadcast receiver
 
 use anyhow::{Result, anyhow};
-use kala::FrameProbe;
+use kala_ebpf::FrameProbe;
 use std::sync::mpsc as std_mpsc;
 use std::thread;
 use std::time::Duration;
