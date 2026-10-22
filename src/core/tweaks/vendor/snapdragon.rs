@@ -39,20 +39,16 @@ fn apply_gpu_normal() {
     // In KGSL: max_pwrlevel <= current_pwrlevel <= min_pwrlevel.
     // When restoring normal mode: write min_pwrlevel FIRST, so that
     // max_pwrlevel (0) <= min_pwrlevel (e.g. 8) is valid.
-    let fallback_min;
-    let min_pwr = match paths.orig_min_pwrlevel.as_deref() {
-        Some(s) if s != "0" => s,
-        _ => {
-            fallback_min = fs::read_to_string(kgsl.join("num_pwrlevels"))
-                .ok()
-                .and_then(|n| n.trim().parse::<u32>().ok())
-                .filter(|&n| n > 0)
-                .map(|n| (n - 1).to_string())
-                .unwrap_or_else(|| "8".to_string());
-            fallback_min.as_str()
-        }
-    };
-    let _ = fs::write(kgsl.join("min_pwrlevel"), min_pwr);
+    // Setting min_pwrlevel to num_pwrlevels - 1 unlocks the full dynamic range down to
+    // the lowest OPP (e.g. 20 MHz on KonaBess or stock lowest).
+    let min_pwr = fs::read_to_string(kgsl.join("num_pwrlevels"))
+        .ok()
+        .and_then(|n| n.trim().parse::<u32>().ok())
+        .filter(|&n| n > 0)
+        .map(|n| (n - 1).to_string())
+        .or_else(|| paths.orig_min_pwrlevel.clone().filter(|s| s != "0"))
+        .unwrap_or_else(|| "8".to_string());
+    let _ = fs::write(kgsl.join("min_pwrlevel"), &min_pwr);
 
     let max_pwr = paths.orig_max_pwrlevel.as_deref().unwrap_or("0");
     let _ = fs::write(kgsl.join("max_pwrlevel"), max_pwr);

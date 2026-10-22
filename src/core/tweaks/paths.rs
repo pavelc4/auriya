@@ -124,24 +124,20 @@ impl SnapdragonPaths {
             // In Qualcomm KGSL, power levels are numbered 0 (highest clock/power) to
             // num_pwrlevels - 1 (lowest clock/power).
             // min_pwrlevel is the minimum performance level (lowest clock allowed),
-            // so it should have a high index (e.g. 6 or 8), NEVER 0!
-            // If min_pwrlevel reads "0", the system was previously locked to max freq.
-            let safe_min_pwr = match min_pwr {
-                Some(ref s) if s != "0" && !s.is_empty() => Some(s.clone()),
-                _ => {
-                    let num = std::fs::read_to_string(kgsl_path.join("num_pwrlevels"))
+            // so setting it to num_pwrlevels - 1 unlocks the full dynamic scaling range
+            // (e.g. 20 MHz on KonaBess/Adreno or whatever the lowest OPP is).
+            let safe_min_pwr = std::fs::read_to_string(kgsl_path.join("num_pwrlevels"))
+                .ok()
+                .and_then(|n| n.trim().parse::<u32>().ok())
+                .filter(|&n| n > 0)
+                .map(|n| (n - 1).to_string())
+                .or_else(|| match min_pwr {
+                    Some(ref s) if s != "0" && !s.is_empty() => Some(s.clone()),
+                    _ => std::fs::read_to_string(kgsl_path.join("default_pwrlevel"))
                         .ok()
-                        .and_then(|n| n.trim().parse::<u32>().ok())
-                        .filter(|&n| n > 0)
-                        .map(|n| (n - 1).to_string());
-                    num.or_else(|| {
-                        std::fs::read_to_string(kgsl_path.join("default_pwrlevel"))
-                            .ok()
-                            .map(|s| s.trim().to_string())
-                    })
-                    .or_else(|| Some("8".to_string()))
-                }
-            };
+                        .map(|s| s.trim().to_string())
+                        .or_else(|| Some("8".to_string())),
+                });
 
             let safe_idle_timer = match idle_t {
                 Some(ref s) if s.parse::<u32>().is_ok_and(|t| t > 0 && t <= 500) => Some(s.clone()),
