@@ -155,31 +155,31 @@ impl GameList {
     }
 
     pub fn update(&mut self, package: &str, upd: GameProfileUpdate) -> Result<()> {
-        if let Some(profile) = self.game.iter_mut().find(|g| g.package == package) {
-            if let Some(gov) = upd.governor {
-                profile.cpu_governor = gov;
-            }
-            if let Some(d) = upd.dnd {
-                profile.enable_dnd = d;
-            }
-            if let Some(arr) = upd.fps_array {
-                profile.target_fps = Some(TargetFpsConfig::Array(arr));
-            } else if let Some(fps) = upd.target_fps {
-                profile.target_fps = Some(TargetFpsConfig::Single(fps));
-            }
-            if upd.refresh_rate.is_some() {
-                profile.refresh_rate = upd.refresh_rate;
-            }
-            if let Some(m) = upd.mode {
-                profile.mode = Some(m);
-            }
-            if upd.ceiling.is_some() {
-                profile.ceiling = upd.ceiling;
-            }
-            Ok(())
-        } else {
-            anyhow::bail!("Game {} not found", package)
+        let Some(profile) = self.game.iter_mut().find(|g| g.package == package) else {
+            anyhow::bail!("Game {} not found", package);
+        };
+
+        if let Some(gov) = upd.governor {
+            profile.cpu_governor = gov;
         }
+        if let Some(d) = upd.dnd {
+            profile.enable_dnd = d;
+        }
+        if let Some(arr) = upd.fps_array {
+            profile.target_fps = Some(TargetFpsConfig::Array(arr));
+        } else if let Some(fps) = upd.target_fps {
+            profile.target_fps = Some(TargetFpsConfig::Single(fps));
+        }
+        if upd.refresh_rate.is_some() {
+            profile.refresh_rate = upd.refresh_rate;
+        }
+        if let Some(m) = upd.mode {
+            profile.mode = Some(m);
+        }
+        if upd.ceiling.is_some() {
+            profile.ceiling = upd.ceiling;
+        }
+        Ok(())
     }
 }
 
