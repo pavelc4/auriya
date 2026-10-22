@@ -81,7 +81,16 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
         };
         tokio::spawn(async move {
             if let Err(e) = handle_client(stream, hc).await {
-                tracing::warn!(target: "auriya::daemon", "client error: {:?}", e);
+                if let Some(io_err) = e.downcast_ref::<std::io::Error>() {
+                    match io_err.kind() {
+                        std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::BrokenPipe => {
+                            tracing::debug!(target: "auriya::daemon", "client disconnected: {io_err}");
+                            return;
+                        }
+                        _ => {}
+                    }
+                }
+                tracing::warn!(target: "auriya::daemon", "client error: {e:#}");
             }
         });
     }
