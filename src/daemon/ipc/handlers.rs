@@ -16,6 +16,8 @@ const HELP: &str = "CMDS:
         - CLEAR_INJECT
         - GETPID
         - PING
+        - GET_STATS
+        - STREAM_STATS [interval_ms]
         - QUIT
         - SET_PROFILE <PERFORMANCE|BALANCE|POWERSAVE|FAST>
         - SET_GOVERNOR <governor>
@@ -383,48 +385,39 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
                     Err(e) => format!("ERR JSON {:?}\n", e),
                 }
             }
-            Ok(Command::GetStats) => {
-                use crate::core::stats::StatsSnapshot;
-                use crate::core::telemetry::battery;
+            Ok(Command::GetStats) => build_stats_json(&h).await,
+            Ok(Command::StreamStats(interval_ms)) => {
+                w.write_all(b"STREAM_START\n").await?;
+                let mut ticker =
+                    tokio::time::interval(std::time::Duration::from_millis(interval_ms));
+                // Consume immediate initial tick
+                ticker.tick().await;
 
-                let is_gaming = h
-                    .current_state
-                    .read()
-                    .ok()
-                    .map(|s| s.game_session)
-                    .unwrap_or(false);
-                // Windowed FPS stats from the FAS buffer. None when not in a game session;
-                // also collapse an empty window (no frames) to None so
-                // the UI can tell "inactive" from a real 0 fps.
-                let fps = if is_gaming {
-                    (h.get_fps_stats)().await.filter(|f| f.frames > 0)
-                } else {
-                    None
-                };
-                // Battery is read fresh from sysfs on request.
-                let bat = battery::snapshot();
-
-                // Everything else is the per-tick telemetry snapshot already in
-                // CurrentState; clone the pieces out under the read lock.
-                let snap = {
-                    let st = h.current_state.read().ok();
-                    let st = st.as_deref();
-                    StatsSnapshot::build(
-                        fps,
-                        st.and_then(|s| s.cpu_telemetry.as_ref()),
-                        st.and_then(|s| s.gpu_telemetry.as_ref()),
-                        st.and_then(|s| s.thermal_telemetry.as_ref()),
-                        &bat,
-                        st.and_then(|s| s.pkg.as_deref()),
-                        st.map(|s| s.profile).unwrap_or_default(),
-                        st.map(|s| s.game_session).unwrap_or(false),
-                    )
-                };
-
-                match serde_json::to_string(&snap) {
-                    Ok(json) => format!("{}\n", json),
-                    Err(e) => format!("ERR JSON {:?}\n", e),
+                loop {
+                    tokio::select! {
+                        _ = ticker.tick() => {
+                            let json = build_stats_json(&h).await;
+                            if w.write_all(json.as_bytes()).await.is_err() {
+                                break;
+                            }
+                        }
+                        res = reader.read_line(&mut line) => {
+                            match res {
+                                Ok(n) if n > 0 => {
+                                    let cmd = line.trim();
+                                    if cmd == "STOP" || cmd == "QUIT" {
+                                        let _ = w.write_all(b"STREAM_STOPPED\n").await;
+                                        break;
+                                    }
+                                    line.clear();
+                                }
+                                _ => break,
+                            }
+                        }
+                    }
                 }
+                line.clear();
+                String::new()
             }
             Err(e) => format!("ERR {}\n", e),
         };
@@ -434,4 +427,48 @@ pub async fn handle_client(stream: UnixStream, h: IpcHandles) -> Result<()> {
         line.clear();
     }
     Ok(())
+}
+
+async fn build_stats_json(h: &IpcHandles) -> String {
+    use crate::core::stats::StatsSnapshot;
+    use crate::core::telemetry::battery;
+
+    let is_gaming = h
+        .current_state
+        .read()
+        .ok()
+        .map(|s| s.game_session)
+        .unwrap_or(false);
+    // Windowed FPS stats from the FAS buffer. None when not in a game session;
+    // also collapse an empty window (no frames) to None so
+    // the UI can tell "inactive" from a real 0 fps.
+    let fps = if is_gaming {
+        (h.get_fps_stats)().await.filter(|f| f.frames > 0)
+    } else {
+        None
+    };
+    // Battery is read fresh from sysfs on request.
+    let bat = battery::snapshot();
+
+    // Everything else is the per-tick telemetry snapshot already in
+    // CurrentState; clone the pieces out under the read lock.
+    let snap = {
+        let st = h.current_state.read().ok();
+        let st = st.as_deref();
+        StatsSnapshot::build(
+            fps,
+            st.and_then(|s| s.cpu_telemetry.as_ref()),
+            st.and_then(|s| s.gpu_telemetry.as_ref()),
+            st.and_then(|s| s.thermal_telemetry.as_ref()),
+            &bat,
+            st.and_then(|s| s.pkg.as_deref()),
+            st.map(|s| s.profile).unwrap_or_default(),
+            st.map(|s| s.game_session).unwrap_or(false),
+        )
+    };
+
+    match serde_json::to_string(&snap) {
+        Ok(json) => format!("{}\n", json),
+        Err(e) => format!("ERR JSON {:?}\n", e),
+    }
 }

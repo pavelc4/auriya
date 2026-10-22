@@ -38,6 +38,7 @@ const MIN_FRAMES_FOR_USABLE: usize = 60;
 #[derive(Debug)]
 pub struct FrameBuffer {
     frametimes: VecDeque<Duration>,
+    real_frametimes: VecDeque<Duration>,
     pub current_fps_long: f64,
     pub current_fps_short: f64,
     pub target_fps: Option<u32>,
@@ -51,6 +52,7 @@ impl FrameBuffer {
     pub fn new(target_fps_config: TargetFps) -> Self {
         Self {
             frametimes: VecDeque::with_capacity(720),
+            real_frametimes: VecDeque::with_capacity(720),
             current_fps_long: 0.0,
             current_fps_short: 0.0,
             target_fps: None,
@@ -68,8 +70,12 @@ impl FrameBuffer {
         while self.frametimes.len() >= max_frames {
             self.frametimes.pop_back();
         }
+        while self.real_frametimes.len() >= max_frames {
+            self.real_frametimes.pop_back();
+        }
 
         self.frametimes.push_front(frametime);
+        self.real_frametimes.push_front(frametime);
         self.update_fps();
         self.try_become_usable();
         self.detect_target_fps();
@@ -104,6 +110,7 @@ impl FrameBuffer {
 
     pub fn clear(&mut self) {
         self.frametimes.clear();
+        self.real_frametimes.clear();
         self.current_fps_long = 0.0;
         self.current_fps_short = 0.0;
         self.target_fps = None;
@@ -116,6 +123,13 @@ impl FrameBuffer {
 
     pub fn recent_frametimes(&self, n: usize) -> Vec<Duration> {
         self.frametimes.iter().take(n).copied().collect()
+    }
+
+    /// Returns up to `n` recent real presented frametimes.
+    /// Excludes synthetic stalls injected by FAS governor (`additional_frametime`),
+    /// ensuring telemetry APIs (`GET_STATS`, `STREAM_STATS`) reflect true render rate.
+    pub fn recent_real_frametimes(&self, n: usize) -> Vec<Duration> {
+        self.real_frametimes.iter().take(n).copied().collect()
     }
 
     /// Newest frame in the ring (front), or None if empty.
@@ -171,6 +185,7 @@ impl FrameBuffer {
             if self.target_fps.is_some() {
                 self.target_fps = None;
                 self.frametimes.clear();
+                self.real_frametimes.clear();
                 self.current_fps_long = 0.0;
                 self.current_fps_short = 0.0;
                 self.mark_unusable();
@@ -198,6 +213,7 @@ impl FrameBuffer {
             // Reset frametimes and re-arm the warmup window.
             if self.target_fps.is_some() && new_target != self.target_fps {
                 self.frametimes.clear();
+                self.real_frametimes.clear();
                 self.current_fps_long = 0.0;
                 self.current_fps_short = 0.0;
                 self.mark_unusable();
@@ -304,5 +320,27 @@ mod tests {
             buf.push(Duration::from_millis(100));
         }
         assert_eq!(buf.target_fps, None);
+    }
+
+    #[test]
+    fn recent_real_frametimes_filters_synthetic_stalls() {
+        let mut buf = FrameBuffer::new(TargetFps::Single(120));
+        for _ in 0..10 {
+            buf.push(ft_for_fps(120));
+        }
+        buf.additional_frametime();
+        for _ in 0..10 {
+            buf.push(ft_for_fps(120));
+        }
+
+        let real = buf.recent_real_frametimes(30);
+        assert_eq!(
+            real.len(),
+            20,
+            "synthetic stalls must be filtered from real frametimes"
+        );
+        for ft in real {
+            assert!(ft < Duration::from_millis(200));
+        }
     }
 }

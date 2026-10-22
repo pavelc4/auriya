@@ -489,7 +489,10 @@ mod tests {
     use super::*;
 
     fn is_root() -> bool {
-        unsafe { libc::geteuid() == 0 }
+        (unsafe { libc::geteuid() == 0 })
+            && std::env::var("AURIYA_TEST_ROOT")
+                .map(|v| v == "1")
+                .unwrap_or(false)
     }
 
     fn read_u64(path: &str) -> Option<u64> {

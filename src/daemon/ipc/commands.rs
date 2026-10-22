@@ -51,6 +51,7 @@ pub enum Command {
     GetFps,
     GetSupportedRates,
     GetStats,
+    StreamStats(u64),
 }
 
 impl FromStr for Command {
@@ -87,6 +88,11 @@ impl FromStr for Command {
             ["GET_FPS"] | ["GETFPS"] => Ok(Command::GetFps),
             ["GET_SUPPORTED_RATES"] | ["GETRATES"] => Ok(Command::GetSupportedRates),
             ["GET_STATS"] | ["GETSTATS"] => Ok(Command::GetStats),
+            ["STREAM_STATS", interval] | ["STREAMSTATS", interval] => {
+                let ms = interval.parse::<u64>().unwrap_or(1000).clamp(200, 5000);
+                Ok(Command::StreamStats(ms))
+            }
+            ["STREAM_STATS"] | ["STREAMSTATS"] => Ok(Command::StreamStats(1000)),
 
             ["INJECT", pkg] => Ok(Command::Inject(pkg.to_string())),
             ["CLEAR_INJECT"] | ["CLEARINJECT"] => Ok(Command::ClearInject),

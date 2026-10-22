@@ -207,9 +207,8 @@ impl FasController {
         self.buffer.target_fps.unwrap_or(60)
     }
 
-    /// Windowed FPS stats (avg/peak/1%-low/jank) for the IPC `GET_STATS` API,
-    /// computed on request from the frame deque already held by the buffer.
-    /// Reuses the public `FrameBuffer::recent_frametimes`; no per-tick cost.
+    /// Windowed FPS stats (avg/peak/1%-low/jank) for IPC telemetry APIs,
+    /// computed from the most recent 1-second window of real presented frames.
     pub fn fps_stats(&self) -> crate::core::stats::FpsStats {
         if self.package.is_empty()
             || self.buffer.time_since_last_frame() >= Duration::from_millis(1500)
@@ -222,9 +221,11 @@ impl FasController {
                 frames: 0,
             };
         }
+        let target = self.get_target_fps();
+        let window_size = (target as usize).clamp(30, 240);
         crate::core::stats::fps_stats_from_frametimes(
-            &self.buffer.recent_frametimes(600),
-            self.get_target_fps(),
+            &self.buffer.recent_real_frametimes(window_size),
+            target,
         )
     }
 
