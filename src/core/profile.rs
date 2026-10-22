@@ -253,6 +253,27 @@ pub fn apply_powersave_with_dnd(enable_dnd: bool) -> Result<()> {
     );
 
     paths::set_governor_cached("powersave");
+    cpu::disable_boost()?;
+
+    let soc_type = soc::detect_soc();
+    match soc_type {
+        soc::SocType::MediaTek => {
+            let _ = mtk::apply_normal();
+        }
+        soc::SocType::Snapdragon => {
+            let _ = snapdragon::apply_normal();
+        }
+        _ => {}
+    }
+    gpu::set_balanced_mode()?;
+    warn_on_err(
+        touchpanel::disable_game_mode(),
+        "disable touchpanel game mode",
+    );
+
+    warn_on_err(sched::apply_balance_sched(), "apply balanced scheduler");
+    warn_on_err(storage::unlock_storage_freq(), "unlock storage freq");
+    warn_on_err(memory::restore_balanced(), "restore balanced memory");
     warn_on_err(memory::set_swappiness(60), "set powersave swappiness");
 
     // DnD is owned by the daemon lifecycle (Daemon::sync_dnd).
