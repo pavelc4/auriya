@@ -18,7 +18,7 @@ use crate::core::{
     fas::buffer::{BufferState, FrameBuffer, TargetFps},
     fas::source::FrameSource,
     scaling::{PlatformCapabilities, ScalingAction},
-    thermal::ThermalMonitor,
+    telemetry::thermal::ThermalCollector,
 };
 use anyhow::Result;
 use std::time::{Duration, Instant};
@@ -107,7 +107,7 @@ pub struct FasController {
     source: FrameSource,
     buffer: FrameBuffer,
     bottleneck: BottleneckDetector,
-    thermal: ThermalMonitor,
+    thermal: ThermalCollector,
     caps: PlatformCapabilities,
     package: String,
     pid: Option<i32>,
@@ -150,7 +150,7 @@ impl FasController {
             source,
             buffer: FrameBuffer::new(target_fps_config),
             bottleneck: BottleneckDetector::new(tuning.cv_threshold, tuning.debounce_frames),
-            thermal: ThermalMonitor::new(),
+            thermal: ThermalCollector::new(),
             caps,
             package: String::new(),
             pid: None,

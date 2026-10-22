@@ -1,15 +1,12 @@
-// Lightweight PID utilities for the daemon.
+// Lightweight /proc utilities for process validation.
 //
 // The companion service supplies focused PID via the status file; this
-// module just provides the cheap liveness check the tick loop uses to
-// detect whether the cached PID still corresponds to a running process.
-// Heavy lifting (scanning dumpsys for matching processes) is no longer
-// needed.
+// module provides cheap liveness and package verification via /proc/<pid>/cmdline.
 
 use memchr::memchr;
 use std::fs;
 
-/// True when `/proc/<pid>` still exists. Used by the tick loop to drop
+/// True when `/proc/<pid>` exists. Used by the tick loop to drop
 /// a stale PID reference cheaply.
 #[inline]
 pub fn is_pid_valid(pid: i32) -> bool {
@@ -20,8 +17,7 @@ pub fn is_pid_valid(pid: i32) -> bool {
 }
 
 /// Best-effort: confirm that the running process at `pid` corresponds
-/// to `package`. Reads `/proc/<pid>/cmdline` directly — no dumpsys.
-/// Used as a sanity check when the cached PID is suspect.
+/// to `package`. Reads `/proc/<pid>/cmdline` directly.
 pub fn verify_pid_package(pid: i32, package: &str) -> bool {
     if pid <= 0 {
         return false;

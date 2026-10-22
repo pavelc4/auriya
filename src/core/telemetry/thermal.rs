@@ -19,10 +19,29 @@ pub struct ThermalSnapshot {
     pub gpu_temp_c: Option<f32>,
 }
 
+impl ThermalSnapshot {
+    pub fn max_temp(&self) -> Option<f32> {
+        match (self.cpu_temp_c, self.gpu_temp_c) {
+            (Some(c), Some(g)) => Some(c.max(g)),
+            (Some(c), None) => Some(c),
+            (None, Some(g)) => Some(g),
+            (None, None) => None,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct ThermalCollector;
 
 impl ThermalCollector {
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn get_max_temp(&self) -> Option<f32> {
+        self.snapshot().max_temp()
+    }
+
     pub fn snapshot(&self) -> ThermalSnapshot {
         let mut cpu_temp_c: Option<f32> = None;
         let mut gpu_temp_c: Option<f32> = None;

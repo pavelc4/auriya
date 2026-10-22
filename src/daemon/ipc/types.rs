@@ -13,13 +13,7 @@ pub enum LogLevelCmd {
     Error,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ProfileMode {
-    Performance,
-    Balance,
-    Powersave,
-    Fast,
-}
+pub use crate::core::profile::ProfileMode;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {

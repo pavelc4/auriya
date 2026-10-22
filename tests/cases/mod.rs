@@ -8,6 +8,7 @@ mod fas;
 mod gamelist;
 mod init;
 mod pid_tracker;
+mod procfs;
 mod settings;
 mod stats;
 mod system_status;

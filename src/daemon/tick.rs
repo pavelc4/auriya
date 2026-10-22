@@ -215,8 +215,7 @@ impl Daemon {
         use crate::core::profile;
 
         let cached_pid = self.status_cache.focused_pid().filter(|&p| {
-            crate::core::dumpsys::activity::is_pid_valid(p)
-                && crate::core::dumpsys::activity::verify_pid_package(p, pkg)
+            crate::core::procfs::is_pid_valid(p) && crate::core::procfs::verify_pid_package(p, pkg)
         });
         match cached_pid {
             Some(pid) => {
