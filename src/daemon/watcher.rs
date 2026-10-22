@@ -16,8 +16,8 @@ pub fn start_config_watcher(shared_gamelist: Arc<RwLock<Arc<GameList>>>) -> mpsc
         let path = gamelist_path.clone();
         let shared_for_watcher = shared_gamelist;
 
-        let mut watcher = match notify::recommended_watcher(
-            move |res: Result<notify::Event, notify::Error>| {
+        let mut watcher =
+            match notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
                 // Catch both in-place edits (Modify) and atomic renames
                 // (Create — write-tmp-then-rename produces a Create event
                 // for the target path, not Modify).
@@ -37,56 +37,21 @@ pub fn start_config_watcher(shared_gamelist: Arc<RwLock<Arc<GameList>>>) -> mpsc
 
                     // Ignore events for temporary/swap files — only react
                     // when the actual gamelist file is touched.
-                    if !path_str.contains("gamelist") {
-                        return;
-                    }
-                    if path_str.contains(".tmp")
-                        || path_str.ends_with('~')
-                        || path_str.contains(".swp")
-                    {
+                    if !path_str.contains("gamelist") || is_ignorable_file(&path_str) {
                         return;
                     }
 
                     debug!(target: "auriya::daemon", "Gamelist file changed, reloading...");
-                    let max_retries = 3;
-                    let mut retry_count = 0;
-                    let mut success = false;
-
-                    while retry_count < max_retries && !success {
-                        match GameList::load(&*path) {
-                            Ok(new_cfg) => match shared_for_watcher.write() {
-                                Ok(mut g) => {
-                                    let count = new_cfg.game.len();
-                                    *g = Arc::new(new_cfg);
-                                    debug!(target: "auriya::daemon", "Gamelist reloaded: {} games", count);
-                                    success = true;
-                                }
-                                Err(_) => {
-                                    error!(target: "auriya::daemon", "Failed to acquire gamelist lock");
-                                    break;
-                                }
-                            },
-                            Err(e) => {
-                                retry_count += 1;
-                                if retry_count < max_retries {
-                                    warn!(target: "auriya::daemon", "Failed reloading gamelist (attempt {}/{}): {:?}, retrying in 2s...", retry_count, max_retries, e);
-                                    std::thread::sleep(std::time::Duration::from_secs(2));
-                                } else {
-                                    error!(target: "auriya::daemon", "Failed to reload gamelist after {} attempts: {:?}", max_retries, e);
-                                }
-                            }
-                        }
-                    }
+                    reload_gamelist_with_retry(&path, &shared_for_watcher);
                     let _ = tx.blocking_send("gamelist".to_string());
                 }
-            },
-        ) {
-            Ok(w) => w,
-            Err(e) => {
-                error!(target: "auriya::daemon", "Failed to create gamelist watcher: {}", e);
-                return;
-            }
-        };
+            }) {
+                Ok(w) => w,
+                Err(e) => {
+                    error!(target: "auriya::daemon", "Failed to create gamelist watcher: {}", e);
+                    return;
+                }
+            };
 
         let config_dir = std::path::Path::new(crate::core::config::CONFIG_DIR);
         let _ = std::fs::create_dir_all(config_dir);
@@ -156,4 +121,48 @@ pub fn start_module_update_watcher(event_tx: EventSender) {
             std::thread::sleep(std::time::Duration::from_secs(3600));
         }
     });
+}
+
+pub fn is_ignorable_file(path_str: &str) -> bool {
+    path_str.contains(".tmp") || path_str.ends_with('~') || path_str.contains(".swp")
+}
+
+pub fn reload_gamelist_with_retry(path: &std::path::Path, shared: &RwLock<Arc<GameList>>) -> bool {
+    let max_retries = 3;
+    let mut retry_count = 0;
+
+    while retry_count < max_retries {
+        match GameList::load(path) {
+            Ok(new_cfg) => match shared.write() {
+                Ok(mut g) => {
+                    let count = new_cfg.game.len();
+                    *g = Arc::new(new_cfg);
+                    debug!(target: "auriya::daemon", "Gamelist reloaded: {} games", count);
+                    return true;
+                }
+                Err(_) => {
+                    error!(target: "auriya::daemon", "Failed to acquire gamelist lock");
+                    return false;
+                }
+            },
+            Err(e) => {
+                retry_count += 1;
+                if retry_count < max_retries {
+                    warn!(
+                        target: "auriya::daemon",
+                        "Failed reloading gamelist (attempt {}/{}): {:?}, retrying in 2s...",
+                        retry_count, max_retries, e
+                    );
+                    std::thread::sleep(std::time::Duration::from_secs(2));
+                } else {
+                    error!(
+                        target: "auriya::daemon",
+                        "Failed to reload gamelist after {} attempts: {:?}",
+                        max_retries, e
+                    );
+                }
+            }
+        }
+    }
+    false
 }

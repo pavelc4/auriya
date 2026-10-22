@@ -12,3 +12,4 @@ mod settings;
 mod stats;
 mod system_status;
 mod thermal;
+mod watcher;
