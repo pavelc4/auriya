@@ -1,9 +1,8 @@
-use auriya::core::fas::bottleneck::BottleneckType;
-use auriya::core::scaling::ScalingAction;
-use auriya::daemon::fas::{
-    BOOST_THRESHOLD_KHZ, FasTuning, KP_DEFAULT, MARGIN_FPS, REDUCE_THRESHOLD_KHZ, UtilSampler,
-    compute_control_khz, decide_action,
+use auriya::core::fas::{
+    BOOST_THRESHOLD_KHZ, BottleneckType, FasTuning, KP_DEFAULT, MARGIN_FPS, REDUCE_THRESHOLD_KHZ,
+    UtilSampler, compute_control_khz, decide_action,
 };
+use auriya::core::scaling::ScalingAction;
 use std::time::Duration;
 
 fn ft_ms(ms: f64) -> Duration {
