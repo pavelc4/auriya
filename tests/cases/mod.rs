@@ -5,6 +5,7 @@ mod ceiling;
 mod cmd_writer;
 mod cpu;
 mod fas;
+mod init;
 mod pid_tracker;
 mod settings;
 mod stats;
