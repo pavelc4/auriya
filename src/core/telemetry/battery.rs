@@ -59,7 +59,7 @@ fn read_str(node: &str) -> Option<String> {
 // ponytail: deci-°C is the ABI standard; the milli-°C retry covers the common
 // deviation. Non-conformant "plain integer °C" kernels are not handled — add a
 // third branch only if a real device needs it.
-fn parse_temp_c(raw: i32) -> Option<f32> {
+pub fn parse_temp_c(raw: i32) -> Option<f32> {
     let deci = raw as f32 / 10.0;
     if (-20.0..=100.0).contains(&deci) {
         return Some(deci);
@@ -88,27 +88,5 @@ pub fn snapshot() -> BatterySnapshot {
         voltage_v,
         status,
         health,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn temp_deci_celsius_is_primary() {
-        // Device's real reading: 402 deci-°C = 40.2 °C.
-        assert_eq!(parse_temp_c(402), Some(40.2));
-    }
-
-    #[test]
-    fn temp_falls_back_to_milli_celsius() {
-        // A milli-°C kernel: 40200 → deci gives 4020 (absurd) → retry milli.
-        assert_eq!(parse_temp_c(40_200), Some(40.2));
-    }
-
-    #[test]
-    fn temp_rejects_garbage() {
-        assert_eq!(parse_temp_c(999_999), None);
     }
 }

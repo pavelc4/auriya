@@ -19,6 +19,10 @@ path = "src/main.rs"
 name = "auriyactl"
 path = "src/ctl.rs"
 
+[[test]]
+name = "tests"
+path = "tests/main.rs"
+
 [profile.release]
 opt-level = "z"
 lto = "fat"
