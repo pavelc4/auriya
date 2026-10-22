@@ -1,7 +1,18 @@
 package dev.auriya.app.data.stats
 
+import android.net.LocalSocket
+import android.net.LocalSocketAddress
 import dev.auriya.app.data.RootShell
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.isActive
 import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.BufferedWriter
 
 data class Stats(
     val fps: Fps? = null,
@@ -61,10 +72,96 @@ data class Session(
 
 object StatsParser {
     fun fetchStats(): Stats? {
+        runCatching {
+            val sock = LocalSocket()
+            sock.connect(LocalSocketAddress("/dev/socket/auriya.sock", LocalSocketAddress.Namespace.FILESYSTEM))
+            sock.soTimeout = 1000
+            val writer = sock.outputStream.bufferedWriter()
+            val reader = sock.inputStream.bufferedReader()
+            writer.write("GET_STATS\nQUIT\n")
+            writer.flush()
+            val line = reader.lineSequence().firstOrNull { it.trimStart().startsWith("{") }
+            sock.close()
+            if (line != null) return parseStatsJson(line)
+        }
+
         val raw = RootShell.run("printf 'GET_STATS\\nQUIT\\n' | timeout 2 nc -U /dev/socket/auriya.sock 2>/dev/null")
         val jsonLine = raw.lineSequence().firstOrNull { it.trimStart().startsWith("{") } ?: return null
         return parseStatsJson(jsonLine)
     }
+
+    /**
+     * Streams continuous telemetry snapshots over a single persistent IPC connection,
+     * eliminating shell fork overhead.
+     */
+    fun streamStats(intervalMs: Long = 1000L): Flow<Stats> =
+        flow {
+            var localSocket: LocalSocket? = null
+            var process: Process? = null
+            var reader: BufferedReader? = null
+            var writer: BufferedWriter? = null
+
+            try {
+                val directSocket =
+                    runCatching {
+                        val sock = LocalSocket()
+                        sock.connect(LocalSocketAddress("/dev/socket/auriya.sock", LocalSocketAddress.Namespace.FILESYSTEM))
+                        sock
+                    }.getOrNull()
+
+                if (directSocket != null) {
+                    localSocket = directSocket
+                    reader = directSocket.inputStream.bufferedReader()
+                    writer = directSocket.outputStream.bufferedWriter()
+                } else {
+                    val proc =
+                        ProcessBuilder("su", "-c", "nc -U /dev/socket/auriya.sock")
+                            .redirectErrorStream(true)
+                            .start()
+                    process = proc
+                    reader = proc.inputStream.bufferedReader()
+                    writer = proc.outputStream.bufferedWriter()
+                }
+
+                writer.write("STREAM_STATS $intervalMs\n")
+                writer.flush()
+
+                while (currentCoroutineContext().isActive) {
+                    val line = reader.readLine() ?: break
+                    val trimmed = line.trim()
+                    if (trimmed.startsWith("{")) {
+                        parseStatsJson(trimmed)?.let { emit(it) }
+                    } else if (trimmed == "STREAM_STOPPED") {
+                        break
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+            } finally {
+                try {
+                    writer?.write("STOP\n")
+                    writer?.flush()
+                } catch (_: Throwable) {
+                }
+                try {
+                    reader?.close()
+                } catch (_: Throwable) {
+                }
+                try {
+                    writer?.close()
+                } catch (_: Throwable) {
+                }
+                try {
+                    localSocket?.close()
+                } catch (_: Throwable) {
+                }
+                try {
+                    process?.destroyForcibly()
+                } catch (_: Throwable) {
+                }
+            }
+        }.flowOn(Dispatchers.IO)
 
     fun parseStatsJson(jsonStr: String): Stats? =
         runCatching {

@@ -26,11 +26,11 @@ use std::time::{Duration, Instant};
 const WAITING_DELAY: Duration = Duration::from_secs(3);
 const FRAME_TIMEOUT: Duration = Duration::from_millis(100);
 const UTIL_SAMPLE_INTERVAL: Duration = Duration::from_secs(1);
-const KP_DEFAULT: f64 = 1.5e-4;
-const MARGIN_FPS: f64 = 1.5;
+pub const KP_DEFAULT: f64 = 1.5e-4;
+pub const MARGIN_FPS: f64 = 1.5;
 const JANK_DELTA_FPS: f64 = 2.0;
-const BOOST_THRESHOLD_KHZ: f64 = 50_000.0;
-const REDUCE_THRESHOLD_KHZ: f64 = -50_000.0;
+pub const BOOST_THRESHOLD_KHZ: f64 = 50_000.0;
+pub const REDUCE_THRESHOLD_KHZ: f64 = -50_000.0;
 
 /// Runtime-tunable FAS parameters, resolved from `settings.toml` at daemon
 /// construction (`[fas]`, `[dynamic_governor]`, and the active `[modes.*]`
@@ -207,9 +207,8 @@ impl FasController {
         self.buffer.target_fps.unwrap_or(60)
     }
 
-    /// Windowed FPS stats (avg/peak/1%-low/jank) for the IPC `GET_STATS` API,
-    /// computed on request from the frame deque already held by the buffer.
-    /// Reuses the public `FrameBuffer::recent_frametimes`; no per-tick cost.
+    /// Windowed FPS stats (avg/peak/1%-low/jank) for IPC telemetry APIs,
+    /// computed from the most recent 1-second window of real presented frames.
     pub fn fps_stats(&self) -> crate::core::stats::FpsStats {
         if self.package.is_empty()
             || self.buffer.time_since_last_frame() >= Duration::from_millis(1500)
@@ -222,9 +221,11 @@ impl FasController {
                 frames: 0,
             };
         }
+        let target = self.get_target_fps();
+        let window_size = (target as usize).clamp(30, 240);
         crate::core::stats::fps_stats_from_frametimes(
-            &self.buffer.recent_frametimes(600),
-            self.get_target_fps(),
+            &self.buffer.recent_real_frametimes(window_size),
+            target,
         )
     }
 
@@ -403,7 +404,8 @@ impl FasController {
 
 /// Coarse system CPU utilisation sampler from /proc/stat.
 /// Returns a value in [0.0, 1.0], updated at most once per `interval`.
-struct UtilSampler {
+#[derive(Default)]
+pub struct UtilSampler {
     last_sample: Option<Instant>,
     last_total: u64,
     last_idle: u64,
@@ -411,7 +413,7 @@ struct UtilSampler {
 }
 
 impl UtilSampler {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             last_sample: None,
             last_total: 0,
@@ -420,7 +422,7 @@ impl UtilSampler {
         }
     }
 
-    fn sample(&mut self, interval: Duration) -> Option<f64> {
+    pub fn sample(&mut self, interval: Duration) -> Option<f64> {
         let now = Instant::now();
         if let Some(last) = self.last_sample
             && now.duration_since(last) < interval
@@ -491,189 +493,5 @@ pub fn decide_action(
         ScalingAction::Reduce
     } else {
         ScalingAction::Maintain
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::fas::bottleneck::BottleneckType;
-
-    fn ft_ms(ms: f64) -> Duration {
-        Duration::from_secs_f64(ms / 1000.0)
-    }
-
-    // --- FasTuning::from_settings ---------------------------------------
-    // These lock in the wiring that makes fas.default_mode + every [modes.*]
-    // entry actually affect FAS. Pure over `Settings`, so no device needed.
-
-    fn settings_with(
-        default_mode: &str,
-        modes: &[(&str, f64, f64)],
-    ) -> crate::core::config::Settings {
-        use crate::core::config::settings::*;
-        use std::collections::HashMap;
-        let mut m = HashMap::new();
-        for (name, margin, thermal) in modes {
-            m.insert(
-                (*name).to_string(),
-                FasMode {
-                    margin: *margin,
-                    thermal_threshold: *thermal,
-                },
-            );
-        }
-        Settings {
-            daemon: DaemonConfig::default(),
-            cpu: CpuConfig {
-                default_governor: "schedutil".into(),
-            },
-            dnd: DndConfig {
-                default_enable: true,
-            },
-            fas: FasConfig {
-                enabled: true,
-                default_mode: default_mode.to_string(),
-                thermal_threshold: 90.0,
-                poll_interval_ms: 100,
-                target_fps: 60,
-            },
-            dynamic_governor: DynamicGovernorConfig {
-                enabled: true,
-                cv_threshold: 0.22,
-                debounce_frames: 7,
-            },
-            ceiling: CeilingConfig::default(),
-            thermal: ThermalConfig::default(),
-            modes: m,
-        }
-    }
-
-    #[test]
-    fn tuning_uses_active_mode_margin_and_thermal() {
-        // fas.default_mode = "fast" selects [modes.fast]; margin/thermal come
-        // from that entry, not the global fas.thermal_threshold (90.0).
-        let s = settings_with("fast", &[("balance", 2.0, 90.0), ("fast", 0.0, 95.0)]);
-        let t = FasTuning::from_settings(&s);
-        assert_eq!(t.margin_fps, 0.0);
-        assert_eq!(t.thermal_threshold, 95.0);
-        // dynamic_governor knobs are threaded through verbatim.
-        assert_eq!(t.cv_threshold, 0.22);
-        assert_eq!(t.debounce_frames, 7);
-        assert!(t.dynamic_governor_enabled);
-    }
-
-    #[test]
-    fn tuning_unknown_mode_falls_back_to_defaults_and_global_thermal() {
-        // default_mode names a mode that has no [modes.*] entry: margin falls
-        // back to the historical default, thermal to fas.thermal_threshold.
-        let s = settings_with("nonexistent", &[("balance", 2.0, 88.0)]);
-        let t = FasTuning::from_settings(&s);
-        assert_eq!(t.margin_fps, FasTuning::default().margin_fps);
-        assert_eq!(t.thermal_threshold, 90.0); // fas.thermal_threshold fallback
-    }
-
-    #[test]
-    fn tuning_disabled_dynamic_governor_is_propagated() {
-        let mut s = settings_with("balance", &[("balance", 3.0, 85.0)]);
-        s.dynamic_governor.enabled = false;
-        let t = FasTuning::from_settings(&s);
-        assert!(!t.dynamic_governor_enabled);
-        assert_eq!(t.margin_fps, 3.0);
-    }
-
-    #[test]
-    fn perfect_frame_yields_zero_control() {
-        // 60fps means 16.6666...ms; (16.667ms * 60) = 1.000s, error = 0.
-        let last = Duration::from_nanos(1_000_000_000 / 60);
-        let ctl = compute_control_khz(last, 60.0, KP_DEFAULT);
-        assert!(ctl.abs() < 1.0, "expected ~0 control, got {ctl}");
-    }
-
-    #[test]
-    fn slow_frame_yields_positive_control() {
-        // 30ms at target 60 → product = 1.8s → error = 0.8s = 8e8 ns
-        // ctl = 8e8 * 1.5e-4 = 120_000 kHz, well above BOOST_THRESHOLD_KHZ
-        let ctl = compute_control_khz(ft_ms(30.0), 60.0, KP_DEFAULT);
-        assert!(ctl > BOOST_THRESHOLD_KHZ, "expected boost, got {ctl}");
-    }
-
-    #[test]
-    fn fast_frame_yields_negative_control_below_reduce_threshold() {
-        // 10ms at target 60 → product = 0.6s → error = -0.4s = -4e8 ns
-        // ctl = -4e8 * 1.5e-4 = -60_000 kHz, below REDUCE_THRESHOLD_KHZ
-        let ctl = compute_control_khz(ft_ms(10.0), 60.0, KP_DEFAULT);
-        assert!(ctl < REDUCE_THRESHOLD_KHZ, "expected reduce, got {ctl}");
-    }
-
-    #[test]
-    fn marginal_frame_stays_in_maintain_band() {
-        // 17ms at target 60 → product = 1.02s → error = 2e7 ns
-        // ctl = 2e7 * 1.5e-4 = 3000 kHz, well within ±50_000 thresholds.
-        let ctl = compute_control_khz(ft_ms(17.0), 60.0, KP_DEFAULT);
-        assert!(ctl.abs() < BOOST_THRESHOLD_KHZ);
-    }
-
-    #[test]
-    fn margin_fps_biases_target_lower_so_normal_frames_register_as_slow() {
-        // Without margin: 16.67ms * 60 = 1.0s exactly (zero error).
-        // With MARGIN_FPS=1.5, adjusted target = 58.5 → 16.67ms * 58.5 = 0.975s
-        // → error = -25_000_000 ns → ctl = -3.75 kHz (still maintain band but
-        // shifted toward reduce). The intent of margin is headroom: the
-        // controller treats "exactly target" as slightly fast.
-        let last = Duration::from_nanos(1_000_000_000 / 60);
-        let with_margin = compute_control_khz(last, 60.0 - MARGIN_FPS, KP_DEFAULT);
-        let without_margin = compute_control_khz(last, 60.0, KP_DEFAULT);
-        assert!(with_margin < without_margin);
-    }
-
-    #[test]
-    fn util_sampler_returns_value_within_bounds() {
-        let mut s = UtilSampler::new();
-        // First call seeds — value comes from cached default (0.0) but Some.
-        let first = s.sample(Duration::ZERO);
-        assert!(first.is_some());
-        // Second call after delta produces real reading on a Linux host.
-        if std::path::Path::new("/proc/stat").exists() {
-            std::thread::sleep(Duration::from_millis(20));
-            let second = s.sample(Duration::ZERO).unwrap();
-            assert!((0.0..=1.0).contains(&second));
-        }
-    }
-
-    #[test]
-    fn decide_action_jank_with_gpu_bottleneck_returns_boost_gpu() {
-        let action = decide_action(100_000.0, true, BottleneckType::Gpu);
-        assert_eq!(action, ScalingAction::BoostGpu);
-    }
-
-    #[test]
-    fn decide_action_jank_with_cpu_bottleneck_returns_boost_cpu() {
-        let action = decide_action(100_000.0, true, BottleneckType::Cpu);
-        assert_eq!(action, ScalingAction::BoostCpu);
-    }
-
-    #[test]
-    fn decide_action_jank_with_unknown_bottleneck_returns_boost_balanced() {
-        let action = decide_action(100_000.0, true, BottleneckType::Unknown);
-        assert_eq!(action, ScalingAction::BoostBalanced);
-    }
-
-    #[test]
-    fn decide_action_high_control_returns_boost_variant() {
-        let action = decide_action(100_000.0, false, BottleneckType::Gpu);
-        assert_eq!(action, ScalingAction::BoostGpu);
-    }
-
-    #[test]
-    fn decide_action_low_control_returns_reduce() {
-        let action = decide_action(-100_000.0, false, BottleneckType::Balanced);
-        assert_eq!(action, ScalingAction::Reduce);
-    }
-
-    #[test]
-    fn decide_action_neutral_control_returns_maintain() {
-        let action = decide_action(0.0, false, BottleneckType::Balanced);
-        assert_eq!(action, ScalingAction::Maintain);
     }
 }

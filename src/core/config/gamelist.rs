@@ -183,7 +183,7 @@ impl GameList {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct GameProfileUpdate {
     pub governor: Option<String>,
     pub dnd: Option<bool>,

@@ -66,6 +66,13 @@ fun RecordScreen(
     val recordedSamplesCount by viewModel.currentSamplesCount.collectAsState()
     val benchmarkSessions by viewModel.benchmarkSessions.collectAsState()
 
+    DisposableEffect(Unit) {
+        viewModel.startUiObserving()
+        onDispose {
+            viewModel.stopUiObserving()
+        }
+    }
+
     var activeSubScreen by remember { mutableStateOf(RecordSubScreen.NONE) }
     var selectedSession by remember { mutableStateOf<BenchmarkSession?>(null) }
 

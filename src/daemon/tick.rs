@@ -590,19 +590,27 @@ impl Daemon {
 
         match action {
             ScalingAction::BoostGpu => {
-                debug!(target: "auriya::fas", "FAS decision: BOOST_GPU → GPU-only boost");
-                if let Err(e) = profile::apply_gpu_boost() {
-                    error!(target: "auriya::fas", ?e, "Failed to apply GPU boost");
+                if self.last.profile_mode != Some(ProfileMode::Performance) {
+                    debug!(target: "auriya::fas", "FAS decision: BOOST_GPU → GPU-only boost");
+                    if let Err(e) = profile::apply_gpu_boost() {
+                        error!(target: "auriya::fas", ?e, "Failed to apply GPU boost");
+                    }
+                    self.last.profile_mode = Some(ProfileMode::Performance);
+                } else {
+                    debug!(target: "auriya::fas", "FAS decision: BOOST_GPU → already boosted, skip");
                 }
-                self.last.profile_mode = Some(ProfileMode::Performance);
                 Ok(true)
             }
             ScalingAction::BoostCpu => {
-                debug!(target: "auriya::fas", "FAS decision: BOOST_CPU → CPU-only boost");
-                if let Err(e) = profile::apply_cpu_boost(game_governor, self.last.pid) {
-                    error!(target: "auriya::fas", ?e, "Failed to apply CPU boost");
+                if self.last.profile_mode != Some(ProfileMode::Performance) {
+                    debug!(target: "auriya::fas", "FAS decision: BOOST_CPU → CPU-only boost");
+                    if let Err(e) = profile::apply_cpu_boost(game_governor, self.last.pid) {
+                        error!(target: "auriya::fas", ?e, "Failed to apply CPU boost");
+                    }
+                    self.last.profile_mode = Some(ProfileMode::Performance);
+                } else {
+                    debug!(target: "auriya::fas", "FAS decision: BOOST_CPU → already boosted, skip");
                 }
-                self.last.profile_mode = Some(ProfileMode::Performance);
                 Ok(true)
             }
             ScalingAction::BoostBalanced => {

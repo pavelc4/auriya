@@ -37,7 +37,8 @@ const MIN_FRAMES_FOR_USABLE: usize = 60;
 
 #[derive(Debug)]
 pub struct FrameBuffer {
-    frametimes: VecDeque<Duration>,
+    pub frametimes: VecDeque<Duration>,
+    pub real_frametimes: VecDeque<Duration>,
     pub current_fps_long: f64,
     pub current_fps_short: f64,
     pub target_fps: Option<u32>,
@@ -51,6 +52,7 @@ impl FrameBuffer {
     pub fn new(target_fps_config: TargetFps) -> Self {
         Self {
             frametimes: VecDeque::with_capacity(720),
+            real_frametimes: VecDeque::with_capacity(720),
             current_fps_long: 0.0,
             current_fps_short: 0.0,
             target_fps: None,
@@ -68,8 +70,12 @@ impl FrameBuffer {
         while self.frametimes.len() >= max_frames {
             self.frametimes.pop_back();
         }
+        while self.real_frametimes.len() >= max_frames {
+            self.real_frametimes.pop_back();
+        }
 
         self.frametimes.push_front(frametime);
+        self.real_frametimes.push_front(frametime);
         self.update_fps();
         self.try_become_usable();
         self.detect_target_fps();
@@ -104,6 +110,7 @@ impl FrameBuffer {
 
     pub fn clear(&mut self) {
         self.frametimes.clear();
+        self.real_frametimes.clear();
         self.current_fps_long = 0.0;
         self.current_fps_short = 0.0;
         self.target_fps = None;
@@ -116,6 +123,13 @@ impl FrameBuffer {
 
     pub fn recent_frametimes(&self, n: usize) -> Vec<Duration> {
         self.frametimes.iter().take(n).copied().collect()
+    }
+
+    /// Returns up to `n` recent real presented frametimes.
+    /// Excludes synthetic stalls injected by FAS governor (`additional_frametime`),
+    /// ensuring telemetry APIs (`GET_STATS`, `STREAM_STATS`) reflect true render rate.
+    pub fn recent_real_frametimes(&self, n: usize) -> Vec<Duration> {
+        self.real_frametimes.iter().take(n).copied().collect()
     }
 
     /// Newest frame in the ring (front), or None if empty.
@@ -171,6 +185,7 @@ impl FrameBuffer {
             if self.target_fps.is_some() {
                 self.target_fps = None;
                 self.frametimes.clear();
+                self.real_frametimes.clear();
                 self.current_fps_long = 0.0;
                 self.current_fps_short = 0.0;
                 self.mark_unusable();
@@ -198,111 +213,12 @@ impl FrameBuffer {
             // Reset frametimes and re-arm the warmup window.
             if self.target_fps.is_some() && new_target != self.target_fps {
                 self.frametimes.clear();
+                self.real_frametimes.clear();
                 self.current_fps_long = 0.0;
                 self.current_fps_short = 0.0;
                 self.mark_unusable();
             }
             self.target_fps = new_target;
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn ft_for_fps(fps: u32) -> Duration {
-        Duration::from_secs_f64(1.0 / f64::from(fps))
-    }
-
-    #[test]
-    fn capacity_rolls_over_at_target_times_five() {
-        let mut buf = FrameBuffer::new(TargetFps::Single(60));
-        for _ in 0..(60 * 5 + 50) {
-            buf.push(ft_for_fps(60));
-        }
-        assert!(buf.frametimes.len() <= 60 * 5);
-    }
-
-    #[test]
-    fn target_fps_detected_after_60_frames_at_steady_rate() {
-        let mut buf = FrameBuffer::new(TargetFps::Array(vec![60, 90, 120]));
-        for _ in 0..200 {
-            buf.push(ft_for_fps(90));
-        }
-        assert_eq!(buf.target_fps, Some(90));
-    }
-
-    #[test]
-    fn target_change_clears_frametimes_and_marks_unusable() {
-        let mut buf = FrameBuffer::new(TargetFps::Array(vec![60, 120]));
-        for _ in 0..200 {
-            buf.push(ft_for_fps(60));
-        }
-        assert_eq!(buf.target_fps, Some(60));
-
-        // Shift to 120 fps frames; once long-window catches up, target should switch.
-        for _ in 0..400 {
-            buf.push(ft_for_fps(120));
-        }
-        assert_eq!(buf.target_fps, Some(120));
-        // After the switch the buffer must have been reset to Unusable so the
-        // controller does not run policy on stale data from the 60fps regime.
-        // (Subsequent pushes will re-warm it; here we only assert the state at
-        // the transition's tail.)
-        assert!(buf.frametimes.len() <= 600);
-    }
-
-    #[test]
-    fn warmup_blocks_usable_for_one_second() {
-        let mut buf = FrameBuffer::new(TargetFps::Single(60));
-        for _ in 0..120 {
-            buf.push(ft_for_fps(60));
-        }
-        // We just pushed 120 frames worth of fixture data instantly; less than
-        // a wall-clock second has elapsed, so the buffer must still be Unusable.
-        assert_eq!(buf.state, BufferState::Unusable);
-    }
-
-    #[test]
-    fn additional_frametime_extends_long_window_average() {
-        let mut buf = FrameBuffer::new(TargetFps::Single(60));
-        for _ in 0..120 {
-            buf.push(ft_for_fps(60));
-        }
-        let before = buf.frametimes.len();
-        std::thread::sleep(Duration::from_millis(20));
-        buf.additional_frametime();
-        assert_eq!(buf.frametimes.len(), before + 1);
-        // Synthesized value reflects elapsed wall-time, so the freshest entry
-        // is larger than a steady-state 60fps frame.
-        assert!(buf.frametimes.front().copied().unwrap() >= Duration::from_millis(15));
-    }
-
-    #[test]
-    fn clear_resets_all_state() {
-        let mut buf = FrameBuffer::new(TargetFps::Single(60));
-        for _ in 0..100 {
-            buf.push(ft_for_fps(60));
-        }
-        buf.clear();
-        assert!(buf.frametimes.is_empty());
-        assert_eq!(buf.target_fps, None);
-        assert_eq!(buf.state, BufferState::Unusable);
-        assert_eq!(buf.current_fps_long, 0.0);
-    }
-
-    #[test]
-    fn fps_below_min_disables_target() {
-        let mut buf = FrameBuffer::new(TargetFps::Single(60));
-        for _ in 0..200 {
-            buf.push(ft_for_fps(60));
-        }
-        assert_eq!(buf.target_fps, Some(60));
-        // Very slow frames (10fps) should drop us below the (60-10)=50 floor.
-        for _ in 0..200 {
-            buf.push(Duration::from_millis(100));
-        }
-        assert_eq!(buf.target_fps, None);
     }
 }

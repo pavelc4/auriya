@@ -7,7 +7,7 @@ const GPU_PATHS: &[(&str, &str, &str, &str)] = &[
     (
         "/sys/class/kgsl/kgsl-3d0/gpuclk",
         "/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage",
-        "/sys/class/kgsl/kgsl-3d0/available_frequencies",
+        "/sys/class/kgsl/kgsl-3d0/gpu_available_frequencies",
         "kgsl",
     ),
     (
