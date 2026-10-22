@@ -1,8 +1,7 @@
 use anyhow::Result;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*, reload};
 
-mod core;
-mod daemon;
+use auriya::{core, daemon};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {

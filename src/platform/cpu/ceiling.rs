@@ -57,7 +57,7 @@ impl CoreLayout {
         }
 
         let (little_mask, big_mask, prime_mask) =
-            crate::core::tweaks::cpu::classify_cores(&cores_for_classify);
+            super::topology::classify_cores(&cores_for_classify);
 
         let mut little_ids = Vec::new();
         let mut big_ids = Vec::new();
