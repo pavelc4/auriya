@@ -108,22 +108,54 @@ impl SnapdragonPaths {
             if path.exists() { Some(path) } else { None }
         };
 
-        let (orig_min_pwrlevel, orig_max_pwrlevel, orig_idle_timer) =
-            if let Some(ref kgsl_path) = kgsl {
-                (
-                    std::fs::read_to_string(kgsl_path.join("min_pwrlevel"))
+        let (orig_min_pwrlevel, orig_max_pwrlevel, orig_idle_timer) = if let Some(ref kgsl_path) =
+            kgsl
+        {
+            let min_pwr = std::fs::read_to_string(kgsl_path.join("min_pwrlevel"))
+                .ok()
+                .map(|s| s.trim().to_string());
+            let max_pwr = std::fs::read_to_string(kgsl_path.join("max_pwrlevel"))
+                .ok()
+                .map(|s| s.trim().to_string());
+            let idle_t = std::fs::read_to_string(kgsl_path.join("idle_timer"))
+                .ok()
+                .map(|s| s.trim().to_string());
+
+            // In Qualcomm KGSL, power levels are numbered 0 (highest clock/power) to
+            // num_pwrlevels - 1 (lowest clock/power).
+            // min_pwrlevel is the minimum performance level (lowest clock allowed),
+            // so it should have a high index (e.g. 6 or 8), NEVER 0!
+            // If min_pwrlevel reads "0", the system was previously locked to max freq.
+            let safe_min_pwr = match min_pwr {
+                Some(ref s) if s != "0" && !s.is_empty() => Some(s.clone()),
+                _ => {
+                    let num = std::fs::read_to_string(kgsl_path.join("num_pwrlevels"))
                         .ok()
-                        .map(|s| s.trim().to_string()),
-                    std::fs::read_to_string(kgsl_path.join("max_pwrlevel"))
-                        .ok()
-                        .map(|s| s.trim().to_string()),
-                    std::fs::read_to_string(kgsl_path.join("idle_timer"))
-                        .ok()
-                        .map(|s| s.trim().to_string()),
-                )
-            } else {
-                (None, None, None)
+                        .and_then(|n| n.trim().parse::<u32>().ok())
+                        .filter(|&n| n > 0)
+                        .map(|n| (n - 1).to_string());
+                    num.or_else(|| {
+                        std::fs::read_to_string(kgsl_path.join("default_pwrlevel"))
+                            .ok()
+                            .map(|s| s.trim().to_string())
+                    })
+                    .or_else(|| Some("8".to_string()))
+                }
             };
+
+            let safe_idle_timer = match idle_t {
+                Some(ref s) if s.parse::<u32>().is_ok_and(|t| t > 0 && t <= 500) => Some(s.clone()),
+                _ => Some("80".to_string()),
+            };
+
+            (
+                safe_min_pwr,
+                max_pwr.or_else(|| Some("0".to_string())),
+                safe_idle_timer,
+            )
+        } else {
+            (None, None, None)
+        };
 
         let orig_memlat_sample_ms = memlat_settings.as_ref().and_then(|p| {
             std::fs::read_to_string(p.join("sample_ms"))

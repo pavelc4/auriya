@@ -91,6 +91,19 @@ pub fn set_balanced_mode() -> Result<()> {
                 let _ = fs::write(&min_freq_path, min.to_string());
             }
 
+            // Ensure KGSL min_pwrlevel is unlocked if it was locked to level 0 (max freq)
+            if let Ok(min_pwr) = fs::read_to_string(format!("{}/min_pwrlevel", base))
+                && min_pwr.trim() == "0"
+            {
+                let num = fs::read_to_string(format!("{}/num_pwrlevels", base))
+                    .ok()
+                    .and_then(|n| n.trim().parse::<u32>().ok())
+                    .filter(|&n| n > 0)
+                    .map(|n| (n - 1).to_string())
+                    .unwrap_or_else(|| "8".to_string());
+                let _ = fs::write(format!("{}/min_pwrlevel", base), &num);
+            }
+
             let _ = fs::write(format!("{}/force_clk_on", base), "0");
             let _ = fs::write(format!("{}/force_bus_on", base), "0");
             let _ = fs::write(format!("{}/bus_split", base), "1");
