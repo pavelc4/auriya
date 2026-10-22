@@ -80,7 +80,7 @@ impl TargetFpsConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct GameList {
     #[serde(default)]
     pub game: Vec<GameProfile>,

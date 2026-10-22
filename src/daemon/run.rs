@@ -14,28 +14,6 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::{signal, time};
 use tracing::{debug, error, info, warn};
-use tracing_subscriber::EnvFilter;
-
-type AsyncFpsCallback = Arc<
-    dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>>
-        + Send
-        + Sync,
->;
-type AsyncGetFpsCallback = Arc<
-    dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>>
-        + Send
-        + Sync,
->;
-type AsyncGetStatsCallback = Arc<
-    dyn Fn() -> std::pin::Pin<
-            Box<
-                dyn std::future::Future<Output = Option<crate::core::stats::FpsStats>>
-                    + Send
-                    + Sync,
-            >,
-        > + Send
-        + Sync,
->;
 
 const INGAME_INTERVAL_MS: u64 = 500;
 const SCREEN_OFF_INTERVAL_MS: u64 = 10000;
@@ -413,103 +391,24 @@ impl Daemon {
     }
 
     pub async fn init_ipc(&self, filter_handle: ReloadHandle) {
-        let fas_clone_for_ipc = self.fas_controller.clone();
-        let set_fps: AsyncFpsCallback = Arc::new(move |fps: u32| {
-            let fas = fas_clone_for_ipc.clone();
-            Box::pin(async move {
-                if let Some(fas) = &fas {
-                    let mut guard = fas.lock().await;
-                    guard.set_target_fps(fps);
-                }
-            })
-        });
-
-        let fas_clone_for_get = self.fas_controller.clone();
-        let get_fps: AsyncGetFpsCallback = Arc::new(move || {
-            let fas = fas_clone_for_get.clone();
-            Box::pin(async move {
-                if let Some(fas) = &fas {
-                    let guard = fas.lock().await;
-                    return guard.get_target_fps();
-                }
-                60
-            })
-        });
-
-        let fas_clone_for_stats = self.fas_controller.clone();
-        let get_fps_stats: AsyncGetStatsCallback = Arc::new(move || {
-            let fas = fas_clone_for_stats.clone();
-            Box::pin(async move {
-                match &fas {
-                    Some(fas) => Some(fas.lock().await.fps_stats()),
-                    None => None,
-                }
-            })
-        });
-
-        let shared_cfg = self.shared_gamelist.clone();
-        let reload_fn = Arc::new(move || {
-            match crate::core::config::GameList::load(crate::core::config::gamelist_path()) {
-                Ok(new_cfg) => {
-                    if let Ok(mut g) = shared_cfg.write() {
-                        let count = new_cfg.game.len();
-                        *g = Arc::new(new_cfg);
-                        Ok(count)
-                    } else {
-                        Err(anyhow::anyhow!("Gamelist lock poisoned"))
-                    }
-                }
-                Err(e) => Err(e),
-            }
-        });
-
         let current_log_level = Arc::new(RwLock::new(crate::daemon::ipc::LogLevelCmd::Info));
-        let log_level_clone = current_log_level.clone();
-
-        let handle = filter_handle.clone();
-        let set_log_level = Arc::new(move |lvl| {
-            use crate::daemon::ipc::LogLevelCmd;
-            let filter_str = match lvl {
-                LogLevelCmd::Trace => "trace",
-                LogLevelCmd::Debug => "debug",
-                LogLevelCmd::Info => "info",
-                LogLevelCmd::Warn => "warn",
-                LogLevelCmd::Error => "error",
-            };
-            if let Ok(mut l) = log_level_clone.write() {
-                *l = lvl;
-            }
-            match handle.reload(EnvFilter::new(filter_str)) {
-                Ok(_) => debug!(target: "auriya::ipc", "Log level changed to {:?}", lvl),
-                Err(e) => {
-                    error!(target: "auriya::ipc", "Failed to change log level: {}", e)
-                }
-            }
-        });
-
-        let current_state = self.shared_current.clone();
-        let cfg = &self.cfg;
-
-        let ipc_handles = crate::daemon::ipc::IpcHandles {
+        let ctx = Arc::new(crate::daemon::context::DaemonContext {
             enabled: Arc::new(AtomicBool::new(true)),
             shared_config: self.shared_gamelist.clone(),
             override_foreground: self.override_foreground.clone(),
-            reload_fn,
-            set_log_level,
-            set_fps,
-            get_fps,
-            get_fps_stats,
-            profile_lock: Arc::new(std::sync::Mutex::new(())),
-            current_state: current_state.clone(),
+            current_state: self.shared_current.clone(),
             balance_governor: self.balance_governor.clone(),
-            dnd_default: cfg.settings.dnd.default_enable,
+            dnd_default: self.cfg.settings.dnd.default_enable,
             current_log_level,
             supported_modes: self.supported_modes.clone(),
-        };
+            profile_lock: Arc::new(std::sync::Mutex::new(())),
+            fas_controller: self.fas_controller.clone(),
+            reload_handle: Some(filter_handle),
+        });
 
         tokio::spawn(async move {
             debug!(target: "auriya::daemon", "Starting IPC socket listener...");
-            match crate::daemon::ipc::start("/dev/socket/auriya.sock", ipc_handles).await {
+            match crate::daemon::ipc::start("/dev/socket/auriya.sock", ctx).await {
                 Ok(_) => info!(target: "auriya::daemon", "IPC    | Listener stopped"),
                 Err(e) => error!(target: "auriya::daemon", "IPC    | Error: {:?}", e),
             }

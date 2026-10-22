@@ -3,6 +3,7 @@ mod bottleneck;
 mod buffer;
 mod ceiling;
 mod cmd_writer;
+mod context;
 mod cpu;
 mod fas;
 mod gamelist;
