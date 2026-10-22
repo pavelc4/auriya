@@ -1,58 +1,9 @@
-use super::commands::LogLevelCmd;
 use super::handlers::handle_client;
-use crate::core::config::gamelist::GameList;
-use crate::daemon::state::CurrentState;
+use super::types::IpcHandles;
 use anyhow::Result;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
-use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, Mutex, RwLock};
 use tokio::net::UnixListener;
-
-type AsyncFpsCallback = Arc<
-    dyn Fn(u32) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + Sync>>
-        + Send
-        + Sync,
->;
-
-type AsyncGetFpsCallback = Arc<
-    dyn Fn() -> std::pin::Pin<Box<dyn std::future::Future<Output = u32> + Send + Sync>>
-        + Send
-        + Sync,
->;
-
-/// Returns windowed FPS stats, or `None` when FAS is disabled/unavailable
-/// (no per-frame data to compute from).
-type AsyncGetStatsCallback = Arc<
-    dyn Fn() -> std::pin::Pin<
-            Box<
-                dyn std::future::Future<Output = Option<crate::core::stats::FpsStats>>
-                    + Send
-                    + Sync,
-            >,
-        > + Send
-        + Sync,
->;
-
-pub struct IpcHandles {
-    pub enabled: Arc<AtomicBool>,
-    pub shared_config: Arc<RwLock<Arc<GameList>>>,
-    pub override_foreground: Arc<RwLock<Option<String>>>,
-    pub reload_fn: Arc<dyn Fn() -> anyhow::Result<usize> + Send + Sync>,
-    pub set_log_level: Arc<dyn Fn(LogLevelCmd) + Send + Sync>,
-    pub set_fps: AsyncFpsCallback,
-    pub get_fps: AsyncGetFpsCallback,
-    pub get_fps_stats: AsyncGetStatsCallback,
-    pub profile_lock: Arc<Mutex<()>>,
-
-    pub current_state: Arc<RwLock<CurrentState>>,
-    pub balance_governor: Arc<RwLock<String>>,
-    /// Default `enable_dnd` for a game created via `ADD_GAME`, from
-    /// `settings.dnd.default_enable`. Snapshotted at IPC init.
-    pub dnd_default: bool,
-    pub current_log_level: Arc<RwLock<LogLevelCmd>>,
-    pub supported_modes: Arc<Vec<crate::core::display::DisplayMode>>,
-}
 
 pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
     let path_ref = path.as_ref();
@@ -63,22 +14,7 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
 
     loop {
         let (stream, _) = listener.accept().await?;
-        let hc = IpcHandles {
-            enabled: h.enabled.clone(),
-            shared_config: h.shared_config.clone(),
-            override_foreground: h.override_foreground.clone(),
-            reload_fn: h.reload_fn.clone(),
-            set_log_level: h.set_log_level.clone(),
-            set_fps: h.set_fps.clone(),
-            get_fps: h.get_fps.clone(),
-            get_fps_stats: h.get_fps_stats.clone(),
-            profile_lock: h.profile_lock.clone(),
-            current_state: h.current_state.clone(),
-            balance_governor: h.balance_governor.clone(),
-            dnd_default: h.dnd_default,
-            current_log_level: h.current_log_level.clone(),
-            supported_modes: h.supported_modes.clone(),
-        };
+        let hc = h.clone();
         tokio::spawn(async move {
             if let Err(e) = handle_client(stream, hc).await {
                 if let Some(io_err) = e.downcast_ref::<std::io::Error>() {

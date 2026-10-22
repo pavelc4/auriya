@@ -1,6 +1,7 @@
 mod commands;
 mod handlers;
 mod server;
+pub mod types;
 
-pub use commands::LogLevelCmd;
-pub use server::{IpcHandles, start};
+pub use server::start;
+pub use types::*;
