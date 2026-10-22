@@ -44,9 +44,11 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import dev.auriya.app.MainActivity
 import dev.auriya.app.data.RootShell
+import dev.auriya.app.data.stats.Stats
 import dev.auriya.app.data.stats.StatsParser
 import dev.auriya.app.ui.theme.AuriyaTheme
 import dev.auriya.app.ui.theme.GoogleSansRounded
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -258,23 +260,28 @@ class OverlayService :
 
     private fun startPolling() {
         val prefs = getSharedPreferences("auriya_overlay", MODE_PRIVATE)
+        val interval = prefs.getLong("update_interval_ms", 1000L).coerceIn(200L, 10000L)
 
         pollingJob =
             CoroutineScope(Dispatchers.IO + Job()).launch {
                 while (isActive) {
-                    val data = queryTelemetry()
-                    withContext(Dispatchers.Main) {
-                        telemetryState.value = data
+                    try {
+                        StatsParser.streamStats(interval).collect { stats ->
+                            val data = queryTelemetry(stats)
+                            withContext(Dispatchers.Main) {
+                                telemetryState.value = data
+                            }
+                        }
+                    } catch (e: CancellationException) {
+                        break
+                    } catch (_: Throwable) {
+                        delay(1000L)
                     }
-                    val interval = prefs.getLong("update_interval_ms", 1000L).coerceIn(200L, 10000L)
-                    delay(interval)
                 }
             }
     }
 
-    private fun queryTelemetry(): TelemetryData {
-        val stats = StatsParser.fetchStats()
-
+    private fun queryTelemetry(stats: Stats? = null): TelemetryData {
         // 1. FPS
         var fpsVal = "0"
         var rawFpsNum = 0f

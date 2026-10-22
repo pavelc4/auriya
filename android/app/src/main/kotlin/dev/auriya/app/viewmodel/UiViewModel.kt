@@ -68,8 +68,7 @@ class UiViewModel(
         )
     val rootEnvironment: StateFlow<dev.auriya.app.data.RootEnvironmentInfo> = _rootEnvironment.asStateFlow()
 
-    private val _liveStats = MutableStateFlow<Stats?>(null)
-    val liveStats: StateFlow<Stats?> = _liveStats.asStateFlow()
+    val liveStats: StateFlow<Stats?> = benchmarkRecorder.currentStats
 
     val roundFps: StateFlow<Boolean> = appPrefs.roundFps
 
@@ -77,6 +76,14 @@ class UiViewModel(
     val currentRecordingDurationSec: StateFlow<Long> = benchmarkRecorder.currentRecordingDurationSec
     val currentSamplesCount: StateFlow<Int> = benchmarkRecorder.currentSamplesCount
     val benchmarkSessions: StateFlow<List<BenchmarkSession>> = benchmarkRecorder.sessions
+
+    fun startUiObserving() {
+        benchmarkRecorder.startUiObserving()
+    }
+
+    fun stopUiObserving() {
+        benchmarkRecorder.stopUiObserving()
+    }
 
     fun setRoundFps(enabled: Boolean) {
         appPrefs.setRoundFps(enabled)
@@ -428,17 +435,6 @@ class UiViewModel(
                     ?.split(" ")
                     ?.filter { it.isNotEmpty() }
                     ?.getOrNull(1)
-        }
-
-        // Live performance stats & telemetry for Recording / Benchmark
-        if (_daemonActive.value) {
-            runCatching {
-                val stats = StatsParser.fetchStats()
-                _liveStats.value = stats
-                stats?.let { benchmarkRecorder.processStats(it) }
-            }
-        } else {
-            _liveStats.value = null
         }
     }
 

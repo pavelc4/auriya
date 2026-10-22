@@ -24,6 +24,11 @@ class BenchmarkRecorder private constructor(
     private val _isRecording = MutableStateFlow(false)
     val isRecording: StateFlow<Boolean> = _isRecording.asStateFlow()
 
+    private val _currentStats = MutableStateFlow<Stats?>(null)
+    val currentStats: StateFlow<Stats?> = _currentStats.asStateFlow()
+
+    private val _uiObservingCount = MutableStateFlow(0)
+
     private val _currentRecordingPkg = MutableStateFlow<String?>(null)
     val currentRecordingPkg: StateFlow<String?> = _currentRecordingPkg.asStateFlow()
 
@@ -141,21 +146,44 @@ class BenchmarkRecorder private constructor(
             }.getOrNull()
     }
 
+    fun startUiObserving() {
+        _uiObservingCount.value++
+        restartMonitoring()
+    }
+
+    fun stopUiObserving() {
+        _uiObservingCount.value = (_uiObservingCount.value - 1).coerceAtLeast(0)
+    }
+
+    private fun shouldMonitor(): Boolean = _isRecording.value || autoRecordPrefs.hasAnyAutoRecordEnabled() || _uiObservingCount.value > 0
+
+    fun restartMonitoring() {
+        monitoringJob?.cancel()
+        monitoringJob = null
+        startBackgroundMonitoring()
+    }
+
     fun startBackgroundMonitoring() {
         if (monitoringJob?.isActive == true) return
         monitoringJob =
             scope.launch {
                 while (isActive) {
-                    if (_isRecording.value || autoRecordPrefs.hasAnyAutoRecordEnabled()) {
-                        runCatching {
-                            val stats = StatsParser.fetchStats()
-                            if (stats != null) {
+                    if (shouldMonitor()) {
+                        try {
+                            StatsParser.streamStats(1000L).collect { stats ->
+                                _currentStats.value = stats
                                 processStats(stats)
+                                if (!shouldMonitor()) {
+                                    throw CancellationException("Monitoring no longer active")
+                                }
                             }
+                        } catch (e: CancellationException) {
+                            if (!isActive) break
+                        } catch (_: Throwable) {
+                            delay(1500L)
                         }
-                        delay(1000)
                     } else {
-                        delay(2500)
+                        delay(2000L)
                     }
                 }
             }
@@ -188,6 +216,7 @@ class BenchmarkRecorder private constructor(
         val targetPkg = pkg ?: "system_monitor"
         val label = getAppLabel(targetPkg)
         startBuffer(targetPkg, label, profile, manual = true)
+        restartMonitoring()
     }
 
     fun stopManualRecording() {
