@@ -27,7 +27,7 @@ fn test_decide_powersave_when_screen_off() {
             screen_awake: false,
             battery_saver: false,
         },
-        foreground_pkg: Some("com.example.game".to_string()),
+        foreground_pkg: Some("com.mobile.legends".to_string()),
         focused_pid: Some(1234),
         is_pid_valid: true,
     };
@@ -48,7 +48,7 @@ fn test_decide_powersave_when_battery_saver() {
             screen_awake: true,
             battery_saver: true,
         },
-        foreground_pkg: Some("com.example.game".to_string()),
+        foreground_pkg: Some("com.mobile.legends".to_string()),
         focused_pid: Some(1234),
         is_pid_valid: true,
     };

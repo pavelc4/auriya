@@ -29,7 +29,7 @@ fi
 adb -s "$SERIAL" shell chmod 0755 "$REMOTE" >/dev/null 2>&1
 
 if [ "${AURIYA_TEST_ROOT:-0}" = "1" ]; then
-  CMD="su -c '$REMOTE $*'"
+  CMD="su -c 'AURIYA_TEST_ROOT=1 $REMOTE $*'"
 else
   CMD="$REMOTE $*"
 fi

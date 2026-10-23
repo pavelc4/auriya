@@ -3,13 +3,13 @@ use auriya::core::system_status::SystemStatus;
 #[test]
 fn parses_full_snapshot() {
     let raw = b"\
-focused_app com.example.app 1234 10042
+focused_app com.mobile.legends 1234 10042
 screen_awake 1
 battery_saver 0
 zen_mode 0
 ";
     let s = SystemStatus::parse(raw);
-    assert_eq!(s.focused_app.as_deref(), Some("com.example.app"));
+    assert_eq!(s.focused_app.as_deref(), Some("com.mobile.legends"));
     assert_eq!(s.focused_pid, Some(1234));
     assert_eq!(s.focused_uid, Some(10042));
     assert_eq!(s.screen_awake, Some(true));
@@ -33,11 +33,11 @@ fn ignores_unknown_keys_and_comments() {
 # this is a comment
 
 future_field 42
-focused_app com.test 99 10001
+focused_app com.tencent.ig 99 10001
 unknown_thing yes please
 ";
     let s = SystemStatus::parse(raw);
-    assert_eq!(s.focused_app.as_deref(), Some("com.test"));
+    assert_eq!(s.focused_app.as_deref(), Some("com.tencent.ig"));
     assert_eq!(s.focused_pid, Some(99));
 }
 

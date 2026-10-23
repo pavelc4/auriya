@@ -18,7 +18,7 @@ fn test_reload_gamelist_with_retry_success() {
     let tmp = NamedTempFile::new().unwrap();
     let toml_content = r#"
 [[game]]
-package = "com.test.app"
+package = "com.mobile.legends"
 cpu_governor = "performance"
 enable_dnd = true
 "#;
@@ -30,5 +30,5 @@ enable_dnd = true
 
     let g = shared.read().unwrap();
     assert_eq!(g.game.len(), 1);
-    assert_eq!(g.game[0].package, "com.test.app");
+    assert_eq!(g.game[0].package, "com.mobile.legends");
 }

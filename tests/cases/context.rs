@@ -48,10 +48,10 @@ fn test_daemon_context_get_pid() {
 
     {
         let mut st = ctx.current_state.write().unwrap();
-        st.pkg = Some("com.example.game".to_string());
+        st.pkg = Some("com.mobile.legends".to_string());
         st.pid = Some(4321);
     }
-    assert_eq!(ctx.get_pid(), "PKG=com.example.game PID=4321\n");
+    assert_eq!(ctx.get_pid(), "PKG=com.mobile.legends PID=4321\n");
 }
 
 #[test]

@@ -5,7 +5,7 @@ fn test_gamelist_add_find_and_update() {
     let mut gl = GameList { game: Vec::new() };
 
     let p = GameProfile {
-        package: "com.example.game".to_string(),
+        package: "com.mobile.legends".to_string(),
         cpu_governor: "schedutil".to_string(),
         enable_dnd: false,
         target_fps: None,
@@ -20,7 +20,7 @@ fn test_gamelist_add_find_and_update() {
 
     // Duplicate add should fail
     let p_dup = GameProfile {
-        package: "com.example.game".to_string(),
+        package: "com.mobile.legends".to_string(),
         cpu_governor: "performance".to_string(),
         enable_dnd: true,
         target_fps: None,
@@ -41,9 +41,9 @@ fn test_gamelist_add_find_and_update() {
         fps_array: None,
         ceiling: Some("high".to_string()),
     };
-    assert!(gl.update("com.example.game", upd).is_ok());
+    assert!(gl.update("com.mobile.legends", upd).is_ok());
 
-    let found = gl.find("com.example.game").unwrap();
+    let found = gl.find("com.mobile.legends").unwrap();
     assert_eq!(found.cpu_governor, "performance");
     assert!(found.enable_dnd);
     assert_eq!(found.refresh_rate, Some(120));
@@ -66,7 +66,7 @@ fn test_gamelist_update_nonexistent_returns_err() {
 fn test_gamelist_remove() {
     let mut gl = GameList {
         game: vec![GameProfile {
-            package: "com.test".to_string(),
+            package: "com.tencent.ig".to_string(),
             cpu_governor: "performance".to_string(),
             enable_dnd: true,
             target_fps: None,
@@ -77,7 +77,7 @@ fn test_gamelist_remove() {
         }],
     };
 
-    assert!(gl.remove("com.test").is_ok());
+    assert!(gl.remove("com.tencent.ig").is_ok());
     assert!(gl.game.is_empty());
-    assert!(gl.remove("com.test").is_err());
+    assert!(gl.remove("com.tencent.ig").is_err());
 }

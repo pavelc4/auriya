@@ -10,7 +10,7 @@ fn test_is_pid_valid() {
 
 #[test]
 fn test_verify_pid_package_invalid_pid() {
-    assert!(!verify_pid_package(-1, "com.example"));
-    assert!(!verify_pid_package(0, "com.example"));
-    assert!(!verify_pid_package(999_999_999, "com.example"));
+    assert!(!verify_pid_package(-1, "com.mobile.legends"));
+    assert!(!verify_pid_package(0, "com.mobile.legends"));
+    assert!(!verify_pid_package(999_999_999, "com.mobile.legends"));
 }
