@@ -17,7 +17,7 @@ path = "src/main.rs"
 
 [[bin]]
 name = "auriyactl"
-path = "src/ctl.rs"
+path = "src/bin/auriyactl.rs"
 
 [[test]]
 name = "tests"

@@ -1,19 +1,4 @@
-//! Foreground-process liveness tracking.
-//!
-//! Two complementary mechanisms:
-//!
-//!   - [`PidTracker::is_alive`] is a cheap non-blocking probe the tick loop
-//!     uses to decide whether the currently-tracked game is still up.
-//!   - A background thread blocks until the process actually exits and then
-//!     pushes a [`DaemonEvent::PidExited`] so the daemon re-evaluates
-//!     *instantly* instead of waiting for the next adaptive tick.
-//!
-//! On kernels with `pidfd_open` (Linux ≥ 5.3) the thread blocks in
-//! `poll()` on the pidfd — zero wakeups until the process dies. On older
-//! kernels it degrades to a 150 ms `/proc/<pid>` poll. Either way an
-//! `eventfd` lets `Drop` interrupt the thread the moment we stop tracking.
-
-use crate::daemon::event::{DaemonEvent, EventSender};
+use crate::daemon::model::event::{DaemonEvent, EventSender};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -21,12 +6,8 @@ use std::thread::JoinHandle;
 
 pub struct PidTracker {
     pid: i32,
-    /// Shared with the watcher thread; also used for the non-blocking
-    /// `is_alive` probe. `None` when `pidfd_open` is unsupported.
     pidfd: Option<Arc<OwnedFd>>,
-    /// Set on `Drop` to tell the watcher thread to exit without firing.
     stop: Arc<AtomicBool>,
-    /// `eventfd` used to interrupt the thread's blocking `poll`.
     wakeup: Option<Arc<OwnedFd>>,
     handle: Option<JoinHandle<()>>,
 }
@@ -39,10 +20,6 @@ impl PidTracker {
         let stop = Arc::new(AtomicBool::new(false));
         let wakeup = Self::make_eventfd().map(Arc::new);
 
-        // The watcher needs the eventfd to be interruptible. If we could
-        // not create one, fall back to probe-only mode (no thread); the
-        // tick loop still notices the exit via `is_alive`, just one tick
-        // later.
         let handle = match wakeup.clone() {
             Some(wfd) => {
                 let stop_t = stop.clone();
@@ -119,7 +96,6 @@ impl PidTracker {
 impl Drop for PidTracker {
     fn drop(&mut self) {
         self.stop.store(true, Ordering::Release);
-        // Wake the blocked thread so it observes `stop` and exits.
         if let Some(w) = self.wakeup.as_ref() {
             let val: u64 = 1;
             unsafe {
@@ -140,8 +116,6 @@ fn proc_exists(pid: i32) -> bool {
     std::path::Path::new(&format!("/proc/{pid}")).exists()
 }
 
-/// Block until the tracked process exits (or `Drop` interrupts us), then
-/// push a single [`DaemonEvent::PidExited`].
 fn track_loop(
     pid: i32,
     pidfd: Option<Arc<OwnedFd>>,
@@ -155,16 +129,10 @@ fn track_loop(
     };
 
     if exited && !stop.load(Ordering::Acquire) {
-        // `try_send` (not `blocking_send`): the `Drop` that joins this
-        // thread may run on the same tokio worker that drains the channel,
-        // so blocking here on a full buffer could deadlock. Dropping the
-        // event is harmless — the next tick catches the exit via
-        // `is_alive`.
         let _ = event_tx.try_send(DaemonEvent::PidExited(pid));
     }
 }
 
-/// Returns `true` if the process exited, `false` if interrupted/stopped.
 fn wait_pidfd(pidfd: RawFd, wakeup: RawFd, stop: &AtomicBool) -> bool {
     loop {
         let mut pfds = [
@@ -190,16 +158,14 @@ fn wait_pidfd(pidfd: RawFd, wakeup: RawFd, stop: &AtomicBool) -> bool {
             return false;
         }
         if (pfds[1].revents & libc::POLLIN) != 0 {
-            return false; // woken to stop
+            return false;
         }
         if (pfds[0].revents & libc::POLLIN) != 0 {
-            return true; // process exited
+            return true;
         }
     }
 }
 
-/// Fallback for kernels without `pidfd_open`: poll `/proc/<pid>` every
-/// 150 ms, interruptible via the wakeup eventfd.
 fn wait_proc_poll(pid: i32, wakeup: RawFd, stop: &AtomicBool) -> bool {
     const POLL_INTERVAL_MS: libc::c_int = 150;
     loop {
@@ -213,10 +179,10 @@ fn wait_proc_poll(pid: i32, wakeup: RawFd, stop: &AtomicBool) -> bool {
             return false;
         }
         if ret > 0 && (pfd.revents & libc::POLLIN) != 0 {
-            return false; // woken to stop
+            return false;
         }
         if !proc_exists(pid) {
-            return true; // process gone
+            return true;
         }
     }
 }

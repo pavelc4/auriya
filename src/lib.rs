@@ -5,3 +5,4 @@ pub mod daemon;
 pub mod platform;
 
 pub use anyhow::{Context, Result};
+pub use cli::run as ctl;

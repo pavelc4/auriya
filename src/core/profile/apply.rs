@@ -1,4 +1,3 @@
-use crate::platform::android_cmd::{self as cmd_writer, DndFilter};
 use crate::platform::{
     common::{init, memory, sched, storage, touchpanel},
     cpu::{governor as paths, topology as cpu},
@@ -6,98 +5,12 @@ use crate::platform::{
     vendor::{detect as soc, mtk, snapdragon},
 };
 use anyhow::Result;
-use std::sync::atomic::{AtomicBool, Ordering};
 use tracing::debug;
-
-/// Set by the daemon each tick to indicate whether the companion service
-/// is believed to be alive. When `false`, `request_dnd` falls back to
-/// `settings put global zen_mode` directly instead of going through the
-/// companion's cmd_writer path.
-static COMPANION_ALIVE: AtomicBool = AtomicBool::new(true);
-
-/// Update the global companion-alive flag. Called by the daemon tick
-/// after its health check.
-pub fn set_companion_alive(alive: bool) {
-    COMPANION_ALIVE.store(alive, Ordering::Release);
-}
 
 #[inline]
 fn warn_on_err<E: std::fmt::Display>(result: Result<(), E>, context: &str) {
     if let Err(e) = result {
         tracing::warn!(target: "auriya::profile", "Failed to {}: {}", context, e);
-    }
-}
-
-/// Request the companion service to apply the given DnD filter. The
-/// daemon cannot call NotificationManager itself — it would need to be
-/// an app rather than a root binary — so we hand the work off through
-/// the cmd file. When the companion is known dead we fall back to a
-/// `settings put global zen_mode` call directly (less polished — no status
-/// bar icon — but still functional).
-/// Driven by the daemon's game-session lifecycle (see `Daemon::sync_dnd`),
-/// not by profile transitions — DnD must toggle on game enter/exit even
-/// when the CPU/GPU profile itself does not change.
-#[inline]
-pub fn request_dnd(filter: DndFilter) {
-    if COMPANION_ALIVE.load(Ordering::Acquire) {
-        if let Err(e) = cmd_writer::shared().write_dnd(filter) {
-            tracing::warn!(
-                target: "auriya::profile",
-                "Failed to write DnD {:?} to cmd file: {}",
-                filter,
-                e
-            );
-        } else {
-            debug!(target: "auriya::profile", "Requested DnD filter {:?}", filter);
-        }
-    } else {
-        let (zen_val, dnd_arg) = match filter {
-            DndFilter::All => ("0", "all"),
-            DndFilter::Priority => ("1", "priority"),
-        };
-        debug!(
-            target: "auriya::profile",
-            "DnD fallback (companion dead): zen_mode={zen_val}"
-        );
-        let _ = std::process::Command::new("su")
-            .args(["2000", "-c", &format!("cmd notification set_dnd {dnd_arg}")])
-            .status();
-        let _ = std::process::Command::new("settings")
-            .args(["put", "global", "zen_mode", zen_val])
-            .status();
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
-pub enum ProfileMode {
-    Performance,
-    #[default]
-    Balance,
-    Powersave,
-    Fast,
-}
-
-impl std::fmt::Display for ProfileMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ProfileMode::Performance => write!(f, "Performance"),
-            ProfileMode::Balance => write!(f, "Balance"),
-            ProfileMode::Powersave => write!(f, "Powersave"),
-            ProfileMode::Fast => write!(f, "Fast"),
-        }
-    }
-}
-
-impl std::str::FromStr for ProfileMode {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "performance" | "1" => Ok(ProfileMode::Performance),
-            "balance" | "2" => Ok(ProfileMode::Balance),
-            "powersave" | "3" => Ok(ProfileMode::Powersave),
-            "fast" | "4" => Ok(ProfileMode::Fast),
-            _ => Err(()),
-        }
     }
 }
 
@@ -147,9 +60,7 @@ pub fn apply_performance_with_config(
         cpu::set_process_priority(game_pid)?;
     }
 
-    // DnD is handled by the daemon lifecycle, not here — see request_dnd.
     let _ = enable_dnd;
-
     Ok(())
 }
 
@@ -197,11 +108,7 @@ pub fn apply_balance_with_dnd(governor: &str, enable_dnd: bool) -> Result<()> {
     warn_on_err(storage::unlock_storage_freq(), "unlock storage freq");
     warn_on_err(memory::restore_balanced(), "restore balanced memory");
 
-    // DnD is owned by the daemon lifecycle (Daemon::sync_dnd), not by the
-    // profile path — the FAS Reduce path drops to balance mid-game without
-    // touching the user's notification filter.
     let _ = enable_dnd;
-
     Ok(())
 }
 
@@ -278,8 +185,6 @@ pub fn apply_powersave_with_dnd(enable_dnd: bool) -> Result<()> {
     warn_on_err(memory::restore_balanced(), "restore balanced memory");
     warn_on_err(memory::set_swappiness(60), "set powersave swappiness");
 
-    // DnD is owned by the daemon lifecycle (Daemon::sync_dnd).
     let _ = enable_dnd;
-
     Ok(())
 }

@@ -84,8 +84,8 @@ pub fn format_telemetry(st: &CurrentState) -> String {
     let mut out = String::new();
     if let Some(fps) = st.fps {
         let source = match st.fps_source {
-            Some(crate::core::fps_meter::FpsSource::Ebpf) => "ebpf",
-            Some(crate::core::fps_meter::FpsSource::Sysfs) => "sysfs",
+            Some(crate::core::fps::FpsSource::Ebpf) => "ebpf",
+            Some(crate::core::fps::FpsSource::Sysfs) => "sysfs",
             None => "?",
         };
         out.push_str(&format!("FPS={fps:.1} SOURCE={source}\n"));

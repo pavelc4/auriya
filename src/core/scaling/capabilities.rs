@@ -1,11 +1,4 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ScalingAction {
-    BoostGpu,
-    BoostCpu,
-    BoostBalanced,
-    Maintain,
-    Reduce,
-}
+use super::action::ScalingAction;
 
 /// Which hardware subsystems are controllable on this device.
 /// Detected once at boot and cached.
