@@ -3,5 +3,5 @@ name=Auriya
 version=
 versionCode=
 author=Pavelc4
-description=Ferris, let's goo!
+description=Ferris, let's goo!\nstatus: ready 🚀
 updateJson=https://raw.githubusercontent.com/pavelc4/auriya/main/update.json

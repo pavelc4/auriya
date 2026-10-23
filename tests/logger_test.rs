@@ -128,3 +128,23 @@ fn test_log_writer_file_and_rotation() {
     assert!(contents.contains("auriya: STATUS | write line 1\n"));
     assert!(contents.contains("auriya: PASS   | write line 2\n"));
 }
+
+#[test]
+fn test_module_prop_status_update() {
+    let dir = tempdir().unwrap();
+    let prop_path = dir.path().join("module.prop");
+    fs::write(
+        &prop_path,
+        "id=auriya\nname=Auriya\ndescription=Ferris, let's goo!\nauthor=Pavelc4\n",
+    )
+    .unwrap();
+
+    auriya::platform::module_prop::update_module_prop_at(prop_path.to_str().unwrap(), "active 🚀");
+
+    let updated = fs::read_to_string(&prop_path).unwrap();
+    assert!(updated.contains("description=Ferris, let's goo!\\nstatus: active 🚀\n"));
+
+    auriya::platform::module_prop::update_module_prop_at(prop_path.to_str().unwrap(), "sleep 💤");
+    let updated2 = fs::read_to_string(&prop_path).unwrap();
+    assert!(updated2.contains("description=Ferris, let's goo!\\nstatus: sleep 💤\n"));
+}

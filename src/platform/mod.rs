@@ -3,6 +3,7 @@ pub mod common;
 pub mod cpu;
 pub mod display;
 pub mod gpu;
+pub mod module_prop;
 pub mod procfs;
 pub mod thermal;
 pub mod vendor;

@@ -134,6 +134,7 @@ fn handle_restart() -> Result<()> {
 }
 
 fn stop_processes() {
+    crate::platform::module_prop::set_module_status("sleep 💤");
     use std::process::{Command, Stdio};
     for proc in [DAEMON_BIN, COMPANION_PROC] {
         let _ = Command::new("killall")

@@ -45,5 +45,8 @@ async fn main() -> Result<()> {
         settings,
         gamelist,
     };
-    daemon::engine::run_with_config_and_logger(&cfg, filter_handle).await
+    auriya::platform::module_prop::set_module_status("active 🚀");
+    let res = daemon::engine::run_with_config_and_logger(&cfg, filter_handle).await;
+    auriya::platform::module_prop::set_module_status("sleep 💤");
+    res
 }

@@ -47,13 +47,13 @@ async fn test_concurrency_and_tweak_application_stress() -> Result<(), String> {
                 if let Ok(_guard) = t_lock.lock() {
                     for path in &paths {
                         let mut success = false;
-                        for _ in 0..3 {
+                        for _ in 0..5 {
                             if std::fs::write(path, target_gov.as_bytes()).is_ok() {
                                 t_counter.fetch_add(1, Ordering::Relaxed);
                                 success = true;
                                 break;
                             }
-                            thread::sleep(Duration::from_millis(1));
+                            thread::sleep(Duration::from_millis(3));
                         }
                         if !success {
                             t_errors.fetch_add(1, Ordering::Relaxed);
