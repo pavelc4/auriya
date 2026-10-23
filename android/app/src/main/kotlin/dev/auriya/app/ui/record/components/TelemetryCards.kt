@@ -20,6 +20,7 @@ import dev.auriya.app.data.stats.Battery
 import dev.auriya.app.data.stats.Cpu
 import dev.auriya.app.data.stats.Gpu
 import dev.auriya.app.data.stats.Thermal
+import dev.auriya.app.ui.theme.AuriyaTheme
 import kotlin.math.roundToInt
 
 @Composable
@@ -448,7 +449,7 @@ private fun ThermalMetricPill(
     val tempColor =
         when {
             temp >= 65f -> MaterialTheme.colorScheme.error
-            temp >= 48f -> Color(0xFFE65100)
+            temp >= 48f -> AuriyaTheme.semantic.warning
             else -> MaterialTheme.colorScheme.primary
         }
 
