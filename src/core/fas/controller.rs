@@ -1,22 +1,10 @@
-// FasController — frame-aware scaling decisions for the daemon tick loop.
-//
-// Implements the fas-rs control model adapted to Auriya's ScalingAction output:
-//   1. State machine: NotWorking → Waiting (3s) → Working
-//   2. P-controller in normalized space (last_frame * target_fps  vs  1s)
-//   3. Jank synthesis path: when no frame arrives within timeout, the buffer
-//      is fed `additional_frametime` so the controller still reacts
-//   4. util-based target FPS offset (clamped <= 0): never asks above hw limit
-//   5. Thermal override: forces Reduce above threshold
-//
-// Output is `ScalingAction` (BoostGpu/BoostCpu/BoostBalanced/Maintain/Reduce).
-// The internal control signal is computed in nanoseconds (and would map to kHz
-// on a freq-table backend); the conversion to enum buckets is done at the
-// bottom of `tick`, gated by bottleneck classification.
-
 use super::{
     bottleneck::{BottleneckDetector, BottleneckType},
     buffer::{BufferState, FrameBuffer, TargetFps},
+    compute::{compute_control_khz, decide_action},
+    sampler::UtilSampler,
     source::FrameSource,
+    tuning::{FasTuning, JANK_DELTA_FPS, KP_DEFAULT},
 };
 use crate::core::scaling::{PlatformCapabilities, ScalingAction};
 use crate::core::telemetry::thermal::ThermalCollector;
@@ -26,75 +14,6 @@ use std::time::{Duration, Instant};
 const WAITING_DELAY: Duration = Duration::from_secs(3);
 const FRAME_TIMEOUT: Duration = Duration::from_millis(100);
 const UTIL_SAMPLE_INTERVAL: Duration = Duration::from_secs(1);
-pub const KP_DEFAULT: f64 = 1.5e-4;
-pub const MARGIN_FPS: f64 = 1.5;
-const JANK_DELTA_FPS: f64 = 2.0;
-pub const BOOST_THRESHOLD_KHZ: f64 = 50_000.0;
-pub const REDUCE_THRESHOLD_KHZ: f64 = -50_000.0;
-
-/// Runtime-tunable FAS parameters, resolved from `settings.toml` at daemon
-/// construction (`[fas]`, `[dynamic_governor]`, and the active `[modes.*]`
-/// entry selected by `fas.default_mode`). `Default` reproduces the historical
-/// hardcoded constants so the unit tests stay behaviour-identical without a
-/// settings file.
-#[derive(Debug, Clone, Copy)]
-pub struct FasTuning {
-    /// FPS headroom subtracted from the target (per-mode `margin`). Higher =
-    /// the controller treats "exactly target" as slower, biasing toward boosts.
-    pub margin_fps: f64,
-    /// Skin-temperature ceiling (°C); above it FAS forces `Reduce`.
-    pub thermal_threshold: f32,
-    /// Bottleneck-detector coefficient-of-variation split
-    pub cv_threshold: f64,
-    /// Frames a new bottleneck class must persist before it is accepted.
-    pub debounce_frames: u32,
-    /// When false, bottleneck classification is skipped and every boost is
-    /// `BoostBalanced` (full profile) instead
-    pub dynamic_governor_enabled: bool,
-}
-
-impl Default for FasTuning {
-    fn default() -> Self {
-        Self {
-            margin_fps: MARGIN_FPS,
-            thermal_threshold: 90.0,
-            cv_threshold: 0.15,
-            debounce_frames: 3,
-            dynamic_governor_enabled: true,
-        }
-    }
-}
-
-impl FasTuning {
-    /// Resolve tuning from `settings.toml`.
-    ///
-    /// `fas.default_mode` names which `[modes.*]` entry is active; that entry
-    /// supplies `margin` and (preferentially) the thermal ceiling, with
-    /// `fas.thermal_threshold` as the fallback when the mode omits it or is
-    /// unknown. `[dynamic_governor]` supplies the bottleneck-detector knobs.
-    /// This is what makes `fas.default_mode` and every `[modes.*]` block
-    /// (including `fast`) actually affect FAS behaviour.
-    pub fn from_settings(settings: &crate::core::config::Settings) -> Self {
-        let mode = settings.modes.get(&settings.fas.default_mode);
-        if mode.is_none() {
-            tracing::warn!(
-                target: "auriya::fas",
-                "fas.default_mode = {:?} has no matching [modes.*] entry; using default margin",
-                settings.fas.default_mode,
-            );
-        }
-        let default = Self::default();
-        Self {
-            margin_fps: mode.map(|m| m.margin).unwrap_or(default.margin_fps),
-            thermal_threshold: mode
-                .map(|m| m.thermal_threshold)
-                .unwrap_or(settings.fas.thermal_threshold) as f32,
-            cv_threshold: settings.dynamic_governor.cv_threshold,
-            debounce_frames: settings.dynamic_governor.debounce_frames,
-            dynamic_governor_enabled: settings.dynamic_governor.enabled,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FasState {
@@ -174,15 +93,16 @@ impl FasController {
     }
 
     pub fn set_package(&mut self, package: String, pid: Option<i32>) {
-        if self.package != package {
-            tracing::debug!(target: "auriya::fas", "Switching to package: {}", package);
-            self.package = package;
-            self.pid = pid;
-            self.last_attached_pkg.clear();
-            self.buffer.clear();
-            self.bottleneck.reset();
-            self.transition_not_working();
+        if self.package == package {
+            return;
         }
+        tracing::debug!(target: "auriya::fas", "Switching to package: {}", package);
+        self.package = package;
+        self.pid = pid;
+        self.last_attached_pkg.clear();
+        self.buffer.clear();
+        self.bottleneck.reset();
+        self.transition_not_working();
     }
 
     pub fn set_tuning(&mut self, tuning: FasTuning) {
@@ -256,14 +176,12 @@ impl FasController {
         }
 
         let frames = self.source.drain_frame_times();
-        if frames.is_empty() {
-            if self.buffer.time_since_last_frame() >= FRAME_TIMEOUT {
-                self.buffer.additional_frametime();
-            }
-        } else {
+        if !frames.is_empty() {
             for ft in frames {
                 self.buffer.push(ft);
             }
+        } else if self.buffer.time_since_last_frame() >= FRAME_TIMEOUT {
+            self.buffer.additional_frametime();
         }
 
         if self.buffer.target_fps.is_some() && self.buffer.state == BufferState::Usable {
@@ -299,10 +217,6 @@ impl FasController {
         let control_khz = compute_control_khz(last_frame, adjusted_target_fps, self.kp);
         let is_janked = self.buffer.current_fps_long < f64::from(target_fps) - JANK_DELTA_FPS;
 
-        // Bottleneck classification is what lets FAS issue *targeted* CPU-only
-        // or GPU-only boosts. When dynamic_governor is disabled, skip it and
-        // treat every boost as Balanced (full profile) — a coarser but
-        // predictable fallback that never mis-attributes the bottleneck.
         let bottleneck = if self.tuning.dynamic_governor_enabled {
             let frametimes = self.buffer.recent_frametimes(60);
             self.bottleneck.classify(&frametimes, target_fps)
@@ -341,19 +255,16 @@ impl FasController {
                 ScalingAction::Maintain => "MAINTAIN",
                 ScalingAction::Reduce => "REDUCE",
             },
-            if raw_action != action {
-                format!(" (fallback from {})", match raw_action {
-                    ScalingAction::BoostGpu => "GPU",
-                    ScalingAction::BoostCpu => "CPU",
-                    _ => "",
-                })
-            } else {
-                String::new()
+            match (raw_action != action, raw_action) {
+                (true, ScalingAction::BoostGpu) => " (fallback from GPU)",
+                (true, ScalingAction::BoostCpu) => " (fallback from CPU)",
+                _ => "",
             }
         );
 
         Ok(action)
     }
+
     fn advance_state(&mut self) {
         match self.state {
             FasState::NotWorking => {
@@ -364,8 +275,7 @@ impl FasController {
             FasState::Waiting => {
                 if self
                     .waiting_since
-                    .map(|t| t.elapsed() >= WAITING_DELAY)
-                    .unwrap_or(false)
+                    .is_some_and(|t| t.elapsed() >= WAITING_DELAY)
                 {
                     self.state = FasState::Working;
                     self.target_fps_offset = 0.0;
@@ -397,101 +307,6 @@ impl FasController {
         } else if util >= 0.65 {
             self.target_fps_offset += 0.1;
         }
-        // Invariant §6.6: only allow lowering the effective target.
         self.target_fps_offset = self.target_fps_offset.clamp(-3.0, 0.0);
-    }
-}
-
-/// Coarse system CPU utilisation sampler from /proc/stat.
-/// Returns a value in [0.0, 1.0], updated at most once per `interval`.
-#[derive(Default)]
-pub struct UtilSampler {
-    last_sample: Option<Instant>,
-    last_total: u64,
-    last_idle: u64,
-    cached: f64,
-}
-
-impl UtilSampler {
-    pub fn new() -> Self {
-        Self {
-            last_sample: None,
-            last_total: 0,
-            last_idle: 0,
-            cached: 0.0,
-        }
-    }
-
-    pub fn sample(&mut self, interval: Duration) -> Option<f64> {
-        let now = Instant::now();
-        if let Some(last) = self.last_sample
-            && now.duration_since(last) < interval
-        {
-            return Some(self.cached);
-        }
-
-        let stat = std::fs::read_to_string("/proc/stat").ok()?;
-        let line = stat.lines().next()?;
-        let mut fields = line.split_whitespace();
-        if fields.next()? != "cpu" {
-            return None;
-        }
-        let mut vals = [0u64; 8];
-        for slot in &mut vals {
-            *slot = fields.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-        }
-        let idle = vals[3] + vals[4];
-        let total: u64 = vals.iter().sum();
-
-        let util = if self.last_sample.is_some() {
-            let dt = total.saturating_sub(self.last_total);
-            let di = idle.saturating_sub(self.last_idle);
-            if dt == 0 {
-                self.cached
-            } else {
-                1.0 - (di as f64 / dt as f64)
-            }
-        } else {
-            0.0
-        };
-
-        self.last_sample = Some(now);
-        self.last_total = total;
-        self.last_idle = idle;
-        self.cached = util.clamp(0.0, 1.0);
-        Some(self.cached)
-    }
-}
-
-/// Pure P-controller core. Extracted for testability.
-///
-/// `last_frame * adjusted_target_fps` lands on exactly 1 second when the GPU
-/// hits target. Anything slower (heavier frame) makes the product overshoot
-/// and produces a positive control signal; anything faster undershoots.
-pub fn compute_control_khz(last_frame: Duration, adjusted_target_fps: f64, kp: f64) -> f64 {
-    let normalized_ns = last_frame.as_nanos() as f64 * adjusted_target_fps;
-    let error_ns = normalized_ns - 1_000_000_000.0;
-    error_ns * kp
-}
-
-/// Map a control signal + jank flag + bottleneck type to a discrete ScalingAction.
-/// Pulled out of `tick` so replay tests can exercise the bucket boundaries
-/// without spinning up a full controller.
-pub fn decide_action(
-    control_khz: f64,
-    is_janked: bool,
-    bottleneck: BottleneckType,
-) -> ScalingAction {
-    if is_janked || control_khz > BOOST_THRESHOLD_KHZ {
-        match bottleneck {
-            BottleneckType::Gpu => ScalingAction::BoostGpu,
-            BottleneckType::Cpu => ScalingAction::BoostCpu,
-            BottleneckType::Balanced => ScalingAction::BoostBalanced,
-            BottleneckType::Unknown => ScalingAction::BoostBalanced,
-        }
-    } else if control_khz < REDUCE_THRESHOLD_KHZ {
-        ScalingAction::Reduce
-    } else {
-        ScalingAction::Maintain
     }
 }

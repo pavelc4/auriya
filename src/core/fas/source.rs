@@ -42,11 +42,10 @@ impl FrameSource {
         let mut out = Vec::new();
         loop {
             match self.rx.try_recv() {
-                Ok(dt) => {
-                    if dt < Duration::from_millis(500) {
-                        out.push(dt);
-                    }
+                Ok(dt) if dt < Duration::from_millis(500) => {
+                    out.push(dt);
                 }
+                Ok(_) => {}
                 Err(broadcast::error::TryRecvError::Empty) => break,
                 Err(broadcast::error::TryRecvError::Closed) => {
                     tracing::error!(

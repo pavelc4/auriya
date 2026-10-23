@@ -182,8 +182,7 @@ impl FrameBuffer {
 
         let min_fps = targets.first().unwrap_or(&30).saturating_sub(10).max(10);
         if current_fps < min_fps as f64 {
-            if self.target_fps.is_some() {
-                self.target_fps = None;
+            if self.target_fps.take().is_some() {
                 self.frametimes.clear();
                 self.real_frametimes.clear();
                 self.current_fps_long = 0.0;
@@ -199,26 +198,26 @@ impl FrameBuffer {
             .or(targets.last())
             .copied();
 
-        if new_target != self.target_fps {
-            if let Some(t) = new_target {
-                tracing::debug!(
-                    target: "auriya::fas",
-                    "FAS    | Target FPS: {} (current: {:.1})",
-                    t,
-                    current_fps
-                );
-            }
-            // Invariant §6.1: switching target_fps invalidates buffered samples
-            // because the short window length and policy thresholds change.
-            // Reset frametimes and re-arm the warmup window.
-            if self.target_fps.is_some() && new_target != self.target_fps {
-                self.frametimes.clear();
-                self.real_frametimes.clear();
-                self.current_fps_long = 0.0;
-                self.current_fps_short = 0.0;
-                self.mark_unusable();
-            }
-            self.target_fps = new_target;
+        if new_target == self.target_fps {
+            return;
         }
+
+        if let Some(t) = new_target {
+            tracing::debug!(
+                target: "auriya::fas",
+                "FAS    | Target FPS: {} (current: {:.1})",
+                t,
+                current_fps
+            );
+        }
+
+        if self.target_fps.is_some() {
+            self.frametimes.clear();
+            self.real_frametimes.clear();
+            self.current_fps_long = 0.0;
+            self.current_fps_short = 0.0;
+            self.mark_unusable();
+        }
+        self.target_fps = new_target;
     }
 }
