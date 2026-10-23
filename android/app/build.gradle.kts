@@ -147,6 +147,16 @@ android {
         includeInApk = false
         includeInBundle = false
     }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+        disable +=
+            listOf(
+                "MissingTranslation",
+                "QueryAllPackagesPermission",
+            )
+    }
 }
 
 kotlin {

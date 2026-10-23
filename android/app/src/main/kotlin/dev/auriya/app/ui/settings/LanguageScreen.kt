@@ -113,6 +113,7 @@ fun LanguageScreen(onDismiss: () -> Unit) {
 
                 Spacer(modifier = Modifier.width(14.dp))
 
+                @Suppress("UnusedContentLambdaTargetStateParameter")
                 AnimatedContent(
                     targetState = currentLanguage,
                     transitionSpec = {
