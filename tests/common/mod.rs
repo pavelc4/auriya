@@ -86,8 +86,15 @@ pub fn verify_kernel_subsystem_write_access() -> Result<GovernorRestorer, String
             .open(path)
             .map_err(|e| format!("Write permission denied for {}: {}", path.display(), e))?;
 
-        file.write_all(trimmed_gov.as_bytes())
-            .map_err(|e| format!("Failed writing to {}: {}", path.display(), e))?;
+        let mut write_res = Ok(());
+        for _ in 0..3 {
+            write_res = file.write_all(trimmed_gov.as_bytes());
+            if write_res.is_ok() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        write_res.map_err(|e| format!("Failed writing to {}: {}", path.display(), e))?;
 
         original_governors.push((path.clone(), trimmed_gov));
     }
