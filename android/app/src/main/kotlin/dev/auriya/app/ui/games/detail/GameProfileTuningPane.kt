@@ -50,8 +50,12 @@ fun ProfileModeRow(
                 .fillMaxWidth()
                 .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
             Text(
                 text = stringResource(R.string.games_profile_mode),
                 style = MaterialTheme.typography.titleSmall,
@@ -102,8 +106,12 @@ fun GovernorRow(
                 .fillMaxWidth()
                 .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
             Text(
                 text = stringResource(R.string.games_cpu_governor),
                 style = MaterialTheme.typography.titleSmall,
@@ -154,8 +162,12 @@ fun CeilingRow(
                 .fillMaxWidth()
                 .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
             Text(
                 text = stringResource(R.string.games_cpu_ceiling),
                 style = MaterialTheme.typography.titleSmall,
@@ -206,8 +218,12 @@ fun ThermalRow(
                 .fillMaxWidth()
                 .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
             Text(
                 text = stringResource(R.string.games_thermal_preset),
                 style = MaterialTheme.typography.titleSmall,
@@ -305,8 +321,12 @@ fun SwitchRow(
                 .fillMaxWidth()
                 .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,

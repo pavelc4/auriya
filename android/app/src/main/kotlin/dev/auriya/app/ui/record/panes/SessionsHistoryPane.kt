@@ -14,10 +14,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.R
 import dev.auriya.app.data.stats.BenchmarkSession
 import dev.auriya.app.ui.record.components.BenchmarkSessionCard
 
@@ -182,26 +184,33 @@ fun SessionsHistoryPane(
                 ) {
                     ExtendedFloatingActionButton(
                         onClick = {
-                            onDeleteSessions(selectedIds)
-                            selectedIds = emptySet()
+                            if (selectedIds.isNotEmpty()) {
+                                onDeleteSessions(selectedIds)
+                                selectedIds = emptySet()
+                            }
                         },
                         icon = {
                             Icon(
                                 imageVector = Icons.Outlined.Delete,
-                                contentDescription = "Delete selected",
+                                contentDescription = stringResource(R.string.common_delete),
                                 modifier = Modifier.size(20.dp),
                             )
                         },
                         text = {
                             Text(
-                                text = "Delete (${selectedIds.size})",
+                                text =
+                                    if (selectedIds.isNotEmpty()) {
+                                        "${stringResource(R.string.common_delete)} ${selectedIds.size}"
+                                    } else {
+                                        stringResource(R.string.common_delete)
+                                    },
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                             )
                         },
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        shape = RoundedCornerShape(18.dp),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shape = RoundedCornerShape(20.dp),
                         elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
                     )
                 }
