@@ -60,10 +60,10 @@ fun DeveloperOptionsContent(
                     Toast.makeText(context, "Restarting Auriya daemon...", Toast.LENGTH_SHORT).show()
                 },
                 icon = Icons.Rounded.Refresh,
-                iconContainerColor = MaterialTheme.colorScheme.errorContainer,
-                iconTint = MaterialTheme.colorScheme.onErrorContainer,
-                actionContainerColor = MaterialTheme.colorScheme.errorContainer,
-                actionContentColor = MaterialTheme.colorScheme.onErrorContainer,
+                iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+                actionContainerColor = MaterialTheme.colorScheme.primary,
+                actionContentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = itemShapeFor(0, totalOps),
             )
 
@@ -214,10 +214,10 @@ fun DeveloperOptionsContent(
                     Toast.makeText(context, "OOBE State reset. Showing setup...", Toast.LENGTH_SHORT).show()
                 },
                 icon = Icons.Rounded.RestartAlt,
-                iconContainerColor = MaterialTheme.colorScheme.errorContainer,
-                iconTint = MaterialTheme.colorScheme.onErrorContainer,
-                actionContainerColor = MaterialTheme.colorScheme.errorContainer,
-                actionContentColor = MaterialTheme.colorScheme.onErrorContainer,
+                iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+                actionContainerColor = MaterialTheme.colorScheme.primary,
+                actionContentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = itemShapeFor(0, 1),
             )
         }

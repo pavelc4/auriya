@@ -170,6 +170,10 @@
     <string name="language_subtitle">Pilih bahasa tampilan aplikasi</string>
     <string name="language_system">Ikuti Sistem</string>
     <string name="language_system_desc">Gunakan bahasa sesuai setelan sistem perangkat</string>
+    <string name="language_en_name">English</string>
+    <string name="language_en_desc">Bahasa Inggris (Amerika Serikat)</string>
+    <string name="language_id_name">Indonesia</string>
+    <string name="language_id_desc">Bahasa Indonesia</string>
     <string name="language_applied">Bahasa berhasil diterapkan</string>
     <string name="language_active_badge">Aktif</string>
 
@@ -181,8 +185,8 @@
 
     <!-- Developer Options -->
     <string name="dev_daemon_ops">DAEMON &amp; OPERASI</string>
-    <string name="dev_restart_daemon">Mulai Ulang Daemon Tuner</string>
-    <string name="dev_restart_daemon_desc">Mulai ulang daemon eBPF latar belakang secara paksa</string>
+    <string name="dev_restart_daemon">Restart Daemon</string>
+    <string name="dev_restart_daemon_desc">Restart daemon eBPF latar belakang secara paksa</string>
     <string name="dev_debug_logs">Mode Log Debug</string>
     <string name="dev_debug_logs_desc">Tingkatkan kerincian log untuk pemecahan masalah</string>
     <string name="dev_export_logs">Ekspor Log Sistem</string>
@@ -197,7 +201,7 @@
     <!-- Common / Dialogs / Printilan -->
     <string name="common_cancel">Batal</string>
     <string name="common_delete">Hapus</string>
-    <string name="common_restart">Mulai Ulang</string>
+    <string name="common_restart">Restart</string>
     <string name="common_reset">Reset</string>
     <string name="common_active">AKTIF</string>
     <string name="common_disabled">NONAKTIF</string>

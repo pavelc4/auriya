@@ -1,5 +1,10 @@
 package dev.auriya.app.ui.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -8,10 +13,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -130,7 +137,7 @@ fun SettingsGroupItem(
 fun itemShapeFor(
     index: Int,
     total: Int,
-    outerCorner: Dp = 24.dp,
+    outerCorner: Dp = 28.dp,
     innerCorner: Dp = 4.dp,
 ): RoundedCornerShape =
     when {
@@ -155,6 +162,68 @@ fun itemShapeFor(
             RoundedCornerShape(innerCorner)
         }
     }
+
+/**
+ * Calculates adaptive Material 3 Expressive corner shapes for grouped vertical items.
+ *
+ * Modeled after ShinkaiWalls design:
+ * - Middle items: when selected, smoothly animate into fully rounded corners [outerCorner] (26.dp).
+ *   When unselected, stay with normal grouped inner corners [innerCorner] (6.dp).
+ * - First and last items: retain their distinct grouped boundary shapes (first has top rounded,
+ *   last has bottom rounded).
+ */
+@Composable
+fun animatedItemShapeFor(
+    index: Int,
+    total: Int,
+    isSelected: Boolean = false,
+    outerCorner: Dp = 26.dp,
+    innerCorner: Dp = 6.dp,
+): RoundedCornerShape {
+    val animatedMiddleCorner by
+        animateDpAsState(
+            targetValue = if (isSelected) outerCorner else innerCorner,
+            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+            label = "MiddleCornerAnimation_$index",
+        )
+
+    return when {
+        total <= 1 -> {
+            RoundedCornerShape(outerCorner)
+        }
+
+        index == 0 -> {
+            RoundedCornerShape(
+                topStart = outerCorner,
+                topEnd = outerCorner,
+                bottomStart = innerCorner,
+                bottomEnd = innerCorner,
+            )
+        }
+
+        index == total - 1 -> {
+            RoundedCornerShape(
+                topStart = innerCorner,
+                topEnd = innerCorner,
+                bottomStart = outerCorner,
+                bottomEnd = outerCorner,
+            )
+        }
+
+        else -> {
+            RoundedCornerShape(animatedMiddleCorner)
+        }
+    }
+}
+
+@Composable
+fun rememberGroupedItemShape(
+    index: Int,
+    total: Int,
+    isSelected: Boolean = false,
+    outerCorner: Dp = 26.dp,
+    innerCorner: Dp = 6.dp,
+): Shape = animatedItemShapeFor(index, total, isSelected, outerCorner, innerCorner)
 
 @Composable
 fun SettingsMenuItem(

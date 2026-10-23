@@ -53,7 +53,7 @@ enum class NavigationTab(
     CONFIG(dev.auriya.app.R.string.nav_config, Icons.Filled.Tune),
 }
 
-private enum class SubScreen { None, Language, About, Appearance, Settings }
+internal enum class SubScreen { None, Language, About, Appearance, Settings }
 
 private sealed interface AppRoute {
     data object Main : AppRoute
@@ -80,7 +80,7 @@ fun AuriyaNavigation(
     var activeTab by rememberSaveable { mutableStateOf(NavigationTab.HOME) }
     var editingGameProfile by remember { mutableStateOf<GameProfile?>(null) }
     var selectedGameProfile by remember { mutableStateOf<GameProfile?>(null) }
-    var subScreen by remember { mutableStateOf(SubScreen.None) }
+    var subScreen by rememberSaveable { mutableStateOf(SubScreen.None) }
     val saveableStateHolder = rememberSaveableStateHolder()
     val themePrefs by themeViewModel.prefs.collectAsStateWithLifecycle()
     val governors by viewModel.availableGovernors.collectAsStateWithLifecycle()

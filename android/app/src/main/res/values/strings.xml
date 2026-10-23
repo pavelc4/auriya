@@ -178,6 +178,10 @@
     <string name="language_subtitle">Select application display language</string>
     <string name="language_system">Follow System</string>
     <string name="language_system_desc">Match current device system language</string>
+    <string name="language_en_name">English</string>
+    <string name="language_en_desc">English (United States)</string>
+    <string name="language_id_name">Indonesia</string>
+    <string name="language_id_desc">Bahasa Indonesia</string>
     <string name="language_applied">Language applied successfully</string>
     <string name="language_active_badge">Active</string>
 
@@ -189,7 +193,7 @@
 
     <!-- Developer Options -->
     <string name="dev_daemon_ops">DAEMON &amp; OPERATIONS</string>
-    <string name="dev_restart_daemon">Restart Tuner Daemon</string>
+    <string name="dev_restart_daemon">Restart Daemon</string>
     <string name="dev_restart_daemon_desc">Force restart background eBPF daemon</string>
     <string name="dev_debug_logs">Debug Logs Mode</string>
     <string name="dev_debug_logs_desc">Increase log verbosity for troubleshooting</string>

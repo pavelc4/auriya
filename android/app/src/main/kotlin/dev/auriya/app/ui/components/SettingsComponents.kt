@@ -35,8 +35,8 @@ fun ActionSettingItem(
     shape: RoundedCornerShape,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    actionContainerColor: Color = MaterialTheme.colorScheme.errorContainer,
-    actionContentColor: Color = MaterialTheme.colorScheme.onErrorContainer,
+    actionContainerColor: Color = MaterialTheme.colorScheme.primary,
+    actionContentColor: Color = MaterialTheme.colorScheme.onPrimary,
     iconContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
     iconTint: Color = MaterialTheme.colorScheme.onPrimaryContainer,
 ) {

@@ -72,8 +72,8 @@ object LocaleHelper {
                     list.add(
                         SupportedLanguage(
                             tag = "en",
-                            nativeName = "English",
-                            localizedName = "",
+                            nativeName = context.getString(R.string.language_en_name),
+                            localizedName = context.getString(R.string.language_en_desc),
                         ),
                     )
                 }
@@ -82,8 +82,8 @@ object LocaleHelper {
                     list.add(
                         SupportedLanguage(
                             tag = "id",
-                            nativeName = "Indonesia",
-                            localizedName = "",
+                            nativeName = context.getString(R.string.language_id_name),
+                            localizedName = context.getString(R.string.language_id_desc),
                         ),
                     )
                 }
@@ -94,11 +94,12 @@ object LocaleHelper {
                         locale.getDisplayName(locale).substringBefore(" (").replaceFirstChar {
                             if (it.isLowerCase()) it.titlecase(locale) else it.toString()
                         }
+                    val localizedDesc = locale.getDisplayName(Locale.getDefault())
                     list.add(
                         SupportedLanguage(
                             tag = tag,
                             nativeName = nativeName,
-                            localizedName = "",
+                            localizedName = localizedDesc,
                         ),
                     )
                 }

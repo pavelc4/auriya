@@ -2,12 +2,17 @@ package dev.auriya.app.ui.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -24,9 +29,11 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Dock
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.RoundedCorner
@@ -45,11 +52,13 @@ import dev.auriya.app.R
 import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.data.NavMode
 import dev.auriya.app.ui.components.ClickableSettingItem
+import dev.auriya.app.ui.components.ExpressiveSelectableCard
 import dev.auriya.app.ui.components.PalettePickerSettingItem
-import dev.auriya.app.ui.components.SegmentedControl
 import dev.auriya.app.ui.components.SettingsSubsection
 import dev.auriya.app.ui.components.SwitchSettingItem
+import dev.auriya.app.ui.components.animatedItemShapeFor
 import dev.auriya.app.ui.components.itemShapeFor
+import dev.auriya.app.ui.components.rememberGroupedItemShape
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.ui.theme.GoogleSansRounded
 import dev.auriya.app.viewmodel.ThemeViewModel
@@ -177,7 +186,64 @@ fun AppearanceScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp),
             ) {
-                // --- 1. GLOBAL THEME SUBSECTION ---
+                // --- 1. THEME MODE SUBSECTION ---
+                item {
+                    SettingsSubsection(
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(dev.auriya.app.R.string.appearance_theme_mode),
+                    ) {
+                        val themeModeOptions =
+                            remember {
+                                listOf(
+                                    Triple(
+                                        DarkThemeMode.FOLLOW_SYSTEM,
+                                        dev.auriya.app.R.string.appearance_follow_system,
+                                        "Automatically matches Android system settings",
+                                    ),
+                                    Triple(
+                                        DarkThemeMode.LIGHT,
+                                        dev.auriya.app.R.string.appearance_light_theme,
+                                        "Bright surfaces with warm terracotta accents",
+                                    ),
+                                    Triple(
+                                        DarkThemeMode.DARK,
+                                        dev.auriya.app.R.string.appearance_dark_theme,
+                                        "Deep dark surfaces gentle on eyes in low light",
+                                    ),
+                                )
+                            }
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            themeModeOptions.forEachIndexed { index, (mode, titleRes, subtitle) ->
+                                val isSelected = currentPrefs.darkThemeMode == mode
+                                val itemShape = animatedItemShapeFor(index, themeModeOptions.size, isSelected = isSelected)
+                                val icon =
+                                    when (mode) {
+                                        DarkThemeMode.FOLLOW_SYSTEM -> Icons.Rounded.BrightnessAuto
+                                        DarkThemeMode.LIGHT -> Icons.Rounded.LightMode
+                                        DarkThemeMode.DARK -> Icons.Rounded.DarkMode
+                                    }
+
+                                ExpressiveSelectableCard(
+                                    selected = isSelected,
+                                    onClick = { themeViewModel.setDarkThemeMode(mode) },
+                                    title =
+                                        androidx.compose.ui.res
+                                            .stringResource(titleRes),
+                                    subtitle = subtitle,
+                                    leadingIcon = icon,
+                                    shape = itemShape,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // --- 2. COLOR & CONTRAST SUBSECTION ---
                 item {
                     SettingsSubsection(
                         title =
@@ -186,17 +252,10 @@ fun AppearanceScreen(
                     ) {
                         val isCustomPaletteVisible = !currentPrefs.useDynamicColor
                         val isAmoledVisible = isDarkActive
-                        val themeItemCount = 2 + (if (isCustomPaletteVisible) 1 else 0) + (if (isAmoledVisible) 1 else 0)
+                        val themeItemCount = 1 + (if (isCustomPaletteVisible) 1 else 0) + (if (isAmoledVisible) 1 else 0)
                         var currentIndex = 0
 
-                        // 1a. Theme Mode
-                        ThemeSelectorSettingItem(
-                            selectedMode = currentPrefs.darkThemeMode,
-                            onModeSelected = themeViewModel::setDarkThemeMode,
-                            shape = itemShapeFor(currentIndex++, themeItemCount),
-                        )
-
-                        // 1b. Material You Dynamic Color
+                        // Dynamic Color
                         SwitchSettingItem(
                             title =
                                 androidx.compose.ui.res
@@ -212,7 +271,7 @@ fun AppearanceScreen(
                             shape = itemShapeFor(currentIndex++, themeItemCount),
                         )
 
-                        // 1c. Custom Palette Swatches (Directly below Dynamic Color)
+                        // Custom Palette Swatches (Directly below Dynamic Color)
                         if (isCustomPaletteVisible) {
                             PalettePickerSettingItem(
                                 seedColor = currentPrefs.seedColor,
@@ -223,7 +282,7 @@ fun AppearanceScreen(
                             )
                         }
 
-                        // 1d. Pure Black (AMOLED)
+                        // Pure Black (AMOLED)
                         if (isAmoledVisible) {
                             SwitchSettingItem(
                                 title =
@@ -293,91 +352,6 @@ fun AppearanceScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun ThemeSelectorSettingItem(
-    selectedMode: DarkThemeMode,
-    onModeSelected: (DarkThemeMode) -> Unit,
-    shape: RoundedCornerShape,
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = shape,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(44.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Rounded.DarkMode,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.appearance_theme_mode),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.appearance_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            SegmentedControl(
-                items =
-                    listOf(
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.appearance_follow_system),
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.appearance_light_theme),
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.appearance_dark_theme),
-                    ),
-                selectedIndex =
-                    when (selectedMode) {
-                        DarkThemeMode.FOLLOW_SYSTEM -> 0
-                        DarkThemeMode.LIGHT -> 1
-                        DarkThemeMode.DARK -> 2
-                    },
-                onItemSelected = { index ->
-                    val mode =
-                        when (index) {
-                            0 -> DarkThemeMode.FOLLOW_SYSTEM
-                            1 -> DarkThemeMode.LIGHT
-                            else -> DarkThemeMode.DARK
-                        }
-                    onModeSelected(mode)
-                },
-            )
         }
     }
 }
