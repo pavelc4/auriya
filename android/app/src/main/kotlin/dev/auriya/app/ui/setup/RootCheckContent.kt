@@ -1,4 +1,6 @@
-package dev.auriya.app.ui.oobe
+package dev.auriya.app.ui.setup
+
+import dev.auriya.app.ui.setup.components.*
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -39,7 +42,7 @@ fun RootCheckContent(
     // Driven by ViewModel so the "Requesting..." spinner reflects the actual
     // blocking Shell.getShell() call and resets automatically on both success
     // and failure — letting the user retry without restarting the app.
-    val isRequesting by viewModel.isCheckingRoot.collectAsState()
+    val isRequesting by viewModel.isCheckingRoot.collectAsStateWithLifecycle()
 
     // Auto-trigger the SU prompt the moment this screen is first composed.
     // isCheckingRoot guard in the ViewModel prevents a double-call if the

@@ -1,4 +1,6 @@
-package dev.auriya.app.ui.oobe
+package dev.auriya.app.ui.setup
+
+import dev.auriya.app.ui.setup.components.*
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -14,19 +16,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.viewmodel.ThemeViewModel
 import dev.auriya.app.viewmodel.UiViewModel
 
 @Composable
-fun OobeScreen(
+fun SetupScreen(
     viewModel: UiViewModel,
     themeViewModel: ThemeViewModel,
     onFinished: () -> Unit,
 ) {
     var step by remember { mutableStateOf(0) }
-    val hasRoot by viewModel.hasRoot.collectAsState()
+    val hasRoot by viewModel.hasRoot.collectAsStateWithLifecycle()
 
-    val prefs by themeViewModel.prefs.collectAsState()
+    val prefs by themeViewModel.prefs.collectAsStateWithLifecycle()
     val isDark = isThemeDark(prefs)
 
     // Root check is driven exclusively by the "Grant Root Permission" button in
@@ -77,7 +80,7 @@ fun OobeScreen(
                     }
                 },
                 modifier = Modifier.fillMaxSize(),
-                label = "OobeStepTransition",
+                label = "SetupStepTransition",
             ) { s ->
                 when (s) {
                     0 -> {

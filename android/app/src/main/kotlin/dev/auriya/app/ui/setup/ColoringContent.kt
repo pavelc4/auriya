@@ -1,4 +1,6 @@
-package dev.auriya.app.ui.oobe
+package dev.auriya.app.ui.setup
+
+import dev.auriya.app.ui.setup.components.*
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
@@ -23,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.auriya.app.data.DarkThemeMode
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.ui.theme.AuriyaFontFamily
 import dev.auriya.app.viewmodel.ThemeViewModel
 
@@ -32,7 +35,7 @@ fun ColoringContent(
     themeViewModel: ThemeViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val prefs by themeViewModel.prefs.collectAsState()
+    val prefs by themeViewModel.prefs.collectAsStateWithLifecycle()
     val currentPrefs = prefs ?: return
 
     val themeOptions =

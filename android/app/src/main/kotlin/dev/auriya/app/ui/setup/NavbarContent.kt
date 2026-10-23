@@ -1,4 +1,6 @@
-package dev.auriya.app.ui.oobe
+package dev.auriya.app.ui.setup
+
+import dev.auriya.app.ui.setup.components.*
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
@@ -21,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import dev.auriya.app.data.NavMode
 import dev.auriya.app.data.NavType
 import dev.auriya.app.ui.theme.AuriyaFontFamily
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.viewmodel.ThemeViewModel
 
 @Composable
@@ -29,7 +32,7 @@ fun NavbarContent(
     themeViewModel: ThemeViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val prefs by themeViewModel.prefs.collectAsState()
+    val prefs by themeViewModel.prefs.collectAsStateWithLifecycle()
     val currentPrefs = prefs ?: return
     val isFloating = currentPrefs.navMode == NavMode.FLOATING
 

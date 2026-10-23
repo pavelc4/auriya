@@ -1,4 +1,4 @@
-package dev.auriya.app.ui.oobe
+package dev.auriya.app.ui.setup
 
 import android.content.Context
 import android.content.Intent

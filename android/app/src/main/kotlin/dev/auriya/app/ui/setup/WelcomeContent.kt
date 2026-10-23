@@ -1,4 +1,6 @@
-package dev.auriya.app.ui.oobe
+package dev.auriya.app.ui.setup
+
+import dev.auriya.app.ui.setup.components.*
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons

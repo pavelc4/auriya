@@ -1,4 +1,4 @@
-package dev.auriya.app.ui.oobe
+package dev.auriya.app.ui.setup
 
 import android.os.Build
 import androidx.compose.foundation.Canvas
