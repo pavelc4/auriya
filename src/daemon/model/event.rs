@@ -1,17 +1,3 @@
-//! Out-of-band daemon events.
-//!
-//! The tick loop normally wakes on its adaptive sleep timer or on a
-//! `system_status` / config file change. A few state transitions, though,
-//! must wake it *instantly* without waiting for the next interval:
-//!
-//!   - a tracked game process exiting,
-//!   - the companion service dying (its liveness lock released),
-//!   - a module update being staged.
-//!
-//! Each of these has a producer running on its own thread; they all funnel
-//! into one [`mpsc`] channel that the daemon consumes from inside its
-//! `tokio::select!` alongside the existing wake sources.
-
 use tokio::sync::mpsc;
 
 /// An event that should wake the daemon's tick loop immediately.

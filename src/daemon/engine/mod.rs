@@ -1,24 +1,25 @@
+pub mod r#loop;
+pub mod status_file;
+
 use crate::core::fps_meter::FpsMeter;
 use crate::core::profile::ProfileMode;
 use crate::core::system_status::SystemStatusCache;
 use crate::core::telemetry::TelemetryHub;
-pub use crate::daemon::config::DaemonConfig;
-use crate::daemon::event::{self, DaemonEvent, EventSender};
-use crate::daemon::state::{CurrentState, LastState};
-use crate::daemon::watchdog::CompanionWatchdog;
-use crate::platform::vendor::{detect, mtk};
+use crate::daemon::companion::watchdog::CompanionWatchdog;
+pub use crate::daemon::model::config::DaemonConfig;
+use crate::daemon::model::event::EventSender;
+use crate::daemon::model::state::{CurrentState, LastState};
 use anyhow::Result;
 use std::collections::HashSet;
-use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
-use tokio::{signal, time};
 use tracing::{debug, error, info, warn};
 
-pub const INGAME_INTERVAL_MS: u64 = 500;
-pub const SCREEN_OFF_INTERVAL_MS: u64 = 2000;
-pub const STATUS_FILE: &str = "/data/adb/auriya/status";
+pub use r#loop::{
+    INGAME_INTERVAL_MS, SCREEN_OFF_INTERVAL_MS, run_with_config, run_with_config_and_logger,
+};
+pub use status_file::{STATUS_FILE, update_current_profile_file};
+pub(crate) use status_file::{bump_log, now_ms, should_log_change};
 
 pub type ReloadHandle =
     tracing_subscriber::reload::Handle<tracing_subscriber::EnvFilter, tracing_subscriber::Registry>;
@@ -219,7 +220,7 @@ impl Daemon {
             pid.map(|p| crate::core::pid_tracker::PidTracker::spawn(p, self.event_tx.clone()));
     }
 
-    fn reload_settings(&mut self) {
+    pub(crate) fn reload_settings(&mut self) {
         match crate::core::config::Settings::load(crate::core::config::settings_path()) {
             Ok(new_settings) => {
                 let mut gov_changed = false;
@@ -284,7 +285,7 @@ impl Daemon {
         }
     }
 
-    fn rebuild_whitelist(&mut self) {
+    pub(crate) fn rebuild_whitelist(&mut self) {
         let whitelist: Option<HashSet<String>> = self
             .shared_gamelist
             .read()
@@ -361,7 +362,7 @@ impl Daemon {
 
         if self
             .tick_count
-            .is_multiple_of(crate::daemon::watchdog::COMPANION_HEALTH_CHECK_TICKS)
+            .is_multiple_of(crate::daemon::companion::watchdog::COMPANION_HEALTH_CHECK_TICKS)
         {
             self.watchdog.check_health(&self.status_cache);
         }
@@ -432,158 +433,4 @@ impl Daemon {
             update_current_profile_file(mode);
         }
     }
-}
-
-pub fn update_current_profile_file(mode: ProfileMode) {
-    let val = match mode {
-        ProfileMode::Performance => "1",
-        ProfileMode::Balance => "2",
-        ProfileMode::Powersave => "3",
-        ProfileMode::Fast => "4",
-    };
-
-    let config_path = crate::core::config::CONFIG_DIR;
-    let profile_file = format!("{}/current_profile", config_path);
-
-    let _ = std::fs::create_dir_all(config_path);
-
-    if let Err(e) = std::fs::write(&profile_file, val) {
-        error!(target: "auriya::daemon", "Failed to update current_profile: {}", e);
-    } else {
-        debug!(target: "auriya::daemon", "Updated current_profile to {} ({})", val, mode);
-    }
-}
-
-#[inline]
-pub(crate) fn now_ms() -> u128 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_else(|_e| {
-            tracing::warn!(target: "auriya::daemon", "Daemon | System clock error (using fallback)");
-            Duration::from_secs(0)
-        })
-        .as_millis()
-}
-
-#[inline]
-pub(crate) fn should_log_change(last: &LastState, cfg: &DaemonConfig) -> bool {
-    match last.last_log_ms {
-        None => true,
-        Some(t) => now_ms().saturating_sub(t) >= cfg.log_debounce_ms,
-    }
-}
-
-#[inline]
-pub(crate) fn bump_log(last: &mut LastState) {
-    last.last_log_ms = Some(now_ms());
-}
-
-pub async fn run_with_config_and_logger(cfg: &DaemonConfig, reload: ReloadHandle) -> Result<()> {
-    run_with_config(cfg, reload).await
-}
-
-pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) -> Result<()> {
-    let supported_modes = match crate::platform::display::get_app_supported_modes().await {
-        Ok(modes) => {
-            debug!(target: "auriya::daemon", "Cached {} supported display modes", modes.len());
-            Arc::new(modes)
-        }
-        Err(e) => {
-            error!(target: "auriya::daemon", "Failed to cache supported modes: {}", e);
-            Arc::new(Vec::new())
-        }
-    };
-
-    let status_path = PathBuf::from(STATUS_FILE);
-    let wait_timeout = Duration::from_secs(10);
-    if let Err(e) =
-        crate::core::system_status::watcher::await_status_file(&status_path, wait_timeout)
-    {
-        error!(target: "auriya::daemon", "Daemon | {e}");
-        return Err(e);
-    }
-
-    let (status_cache, mut status_rx) =
-        crate::core::system_status::watcher::start_status_watcher(status_path)?;
-
-    let (event_tx, mut event_rx) = event::channel();
-
-    let mut daemon = Daemon::new(cfg.clone(), supported_modes, status_cache, event_tx)?;
-
-    if detect::is_mediatek() {
-        debug!(target: "auriya::daemon", "MTK device detected, applying PPM fix...");
-        tokio::task::spawn_blocking(mtk::fix_mediatek_ppm)
-            .await
-            .ok();
-        debug!(target: "auriya::daemon", "MTK PPM fix applied");
-    }
-
-    daemon.init_ipc(filter_handle).await;
-
-    tokio::time::sleep(time::Duration::from_millis(200)).await;
-    debug!(target: "auriya::daemon", "IPC socket ready at /dev/socket/auriya.sock");
-
-    let mut watch_rx = crate::daemon::watcher::start_config_watcher(daemon.shared_gamelist.clone());
-
-    crate::daemon::watcher::start_module_update_watcher(daemon.event_tx.clone());
-    crate::daemon::companion_lock::start_companion_lock_watcher(daemon.event_tx.clone());
-
-    debug!(target: "auriya::daemon", "Tick loop started (adaptive: {}ms idle, {}ms gaming)", daemon.normal_interval_ms, INGAME_INTERVAL_MS);
-
-    daemon.tick().await;
-
-    loop {
-        let sleep_ms = if daemon.is_suspended() {
-            SCREEN_OFF_INTERVAL_MS
-        } else if daemon.is_in_game_session() {
-            INGAME_INTERVAL_MS
-        } else {
-            daemon.normal_interval_ms
-        };
-
-        tokio::select! {
-            _ = time::sleep(Duration::from_millis(sleep_ms)) => {
-                daemon.tick().await;
-            }
-            Some(_) = status_rx.recv() => {
-                debug!(target: "auriya::daemon", "Status update received, triggering instant tick");
-                daemon.tick().await;
-            }
-            Some(msg) = watch_rx.recv() => {
-                if msg == "settings" {
-                    daemon.reload_settings();
-                    daemon.tick().await;
-                } else {
-                    daemon.rebuild_whitelist();
-                    debug!(target: "auriya::daemon", "Gamelist reload notification received, triggering instant tick");
-                    daemon.tick().await;
-                }
-            }
-            Some(ev) = event_rx.recv() => {
-                match ev {
-                    DaemonEvent::PidExited(pid) => {
-                        debug!(target: "auriya::daemon", "Tracked PID {} exited, triggering instant tick", pid);
-                        daemon.tick().await;
-                    }
-                    DaemonEvent::CompanionDied => {
-                        daemon.watchdog.on_companion_died();
-                    }
-                    DaemonEvent::ModuleUpdate => {
-                        info!(target: "auriya::daemon", "Daemon | Module update staged, stopping gracefully");
-                        daemon.shutdown_cleanup();
-                        break;
-                    }
-                }
-            }
-            _ = signal::ctrl_c() => {
-                info!(target: "auriya::daemon", "Daemon | Received Ctrl-C, shutting down");
-                daemon.shutdown_cleanup();
-                break;
-            }
-        }
-    }
-    info!(target: "auriya::daemon", "Daemon | Stopped");
-    Ok(())
 }

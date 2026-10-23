@@ -53,6 +53,15 @@ pub fn find_cpu_governor_paths() -> Result<Vec<PathBuf>, String> {
                     name.starts_with("cpu") && name[3..].chars().all(|c| c.is_ascii_digit())
                 })
         {
+            let online_file = path.join("online");
+            if online_file.exists()
+                && fs::read_to_string(&online_file)
+                    .map(|s| s.trim() == "0")
+                    .unwrap_or(false)
+                && fs::write(&online_file, "1").is_err()
+            {
+                continue;
+            }
             let gov_file = path.join("cpufreq/scaling_governor");
             if gov_file.exists() {
                 paths.push(gov_file);
