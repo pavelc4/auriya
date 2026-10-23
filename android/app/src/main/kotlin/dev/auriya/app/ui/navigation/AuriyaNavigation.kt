@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.data.NavMode
 import dev.auriya.app.data.NavType
@@ -32,12 +33,12 @@ import dev.auriya.app.ui.games.GameProfileScreen
 import dev.auriya.app.ui.games.GamesPane
 import dev.auriya.app.ui.games.GamesScreen
 import dev.auriya.app.ui.home.HomeScreen
-import dev.auriya.app.ui.oobe.OobeScreen
 import dev.auriya.app.ui.record.RecordScreen
 import dev.auriya.app.ui.settings.AboutScreen
 import dev.auriya.app.ui.settings.AppearanceScreen
 import dev.auriya.app.ui.settings.LanguageScreen
 import dev.auriya.app.ui.settings.SettingsScreen
+import dev.auriya.app.ui.setup.SetupScreen
 import dev.auriya.app.viewmodel.ThemeViewModel
 import dev.auriya.app.viewmodel.UiViewModel
 import dev.auriya.shared.model.GameProfile
@@ -81,10 +82,10 @@ fun AuriyaNavigation(
     var selectedGameProfile by remember { mutableStateOf<GameProfile?>(null) }
     var subScreen by remember { mutableStateOf(SubScreen.None) }
     val saveableStateHolder = rememberSaveableStateHolder()
-    val themePrefs by themeViewModel.prefs.collectAsState()
-    val governors by viewModel.availableGovernors.collectAsState()
-    val gameList by viewModel.gameList.collectAsState()
-    val thermalAvailable by viewModel.thermalAvailable.collectAsState()
+    val themePrefs by themeViewModel.prefs.collectAsStateWithLifecycle()
+    val governors by viewModel.availableGovernors.collectAsStateWithLifecycle()
+    val gameList by viewModel.gameList.collectAsStateWithLifecycle()
+    val thermalAvailable by viewModel.thermalAvailable.collectAsStateWithLifecycle()
 
     if (editingGameProfile != null) {
         BackHandler {
@@ -112,7 +113,7 @@ fun AuriyaNavigation(
     val screenState =
         when {
             prefs == null -> 0
-            !prefs.isOobeCompleted -> 1
+            !prefs.isSetupCompleted -> 1
             else -> 2
         }
 
@@ -135,11 +136,11 @@ fun AuriyaNavigation(
             }
 
             1 -> {
-                OobeScreen(
+                SetupScreen(
                     viewModel = viewModel,
                     themeViewModel = themeViewModel,
                     onFinished = {
-                        themeViewModel.setOobeCompleted(true)
+                        themeViewModel.setSetupCompleted(true)
                     },
                 )
             }
@@ -249,7 +250,7 @@ fun AuriyaNavigation(
                                     onNavigateToAppearance = { subScreen = SubScreen.Appearance },
                                     onNavigateToLanguage = { subScreen = SubScreen.Language },
                                     onNavigateToAbout = { subScreen = SubScreen.About },
-                                    onResetOobe = { themeViewModel.setOobeCompleted(false) },
+                                    onResetOobe = { themeViewModel.setSetupCompleted(false) },
                                 )
                             }
 

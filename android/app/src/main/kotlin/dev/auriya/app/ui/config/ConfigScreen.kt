@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.ui.components.SettingsMenuItem
 import dev.auriya.app.ui.components.itemShapeFor
 import dev.auriya.app.ui.config.panes.*
@@ -51,7 +52,7 @@ private enum class ConfigSubScreen {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfigScreen(viewModel: UiViewModel) {
-    val settings by viewModel.settings.collectAsState()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var activeSubScreen by remember { mutableStateOf(ConfigSubScreen.NONE) }
@@ -125,7 +126,7 @@ fun ConfigScreen(viewModel: UiViewModel) {
         currentMode.thermalThreshold,
     ) { mutableFloatStateOf(currentMode.thermalThreshold.toFloat()) }
 
-    val governorsFromVm by viewModel.availableGovernors.collectAsState()
+    val governorsFromVm by viewModel.availableGovernors.collectAsStateWithLifecycle()
     val effectiveGovernors =
         remember(governorsFromVm, defaultGov) {
             if (defaultGov.isNotBlank() && defaultGov !in governorsFromVm) {

@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.data.RootShell
 import dev.auriya.app.ui.components.*
 import dev.auriya.app.viewmodel.UiViewModel
@@ -28,8 +29,8 @@ fun DeveloperOptionsContent(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val hasRoot by viewModel.hasRoot.collectAsState()
-    val systemInfo by viewModel.systemInfo.collectAsState()
+    val hasRoot by viewModel.hasRoot.collectAsStateWithLifecycle()
+    val systemInfo by viewModel.systemInfo.collectAsStateWithLifecycle()
     var debugMode by remember { mutableStateOf(false) }
 
     Column(

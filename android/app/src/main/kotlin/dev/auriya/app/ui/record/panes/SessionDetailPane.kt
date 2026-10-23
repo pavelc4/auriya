@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.data.stats.BenchmarkSample
 import dev.auriya.app.data.stats.BenchmarkSession
@@ -68,7 +69,7 @@ fun SessionDetailPane(
     val roundFps by dev.auriya.app.data.AppPrefs
         .getInstance(context)
         .roundFps
-        .collectAsState()
+        .collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(MetricGraphTab.OVERVIEW) }
 
     val dateStr =

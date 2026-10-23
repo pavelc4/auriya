@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.data.stats.Fps
 import dev.auriya.app.data.stats.Session
 import dev.auriya.app.ui.theme.ExpTitleTypography
@@ -43,7 +44,7 @@ fun LiveFpsHeroCard(
     val roundFps by dev.auriya.app.data.AppPrefs
         .getInstance(context)
         .roundFps
-        .collectAsState()
+        .collectAsStateWithLifecycle()
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,

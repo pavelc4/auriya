@@ -31,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.R
 import dev.auriya.app.ui.theme.GoogleSansRounded
 import dev.auriya.app.util.LocaleHelper
@@ -40,7 +41,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LanguageScreen(onDismiss: () -> Unit) {
     val context = LocalContext.current
-    val currentLanguage by LocaleHelper.currentLanguage.collectAsState()
+    val currentLanguage by LocaleHelper.currentLanguage.collectAsStateWithLifecycle()
     val languageOptions = remember(context, currentLanguage) { LocaleHelper.getSupportedLanguages(context) }
     val coroutineScope = rememberCoroutineScope()
     var showAppliedBanner by remember { mutableStateOf(false) }

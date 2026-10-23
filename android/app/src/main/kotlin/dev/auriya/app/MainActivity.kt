@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.ui.navigation.AuriyaNavigation
 import dev.auriya.app.ui.theme.AuriyaTheme
 import dev.auriya.app.util.LocaleHelper
@@ -32,8 +33,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         viewModel.loadInstalledApps(packageManager)
         setContent {
-            val prefs by themeViewModel.prefs.collectAsState()
-            val currentLanguage by LocaleHelper.currentLanguage.collectAsState()
+            val prefs by themeViewModel.prefs.collectAsStateWithLifecycle()
+            val currentLanguage by LocaleHelper.currentLanguage.collectAsStateWithLifecycle()
             val baseContext = LocalContext.current
             val localizedContext = remember(baseContext, currentLanguage) { LocaleHelper.wrapContext(baseContext, currentLanguage) }
 

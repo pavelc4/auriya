@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.R
 import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.data.NavMode
@@ -66,8 +67,8 @@ fun SettingsScreen(
     var activeSubScreen by remember { mutableStateOf(SettingsSubScreen.NONE) }
     var showThermalDefaultSheet by remember { mutableStateOf(false) }
 
-    val thermalAvailable by viewModel.thermalAvailable.collectAsState()
-    val settings by viewModel.settings.collectAsState()
+    val thermalAvailable by viewModel.thermalAvailable.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
 
     if (showThermalDefaultSheet && thermalAvailable) {
         ThermalDefaultSheet(
@@ -308,7 +309,7 @@ fun SettingsScreen(
 
                         SettingsSubScreen.APP -> {
                             item {
-                                val rootEnv by viewModel.rootEnvironment.collectAsState()
+                                val rootEnv by viewModel.rootEnvironment.collectAsStateWithLifecycle()
                                 val context = LocalContext.current
 
                                 SettingsSubsection(
@@ -486,7 +487,7 @@ fun SettingsScreen(
                             }
 
                             item {
-                                val roundFps by viewModel.roundFps.collectAsState()
+                                val roundFps by viewModel.roundFps.collectAsStateWithLifecycle()
                                 SettingsSubsection(
                                     title =
                                         androidx.compose.ui.res

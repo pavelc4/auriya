@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.ui.components.AuriyaLoadingIndicator
 import dev.auriya.app.ui.components.bouncyClickable
@@ -88,9 +89,9 @@ fun GamesScreen(
     val sharedPrefs = remember { context.getSharedPreferences("auriya_ui", Context.MODE_PRIVATE) }
     var bannerDismissed by remember { mutableStateOf(sharedPrefs.getBoolean("games_banner_dismissed", false)) }
 
-    val gameList by viewModel.gameList.collectAsState()
-    val installedApps by viewModel.installedApps.collectAsState()
-    val isAppsLoading by viewModel.isAppsLoading.collectAsState()
+    val gameList by viewModel.gameList.collectAsStateWithLifecycle()
+    val installedApps by viewModel.installedApps.collectAsStateWithLifecycle()
+    val isAppsLoading by viewModel.isAppsLoading.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
     var sortMode by remember { mutableStateOf(SortMode.NAME_ASC) }
 

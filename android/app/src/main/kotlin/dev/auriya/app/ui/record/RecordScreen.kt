@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.data.stats.BenchmarkSession
 import dev.auriya.app.ui.components.SettingsMenuItem
 import dev.auriya.app.ui.components.SettingsSubsection
@@ -60,11 +61,11 @@ fun RecordScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val liveStats by viewModel.liveStats.collectAsState()
-    val isRecording by viewModel.isRecording.collectAsState()
-    val recordingDurationSec by viewModel.currentRecordingDurationSec.collectAsState()
-    val recordedSamplesCount by viewModel.currentSamplesCount.collectAsState()
-    val benchmarkSessions by viewModel.benchmarkSessions.collectAsState()
+    val liveStats by viewModel.liveStats.collectAsStateWithLifecycle()
+    val isRecording by viewModel.isRecording.collectAsStateWithLifecycle()
+    val recordingDurationSec by viewModel.currentRecordingDurationSec.collectAsStateWithLifecycle()
+    val recordedSamplesCount by viewModel.currentSamplesCount.collectAsStateWithLifecycle()
+    val benchmarkSessions by viewModel.benchmarkSessions.collectAsStateWithLifecycle()
 
     DisposableEffect(Unit) {
         viewModel.startUiObserving()
@@ -495,7 +496,7 @@ fun RecordScreen(
                         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLowest,
                     ) {
-                        val roundFps by viewModel.roundFps.collectAsState()
+                        val roundFps by viewModel.roundFps.collectAsStateWithLifecycle()
                         LazyColumn(
                             modifier =
                                 Modifier

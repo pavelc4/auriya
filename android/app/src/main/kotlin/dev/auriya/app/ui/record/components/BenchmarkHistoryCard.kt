@@ -12,7 +12,6 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -23,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.data.stats.BenchmarkSession
 import java.text.SimpleDateFormat
@@ -54,7 +54,7 @@ fun BenchmarkSessionCard(
     val roundFps by dev.auriya.app.data.AppPrefs
         .getInstance(context)
         .roundFps
-        .collectAsState()
+        .collectAsStateWithLifecycle()
 
     val cardColor =
         if (isSelected) {
