@@ -4,7 +4,7 @@ use crate::daemon::model::state::LastState;
 use std::time::Duration;
 use tracing::{debug, error};
 
-pub const STATUS_FILE: &str = "/data/adb/auriya/status";
+pub const STATUS_FILE: &str = crate::core::status::STATUS_FILE;
 
 pub fn update_current_profile_file(mode: ProfileMode) {
     let val = match mode {

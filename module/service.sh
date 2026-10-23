@@ -122,12 +122,24 @@ rm -f "$STATUS_FILE" "$COMPANION_LOCK"
 
 (
   while true; do
-    sleep 30
+    sleep 5
     _R="/data/adb/modules/auriya/remove"
     [ ! -f "$_R" ] && _R="/data/adb/modules_update/auriya/remove"
-    [ ! -f "$_R" ] && continue
-    _cleanup_all
-    break
+    if [ -f "$_R" ]; then
+      _cleanup_all
+      break
+    fi
+
+    # Supervise daemon: auto-revive if killed or unexpectedly terminated
+    if ! pidof auriya >/dev/null 2>&1; then
+      if [ -f "$STATUS_FILE" ]; then
+        log -t auriya "Daemon stopped unexpectedly, auto-reviving..."
+        export RUST_LOG=info
+        export RUST_BACKTRACE=1
+        nohup "$AURIYA_BIN" --settings "$SETTINGS_CFG" --gamelist "$GAMELIST_CFG" >/dev/null 2>&1 &
+        sleep 2
+      fi
+    fi
   done
 ) &
 
