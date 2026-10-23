@@ -24,6 +24,8 @@ pub async fn execute(cli: Cli) -> Result<()> {
         output::print_execution_time(start_time.elapsed());
     }
 
+    let _ = std::io::Write::flush(&mut std::io::stdout());
+
     Ok(())
 }
 
