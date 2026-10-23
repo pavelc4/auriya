@@ -99,11 +99,15 @@ impl CompanionWatchdog {
         self.last_restart = Some(Instant::now());
 
         let _ = std::process::Command::new("killall")
-            .args(["-TERM", COMPANION_PROC])
+            .args(["-q", "-TERM", COMPANION_PROC])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
             .status();
         std::thread::sleep(Duration::from_millis(500));
         let _ = std::process::Command::new("killall")
-            .args(["-KILL", COMPANION_PROC])
+            .args(["-q", "-KILL", COMPANION_PROC])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
             .status();
 
         let companion_log = "/data/adb/auriya/companion.log";

@@ -126,46 +126,49 @@ async fn handle_status(client: &IpcClient) -> Result<()> {
 
 fn handle_restart() -> Result<()> {
     println!("Restarting daemon + companion...");
-    stop_processes()?;
-    clear_runtime_state()?;
+    stop_processes();
+    clear_runtime_state();
     launch_service()?;
     println!("Restart initiated — tail {LOG_DIR}/restart.log for progress");
     Ok(())
 }
 
-fn stop_processes() -> Result<()> {
+fn stop_processes() {
+    use std::process::{Command, Stdio};
     for proc in [DAEMON_BIN, COMPANION_PROC] {
-        sh(&format!("killall -TERM {proc} 2>/dev/null"))?;
+        let _ = Command::new("killall")
+            .args(["-q", "-TERM", proc])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
     }
-    std::thread::sleep(Duration::from_secs(3));
+    std::thread::sleep(Duration::from_secs(2));
     for proc in [DAEMON_BIN, COMPANION_PROC] {
-        sh(&format!("killall -KILL {proc} 2>/dev/null"))?;
+        let _ = Command::new("killall")
+            .args(["-q", "-KILL", proc])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
     }
-    Ok(())
 }
 
-fn clear_runtime_state() -> Result<()> {
-    sh(&format!(
-        "rm -f {CONFIG_DIR}/system_status {CONFIG_DIR}/companion.lock \
-         && truncate -s 0 {LOG_DIR}/daemon.log 2>/dev/null || true"
-    ))
+fn clear_runtime_state() {
+    let _ = std::fs::remove_file(format!("{CONFIG_DIR}/system_status"));
+    let _ = std::fs::remove_file(format!("{CONFIG_DIR}/companion.lock"));
+    let _ = std::fs::write(format!("{LOG_DIR}/daemon.log"), "");
 }
 
 fn launch_service() -> Result<()> {
-    std::process::Command::new("sh")
+    use std::process::{Command, Stdio};
+    Command::new("sh")
         .args([
             "-c",
             &format!("sh {SERVICE_SCRIPT} >> {LOG_DIR}/restart.log 2>&1 &"),
         ])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .spawn()
         .context("failed to spawn service.sh")?;
-    Ok(())
-}
-
-fn sh(cmd: &str) -> Result<()> {
-    std::process::Command::new("sh")
-        .args(["-c", cmd])
-        .status()
-        .with_context(|| format!("sh -c '{cmd}' failed to spawn"))?;
     Ok(())
 }

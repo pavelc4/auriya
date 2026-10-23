@@ -174,36 +174,21 @@ if [ -f "$AURIYA_LOG" ]; then
     mv "$AURIYA_LOG" "$AURIYA_LOG.1"
   fi
 fi
-echo "=== Auriya starting at $(date) ===" >>"$AURIYA_LOG"
 log -t auriya "Starting Auriya daemon..."
 
 export RUST_LOG=info
 export RUST_BACKTRACE=1
 
-if command -v stdbuf >/dev/null 2>&1; then
-  stdbuf -oL -eL "$AURIYA_BIN" --settings "$SETTINGS_CFG" --gamelist "$GAMELIST_CFG" 2>&1 | while IFS= read -r line; do
-    log -t auriya "$line"
-    echo "$line" >>"$AURIYA_LOG"
-  done &
-else
-  "$AURIYA_BIN" --settings "$SETTINGS_CFG" --gamelist "$GAMELIST_CFG" 2>&1 | while IFS= read -r line; do
-    log -t auriya "$line"
-    echo "$line" >>"$AURIYA_LOG"
-  done &
-fi
-
-PIPE_PID=$!
+nohup "$AURIYA_BIN" --settings "$SETTINGS_CFG" --gamelist "$GAMELIST_CFG" >/dev/null 2>&1 &
 sleep 2
 
 if pidof auriya >/dev/null 2>&1; then
   DAEMON_PID=$(pidof auriya | awk '{print $1}')
   log -t auriya "Daemon started successfully (PID: $DAEMON_PID)"
-  echo "Auriya started (Daemon PID: $DAEMON_PID, Pipe PID: $PIPE_PID)" >>"$AURIYA_LOG"
   for i in 1 2 3 4 5; do
     if [ -S "$SOCK" ]; then
       if echo "PING" | nc -U "$SOCK" >/dev/null 2>&1; then
         log -t auriya "IPC socket ready"
-        echo "[$(date)] IPC socket ready" >>"$AURIYA_LOG"
         exit 0
       fi
     fi
@@ -211,9 +196,8 @@ if pidof auriya >/dev/null 2>&1; then
   done
 
   log -t auriya "WARNING: IPC socket not responding"
-  echo "[$(date)] WARNING: IPC socket not responding" >>"$AURIYA_LOG"
+  exit 0
 else
   log -t auriya "ERROR: Failed to start daemon"
-  echo "[$(date)] ERROR: Failed to start daemon" >>"$AURIYA_LOG"
   exit 1
 fi
