@@ -42,87 +42,38 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import dev.auriya.app.R
+import dev.auriya.app.data.repository.Contributor
+import dev.auriya.app.data.repository.OwnerInfo
+import dev.auriya.app.data.repository.RepoInfo
 import dev.auriya.app.ui.components.AuriyaLoadingIndicator
 import dev.auriya.app.ui.components.itemShapeFor
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.ui.theme.GoogleSansRounded
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import dev.auriya.app.viewmodel.AboutViewModel
 
 private const val OWNER_LOGIN = "Pavelc4"
 private const val REPO_NAME = "Auriya"
 private const val APP_TAGLINE = "Technical documentation for Auriya and personal optimization experiments."
 
-data class RepoInfo(
-    val name: String,
-    val description: String,
-    val version: String,
-)
-
-data class OwnerInfo(
-    val login: String,
-    val name: String?,
-    val bio: String?,
-    val htmlUrl: String,
-    val avatarUrl: String?,
-)
-
-data class Contributor(
-    val login: String,
-    val avatarUrl: String,
-    val htmlUrl: String,
-    val contributions: Int,
-    val role: String = "Community Contributor",
-)
-
 @Composable
-fun AboutScreen(onDismiss: () -> Unit) {
+fun AboutScreen(
+    onDismiss: () -> Unit,
+    viewModel: AboutViewModel =
+        androidx.lifecycle.viewmodel.compose
+            .viewModel(),
+) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-
-    val fallbackContributors = remember { emptyList<Contributor>() }
-
-    var repoInfo by remember { mutableStateOf<RepoInfo?>(RepoInfo(REPO_NAME, APP_TAGLINE, "2.0.0")) }
-    var ownerInfo by remember { mutableStateOf<OwnerInfo?>(AboutCache.getCachedOwner(context)) }
-    var contributors by remember {
-        val cached = AboutCache.getCachedContributors(context)
-        mutableStateOf(cached)
-    }
-    var isLoadingInfo by remember { mutableStateOf(false) }
-    var isLoadingOwner by remember { mutableStateOf(false) }
-    var isLoadingContributors by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        if (AboutCache.shouldRefresh(context)) {
-            coroutineScope.launch(Dispatchers.IO) {
-                val info = fetchRepoInfo()
-                withContext(Dispatchers.Main) {
-                    repoInfo = info
-                }
-            }
-            coroutineScope.launch(Dispatchers.IO) {
-                val owner = fetchOwnerInfo()
-                AboutCache.saveOwner(context, owner)
-                withContext(Dispatchers.Main) {
-                    ownerInfo = owner
-                }
-            }
-            coroutineScope.launch(Dispatchers.IO) {
-                val list = fetchContributors()
-                if (list.isNotEmpty()) {
-                    AboutCache.saveContributors(context, list)
-                    withContext(Dispatchers.Main) {
-                        contributors = list
-                    }
-                }
-            }
-        }
-    }
+    val repoInfo by viewModel.repoInfo.collectAsStateWithLifecycle()
+    val ownerInfo by viewModel.ownerInfo.collectAsStateWithLifecycle()
+    val contributors by viewModel.contributors.collectAsStateWithLifecycle()
+    val isLoadingInfo by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isLoadingOwner = isLoadingInfo
+    val isLoadingContributors = isLoadingInfo
 
     // Filter out repo owner and automated bot accounts
     val filteredContributors =
@@ -272,7 +223,7 @@ fun AboutScreen(onDismiss: () -> Unit) {
                     MaintainerCard(
                         owner = ownerInfo,
                         isLoading = isLoadingOwner,
-                        onCardClick = { openUrl(context, ownerInfo?.htmlUrl ?: "https://github.com/$OWNER_LOGIN") },
+                        onCardClick = { openUrl(context, ownerInfo.htmlUrl) },
                     )
                 }
 
@@ -629,14 +580,14 @@ private fun SupportCard(
         ) {
             Surface(
                 shape = dev.auriya.app.ui.components.MaterialShapes.PixelCircle,
-                color = Color(0xFFE8C39E),
+                color = MaterialTheme.colorScheme.tertiaryContainer,
                 modifier = Modifier.size(48.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Filled.LocalCafe,
                         contentDescription = null,
-                        tint = Color(0xFF3E2713),
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
                         modifier = Modifier.size(24.dp),
                     )
                 }
@@ -947,183 +898,5 @@ private fun openUrl(
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
         context.startActivity(intent)
-    }
-}
-
-private suspend fun fetchJson(url: String): String? =
-    withContext(Dispatchers.IO) {
-        try {
-            val connection =
-                (java.net.URL(url).openConnection() as java.net.HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    setRequestProperty("User-Agent", "Auriya-App")
-                    setRequestProperty("Accept", "application/vnd.github+json")
-                    connectTimeout = 5000
-                    readTimeout = 5000
-                }
-            if (connection.responseCode == 200) {
-                connection.inputStream.bufferedReader().use { it.readText() }
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
-private object AboutCache {
-    private const val PREFS_NAME = "auriya_about_cache"
-    private const val KEY_OWNER_NAME = "owner_name"
-    private const val KEY_OWNER_BIO = "owner_bio"
-    private const val KEY_OWNER_AVATAR = "owner_avatar"
-    private const val KEY_CONTRIBUTORS_JSON = "contributors_json"
-    private const val KEY_LAST_FETCH = "last_fetch_time"
-    private const val CACHE_TTL_MS = 24 * 60 * 60 * 1000L // 24 hours
-
-    fun getCachedOwner(context: Context): OwnerInfo {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val name = prefs.getString(KEY_OWNER_NAME, "Pavel") ?: "Pavel"
-        val bio =
-            prefs.getString(KEY_OWNER_BIO, "Rust daemon, eBPF telemetry, and Android Kotlin UI")
-                ?: "Rust daemon, eBPF telemetry, and Android Kotlin UI"
-        val avatar =
-            prefs.getString(KEY_OWNER_AVATAR, "https://github.com/$OWNER_LOGIN.png")
-                ?: "https://github.com/$OWNER_LOGIN.png"
-        return OwnerInfo(
-            login = OWNER_LOGIN,
-            name = name,
-            bio = bio,
-            htmlUrl = "https://github.com/$OWNER_LOGIN",
-            avatarUrl = avatar,
-        )
-    }
-
-    fun saveOwner(
-        context: Context,
-        owner: OwnerInfo,
-    ) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs
-            .edit()
-            .putString(KEY_OWNER_NAME, owner.name)
-            .putString(KEY_OWNER_BIO, owner.bio)
-            .putString(KEY_OWNER_AVATAR, owner.avatarUrl)
-            .putLong(KEY_LAST_FETCH, System.currentTimeMillis())
-            .apply()
-    }
-
-    fun getCachedContributors(context: Context): List<Contributor> {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val json = prefs.getString(KEY_CONTRIBUTORS_JSON, null) ?: return emptyList()
-        return try {
-            val array = org.json.JSONArray(json)
-            List(array.length()) { i ->
-                val obj = array.getJSONObject(i)
-                Contributor(
-                    login = obj.getString("login"),
-                    avatarUrl = obj.getString("avatar_url"),
-                    htmlUrl = obj.getString("html_url"),
-                    contributions = obj.getInt("contributions"),
-                    role = "Community Contributor",
-                )
-            }
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
-    fun saveContributors(
-        context: Context,
-        list: List<Contributor>,
-    ) {
-        if (list.isEmpty()) return
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        try {
-            val array = org.json.JSONArray()
-            for (c in list) {
-                val obj =
-                    org.json.JSONObject().apply {
-                        put("login", c.login)
-                        put("avatar_url", c.avatarUrl)
-                        put("html_url", c.htmlUrl)
-                        put("contributions", c.contributions)
-                    }
-                array.put(obj)
-            }
-            prefs.edit().putString(KEY_CONTRIBUTORS_JSON, array.toString()).apply()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    fun shouldRefresh(context: Context): Boolean {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val lastFetch = prefs.getLong(KEY_LAST_FETCH, 0L)
-        return (System.currentTimeMillis() - lastFetch) > CACHE_TTL_MS
-    }
-}
-
-suspend fun fetchRepoInfo(): RepoInfo {
-    val body =
-        fetchJson("https://api.github.com/repos/$OWNER_LOGIN/$REPO_NAME")
-            ?: return RepoInfo(REPO_NAME, APP_TAGLINE, "2.0.0")
-    return try {
-        val obj = org.json.JSONObject(body)
-        RepoInfo(
-            name = obj.getString("name"),
-            description = APP_TAGLINE,
-            version = "2.0.0",
-        )
-    } catch (e: Exception) {
-        e.printStackTrace()
-        RepoInfo(REPO_NAME, APP_TAGLINE, "2.0.0")
-    }
-}
-
-suspend fun fetchOwnerInfo(): OwnerInfo {
-    val fallback =
-        OwnerInfo(
-            login = OWNER_LOGIN,
-            name = "Pavel",
-            bio = "Rust daemon, eBPF telemetry, and Android Kotlin UI",
-            htmlUrl = "https://github.com/$OWNER_LOGIN",
-            avatarUrl = "https://github.com/$OWNER_LOGIN.png",
-        )
-    val body = fetchJson("https://api.github.com/users/$OWNER_LOGIN") ?: return fallback
-    return try {
-        val obj = org.json.JSONObject(body)
-        OwnerInfo(
-            login = obj.getString("login"),
-            name = obj.optString("name").takeIf { it.isNotBlank() } ?: "Pavel",
-            bio = obj.optString("bio").takeIf { it.isNotBlank() } ?: fallback.bio,
-            htmlUrl = obj.optString("html_url", "https://github.com/$OWNER_LOGIN"),
-            avatarUrl = obj.optString("avatar_url").takeIf { it.isNotBlank() } ?: fallback.avatarUrl,
-        )
-    } catch (e: Exception) {
-        e.printStackTrace()
-        fallback
-    }
-}
-
-suspend fun fetchContributors(): List<Contributor> {
-    val body =
-        fetchJson("https://api.github.com/repos/$OWNER_LOGIN/$REPO_NAME/contributors")
-            ?: return emptyList()
-    return try {
-        val jsonArray = org.json.JSONArray(body)
-        List(jsonArray.length()) { i ->
-            val obj = jsonArray.getJSONObject(i)
-            Contributor(
-                login = obj.getString("login"),
-                avatarUrl = obj.getString("avatar_url"),
-                htmlUrl = obj.getString("html_url"),
-                contributions = obj.getInt("contributions"),
-                role = "Community Contributor",
-            )
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-        emptyList()
     }
 }

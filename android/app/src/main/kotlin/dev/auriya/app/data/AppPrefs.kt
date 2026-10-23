@@ -1,28 +1,56 @@
 package dev.auriya.app.data
 
 import android.content.Context
-import android.content.SharedPreferences
+import androidx.datastore.preferences.SharedPreferencesMigration
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+
+private const val PREFS_NAME = "auriya_app_prefs"
+private val Context.appPrefsDataStore by preferencesDataStore(
+    name = PREFS_NAME,
+    produceMigrations = { context ->
+        listOf(SharedPreferencesMigration(context, PREFS_NAME))
+    },
+)
 
 class AppPrefs private constructor(
     context: Context,
 ) {
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences("auriya_app_prefs", Context.MODE_PRIVATE)
+    private val dataStore = context.appPrefsDataStore
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private val _roundFps = MutableStateFlow(prefs.getBoolean(KEY_ROUND_FPS, false))
+    private val _roundFps = MutableStateFlow(false)
     val roundFps: StateFlow<Boolean> = _roundFps.asStateFlow()
 
+    init {
+        scope.launch {
+            dataStore.data.collectLatest { prefs ->
+                _roundFps.value = prefs[KEY_ROUND_FPS] ?: false
+            }
+        }
+    }
+
     fun setRoundFps(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_ROUND_FPS, enabled).apply()
         _roundFps.value = enabled
+        scope.launch {
+            dataStore.edit { prefs ->
+                prefs[KEY_ROUND_FPS] = enabled
+            }
+        }
     }
 
     companion object {
-        private const val KEY_ROUND_FPS = "key_round_fps"
+        private val KEY_ROUND_FPS = booleanPreferencesKey("key_round_fps")
 
         @Volatile
         private var instance: AppPrefs? = null
