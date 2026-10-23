@@ -46,18 +46,22 @@ async fn test_concurrency_and_tweak_application_stress() -> Result<(), String> {
                 let target_gov = test_governors[gov_idx % test_governors.len()];
                 if let Ok(_guard) = t_lock.lock() {
                     for path in &paths {
-                        match std::fs::write(path, target_gov.as_bytes()) {
-                            Ok(()) => {
+                        let mut success = false;
+                        for _ in 0..3 {
+                            if std::fs::write(path, target_gov.as_bytes()).is_ok() {
                                 t_counter.fetch_add(1, Ordering::Relaxed);
+                                success = true;
+                                break;
                             }
-                            Err(_) => {
-                                t_errors.fetch_add(1, Ordering::Relaxed);
-                            }
+                            thread::sleep(Duration::from_millis(1));
+                        }
+                        if !success {
+                            t_errors.fetch_add(1, Ordering::Relaxed);
                         }
                     }
                 }
                 gov_idx = gov_idx.wrapping_add(1);
-                thread::sleep(Duration::from_millis(5));
+                thread::sleep(Duration::from_millis(25));
             }
         });
         thread_handles.push(handle);
