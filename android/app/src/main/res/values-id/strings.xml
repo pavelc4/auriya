@@ -359,7 +359,7 @@
     <string name="overlay_cpu_style">Gaya Metrik CPU</string>
     <string name="overlay_layout_orientation">Orientasi Tata Letak</string>
     <string name="settings_app_title">Aplikasi</string>
-    <string name="settings_app_sub">Pengaturan umum aplikasi, bahasa, dan opsi pengembang</string>
+    <string name="settings_app_sub">Pengaturan umum aplikasi dan opsi pengembang</string>
     <string name="settings_sec_root_env">LINGKUNGAN ROOT</string>
     <string name="games_priority_notif_sub">Notifikasi prioritas saat diluncurkan</string>
     <string name="games_auto_bench_sub">Rekam sesi benchmark otomatis saat game dimulai</string>

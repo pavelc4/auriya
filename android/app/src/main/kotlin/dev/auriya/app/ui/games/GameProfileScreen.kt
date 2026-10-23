@@ -178,7 +178,7 @@ fun GameProfileScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceContainer),
+                .background(MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         // --- 1. TOP PINNED HEADER (Backdrop layer) ---
         GameProfileTopBar(
@@ -193,7 +193,7 @@ fun GameProfileScreen(
                     .fillMaxWidth()
                     .weight(1f),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+            color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             LazyColumn(
                 modifier =

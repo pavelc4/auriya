@@ -55,15 +55,6 @@ val PALETTE_PRESETS =
             neutral = Color(0xFFFBE9E7),
         ),
         PaletteItem(
-            id = "amber",
-            name = "Amber",
-            seed = 0xFFFBC02D.toInt(),
-            primary = Color(0xFFFBC02D),
-            secondary = Color(0xFFFFF176),
-            tertiary = Color(0xFFFFF9C4),
-            neutral = Color(0xFFFFFDE7),
-        ),
-        PaletteItem(
             id = "rose",
             name = "Sakura",
             seed = 0xFFC2185B.toInt(),
@@ -71,6 +62,15 @@ val PALETTE_PRESETS =
             secondary = Color(0xFFF06292),
             tertiary = Color(0xFFF8BBD0),
             neutral = Color(0xFFFCE4EC),
+        ),
+        PaletteItem(
+            id = "amber",
+            name = "Amber",
+            seed = 0xFFF57C00.toInt(),
+            primary = Color(0xFFF57C00),
+            secondary = Color(0xFFFFB74D),
+            tertiary = Color(0xFFFFE0B2),
+            neutral = Color(0xFFFFF3E0),
         ),
         PaletteItem(
             id = "slate",

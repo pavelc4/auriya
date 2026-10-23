@@ -70,7 +70,7 @@ fun ProfilePickerBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         dragHandle = { AuriyaDragHandle() },
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(
             modifier =

@@ -60,7 +60,6 @@ fun SettingsScreen(
     viewModel: UiViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToAppearance: () -> Unit,
-    onNavigateToLanguage: () -> Unit,
     onNavigateToAbout: () -> Unit,
     onResetOobe: () -> Unit,
 ) {
@@ -94,13 +93,14 @@ fun SettingsScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceContainer),
+                .background(MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         // --- 1. TOP PINNED HEADER AREA ---
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(start = 16.dp, end = 20.dp, top = 14.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -206,7 +206,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .weight(1f),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+            color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             AnimatedContent(
                 targetState = activeSubScreen,
@@ -548,36 +548,11 @@ fun SettingsScreen(
                             }
 
                             item {
-                                val currentLangCode =
-                                    dev.auriya.app.util.LocaleHelper
-                                        .getCurrentLanguage(LocalContext.current)
-                                val currentLangLabel =
-                                    if (currentLangCode == dev.auriya.app.util.LocaleHelper.SYSTEM) {
-                                        androidx.compose.ui.res
-                                            .stringResource(R.string.language_system)
-                                    } else {
-                                        val loc = java.util.Locale.forLanguageTag(currentLangCode)
-                                        loc.getDisplayName(loc).replaceFirstChar {
-                                            if (it.isLowerCase()) it.titlecase(loc) else it.toString()
-                                        }
-                                    }
-
                                 SettingsSubsection(
                                     title =
                                         androidx.compose.ui.res
                                             .stringResource(R.string.settings_general_tools),
                                 ) {
-                                    ClickableSettingItem(
-                                        title =
-                                            androidx.compose.ui.res
-                                                .stringResource(R.string.settings_app_language),
-                                        subtitle = currentLangLabel,
-                                        onClick = onNavigateToLanguage,
-                                        icon = Icons.Filled.Translate,
-                                        shape = itemShapeFor(0, 2),
-                                        showChevron = true,
-                                    )
-
                                     ClickableSettingItem(
                                         title =
                                             androidx.compose.ui.res
@@ -587,7 +562,7 @@ fun SettingsScreen(
                                                 .stringResource(R.string.settings_dev_options_desc),
                                         onClick = { activeSubScreen = SettingsSubScreen.DEVELOPER_OPTIONS },
                                         icon = Icons.Filled.Code,
-                                        shape = itemShapeFor(1, 2),
+                                        shape = itemShapeFor(0, 1),
                                         showChevron = true,
                                     )
                                 }
@@ -650,7 +625,7 @@ private fun ThermalDefaultSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         dragHandle = { AuriyaDragHandle() },
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {

@@ -95,7 +95,11 @@ fun AuriyaNavigation(
         BackHandler {
             selectedGameProfile = null
         }
-    } else if (subScreen in listOf(SubScreen.Appearance, SubScreen.Language, SubScreen.About)) {
+    } else if (subScreen == SubScreen.Language) {
+        BackHandler {
+            subScreen = SubScreen.Appearance
+        }
+    } else if (subScreen in listOf(SubScreen.Appearance, SubScreen.About)) {
         BackHandler {
             subScreen = SubScreen.Settings
         }
@@ -157,10 +161,7 @@ fun AuriyaNavigation(
                     }
 
                 Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .statusBarsPadding(),
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     AnimatedContent(
                         targetState = currentRoute,
@@ -228,12 +229,13 @@ fun AuriyaNavigation(
                                 AppearanceScreen(
                                     themeViewModel = themeViewModel,
                                     onDismiss = { subScreen = SubScreen.Settings },
+                                    onNavigateToLanguage = { subScreen = SubScreen.Language },
                                 )
                             }
 
                             AppRoute.Language -> {
                                 LanguageScreen(
-                                    onDismiss = { subScreen = SubScreen.Settings },
+                                    onDismiss = { subScreen = SubScreen.Appearance },
                                 )
                             }
 
@@ -248,7 +250,6 @@ fun AuriyaNavigation(
                                     viewModel = viewModel,
                                     onNavigateBack = { subScreen = SubScreen.None },
                                     onNavigateToAppearance = { subScreen = SubScreen.Appearance },
-                                    onNavigateToLanguage = { subScreen = SubScreen.Language },
                                     onNavigateToAbout = { subScreen = SubScreen.About },
                                     onResetOobe = { themeViewModel.setSetupCompleted(false) },
                                 )

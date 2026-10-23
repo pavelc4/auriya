@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.data.AppIconCache
 import dev.auriya.app.ui.components.AuriyaLoadingIndicator
+import dev.auriya.app.ui.components.AuriyaPullToRefreshIndicator
 import dev.auriya.app.ui.components.bouncyClickable
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.viewmodel.AppInfoItem
@@ -181,13 +183,14 @@ fun GamesScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceContainer),
+                .background(MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         // --- 1. TOP PINNED HEADER (Backdrop layer with question icon) ---
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
@@ -239,7 +242,7 @@ fun GamesScreen(
                     .fillMaxWidth()
                     .weight(1f),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+            color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Top Search & Sort Row (Full width elongated search bar + Sort icon button)
@@ -353,35 +356,39 @@ fun GamesScreen(
                     isRefreshing = isRefreshing,
                     onRefresh = {
                         isRefreshing = true
-                        viewModel.refresh {
+                        viewModel.refresh(pm) {
                             isRefreshing = false
                         }
                     },
                     state = state,
                     indicator = {
-                        val rawProgress = state.distanceFraction
-                        val isVisible = isRefreshing || rawProgress >= 0.4f
-                        if (isVisible) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .align(Alignment.TopCenter)
-                                        .padding(top = 12.dp),
-                            ) {
-                                val scale = if (isRefreshing) 1f else ((rawProgress - 0.4f) / 0.6f).coerceIn(0f, 1f)
-                                AuriyaLoadingIndicator(
-                                    size = (52.dp * scale).coerceAtLeast(28.dp),
-                                    modifier = Modifier.align(Alignment.Center),
-                                )
-                            }
-                        }
+                        AuriyaPullToRefreshIndicator(
+                            state = state,
+                            isRefreshing = isRefreshing,
+                        )
                     },
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    val pullProgress = state.distanceFraction
+                    val density = androidx.compose.ui.platform.LocalDensity.current
+                    val contentTranslationY by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue =
+                            when {
+                                isRefreshing -> with(density) { 72.dp.toPx() }
+                                pullProgress > 0f -> with(density) { (80.dp * pullProgress).toPx().coerceIn(0f, 96.dp.toPx()) }
+                                else -> 0f
+                            },
+                        animationSpec =
+                            androidx.compose.animation.core
+                                .spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow),
+                        label = "gamesContentTranslationY",
+                    )
+
                     LazyColumn(
                         modifier =
                             Modifier
                                 .fillMaxSize()
+                                .graphicsLayer { translationY = contentTranslationY }
                                 .padding(horizontal = 16.dp),
                         contentPadding = PaddingValues(top = 8.dp, bottom = 100.dp),
                         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -484,7 +491,7 @@ private fun GamesInfoBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         dragHandle = {
             dev.auriya.app.ui.components
                 .AuriyaDragHandle()

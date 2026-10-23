@@ -17,14 +17,14 @@ enum class NavType { LEGACY, MODERN }
 enum class DarkThemeMode { FOLLOW_SYSTEM, LIGHT, DARK }
 
 data class ThemePrefs(
-    val seedColor: Int,
-    val useDynamicColor: Boolean,
-    val navMode: NavMode,
-    val navType: NavType,
-    val cornerRadius: Int,
-    val darkThemeMode: DarkThemeMode,
-    val isAmoled: Boolean,
-    val isSetupCompleted: Boolean,
+    val seedColor: Int = ThemeRepository.DEFAULT_SEED,
+    val useDynamicColor: Boolean = true,
+    val navMode: NavMode = NavMode.STANDARD,
+    val navType: NavType = NavType.LEGACY,
+    val cornerRadius: Int = 24,
+    val darkThemeMode: DarkThemeMode = DarkThemeMode.FOLLOW_SYSTEM,
+    val isAmoled: Boolean = false,
+    val isSetupCompleted: Boolean = false,
 ) {
     val isOobeCompleted: Boolean get() = isSetupCompleted
 }
@@ -41,7 +41,7 @@ class ThemeRepository(
         private val DARK_MODE = stringPreferencesKey("dark_theme_mode")
         private val AMOLED = intPreferencesKey("is_amoled")
         private val OOBE_COMPLETED = intPreferencesKey("oobe_completed")
-        const val DEFAULT_SEED = 0xFFFFB68E.toInt()
+        const val DEFAULT_SEED = 0xFF2E7D32.toInt()
     }
 
     val prefs: Flow<ThemePrefs> =

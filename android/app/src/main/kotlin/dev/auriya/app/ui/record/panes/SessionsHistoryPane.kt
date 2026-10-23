@@ -41,7 +41,7 @@ fun SessionsHistoryPane(
     Surface(
         modifier = modifier.fillMaxSize(),
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        color = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         if (sessions.isEmpty()) {
             Column(

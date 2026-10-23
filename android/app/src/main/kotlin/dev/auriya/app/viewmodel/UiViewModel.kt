@@ -219,22 +219,53 @@ class UiViewModel(
 
     fun detectRootEnvironment() {
         viewModelScope.launch(Dispatchers.IO) {
-            val env =
-                dev.auriya.app.data.RootManagerDetector
-                    .detect(getApplication<Application>())
-            _rootEnvironment.value = env
+            detectRootEnvironmentSync()
         }
     }
 
-    fun refresh(onComplete: () -> Unit = {}) {
+    private suspend fun detectRootEnvironmentSync() {
+        val env =
+            dev.auriya.app.data.RootManagerDetector
+                .detect(getApplication<Application>())
+        _rootEnvironment.value = env
+    }
+
+    fun refresh(
+        pm: PackageManager? = null,
+        onComplete: () -> Unit = {},
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
+            val startTime = System.currentTimeMillis()
             val root = RootShell.hasRoot()
             _hasRoot.value = root
             if (root) {
                 loadAvailableGovernors()
-                loadConfigurations()
-                detectRootEnvironment()
+                loadConfigurationsSync()
+                initSystemInfoStaticSync()
+                detectRootEnvironmentSync()
                 runCatching { pollOnce() }
+            }
+            val targetPm = pm ?: getApplication<Application>().packageManager
+            runCatching {
+                val apps =
+                    targetPm
+                        .getInstalledApplications(PackageManager.GET_META_DATA)
+                        .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
+                        .map { appInfo ->
+                            val label =
+                                runCatching {
+                                    targetPm.getApplicationLabel(appInfo).toString()
+                                }.getOrDefault(appInfo.packageName)
+                            AppInfoItem(packageName = appInfo.packageName, label = label)
+                        }.sortedBy { it.label.lowercase() }
+                _installedApps.value = apps
+            }
+            runCatching {
+                benchmarkRecorder.loadSessions()
+            }
+            val elapsed = System.currentTimeMillis() - startTime
+            if (elapsed < 650) {
+                kotlinx.coroutines.delay(650 - elapsed)
             }
             withContext(Dispatchers.Main) {
                 onComplete()
@@ -267,78 +298,86 @@ class UiViewModel(
             }
     }
 
+    private fun loadConfigurationsSync() {
+        _thermalAvailable.value =
+            RootShell
+                .run("test -f /sys/class/thermal/thermal_message/sconfig && echo 1 || echo 0")
+                .trim() == "1"
+        runCatching {
+            RootShell.readText(ConfigPaths.SETTINGS_FILE)?.let {
+                _settings.value = TomlParser.parseSettings(it)
+            }
+            RootShell.readText(ConfigPaths.GAMELIST_FILE)?.let {
+                _gameList.value = TomlParser.parseGameList(it)
+            }
+        }.onFailure { it.printStackTrace() }
+    }
+
     fun loadConfigurations() {
         viewModelScope.launch(Dispatchers.IO) {
-            _thermalAvailable.value =
-                RootShell
-                    .run("test -f /sys/class/thermal/thermal_message/sconfig && echo 1 || echo 0")
-                    .trim() == "1"
-            runCatching {
-                RootShell.readText(ConfigPaths.SETTINGS_FILE)?.let {
-                    _settings.value = TomlParser.parseSettings(it)
-                }
-                RootShell.readText(ConfigPaths.GAMELIST_FILE)?.let {
-                    _gameList.value = TomlParser.parseGameList(it)
-                }
-            }.onFailure { it.printStackTrace() }
+            loadConfigurationsSync()
         }
     }
 
     private fun initSystemInfoStatic() {
         viewModelScope.launch(Dispatchers.IO) {
-            val modPath = "/data/adb/modules/auriya"
-            val out =
-                RootShell.run(
-                    """
-                    grep "^version=" $modPath/module.prop | cut -d= -f2; echo "|||";
-                    grep "^versionCode=" $modPath/module.prop | cut -d= -f2; echo "|||";
-                    getprop ro.product.cpu.abi; echo "|||";
-                    stat -c %Y $modPath/module.prop
-                    """.trimIndent(),
-                )
-            if (out.isEmpty()) return@launch
-            val parts = out.split("|||").map { it.trim() }
-            val version = parts.getOrNull(0)?.ifEmpty { "Unknown" } ?: "Unknown"
-            val commit = parts.getOrNull(1)?.ifEmpty { "Unknown" } ?: "Unknown"
-            var arch = parts.getOrNull(2)?.ifEmpty { "Unknown" } ?: "Unknown"
-            arch =
-                when {
-                    arch.contains("arm64") -> "v8a"
-                    arch.contains("armeabi") -> "v7a"
-                    arch.contains("x86_64") -> "x64"
-                    arch.contains("x86") -> "x86"
-                    else -> arch
-                }
+            initSystemInfoStaticSync()
+        }
+    }
 
-            var updateTimeStr = "Unknown"
-            parts.getOrNull(3)?.toLongOrNull()?.let { modTime ->
-                val diff = (System.currentTimeMillis() / 1000) - modTime
-                updateTimeStr =
-                    when {
-                        diff < 3600 -> "Updated ${diff / 60}m ago"
-                        diff < 86400 -> "Updated ${diff / 3600}h ago"
-                        else -> "Updated ${diff / 86400}d ago"
-                    }
+    private fun initSystemInfoStaticSync() {
+        val modPath = "/data/adb/modules/auriya"
+        val out =
+            RootShell.run(
+                """
+                grep "^version=" $modPath/module.prop | cut -d= -f2; echo "|||";
+                grep "^versionCode=" $modPath/module.prop | cut -d= -f2; echo "|||";
+                getprop ro.product.cpu.abi; echo "|||";
+                stat -c %Y $modPath/module.prop
+                """.trimIndent(),
+            )
+        if (out.isEmpty()) return
+        val parts = out.split("|||").map { it.trim() }
+        val version = parts.getOrNull(0)?.ifEmpty { "Unknown" } ?: "Unknown"
+        val commit = parts.getOrNull(1)?.ifEmpty { "Unknown" } ?: "Unknown"
+        var arch = parts.getOrNull(2)?.ifEmpty { "Unknown" } ?: "Unknown"
+        arch =
+            when {
+                arch.contains("arm64") -> "v8a"
+                arch.contains("armeabi") -> "v7a"
+                arch.contains("x86_64") -> "x64"
+                arch.contains("x86") -> "x86"
+                else -> arch
             }
 
-            _systemInfo.value =
-                _systemInfo.value.copy(
-                    version = version,
-                    commit = commit,
-                    arch = arch,
-                    deviceArch = arch,
-                    updateTime = updateTimeStr,
-                    kernel = System.getProperty("os.version") ?: "Unknown",
-                    chipset =
-                        android.os.Build.BOARD
-                            .ifEmpty { android.os.Build.HARDWARE },
-                    codename = android.os.Build.DEVICE,
-                    sdk =
-                        android.os.Build.VERSION.SDK_INT
-                            .toString(),
-                    androidVersion = "Android ${android.os.Build.VERSION.RELEASE}",
-                )
+        var updateTimeStr = "Unknown"
+        parts.getOrNull(3)?.toLongOrNull()?.let { modTime ->
+            val diff = (System.currentTimeMillis() / 1000) - modTime
+            updateTimeStr =
+                when {
+                    diff < 3600 -> "Updated ${diff / 60}m ago"
+                    diff < 86400 -> "Updated ${diff / 3600}h ago"
+                    else -> "Updated ${diff / 86400}d ago"
+                }
         }
+
+        _systemInfo.value =
+            _systemInfo.value.copy(
+                version = version,
+                commit = commit,
+                arch = arch,
+                deviceArch = arch,
+                updateTime = updateTimeStr,
+                kernel = System.getProperty("os.version") ?: "Unknown",
+                chipset =
+                    android.os.Build.BOARD
+                        .ifEmpty { android.os.Build.HARDWARE },
+                codename = android.os.Build.DEVICE,
+                sdk =
+                    android.os.Build.VERSION.SDK_INT
+                        .toString(),
+                androidVersion = "Android ${android.os.Build.VERSION.RELEASE}",
+            )
     }
 
     private fun startMonitoring() {
@@ -362,18 +401,30 @@ class UiViewModel(
     }
 
     private fun pollOnce() {
+        val currentProfileFile = RootShell.readText(ConfigPaths.CURRENT_PROFILE_FILE)?.trim()
         val rawProfile =
-            _settings.value.daemon.defaultMode
-                .ifEmpty { _currentProfile.value }
-        val profileStr =
-            when (rawProfile.lowercase()) {
-                "performance" -> "Performance"
-                "balance" -> "Balance"
-                "powersave" -> "Powersave"
-                "fast" -> "Fast"
-                "" -> "Unknown"
-                else -> rawProfile.replaceFirstChar { it.uppercase() }
+            if (!currentProfileFile.isNullOrEmpty()) {
+                when (currentProfileFile) {
+                    "1" -> "Performance"
+                    "2" -> "Balance"
+                    "3" -> "Powersave"
+                    "4" -> "Fast"
+                    else -> currentProfileFile.replaceFirstChar { it.uppercase() }
+                }
+            } else {
+                val fromSettings =
+                    _settings.value.daemon.defaultMode
+                        .ifEmpty { _currentProfile.value }
+                when (fromSettings.lowercase()) {
+                    "performance" -> "Performance"
+                    "balance" -> "Balance"
+                    "powersave" -> "Powersave"
+                    "fast" -> "Fast"
+                    "" -> "Unknown"
+                    else -> fromSettings.replaceFirstChar { it.uppercase() }
+                }
             }
+        val profileStr = rawProfile
 
         // Native battery percentage query without shell
         val bm =
@@ -410,7 +461,7 @@ class UiViewModel(
 
             val ram =
                 if (daemonActiveBool && rss != null && rss != "-" && rss.toIntOrNull() != null) {
-                    "${String.format("%.1f", rss.toDouble() / 1024.0)} MB"
+                    "${String.format(java.util.Locale.US, "%.1f", rss.toDouble() / 1024.0)} MB"
                 } else {
                     "-"
                 }
@@ -424,7 +475,7 @@ class UiViewModel(
                     daemonStatus = if (daemonActiveBool) "working" else "stopped",
                     ram = ram,
                 )
-            if (rawProfile.isNotEmpty()) _currentProfile.value = rawProfile
+            if (rawProfile.isNotEmpty()) _currentProfile.value = rawProfile.lowercase()
         }
 
         // Foreground app from status file (root-only read).

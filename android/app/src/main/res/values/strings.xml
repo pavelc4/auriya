@@ -367,7 +367,7 @@
     <string name="overlay_cpu_style">CPU Metric Style</string>
     <string name="overlay_layout_orientation">Layout Orientation</string>
     <string name="settings_app_title">App</string>
-    <string name="settings_app_sub">General application settings, language, and developer tools</string>
+    <string name="settings_app_sub">General application settings and developer tools</string>
     <string name="settings_sec_root_env">ROOT ENVIRONMENT</string>
     <string name="games_priority_notif_sub">Priority notifications on launch</string>
     <string name="games_auto_bench_sub">Record benchmark session automatically on game launch</string>

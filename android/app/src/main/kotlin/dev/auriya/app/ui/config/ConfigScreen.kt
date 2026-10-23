@@ -146,13 +146,14 @@ fun ConfigScreen(viewModel: UiViewModel) {
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceContainer),
+                .background(MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         // --- 1. TOP PINNED HEADER AREA ---
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(start = 16.dp, end = 20.dp, top = 14.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -253,7 +254,7 @@ fun ConfigScreen(viewModel: UiViewModel) {
                     .fillMaxWidth()
                     .weight(1f),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+            color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             AnimatedContent(
                 targetState = activeSubScreen,

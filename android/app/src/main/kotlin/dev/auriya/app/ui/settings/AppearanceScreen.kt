@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.DarkMode
@@ -44,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,7 +55,6 @@ import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.data.NavMode
 import dev.auriya.app.ui.components.ClickableSettingItem
 import dev.auriya.app.ui.components.ExpressiveSelectableCard
-import dev.auriya.app.ui.components.PalettePickerSettingItem
 import dev.auriya.app.ui.components.SettingsSubsection
 import dev.auriya.app.ui.components.SwitchSettingItem
 import dev.auriya.app.ui.components.animatedItemShapeFor
@@ -61,12 +62,14 @@ import dev.auriya.app.ui.components.itemShapeFor
 import dev.auriya.app.ui.components.rememberGroupedItemShape
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.ui.theme.GoogleSansRounded
+import dev.auriya.app.util.LocaleHelper
 import dev.auriya.app.viewmodel.ThemeViewModel
 
 @Composable
 fun AppearanceScreen(
     themeViewModel: ThemeViewModel,
     onDismiss: () -> Unit,
+    onNavigateToLanguage: () -> Unit = {},
 ) {
     val prefs by themeViewModel.prefs.collectAsStateWithLifecycle()
     val currentPrefs = prefs ?: return
@@ -84,28 +87,6 @@ fun AppearanceScreen(
         return
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "themePulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1.0f,
-        targetValue = 1.25f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(1200, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-        label = "pulseScale",
-    )
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.6f,
-        targetValue = 0.0f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(1200, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-        label = "pulseAlpha",
-    )
-
     val isSystemDark = isSystemInDarkTheme()
     val isDarkActive =
         when (currentPrefs.darkThemeMode) {
@@ -120,13 +101,14 @@ fun AppearanceScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceContainer),
+                .background(MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         // --- 1. TOP PINNED HEADER AREA ---
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(start = 16.dp, end = 20.dp, top = 14.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -176,7 +158,7 @@ fun AppearanceScreen(
                     .fillMaxWidth()
                     .weight(1f),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+            color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             LazyColumn(
                 modifier =
@@ -243,62 +225,27 @@ fun AppearanceScreen(
                     }
                 }
 
-                // --- 2. COLOR & CONTRAST SUBSECTION ---
+                // --- 2. CONTRAST SUBSECTION ---
                 item {
                     SettingsSubsection(
                         title =
                             androidx.compose.ui.res
                                 .stringResource(dev.auriya.app.R.string.appearance_global_theme),
                     ) {
-                        val isCustomPaletteVisible = !currentPrefs.useDynamicColor
-                        val isAmoledVisible = isDarkActive
-                        val themeItemCount = 1 + (if (isCustomPaletteVisible) 1 else 0) + (if (isAmoledVisible) 1 else 0)
-                        var currentIndex = 0
-
-                        // Dynamic Color
                         SwitchSettingItem(
                             title =
                                 androidx.compose.ui.res
-                                    .stringResource(dev.auriya.app.R.string.appearance_dynamic_color),
+                                    .stringResource(dev.auriya.app.R.string.appearance_amoled),
                             subtitle =
                                 androidx.compose.ui.res
-                                    .stringResource(dev.auriya.app.R.string.appearance_dynamic_color_desc),
-                            checked = currentPrefs.useDynamicColor,
-                            onCheckedChange = themeViewModel::setUseDynamicColor,
-                            icon = Icons.Rounded.Palette,
+                                    .stringResource(dev.auriya.app.R.string.appearance_amoled_desc),
+                            checked = currentPrefs.isAmoled,
+                            onCheckedChange = themeViewModel::setAmoled,
+                            icon = Icons.Rounded.DarkMode,
                             iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            shape = itemShapeFor(currentIndex++, themeItemCount),
+                            shape = itemShapeFor(0, 1),
                         )
-
-                        // Custom Palette Swatches (Directly below Dynamic Color)
-                        if (isCustomPaletteVisible) {
-                            PalettePickerSettingItem(
-                                seedColor = currentPrefs.seedColor,
-                                onSeedChange = themeViewModel::setSeedColor,
-                                pulseScale = pulseScale,
-                                pulseAlpha = pulseAlpha,
-                                shape = itemShapeFor(currentIndex++, themeItemCount),
-                            )
-                        }
-
-                        // Pure Black (AMOLED)
-                        if (isAmoledVisible) {
-                            SwitchSettingItem(
-                                title =
-                                    androidx.compose.ui.res
-                                        .stringResource(dev.auriya.app.R.string.appearance_amoled),
-                                subtitle =
-                                    androidx.compose.ui.res
-                                        .stringResource(dev.auriya.app.R.string.appearance_amoled_desc),
-                                checked = currentPrefs.isAmoled,
-                                onCheckedChange = themeViewModel::setAmoled,
-                                icon = Icons.Rounded.DarkMode,
-                                iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                shape = itemShapeFor(currentIndex++, themeItemCount),
-                            )
-                        }
                     }
                 }
 
@@ -349,6 +296,41 @@ fun AppearanceScreen(
                                 shape = itemShapeFor(navIndex++, navItemCount),
                             )
                         }
+                    }
+                }
+
+                // --- 4. LANGUAGE SUBSECTION ---
+                item {
+                    val context = LocalContext.current
+                    val currentLangCode = LocaleHelper.getCurrentLanguage(context)
+                    val currentLangLabel =
+                        if (currentLangCode == LocaleHelper.SYSTEM) {
+                            androidx.compose.ui.res
+                                .stringResource(R.string.language_system)
+                        } else {
+                            val loc = java.util.Locale.forLanguageTag(currentLangCode)
+                            loc.getDisplayName(loc).replaceFirstChar {
+                                if (it.isLowerCase()) it.titlecase(loc) else it.toString()
+                            }
+                        }
+
+                    SettingsSubsection(
+                        title =
+                            androidx.compose.ui.res
+                                .stringResource(R.string.settings_app_language),
+                    ) {
+                        ClickableSettingItem(
+                            title =
+                                androidx.compose.ui.res
+                                    .stringResource(R.string.settings_app_language),
+                            subtitle = currentLangLabel,
+                            onClick = onNavigateToLanguage,
+                            icon = Icons.Filled.Translate,
+                            iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            shape = itemShapeFor(0, 1),
+                            showChevron = true,
+                        )
                     }
                 }
             }
