@@ -9,6 +9,7 @@ mod fas;
 mod gamelist;
 mod init;
 mod pid_tracker;
+mod pipeline;
 mod platform;
 mod procfs;
 mod settings;

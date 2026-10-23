@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct Settings {
     #[serde(default)]
     pub daemon: DaemonConfig,
@@ -111,6 +111,34 @@ impl Default for ThermalConfig {
         Self {
             enabled: default_thermal_enabled(),
             default: None,
+        }
+    }
+}
+
+impl Default for CpuConfig {
+    fn default() -> Self {
+        Self {
+            default_governor: "schedutil".to_string(),
+        }
+    }
+}
+
+impl Default for DndConfig {
+    fn default() -> Self {
+        Self {
+            default_enable: true,
+        }
+    }
+}
+
+impl Default for FasConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            default_mode: "balance".to_string(),
+            thermal_threshold: 90.0,
+            poll_interval_ms: default_poll_interval(),
+            target_fps: default_target_fps(),
         }
     }
 }
