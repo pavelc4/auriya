@@ -1,7 +1,8 @@
 use crate::platform::android_cmd::{self as cmd_writer, DndFilter};
 use crate::platform::{
+    common::{init, memory, sched, storage, touchpanel},
     cpu::{governor as paths, topology as cpu},
-    gpu, init, memory, sched, storage, touchpanel,
+    gpu,
     vendor::{detect as soc, mtk, snapdragon},
 };
 use anyhow::Result;
