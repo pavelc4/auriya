@@ -5,7 +5,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.util.Log
+import dev.auriya.service.CLog
 import dev.auriya.service.SystemServices
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
@@ -15,7 +15,6 @@ class TaskStackSensor(
     private val sink: SensorSink,
 ) {
     private companion object {
-        private const val TAG = "AuriyaTaskStack"
         private const val FALLBACK_POLL_MS = 1000L
     }
 
@@ -26,10 +25,10 @@ class TaskStackSensor(
     fun start() {
         if (registerBinderListener()) {
             binderRegistered = true
-            Log.i(TAG, "TaskStackListener registered via binder")
+            CLog.status("TaskStackListener registered via binder")
             emitCurrentForeground()
         } else {
-            Log.w(TAG, "binder API unavailable; falling back to polling")
+            CLog.warn("binder API unavailable; falling back to polling")
         }
         schedulePoll()
     }
@@ -58,7 +57,7 @@ class TaskStackSensor(
             registerMethod.invoke(atm, listenerProxy)
             true
         } catch (t: Throwable) {
-            Log.w(TAG, "binder registration failed: ${t.message}")
+            CLog.warn("binder registration failed", t)
             false
         }
 

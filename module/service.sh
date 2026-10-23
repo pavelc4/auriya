@@ -130,6 +130,16 @@ rm -f "$STATUS_FILE" "$COMPANION_LOCK"
       break
     fi
 
+    # Supervise companion: auto-revive if killed or unexpectedly terminated
+    if ! pgrep -f AuriyaSysMon >/dev/null 2>&1; then
+      log -t auriya "Companion stopped unexpectedly, auto-reviving..."
+      nohup app_process -Djava.class.path="$COMPANION_APK" \
+        /system/bin --nice-name=AuriyaSysMon \
+        dev.auriya.service.Main \
+        >>"$COMPANION_LOG" 2>&1 &
+      sleep 2
+    fi
+
     # Supervise daemon: auto-revive if killed or unexpectedly terminated
     if ! pidof auriya >/dev/null 2>&1; then
       if [ -f "$STATUS_FILE" ]; then
@@ -151,7 +161,6 @@ if [ -f "$COMPANION_LOG" ]; then
     mv "$COMPANION_LOG" "$COMPANION_LOG.1"
   fi
 fi
-echo "=== Companion starting at $(date) ===" >>"$COMPANION_LOG"
 log -t auriya "Starting Auriya companion service..."
 
 # Launch the headless Kotlin companion via app_process so it inherits

@@ -26,13 +26,13 @@ object Main {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        Log.i(TAG, "starting Auriya companion service")
+        CLog.status("starting Auriya companion service")
 
         Looper.prepareMainLooper()
 
         val lockFile = LockFile(File(ConfigPaths.COMPANION_LOCK_FILE))
         if (!lockFile.tryAcquire()) {
-            Log.e(TAG, "another companion is already running; exiting")
+            CLog.error("another companion is already running; exiting")
             exitProcess(1)
         }
         Runtime.getRuntime().addShutdownHook(Thread { lockFile.close() })
@@ -67,7 +67,7 @@ object Main {
         zen.start()
         cmdReader.start()
 
-        Log.i(TAG, "sensors + actuator started, parking main looper")
+        CLog.status("sensors and actuators started, parking main looper")
 
         Looper.loop()
     }
@@ -126,7 +126,7 @@ object Main {
                 val snapshot = state.get().toSystemStatus()
                 pending.set(null)
                 writer.write(snapshot) { t ->
-                    Log.e(TAG, "status write failed", t)
+                    CLog.error("status write failed", t)
                 }
             }
         }

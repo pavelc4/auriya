@@ -1,6 +1,6 @@
 package dev.auriya.service.actuator
 
-import android.util.Log
+import dev.auriya.service.CLog
 
 /**
  * Drives the device's preferred refresh rate via Settings.System.
@@ -27,7 +27,6 @@ class DisplayActuator(
     private val settings: SettingsHelper,
 ) {
     private companion object {
-        private const val TAG = "AuriyaDisplay"
         private const val KEY_PEAK = "peak_refresh_rate"
         private const val KEY_MIN = "min_refresh_rate"
     }
@@ -43,7 +42,7 @@ class DisplayActuator(
      */
     fun apply(rateHz: Int) {
         if (rateHz < 0) {
-            Log.w(TAG, "ignoring negative refresh rate $rateHz")
+            CLog.warn("ignoring negative refresh rate $rateHz")
             return
         }
         if (rateHz == lastApplied) return
@@ -54,11 +53,11 @@ class DisplayActuator(
                 captureSnapshotIfNeeded()
                 settings.putFloat(KEY_PEAK, rateHz.toFloat())
                 settings.putFloat(KEY_MIN, rateHz.toFloat())
-                Log.i(TAG, "set refresh rate to ${rateHz}Hz (min+peak)")
+                CLog.status("set refresh rate to ${rateHz}Hz (min+peak)")
             }
             lastApplied = rateHz
         } catch (t: Throwable) {
-            Log.e(TAG, "failed to apply refresh rate $rateHz", t)
+            CLog.error("failed to apply refresh rate $rateHz", t)
         }
     }
 
@@ -67,7 +66,7 @@ class DisplayActuator(
         savedMin = readFloatOrNull(KEY_MIN)
         savedPeak = readFloatOrNull(KEY_PEAK)
         snapshotTaken = true
-        Log.i(TAG, "captured original rates: min=$savedMin peak=$savedPeak")
+        CLog.debug("captured original rates: min=$savedMin peak=$savedPeak")
     }
 
     private fun restoreSnapshot() {
@@ -83,7 +82,7 @@ class DisplayActuator(
         } else {
             settings.remove(KEY_PEAK)
         }
-        Log.i(TAG, "restored refresh rate (min=$min peak=$peak)")
+        CLog.status("restored refresh rate (min=$min peak=$peak)")
     }
 
     private fun readFloatOrNull(key: String): Float? = settings.getFloatOrNull(key)

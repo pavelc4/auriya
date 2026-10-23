@@ -1,11 +1,8 @@
 package dev.auriya.service
 
 import android.os.IBinder
-import android.util.Log
 
 object SystemServices {
-    private const val TAG = "AuriyaSysSvc"
-
     private val getService by lazy {
         val sm = Class.forName("android.os.ServiceManager")
         sm.getMethod("getService", String::class.java)
@@ -15,7 +12,7 @@ object SystemServices {
         try {
             getService.invoke(null, name) as? IBinder
         } catch (t: Throwable) {
-            Log.w(TAG, "ServiceManager.getService($name) failed", t)
+            CLog.warn("ServiceManager.getService($name) failed", t)
             null
         }
 
@@ -25,7 +22,7 @@ object SystemServices {
             val cl = Class.forName("android.os.IPowerManager\$Stub")
             cl.getMethod("asInterface", IBinder::class.java).invoke(null, binder)
         } catch (t: Throwable) {
-            Log.w(TAG, "IPowerManager.Stub.asInterface failed", t)
+            CLog.warn("IPowerManager.Stub.asInterface failed", t)
             null
         }
     }
@@ -36,7 +33,7 @@ object SystemServices {
             val cl = Class.forName("android.app.INotificationManager\$Stub")
             cl.getMethod("asInterface", IBinder::class.java).invoke(null, binder)
         } catch (t: Throwable) {
-            Log.w(TAG, "INotificationManager.Stub.asInterface failed", t)
+            CLog.warn("INotificationManager.Stub.asInterface failed", t)
             null
         }
     }
@@ -47,7 +44,7 @@ object SystemServices {
             val cl = Class.forName("android.app.IActivityManager\$Stub")
             cl.getMethod("asInterface", IBinder::class.java).invoke(null, binder)
         } catch (t: Throwable) {
-            Log.w(TAG, "IActivityManager.Stub.asInterface failed", t)
+            CLog.warn("IActivityManager.Stub.asInterface failed", t)
             null
         }
     }
@@ -58,7 +55,7 @@ object SystemServices {
             val cl = Class.forName("android.app.IActivityTaskManager\$Stub")
             cl.getMethod("asInterface", IBinder::class.java).invoke(null, binder)
         } catch (t: Throwable) {
-            Log.w(TAG, "IActivityTaskManager.Stub.asInterface failed", t)
+            CLog.warn("IActivityTaskManager.Stub.asInterface failed", t)
             null
         }
     }
@@ -70,7 +67,7 @@ object SystemServices {
         try {
             service?.javaClass?.getMethod(method)?.invoke(service) as? Boolean
         } catch (t: Throwable) {
-            Log.w(TAG, "$method failed", t)
+            CLog.warn("$method failed", t)
             null
         }
 
@@ -81,7 +78,7 @@ object SystemServices {
         try {
             service?.javaClass?.getMethod(method)?.invoke(service) as? Int
         } catch (t: Throwable) {
-            Log.w(TAG, "$method failed", t)
+            CLog.warn("$method failed", t)
             null
         }
 
@@ -94,7 +91,7 @@ object SystemServices {
             val types = args.map { unbox(it?.javaClass ?: Any::class.java) }.toTypedArray()
             service?.javaClass?.getMethod(method, *types)?.invoke(service, *args) as? Int
         } catch (t: Throwable) {
-            Log.w(TAG, "$method failed", t)
+            CLog.warn("$method failed", t)
             null
         }
 
@@ -121,7 +118,7 @@ object SystemServices {
             val types = args.map { unbox(it?.javaClass ?: Any::class.java) }.toTypedArray()
             service?.javaClass?.getMethod(method, *types)?.invoke(service, *args)
         } catch (t: Throwable) {
-            Log.w(TAG, "$method failed", t)
+            CLog.warn("$method failed", t)
         }
     }
 }

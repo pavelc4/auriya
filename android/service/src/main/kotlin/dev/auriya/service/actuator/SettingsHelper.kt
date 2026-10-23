@@ -1,14 +1,10 @@
 package dev.auriya.service.actuator
 
-import android.util.Log
+import dev.auriya.service.CLog
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
 class SettingsHelper {
-    private companion object {
-        private const val TAG = "AuriyaSettings"
-    }
-
     fun getFloat(
         key: String,
         default: Float,
@@ -45,7 +41,7 @@ class SettingsHelper {
                     .redirectErrorStream(true)
                     .start()
             } catch (e: Exception) {
-                Log.e(TAG, "shell get exec failed", e)
+                CLog.error("shell get exec failed", e)
                 return null
             }
         return BufferedReader(InputStreamReader(proc.inputStream))
@@ -70,7 +66,7 @@ class SettingsHelper {
                     .start()
             proc.waitFor()
         } catch (e: Exception) {
-            Log.e(TAG, "shell delete exec failed: `settings delete $namespace $key`", e)
+            CLog.error("shell delete exec failed: `settings delete $namespace $key`", e)
         }
     }
 
@@ -88,7 +84,7 @@ class SettingsHelper {
                     .start()
             proc.waitFor()
         } catch (e: Exception) {
-            Log.e(TAG, "shell put exec failed: `settings put $namespace $key $value`", e)
+            CLog.error("shell put exec failed: `settings put $namespace $key $value`", e)
         }
     }
 }

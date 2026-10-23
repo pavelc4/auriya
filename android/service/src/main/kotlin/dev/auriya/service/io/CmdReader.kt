@@ -2,7 +2,7 @@ package dev.auriya.service.io
 
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
+import dev.auriya.service.CLog
 import dev.auriya.shared.model.Cmd
 import dev.auriya.shared.status.CmdFormat
 import java.io.File
@@ -27,7 +27,6 @@ class CmdReader(
     private val sink: (Cmd) -> Unit,
 ) {
     private companion object {
-        private const val TAG = "AuriyaCmdReader"
         private const val POLL_MS = 500L
     }
 
@@ -35,7 +34,7 @@ class CmdReader(
     private var lastSeq: Long = Long.MIN_VALUE
 
     fun start() {
-        Log.i(TAG, "polling ${target.path} every ${POLL_MS}ms")
+        CLog.debug("polling ${target.path} every ${POLL_MS}ms")
         handler.post(pollRunnable)
     }
 
@@ -57,7 +56,7 @@ class CmdReader(
             try {
                 target.readText(Charsets.UTF_8)
             } catch (t: Throwable) {
-                Log.w(TAG, "failed to read ${target.path}: ${t.message}")
+                CLog.warn("failed to read ${target.path}", t)
                 return
             }
         val cmd = CmdFormat.decode(text) ?: return
@@ -66,13 +65,13 @@ class CmdReader(
         // is a *new* command we must still dispatch, not drop.
         if (cmd.seq == lastSeq) return
         if (cmd.seq < lastSeq) {
-            Log.i(TAG, "seq jumped back from $lastSeq to ${cmd.seq} — daemon restarted")
+            CLog.status("seq jumped back from $lastSeq to ${cmd.seq} - daemon restarted")
         }
         lastSeq = cmd.seq
         try {
             sink(cmd)
         } catch (t: Throwable) {
-            Log.e(TAG, "actuator threw on cmd seq=${cmd.seq}", t)
+            CLog.error("actuator threw on cmd seq=${cmd.seq}", t)
         }
     }
 }
