@@ -99,7 +99,7 @@
     <string name="config_profiles_sub">Atur margin performa dan batas termal</string>
 
     <!-- Record & Benchmark -->
-    <string name="record_fps_details">FPS &amp; Frametime</string>
+    <string name="record_fps_details">Frame Time</string>
     <string name="record_fps_details_sub">Frame rate &amp; stabilitas real-time</string>
     <string name="record_thermals">Suhu &amp; Termal</string>
     <string name="record_thermals_sub">Sensor suhu CPU &amp; baterai</string>
@@ -266,7 +266,7 @@
     <!-- Record Panes Extra -->
     <string name="record_system_idle">Sistem Idle</string>
     <string name="record_active_game">Game Aktif</string>
-    <string name="record_fps_mean">FPS (Rata-rata)</string>
+    <string name="record_fps_mean">FPS</string>
     <string name="record_standby">STANDBY</string>
 
     <!-- Config Actions Popup -->
@@ -294,7 +294,7 @@
     <string name="record_power_drain">Daya terkuras</string>
     <string name="record_terminal_potential">Potensial terminal</string>
     <string name="record_pack_integrity">Integritas baterai</string>
-    <string name="record_fps_frametimes">FPS &amp; Waktu Frame</string>
+    <string name="record_fps_frametimes">Frame Time</string>
     <string name="record_recorded_sessions">Sesi Rekaman</string>
     <string name="record_fps_low" formatted="false">1% Low FPS</string>
     <string name="record_fps_peak">FPS Puncak</string>
@@ -321,6 +321,26 @@
     <string name="record_copy_markdown_sub">Ekspor ke Papan Klip</string>
     <string name="record_delete_session">Hapus Sesi Benchmark</string>
     <string name="record_delete_session_sub">Penghapusan Permanen</string>
+
+    <!-- Visualisasi Sesi Benchmark -->
+    <string name="record_chart_fps_title">Frame Rate (FPS)</string>
+    <string name="record_chart_stability_title">Distribusi Stabilitas</string>
+    <string name="record_chart_thermal_title">Suhu Termal (°C)</string>
+    <string name="record_chart_cpu_title">Beban CPU (%)</string>
+    <string name="record_tier_smooth">Lancar</string>
+    <string name="record_tier_stable">Stabil</string>
+    <string name="record_tier_drops">Turun</string>
+    <string name="record_tier_stutter">Patah-patah</string>
+    <string name="record_total_samples">Total Sampel: %1$d</string>
+    <string name="record_jank_events">Peristiwa Jank: %1$d</string>
+    <string name="record_legend_fps">FPS</string>
+    <string name="record_legend_1pct_low">1% Low</string>
+    <string name="record_legend_cpu_temp">Suhu CPU</string>
+    <string name="record_legend_battery_temp">Suhu Baterai</string>
+    <string name="record_stat_avg_peak_cpu">Rata-rata: %1$.1f%% • Puncak: %2$.1f%%</string>
+    <string name="record_timeline_perf">LINIMASA PERFORMA</string>
+    <string name="record_timeline_hardware">LINIMASA PERANGKAT KERAS &amp; TERMAL</string>
+    <string name="record_sec_thermal_peaks">PUNCAK TERMAL &amp; PERANGKAT KERAS</string>
 
     <!-- Settings, About & Floating Overlay Full Localization -->
     <string name="about_sec_license">Lisensi</string>

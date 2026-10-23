@@ -218,7 +218,7 @@ fun SessionPerformanceMetricsCard(
             ) {
                 DetailStatItem(
                     title = stringResource(R.string.record_fps_peak),
-                    value = AppPrefs.formatFps(session.maxFps, roundFps),
+                    value = "${AppPrefs.formatFps(session.maxFps, roundFps)} FPS",
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
                 )
                 DetailStatItem(

@@ -101,7 +101,7 @@
     <string name="config_profiles_sub">Fine-tune margins and thermal thresholds</string>
 
     <!-- Record & Benchmark -->
-    <string name="record_fps_details">FPS &amp; Frametimes</string>
+    <string name="record_fps_details">Frame Time</string>
     <string name="record_fps_details_sub">Real-time frame rates and stability</string>
     <string name="record_thermals">Thermals</string>
     <string name="record_thermals_sub">CPU and Battery temperature sensors</string>
@@ -274,7 +274,7 @@
     <!-- Record Panes Extra -->
     <string name="record_system_idle">System Idle</string>
     <string name="record_active_game">Active Game</string>
-    <string name="record_fps_mean">FPS (Mean)</string>
+    <string name="record_fps_mean">FPS</string>
     <string name="record_standby">STANDBY</string>
 
     <!-- Config Actions Popup -->
@@ -302,7 +302,7 @@
     <string name="record_power_drain">Power drain</string>
     <string name="record_terminal_potential">Terminal potential</string>
     <string name="record_pack_integrity">Pack integrity</string>
-    <string name="record_fps_frametimes">FPS &amp; Frametimes</string>
+    <string name="record_fps_frametimes">Frame Time</string>
     <string name="record_recorded_sessions">Recorded Sessions</string>
     <string name="record_fps_low" formatted="false">1% Low FPS</string>
     <string name="record_fps_peak">Peak FPS</string>
@@ -329,6 +329,26 @@
     <string name="record_copy_markdown_sub">Clipboard Export</string>
     <string name="record_delete_session">Delete Benchmark Session</string>
     <string name="record_delete_session_sub">Permanent Removal</string>
+
+    <!-- Benchmark Session Visualizations -->
+    <string name="record_chart_fps_title">Frame Rate (FPS)</string>
+    <string name="record_chart_stability_title">Stability Distribution</string>
+    <string name="record_chart_thermal_title">Thermals (°C)</string>
+    <string name="record_chart_cpu_title">CPU Load (%)</string>
+    <string name="record_tier_smooth">Smooth</string>
+    <string name="record_tier_stable">Stable</string>
+    <string name="record_tier_drops">Drops</string>
+    <string name="record_tier_stutter">Stutter</string>
+    <string name="record_total_samples">Total Samples: %1$d</string>
+    <string name="record_jank_events">Jank Events: %1$d</string>
+    <string name="record_legend_fps">FPS</string>
+    <string name="record_legend_1pct_low">1% Low</string>
+    <string name="record_legend_cpu_temp">CPU Temp</string>
+    <string name="record_legend_battery_temp">Battery Temp</string>
+    <string name="record_stat_avg_peak_cpu">Avg: %1$.1f%% • Peak: %2$.1f%%</string>
+    <string name="record_timeline_perf">PERFORMANCE TIMELINE</string>
+    <string name="record_timeline_hardware">HARDWARE &amp; THERMAL TIMELINES</string>
+    <string name="record_sec_thermal_peaks">THERMAL &amp; HARDWARE PEAKS</string>
 
     <!-- Settings, About & Floating Overlay Full Localization -->
     <string name="about_sec_license">License</string>

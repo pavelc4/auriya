@@ -9,9 +9,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.auriya.app.R
 import dev.auriya.app.data.AppPrefs
 import dev.auriya.app.data.stats.BenchmarkSession
 import dev.auriya.app.ui.record.components.SessionCpuLoadChartCard
@@ -28,7 +30,7 @@ fun SessionDetailPane(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val roundFps by AppPrefs.getInstance(context).roundFps.collectAsStateWithLifecycle()
+    val roundFps by remember(context) { AppPrefs.getInstance(context) }.roundFps.collectAsStateWithLifecycle()
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -48,6 +50,21 @@ fun SessionDetailPane(
                 SessionHeaderCard(session = session)
             }
 
+            // Thermal Peak Summary Section (Directly below game card)
+            item {
+                Text(
+                    text = stringResource(R.string.record_sec_thermal_peaks),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                )
+            }
+
+            item {
+                SessionThermalHardwareRow(session = session)
+            }
+
             // Hero Performance Metric Card
             item {
                 SessionPerformanceMetricsCard(
@@ -56,11 +73,20 @@ fun SessionDetailPane(
                 )
             }
 
-            // Timeline & Distribution Cards
+            // Stability Distribution (Directly below performance metrics)
+            if (session.samples.isNotEmpty()) {
+                item {
+                    SessionFpsDistributionCard(
+                        session = session,
+                    )
+                }
+            }
+
+            // Timeline Cards
             if (session.samples.size > 1) {
                 item {
                     Text(
-                        text = "PERFORMANCE TIMELINE",
+                        text = stringResource(R.string.record_timeline_perf),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -76,14 +102,8 @@ fun SessionDetailPane(
                 }
 
                 item {
-                    SessionFpsDistributionCard(
-                        session = session,
-                    )
-                }
-
-                item {
                     Text(
-                        text = "HARDWARE & THERMAL TIMELINES",
+                        text = stringResource(R.string.record_timeline_hardware),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -92,31 +112,16 @@ fun SessionDetailPane(
                 }
 
                 item {
-                    SessionThermalChartCard(
+                    SessionCpuLoadChartCard(
                         session = session,
                     )
                 }
 
                 item {
-                    SessionCpuLoadChartCard(
+                    SessionThermalChartCard(
                         session = session,
                     )
                 }
-            }
-
-            // Thermal Peak Summary Section
-            item {
-                Text(
-                    text = "THERMAL & HARDWARE PEAKS",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
-                )
-            }
-
-            item {
-                SessionThermalHardwareRow(session = session)
             }
         }
     }

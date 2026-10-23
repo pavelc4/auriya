@@ -36,9 +36,11 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.R
 import dev.auriya.app.data.stats.BenchmarkSession
 import dev.auriya.app.ui.theme.GoogleSansRounded
 
@@ -82,48 +84,14 @@ fun SessionThermalChartCard(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // 1. Header Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text(
-                        text = "Thermals Timeline",
-                        fontFamily = GoogleSansRounded,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = "Hardware temperatures over time in °C",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                session.maxCpuTemp?.let { peak ->
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        modifier = Modifier.height(30.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier.padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = "Peak: %.1f°C".format(peak),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontFamily = GoogleSansRounded,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                            )
-                        }
-                    }
-                }
-            }
+            // 1. Header Title
+            Text(
+                text = stringResource(R.string.record_chart_thermal_title),
+                fontFamily = GoogleSansRounded,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
 
             // 2. Interactive Tooltip Pill
             AnimatedVisibility(
@@ -315,7 +283,7 @@ fun SessionThermalChartCard(
                                         .background(cpuTempColor),
                             )
                             Text(
-                                text = "CPU Temp",
+                                text = stringResource(R.string.record_legend_cpu_temp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -337,7 +305,7 @@ fun SessionThermalChartCard(
                                         .background(batTempColor),
                             )
                             Text(
-                                text = "Battery Temp",
+                                text = stringResource(R.string.record_legend_battery_temp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,

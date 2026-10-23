@@ -29,9 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.R
 import dev.auriya.app.data.stats.BenchmarkSession
 import dev.auriya.app.ui.theme.GoogleSansRounded
 
@@ -70,8 +72,13 @@ fun SessionFpsDistributionCard(
     val secondaryColor = MaterialTheme.colorScheme.secondary
     val errorColor = MaterialTheme.colorScheme.error
 
+    val smoothLabel = stringResource(R.string.record_tier_smooth)
+    val stableLabel = stringResource(R.string.record_tier_stable)
+    val dropsLabel = stringResource(R.string.record_tier_drops)
+    val stutterLabel = stringResource(R.string.record_tier_stutter)
+
     val tiers =
-        remember(samples, targetFps) {
+        remember(samples, targetFps, smoothLabel, stableLabel, dropsLabel, stutterLabel) {
             val total = samples.size.toFloat()
             var smoothCount = 0
             var normalCount = 0
@@ -93,28 +100,28 @@ fun SessionFpsDistributionCard(
 
             listOf(
                 FpsTier(
-                    label = "Smooth",
+                    label = smoothLabel,
                     subtitle = "≥ ${smoothThreshold.toInt()} FPS",
                     count = smoothCount,
                     percentage = (smoothCount / total) * 100f,
                     color = primaryColor,
                 ),
                 FpsTier(
-                    label = "Stable",
+                    label = stableLabel,
                     subtitle = "${normalThreshold.toInt()}–${smoothThreshold.toInt()} FPS",
                     count = normalCount,
                     percentage = (normalCount / total) * 100f,
                     color = tertiaryColor,
                 ),
                 FpsTier(
-                    label = "Drops",
+                    label = dropsLabel,
                     subtitle = "${dropThreshold.toInt()}–${normalThreshold.toInt()} FPS",
                     count = dropCount,
                     percentage = (dropCount / total) * 100f,
                     color = secondaryColor,
                 ),
                 FpsTier(
-                    label = "Stutter",
+                    label = stutterLabel,
                     subtitle = "< ${dropThreshold.toInt()} FPS",
                     count = severeCount,
                     percentage = (severeCount / total) * 100f,
@@ -137,46 +144,14 @@ fun SessionFpsDistributionCard(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // 1. Header Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text(
-                        text = "Stability Distribution",
-                        fontFamily = GoogleSansRounded,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = "Target frame consistency percentage",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier.height(30.dp),
-                ) {
-                    Box(
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "Target: $targetFps FPS",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontFamily = GoogleSansRounded,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                    }
-                }
-            }
+            // 1. Header Title
+            Text(
+                text = stringResource(R.string.record_chart_stability_title),
+                fontFamily = GoogleSansRounded,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
 
             // 2. Horizontal Bars List (Modeled after Material 3 "Sales by region" reference)
             Column(
@@ -262,13 +237,13 @@ fun SessionFpsDistributionCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Total Samples: ${samples.size}",
+                        text = stringResource(R.string.record_total_samples, samples.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
                     )
                     Text(
-                        text = "Jank Events: ${session.totalJank}",
+                        text = stringResource(R.string.record_jank_events, session.totalJank),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = if (session.totalJank > 0) FontWeight.Bold else FontWeight.Normal,
                         color = if (session.totalJank > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,

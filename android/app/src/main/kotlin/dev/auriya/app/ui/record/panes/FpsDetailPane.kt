@@ -14,15 +14,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.auriya.app.R
 import dev.auriya.app.data.stats.BenchmarkSession
 import dev.auriya.app.data.stats.Fps
 import dev.auriya.app.data.stats.Session
 import dev.auriya.app.ui.record.components.FpsSparkline
+import dev.auriya.app.ui.record.components.SessionCpuLoadChartCard
+import dev.auriya.app.ui.record.components.SessionFpsChartCard
+import dev.auriya.app.ui.record.components.SessionFpsDistributionCard
+import dev.auriya.app.ui.record.components.SessionThermalChartCard
+import dev.auriya.app.ui.record.components.SessionThermalHardwareRow
 import dev.auriya.app.ui.record.components.formatDuration
 import dev.auriya.app.ui.theme.ExpTitleTypography
 
@@ -197,90 +204,6 @@ fun FpsDetailPane(
                 }
             }
 
-            // Real-time or Latest Session Sparkline Graph
-            item {
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text =
-                                    if (isLive) {
-                                        "Real-time FPS Stream"
-                                    } else if (lastSession !=
-                                        null
-                                    ) {
-                                        "Last Match Frametimes"
-                                    } else {
-                                        "FPS History"
-                                    },
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            if (lastSession != null && !isLive) {
-                                Text(
-                                    text = formatDuration(lastSession.durationSeconds),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-
-                        if (displayHistory.isNotEmpty()) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(120.dp),
-                            ) {
-                                FpsSparkline(
-                                    values = displayHistory,
-                                    lineColor = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            }
-                        } else {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(90.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.SportsEsports,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(26.dp),
-                                    )
-                                    Text(
-                                        text = "FPS sparkline will stream when a game is running",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 11.sp,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             // 4 Grid Metric Cards (populated with live or latest session data)
             item {
                 val low1Pct =
@@ -313,10 +236,8 @@ fun FpsDetailPane(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     DetailCard(
-                        title =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.record_fps_low),
-                        value = low1Pct,
+                        title = stringResource(R.string.record_fps_low),
+                        value = if (low1Pct != "--") "$low1Pct FPS" else "--",
                         desc = "Mean of slowest 1% frames (stutter)",
                         icon = Icons.AutoMirrored.Filled.TrendingDown,
                         modifier =
@@ -325,10 +246,8 @@ fun FpsDetailPane(
                                 .fillMaxHeight(),
                     )
                     DetailCard(
-                        title =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.record_fps_peak),
-                        value = peakFps,
+                        title = stringResource(R.string.record_fps_peak),
+                        value = if (peakFps != "--") "$peakFps FPS" else "--",
                         desc = "Fastest single frame render",
                         icon = Icons.Outlined.Speed,
                         modifier =
@@ -366,10 +285,8 @@ fun FpsDetailPane(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     DetailCard(
-                        title =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.record_jank_stutter),
-                        value = jank,
+                        title = stringResource(R.string.record_jank_stutter),
+                        value = if (jank != "--") "$jank frames" else "--",
                         desc = "Frames slower than target × 1.5",
                         icon = Icons.Outlined.WarningAmber,
                         modifier =
@@ -378,9 +295,7 @@ fun FpsDetailPane(
                                 .fillMaxHeight(),
                     )
                     DetailCard(
-                        title =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.record_sample_window),
+                        title = stringResource(R.string.record_sample_window),
                         value = samples,
                         desc = "Frame sample data points",
                         icon = Icons.Outlined.Analytics,
@@ -389,6 +304,128 @@ fun FpsDetailPane(
                                 .weight(1f)
                                 .fillMaxHeight(),
                     )
+                }
+            }
+
+            // All Session Charts (Imported when reviewing last match / session)
+            if (lastSession != null && lastSession.samples.size >= 2) {
+                // 1. Stability Distribution
+                item {
+                    SessionFpsDistributionCard(session = lastSession)
+                }
+
+                // 2. Performance Timeline (FPS & 1% Low)
+                item {
+                    Text(
+                        text = stringResource(R.string.record_timeline_perf),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                    )
+                }
+
+                item {
+                    SessionFpsChartCard(
+                        session = lastSession,
+                        roundFps = roundFps,
+                    )
+                }
+
+                // 3. Hardware & Thermal Timelines (CPU Load & Thermals)
+                item {
+                    Text(
+                        text = stringResource(R.string.record_timeline_hardware),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                    )
+                }
+
+                item {
+                    SessionCpuLoadChartCard(session = lastSession)
+                }
+
+                item {
+                    SessionThermalChartCard(session = lastSession)
+                }
+
+                // 4. Thermal & Hardware Peaks
+                item {
+                    Text(
+                        text = stringResource(R.string.record_sec_thermal_peaks),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                    )
+                }
+
+                item {
+                    SessionThermalHardwareRow(session = lastSession)
+                }
+            } else if (isLive || displayHistory.isNotEmpty()) {
+                // Real-time Live Stream Sparkline when playing
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = if (isLive) "Real-time FPS Stream" else "FPS History",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+
+                            if (displayHistory.isNotEmpty()) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(120.dp),
+                                ) {
+                                    FpsSparkline(
+                                        values = displayHistory,
+                                        lineColor = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+                            } else {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(90.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.SportsEsports,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(26.dp),
+                                        )
+                                        Text(
+                                            text = "FPS sparkline will stream when a game is running",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 11.sp,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
