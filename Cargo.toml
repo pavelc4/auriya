@@ -23,6 +23,18 @@ path = "src/ctl.rs"
 name = "tests"
 path = "tests/main.rs"
 
+[[test]]
+name = "tweak_stress"
+path = "tests/tweak_stress.rs"
+
+[[test]]
+name = "stream_perf"
+path = "tests/stream_perf.rs"
+
+[[test]]
+name = "watchdog_chaos"
+path = "tests/watchdog_chaos.rs"
+
 [profile.release]
 opt-level = "z"
 lto = "fat"
@@ -31,12 +43,12 @@ panic = "abort"
 strip = true
 
 [dependencies]
-anyhow = "1.0.102"
+anyhow = "1.0.104"
 notify = "8.2.0"
-toml = "1.1.2"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.150"
-tokio = { version = "1.52.3", default-features = false, features = [
+toml = "1.1.8"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tokio = { version = "1.54.1", default-features = false, features = [
   "rt",
   "net",
   "sync",
@@ -57,16 +69,26 @@ tracing-subscriber = { version = "0.3.23", default-features = false, features = 
   "smallvec",
   "time",
 ] }
-time = { version = "0.3", features = ["formatting"] }
-libc = "0.2.186"
-clap = { version = "4", features = ["derive", "color", "suggestions"] }
-memchr = "2.8.0"
+time = { version = "0.3.55", features = ["formatting"] }
+libc = "0.2.191"
+clap = { version = "4.6.7", features = ["derive", "color", "suggestions"] }
+memchr = "2.8.3"
 kala-ebpf = { git = "https://github.com/pavelc4/kala", branch = "main" }
 
 
 [dev-dependencies]
-dhat = "0.3"
-tempfile = "3"
+dhat = "0.3.3"
+nix = { version = "0.31.3", default-features = false, features = [
+  "user",
+  "signal",
+  "process",
+  "fs",
+] }
+sysinfo = { version = "0.39.6", default-features = false, features = [
+  "system",
+] }
+tempfile = "3.27.0"
+tokio-test = "0.4.6"
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
