@@ -77,17 +77,21 @@ async fn test_frame_stream_throughput_and_memory_stability() -> Result<(), Strin
     let peak_rss_tracker = Arc::clone(&peak_rss_bytes);
     let my_pid = Pid::from_u32(std::process::id());
 
+    let mut sys_initial = System::new();
+    sys_initial.refresh_processes(ProcessesToUpdate::Some(&[my_pid]), true);
+    if let Some(proc) = sys_initial.process(my_pid) {
+        peak_rss_bytes.fetch_max(proc.memory(), Ordering::Release);
+    }
+
     let monitor_handle = tokio::spawn(async move {
         let mut sys = System::new();
         while monitor_running.load(Ordering::Acquire) {
             sys.refresh_processes(ProcessesToUpdate::Some(&[my_pid]), true);
-            sys.refresh_cpu_usage();
-
             if let Some(process) = sys.process(my_pid) {
                 let current_mem = process.memory();
                 peak_rss_tracker.fetch_max(current_mem, Ordering::Release);
             }
-            tokio::time::sleep(Duration::from_millis(500)).await;
+            tokio::time::sleep(Duration::from_millis(5)).await;
         }
     });
 
@@ -126,6 +130,12 @@ async fn test_frame_stream_throughput_and_memory_stability() -> Result<(), Strin
     let bench_duration = bench_start.elapsed();
     running.store(false, Ordering::Release);
 
+    let mut sys_final = System::new();
+    sys_final.refresh_processes(ProcessesToUpdate::Some(&[my_pid]), true);
+    if let Some(proc) = sys_final.process(my_pid) {
+        peak_rss_bytes.fetch_max(proc.memory(), Ordering::Release);
+    }
+
     monitor_handle
         .await
         .map_err(|e| format!("Memory monitor task failure: {}", e))?;
@@ -133,6 +143,16 @@ async fn test_frame_stream_throughput_and_memory_stability() -> Result<(), Strin
     let avg_latency_us = (total_latency_us as f64) / (frames_processed as f64);
     let throughput_fps = (frames_processed as f64) / bench_duration.as_secs_f64();
     let final_peak_rss = peak_rss_bytes.load(Ordering::Acquire);
+
+    println!(
+        "\n--- STREAM PERF STATS ---\nFrames Processed: {}\nElapsed: {:?}\nThroughput: {:.0} fps\nLatency: {:.3} us/frame\nPeak RSS Memory: {} KB ({:.2} MB)\n-------------------------",
+        frames_processed,
+        bench_duration,
+        throughput_fps,
+        avg_latency_us,
+        final_peak_rss / 1024,
+        (final_peak_rss as f64) / (1024.0 * 1024.0)
+    );
 
     if final_peak_rss > MAX_RSS_MEMORY_BYTES {
         return Err(format!(

@@ -35,6 +35,10 @@ path = "tests/stream_perf.rs"
 name = "watchdog_chaos"
 path = "tests/watchdog_chaos.rs"
 
+[[test]]
+name = "loom_concurrency"
+path = "tests/loom_concurrency.rs"
+
 [profile.release]
 opt-level = "z"
 lto = "fat"
@@ -78,6 +82,7 @@ kala-ebpf = { git = "https://github.com/pavelc4/kala", branch = "main" }
 
 [dev-dependencies]
 dhat = "0.3.3"
+loom = { version = "0.7.2", features = ["futures"] }
 nix = { version = "0.31.3", default-features = false, features = [
   "user",
   "signal",
