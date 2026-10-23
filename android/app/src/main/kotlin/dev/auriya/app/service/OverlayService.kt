@@ -43,6 +43,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import dev.auriya.app.MainActivity
+import dev.auriya.app.data.OverlayPrefs
 import dev.auriya.app.data.RootShell
 import dev.auriya.app.data.stats.Stats
 import dev.auriya.app.data.stats.StatsParser
@@ -157,7 +158,7 @@ class OverlayService :
     }
 
     private fun createOverlay() {
-        val prefs = getSharedPreferences("auriya_overlay", MODE_PRIVATE)
+        val prefs = OverlayPrefs.getInstance(this)
         overlayView =
             ComposeView(this).apply {
                 setViewTreeLifecycleOwner(this@OverlayService)
@@ -165,27 +166,27 @@ class OverlayService :
                 setViewTreeViewModelStoreOwner(this@OverlayService)
                 setContent {
                     AuriyaTheme(prefs = null) {
-                        val showFps = prefs.getBoolean("show_fps", true)
-                        val showCpu = prefs.getBoolean("show_cpu", true)
-                        val showGpu = prefs.getBoolean("show_gpu", true)
-                        val showRam = prefs.getBoolean("show_ram", true)
-                        val showTemp = prefs.getBoolean("show_temp", true)
-                        val showBattery = prefs.getBoolean("show_battery", true)
+                        val showFps = prefs.showFps
+                        val showCpu = prefs.showCpu
+                        val showGpu = prefs.showGpu
+                        val showRam = prefs.showRam
+                        val showTemp = prefs.showTemp
+                        val showBattery = prefs.showBattery
                         val hasAnyMetric = showFps || showCpu || showGpu || showRam || showTemp || showBattery
-                        val monetEnabled = prefs.getBoolean("monet_enabled", true)
+                        val monetEnabled = prefs.monetEnabled
 
-                        val overlayPreset = prefs.getString("overlay_preset", "green_default") ?: "green_default"
-                        val customPrimary = prefs.getString("custom_primary", "#AAD2A4") ?: "#AAD2A4"
-                        val customSecondary = prefs.getString("custom_secondary", "#385E38") ?: "#385E38"
-                        val customTertiary = prefs.getString("custom_tertiary", "#8A9A5B") ?: "#8A9A5B"
+                        val overlayPreset = prefs.overlayPreset
+                        val customPrimary = prefs.customPrimary
+                        val customSecondary = prefs.customSecondary
+                        val customTertiary = prefs.customTertiary
 
-                        val textSizeSp = prefs.getFloat("text_size_sp", 12f)
-                        val bgOpacity = prefs.getFloat("bg_opacity", 0.7f)
-                        val paddingDp = prefs.getFloat("padding_dp", 12f)
-                        val cornerRadiusDp = prefs.getFloat("corner_radius_dp", 16f)
-                        val layoutStyle = prefs.getString("layout_style", "Horizontal") ?: "Horizontal"
-                        val overlayMode = prefs.getString("overlay_mode", "Full") ?: "Full"
-                        val cpuStyle = prefs.getString("cpu_style", "tags") ?: "tags"
+                        val textSizeSp = prefs.textSizeSp
+                        val bgOpacity = prefs.bgOpacity
+                        val paddingDp = prefs.paddingDp
+                        val cornerRadiusDp = prefs.cornerRadiusDp
+                        val layoutStyle = prefs.layoutStyle
+                        val overlayMode = prefs.overlayMode
+                        val cpuStyle = prefs.cpuStyle
 
                         if (hasAnyMetric) {
                             OverlayChip(
@@ -222,11 +223,8 @@ class OverlayService :
                                     overlayView?.let { wm.updateViewLayout(it, params) }
                                 },
                                 onDragEnd = {
-                                    prefs
-                                        .edit()
-                                        .putInt("overlay_x", params.x)
-                                        .putInt("overlay_y", params.y)
-                                        .apply()
+                                    prefs.overlayX = params.x
+                                    prefs.overlayY = params.y
                                 },
                             )
                         }
@@ -238,8 +236,8 @@ class OverlayService :
         val screenWidth = displayMetrics.widthPixels
         val screenHeight = displayMetrics.heightPixels
 
-        val posX = prefs.getInt("overlay_x", 50).coerceIn(0, (screenWidth - 100).coerceAtLeast(0))
-        val posY = prefs.getInt("overlay_y", 200).coerceIn(0, (screenHeight - 100).coerceAtLeast(0))
+        val posX = prefs.overlayX.coerceIn(0, (screenWidth - 100).coerceAtLeast(0))
+        val posY = prefs.overlayY.coerceIn(0, (screenHeight - 100).coerceAtLeast(0))
 
         params =
             WindowManager
@@ -259,8 +257,8 @@ class OverlayService :
     }
 
     private fun startPolling() {
-        val prefs = getSharedPreferences("auriya_overlay", MODE_PRIVATE)
-        val interval = prefs.getLong("update_interval_ms", 1000L).coerceIn(200L, 10000L)
+        val prefs = OverlayPrefs.getInstance(this)
+        val interval = prefs.updateIntervalMs.coerceIn(200L, 10000L)
 
         pollingJob =
             CoroutineScope(Dispatchers.IO + Job()).launch {

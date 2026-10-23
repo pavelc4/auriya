@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.data.OverlayPrefs
 import dev.auriya.app.data.RootShell
 import dev.auriya.app.ui.components.*
 import dev.auriya.app.ui.theme.AuriyaTokens
@@ -44,27 +45,27 @@ data class ColorPreset(
 @Composable
 fun FloatingOverlayContent(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences("auriya_overlay", Context.MODE_PRIVATE) }
-    var enableOverlay by remember { mutableStateOf(prefs.getBoolean("enabled", false)) }
-    var showFps by remember { mutableStateOf(prefs.getBoolean("show_fps", true)) }
-    var showCpu by remember { mutableStateOf(prefs.getBoolean("show_cpu", true)) }
-    var showGpu by remember { mutableStateOf(prefs.getBoolean("show_gpu", true)) }
-    var showRam by remember { mutableStateOf(prefs.getBoolean("show_ram", true)) }
-    var showTemp by remember { mutableStateOf(prefs.getBoolean("show_temp", true)) }
-    var showBattery by remember { mutableStateOf(prefs.getBoolean("show_battery", true)) }
-    var monetEnabled by remember { mutableStateOf(prefs.getBoolean("monet_enabled", true)) }
+    val prefs = remember { OverlayPrefs.getInstance(context) }
+    var enableOverlay by remember { mutableStateOf(prefs.enabled) }
+    var showFps by remember { mutableStateOf(prefs.showFps) }
+    var showCpu by remember { mutableStateOf(prefs.showCpu) }
+    var showGpu by remember { mutableStateOf(prefs.showGpu) }
+    var showRam by remember { mutableStateOf(prefs.showRam) }
+    var showTemp by remember { mutableStateOf(prefs.showTemp) }
+    var showBattery by remember { mutableStateOf(prefs.showBattery) }
+    var monetEnabled by remember { mutableStateOf(prefs.monetEnabled) }
 
-    var overlayPreset by remember { mutableStateOf(prefs.getString("overlay_preset", "gaming") ?: "gaming") }
+    var overlayPreset by remember { mutableStateOf(prefs.overlayPreset) }
 
-    var layoutStyle by remember { mutableStateOf(prefs.getString("layout_style", "Horizontal") ?: "Horizontal") }
-    var overlayMode by remember { mutableStateOf(prefs.getString("overlay_mode", "Full") ?: "Full") }
-    var cpuStyle by remember { mutableStateOf(prefs.getString("cpu_style", "tags") ?: "tags") }
-    var updateIntervalMs by remember { mutableStateOf(prefs.getLong("update_interval_ms", 1000L)) }
+    var layoutStyle by remember { mutableStateOf(prefs.layoutStyle) }
+    var overlayMode by remember { mutableStateOf(prefs.overlayMode) }
+    var cpuStyle by remember { mutableStateOf(prefs.cpuStyle) }
+    var updateIntervalMs by remember { mutableStateOf(prefs.updateIntervalMs) }
 
-    var textSizeSp by remember { mutableStateOf(prefs.getFloat("text_size_sp", 12f)) }
-    var bgOpacity by remember { mutableStateOf(prefs.getFloat("bg_opacity", 0.7f)) }
-    var paddingDp by remember { mutableStateOf(prefs.getFloat("padding_dp", 12f)) }
-    var cornerRadiusDp by remember { mutableStateOf(prefs.getFloat("corner_radius_dp", 16f)) }
+    var textSizeSp by remember { mutableStateOf(prefs.textSizeSp) }
+    var bgOpacity by remember { mutableStateOf(prefs.bgOpacity) }
+    var paddingDp by remember { mutableStateOf(prefs.paddingDp) }
+    var cornerRadiusDp by remember { mutableStateOf(prefs.cornerRadiusDp) }
 
     val hasOverlayPermission =
         remember {
@@ -100,11 +101,11 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                     ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
             } else {
-                prefs.edit().putBoolean("enabled", true).apply()
+                prefs.enabled = true
                 context.startService(Intent(context, dev.auriya.app.service.OverlayService::class.java))
             }
         } else {
-            prefs.edit().putBoolean("enabled", false).apply()
+            prefs.enabled = false
             context.stopService(Intent(context, dev.auriya.app.service.OverlayService::class.java))
         }
     }
@@ -198,7 +199,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 enabled = enableOverlay,
                 onCheckedChange = {
                     showFps = it
-                    prefs.edit().putBoolean("show_fps", it).apply()
+                    prefs.showFps = it
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.Speed,
@@ -216,7 +217,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 enabled = enableOverlay,
                 onCheckedChange = {
                     showCpu = it
-                    prefs.edit().putBoolean("show_cpu", it).apply()
+                    prefs.showCpu = it
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.Memory,
@@ -235,7 +236,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                     enabled = enableOverlay,
                     onCheckedChange = {
                         showGpu = it
-                        prefs.edit().putBoolean("show_gpu", it).apply()
+                        prefs.showGpu = it
                         restartOverlay(context)
                     },
                     icon = Icons.Rounded.DeveloperBoard,
@@ -254,7 +255,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 enabled = enableOverlay,
                 onCheckedChange = {
                     showRam = it
-                    prefs.edit().putBoolean("show_ram", it).apply()
+                    prefs.showRam = it
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.PieChart,
@@ -272,7 +273,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 enabled = enableOverlay,
                 onCheckedChange = {
                     showTemp = it
-                    prefs.edit().putBoolean("show_temp", it).apply()
+                    prefs.showTemp = it
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.Thermostat,
@@ -290,7 +291,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 enabled = enableOverlay,
                 onCheckedChange = {
                     showBattery = it
-                    prefs.edit().putBoolean("show_battery", it).apply()
+                    prefs.showBattery = it
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.BatteryChargingFull,
@@ -316,7 +317,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 selectedIndex = if (overlayMode == "Full") 0 else 1,
                 onItemSelected = {
                     overlayMode = if (it == 0) "Full" else "Minimal"
-                    prefs.edit().putString("overlay_mode", overlayMode).apply()
+                    prefs.overlayMode = overlayMode
                     restartOverlay(context)
                 },
                 shape = itemShapeFor(0, totalLayoutItems),
@@ -351,7 +352,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                             2 -> "pipe"
                             else -> "slash"
                         }
-                    prefs.edit().putString("cpu_style", cpuStyle).apply()
+                    prefs.cpuStyle = cpuStyle
                     restartOverlay(context)
                 },
                 shape = itemShapeFor(1, totalLayoutItems),
@@ -368,7 +369,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 selectedIndex = if (layoutStyle == "Horizontal") 0 else 1,
                 onItemSelected = {
                     layoutStyle = if (it == 0) "Horizontal" else "Vertical"
-                    prefs.edit().putString("layout_style", layoutStyle).apply()
+                    prefs.layoutStyle = layoutStyle
                     restartOverlay(context)
                 },
                 shape = itemShapeFor(2, totalLayoutItems),
@@ -394,7 +395,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 enabled = enableOverlay,
                 onCheckedChange = {
                     monetEnabled = it
-                    prefs.edit().putBoolean("monet_enabled", it).apply()
+                    prefs.monetEnabled = it
                     restartOverlay(context)
                 },
                 icon = Icons.Rounded.ColorLens,
@@ -473,7 +474,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                                     onClick = {
                                         if (enableOverlay) {
                                             overlayPreset = preset.id
-                                            prefs.edit().putString("overlay_preset", preset.id).apply()
+                                            prefs.overlayPreset = preset.id
                                             restartOverlay(context)
                                         }
                                     },
@@ -506,7 +507,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 onValueChange = {
                     val valueMs = (it * 1000).toLong().coerceIn(200L, 5000L)
                     updateIntervalMs = valueMs
-                    prefs.edit().putLong("update_interval_ms", valueMs).apply()
+                    prefs.updateIntervalMs = valueMs
                 },
                 onValueChangeFinished = { restartOverlay(context) },
                 valueRange = 0.2f..5.0f,
@@ -525,7 +526,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 value = textSizeSp,
                 onValueChange = {
                     textSizeSp = it
-                    prefs.edit().putFloat("text_size_sp", it).apply()
+                    prefs.textSizeSp = it
                 },
                 onValueChangeFinished = { restartOverlay(context) },
                 valueRange = 8f..20f,
@@ -544,7 +545,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 value = bgOpacity,
                 onValueChange = {
                     bgOpacity = it
-                    prefs.edit().putFloat("bg_opacity", it).apply()
+                    prefs.bgOpacity = it
                 },
                 onValueChangeFinished = { restartOverlay(context) },
                 valueRange = 0f..1f,
@@ -562,7 +563,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 value = paddingDp,
                 onValueChange = {
                     paddingDp = it
-                    prefs.edit().putFloat("padding_dp", it).apply()
+                    prefs.paddingDp = it
                 },
                 onValueChangeFinished = { restartOverlay(context) },
                 valueRange = 4f..24f,
@@ -580,7 +581,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 value = cornerRadiusDp,
                 onValueChange = {
                     cornerRadiusDp = it
-                    prefs.edit().putFloat("corner_radius_dp", it).apply()
+                    prefs.cornerRadiusDp = it
                 },
                 onValueChangeFinished = { restartOverlay(context) },
                 valueRange = 0f..32f,
@@ -646,8 +647,8 @@ private fun ColorPresetSwatch(
 }
 
 private fun restartOverlay(context: Context) {
-    val prefs = context.getSharedPreferences("auriya_overlay", Context.MODE_PRIVATE)
-    val enabled = prefs.getBoolean("enabled", false)
+    val prefs = OverlayPrefs.getInstance(context)
+    val enabled = prefs.enabled
     val hasPermission =
         android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M ||
             android.provider.Settings.canDrawOverlays(context)

@@ -86,8 +86,12 @@ fun GamesScreen(
 ) {
     val context = LocalContext.current
     val pm = context.packageManager
-    val sharedPrefs = remember { context.getSharedPreferences("auriya_ui", Context.MODE_PRIVATE) }
-    var bannerDismissed by remember { mutableStateOf(sharedPrefs.getBoolean("games_banner_dismissed", false)) }
+    val appPrefs =
+        remember {
+            dev.auriya.app.data.AppPrefs
+                .getInstance(context)
+        }
+    val bannerDismissed by appPrefs.gamesBannerDismissed.collectAsStateWithLifecycle()
 
     val gameList by viewModel.gameList.collectAsStateWithLifecycle()
     val installedApps by viewModel.installedApps.collectAsStateWithLifecycle()
@@ -386,8 +390,7 @@ fun GamesScreen(
                             item {
                                 HeroBanner(
                                     onDismiss = {
-                                        sharedPrefs.edit().putBoolean("games_banner_dismissed", true).apply()
-                                        bannerDismissed = true
+                                        appPrefs.setGamesBannerDismissed(true)
                                     },
                                 )
                             }

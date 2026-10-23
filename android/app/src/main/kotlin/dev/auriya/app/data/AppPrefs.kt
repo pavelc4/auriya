@@ -19,7 +19,10 @@ private const val PREFS_NAME = "auriya_app_prefs"
 private val Context.appPrefsDataStore by preferencesDataStore(
     name = PREFS_NAME,
     produceMigrations = { context ->
-        listOf(SharedPreferencesMigration(context, PREFS_NAME))
+        listOf(
+            SharedPreferencesMigration(context, PREFS_NAME),
+            SharedPreferencesMigration(context, "auriya_ui"),
+        )
     },
 )
 
@@ -32,10 +35,14 @@ class AppPrefs private constructor(
     private val _roundFps = MutableStateFlow(false)
     val roundFps: StateFlow<Boolean> = _roundFps.asStateFlow()
 
+    private val _gamesBannerDismissed = MutableStateFlow(false)
+    val gamesBannerDismissed: StateFlow<Boolean> = _gamesBannerDismissed.asStateFlow()
+
     init {
         scope.launch {
             dataStore.data.collectLatest { prefs ->
                 _roundFps.value = prefs[KEY_ROUND_FPS] ?: false
+                _gamesBannerDismissed.value = prefs[KEY_GAMES_BANNER_DISMISSED] ?: false
             }
         }
     }
@@ -49,8 +56,18 @@ class AppPrefs private constructor(
         }
     }
 
+    fun setGamesBannerDismissed(dismissed: Boolean) {
+        _gamesBannerDismissed.value = dismissed
+        scope.launch {
+            dataStore.edit { prefs ->
+                prefs[KEY_GAMES_BANNER_DISMISSED] = dismissed
+            }
+        }
+    }
+
     companion object {
         private val KEY_ROUND_FPS = booleanPreferencesKey("key_round_fps")
+        private val KEY_GAMES_BANNER_DISMISSED = booleanPreferencesKey("games_banner_dismissed")
 
         @Volatile
         private var instance: AppPrefs? = null

@@ -154,6 +154,41 @@ class OverlayPrefs private constructor(
             scope.launch { dataStore.edit { it[floatPreferencesKey("corner_radius_dp")] = value } }
         }
 
+    var customPrimary: String
+        get() = legacyPrefs.getString("custom_primary", "#AAD2A4") ?: "#AAD2A4"
+        set(value) {
+            legacyPrefs.edit().putString("custom_primary", value).apply()
+            scope.launch { dataStore.edit { it[stringPreferencesKey("custom_primary")] = value } }
+        }
+
+    var customSecondary: String
+        get() = legacyPrefs.getString("custom_secondary", "#385E38") ?: "#385E38"
+        set(value) {
+            legacyPrefs.edit().putString("custom_secondary", value).apply()
+            scope.launch { dataStore.edit { it[stringPreferencesKey("custom_secondary")] = value } }
+        }
+
+    var customTertiary: String
+        get() = legacyPrefs.getString("custom_tertiary", "#8A9A5B") ?: "#8A9A5B"
+        set(value) {
+            legacyPrefs.edit().putString("custom_tertiary", value).apply()
+            scope.launch { dataStore.edit { it[stringPreferencesKey("custom_tertiary")] = value } }
+        }
+
+    var overlayX: Int
+        get() = legacyPrefs.getInt("overlay_x", 50)
+        set(value) {
+            legacyPrefs.edit().putInt("overlay_x", value).apply()
+            scope.launch { dataStore.edit { it[intPreferencesKey("overlay_x")] = value } }
+        }
+
+    var overlayY: Int
+        get() = legacyPrefs.getInt("overlay_y", 200)
+        set(value) {
+            legacyPrefs.edit().putInt("overlay_y", value).apply()
+            scope.launch { dataStore.edit { it[intPreferencesKey("overlay_y")] = value } }
+        }
+
     companion object {
         @Volatile
         private var instance: OverlayPrefs? = null
