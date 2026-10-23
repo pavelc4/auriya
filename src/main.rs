@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tracing_subscriber::{EnvFilter, fmt, prelude::*, reload};
+use tracing_subscriber::{EnvFilter, prelude::*, reload};
 
 use auriya::{core, daemon};
 
@@ -12,25 +12,25 @@ async fn main() -> Result<()> {
     let level = &settings.daemon.log_level;
     let base_filter = EnvFilter::new(level);
     let (filter_layer, filter_handle) = reload::Layer::new(base_filter);
-    let timer = tracing_subscriber::fmt::time::UtcTime::new(
-        time::format_description::parse_borrowed::<2>("[hour]:[minute]:[second]").unwrap(),
-    );
+
+    let log_writer = std::sync::Arc::new(core::logger::LogWriter::default_daemon());
+    let dmesg_layer = core::logger::DmesgLayer::new(log_writer);
 
     tracing_subscriber::registry()
         .with(filter_layer)
-        .with(
-            fmt::layer()
-                .with_ansi(false)
-                .with_target(false)
-                .with_level(false)
-                .with_timer(timer)
-                .with_writer(std::io::stderr),
-        )
+        .with(dmesg_layer)
         .init();
 
-    tracing::info!("Daemon | Auriya v{} started", env!("CARGO_PKG_VERSION"));
     tracing::info!(
-        "Config | CPU={} • FAS={} • Games={}",
+        target: "status",
+        "daemon init: pid={} version={} euid={}",
+        std::process::id(),
+        env!("CARGO_PKG_VERSION"),
+        unsafe { libc::geteuid() }
+    );
+    tracing::info!(
+        target: "code",
+        "config loaded: governor={} fas={} games={}",
         settings.cpu.default_governor,
         if settings.fas.enabled {
             "enabled"

@@ -2,6 +2,7 @@ pub mod config;
 pub mod ebpf;
 pub mod fas;
 pub mod fps_meter;
+pub mod logger;
 pub mod pid_tracker;
 pub mod profile;
 pub mod scaling;

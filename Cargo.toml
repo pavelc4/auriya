@@ -39,6 +39,10 @@ path = "tests/watchdog_chaos.rs"
 name = "loom_concurrency"
 path = "tests/loom_concurrency.rs"
 
+[[test]]
+name = "logger_test"
+path = "tests/logger_test.rs"
+
 [profile.release]
 opt-level = "z"
 lto = "fat"
