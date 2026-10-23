@@ -1,26 +1,4 @@
-// System status snapshot — the Android side (companion service) writes
-// this file whenever the foreground app, screen state, battery saver, or
-// DnD/zen mode changes. The daemon reads it instead of polling
-// `dumpsys activity` / `dumpsys power` directly.
-//
-// Format (line-based, key-value, one entry per line):
-//
-//   focused_app <package> <pid> <uid>
-//   screen_awake <0|1>
-//   battery_saver <0|1>
-//   zen_mode <0|1|2|3>
-//
-// Lines are unordered and any subset may be present. Unknown lines are
-// ignored so the format can grow without breaking older readers.
-
 use memchr::memchr;
-
-pub mod watcher;
-
-pub use watcher::SystemStatusCache;
-
-/// Default location of the status file written by the companion service.
-pub const STATUS_FILE: &str = "/data/adb/.config/auriya/system_status";
 
 /// A snapshot of system-wide state the daemon needs to make profile
 /// decisions. All fields are optional because the writer may emit a
@@ -105,12 +83,11 @@ fn parse_line(line: &[u8], out: &mut SystemStatus) {
         b"screen_awake" => out.screen_awake = parse_bool(value),
         b"battery_saver" => out.battery_saver = parse_bool(value),
         b"zen_mode" => out.zen_mode = parse_u8(value),
-        _ => {} // forward-compatible: ignore unknown keys
+        _ => {}
     }
 }
 
 fn parse_focused_app(value: &[u8], out: &mut SystemStatus) {
-    // <package> <pid> <uid> — pid and uid are optional
     let mut it = split_whitespace(value);
     let Some(pkg) = it.next() else {
         return;

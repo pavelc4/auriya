@@ -7,8 +7,9 @@ pub mod pid;
 pub mod profile;
 pub mod scaling;
 pub mod stats;
-pub mod system_status;
+pub mod status;
 pub mod telemetry;
 
 pub use fps as fps_meter;
 pub use pid as pid_tracker;
+pub use status as system_status;
