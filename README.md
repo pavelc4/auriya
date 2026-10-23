@@ -32,7 +32,8 @@ Visit the [Official Documentation & Wiki](https://auriya.pages.dev) *(available 
 | ![Domain Config](doc/asset/config.png) | ![Customization](doc/asset/cusztomi.png) | ![Settings](doc/asset/settings.png) |
 
 ## Documentation
-Comprehensive architectural deep-dives, configuration guides, and references are available on the documentation website:
+Comprehensive architectural deep-dives, configuration guides, and references are available in the repository and on the documentation website:
+- [auriyactl CLI Reference](doc/auriyactl.md)
 - [Getting Started & Installation](https://auriya.pages.dev/getting-started/installation/)
 - [Configuration & Profiles](https://auriya.pages.dev/getting-started/configuration/)
 - [Telemetry Protocol & FPS Benchmark API](https://auriya.pages.dev/reference/stats-api/)
