@@ -30,9 +30,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.ui.components.AnimatedTickerText
 import dev.auriya.app.ui.components.AuriyaLoadingIndicator
 import dev.auriya.app.ui.components.ExpressiveList
+import dev.auriya.app.ui.components.ProfilePickerBottomSheet
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
 import dev.auriya.app.ui.components.bouncyClickable
@@ -47,8 +49,8 @@ fun HomeScreen(
     onNavigateToGames: () -> Unit,
     onNavigateToSettings: () -> Unit = {},
 ) {
-    val systemInfo by viewModel.systemInfo.collectAsState()
-    val gameList by viewModel.gameList.collectAsState()
+    val systemInfo by viewModel.systemInfo.collectAsStateWithLifecycle()
+    val gameList by viewModel.gameList.collectAsStateWithLifecycle()
     val isDaemonRunning = systemInfo.pid != null && systemInfo.pid != "null"
     val uriHandler = LocalUriHandler.current
     var showProfileSheet by remember { mutableStateOf(false) }
@@ -65,8 +67,8 @@ fun HomeScreen(
     val sheetColor = MaterialTheme.colorScheme.surfaceContainerLowest
 
     if (showProfileSheet) {
-        ProfileSelectionBottomSheet(
-            currentProfile = systemInfo.profile,
+        ProfilePickerBottomSheet(
+            selectedProfile = systemInfo.profile,
             onSelect = { mode ->
                 viewModel.updateProfile(mode)
             },
@@ -609,290 +611,6 @@ private fun LinkRow(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ProfileSelectionBottomSheet(
-    currentProfile: String,
-    onSelect: (String) -> Unit,
-    onDismiss: () -> Unit,
-    sheetState: SheetState,
-) {
-    val normProfile = currentProfile.lowercase()
-    val displayProfile =
-        when (normProfile) {
-            "powersave", "3" -> "Power Save"
-            "performance", "1" -> "Performance"
-            "fast", "4" -> "Fast"
-            else -> "Balance"
-        }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = {
-            dev.auriya.app.ui.components
-                .AuriyaDragHandle()
-        },
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-    ) {
-        LazyColumn(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp),
-        ) {
-            item {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.home_performance_profile),
-                        style =
-                            dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 30.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                textAlign = TextAlign.Center,
-                            ),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.home_active_profile)}: $displayProfile",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-
-            // Power Save Card
-            item {
-                val isSelected = normProfile == "powersave" || normProfile == "3"
-                ProfileCard(
-                    title =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_powersave),
-                    subtitle =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_powersave_sub),
-                    description =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_powersave_desc),
-                    icon = Icons.Outlined.Eco,
-                    iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
-                    iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    selected = isSelected,
-                    onClick = {
-                        onSelect("3")
-                        onDismiss()
-                    },
-                )
-            }
-
-            // Balance Card
-            item {
-                val isSelected =
-                    normProfile == "balance" || normProfile == "2" || normProfile.isEmpty() || normProfile == "unknown"
-                ProfileCard(
-                    title =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_balance),
-                    subtitle =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_balance_sub),
-                    description =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_balance_desc),
-                    icon = Icons.Outlined.Tune,
-                    iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
-                    iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    selected = isSelected,
-                    onClick = {
-                        onSelect("2")
-                        onDismiss()
-                    },
-                )
-            }
-
-            // Performance Card
-            item {
-                val isSelected = normProfile == "performance" || normProfile == "1"
-                ProfileCard(
-                    title =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_performance),
-                    subtitle =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_performance_sub),
-                    description =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_performance_desc),
-                    icon = Icons.Outlined.Bolt,
-                    iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
-                    iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    selected = isSelected,
-                    onClick = {
-                        onSelect("1")
-                        onDismiss()
-                    },
-                )
-            }
-
-            // Fast Card
-            item {
-                val isSelected = normProfile == "fast" || normProfile == "4"
-                ProfileCard(
-                    title =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_fast),
-                    subtitle =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_fast_sub),
-                    description =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.home_profile_fast_desc),
-                    icon = Icons.Outlined.RocketLaunch,
-                    iconContainerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
-                    iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    selected = isSelected,
-                    onClick = {
-                        onSelect("4")
-                        onDismiss()
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProfileCard(
-    title: String,
-    subtitle: String,
-    description: String,
-    icon: ImageVector,
-    iconContainerColor: Color,
-    iconTint: Color,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val animatedBg by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "ProfileCardBg",
-    )
-    val animatedBorderColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f) else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "ProfileCardBorder",
-    )
-
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(24.dp),
-        color = animatedBg,
-        border = BorderStroke(1.5.dp, animatedBorderColor),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(18.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = iconContainerColor,
-                modifier = Modifier.size(44.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                    )
-
-                    AnimatedVisibility(
-                        visible = selected,
-                        enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
-                        exit = scaleOut() + fadeOut(),
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                        ) {
-                            Text(
-                                text =
-                                    androidx.compose.ui.res
-                                        .stringResource(dev.auriya.app.R.string.common_active),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            )
-                        }
-                    }
-                }
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    color =
-                        if (selected) {
-                            MaterialTheme.colorScheme.onPrimaryContainer.copy(
-                                alpha = 0.8f,
-                            )
-                        } else {
-                            MaterialTheme.colorScheme.primary
-                        },
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color =
-                        if (selected) {
-                            MaterialTheme.colorScheme.onPrimaryContainer.copy(
-                                alpha = 0.85f,
-                            )
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
                 )
             }
         }

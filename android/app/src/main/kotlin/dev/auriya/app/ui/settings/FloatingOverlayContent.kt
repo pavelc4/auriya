@@ -630,7 +630,7 @@ private fun ColorPresetSwatch(
                     Modifier
                         .size(18.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(MaterialTheme.colorScheme.surface)
                         .border(BorderStroke(1.dp, preset.primary), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {

@@ -40,12 +40,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.R
 import dev.auriya.app.data.DarkThemeMode
 import dev.auriya.app.data.NavMode
+import dev.auriya.app.ui.components.ClickableSettingItem
+import dev.auriya.app.ui.components.PalettePickerSettingItem
 import dev.auriya.app.ui.components.SegmentedControl
-import dev.auriya.app.ui.oobe.PALETTE_ITEMS
-import dev.auriya.app.ui.oobe.SwatchDot
+import dev.auriya.app.ui.components.SettingsSubsection
+import dev.auriya.app.ui.components.SwitchSettingItem
+import dev.auriya.app.ui.components.itemShapeFor
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.ui.theme.GoogleSansRounded
 import dev.auriya.app.viewmodel.ThemeViewModel
@@ -55,7 +59,7 @@ fun AppearanceScreen(
     themeViewModel: ThemeViewModel,
     onDismiss: () -> Unit,
 ) {
-    val prefs by themeViewModel.prefs.collectAsState()
+    val prefs by themeViewModel.prefs.collectAsStateWithLifecycle()
     val currentPrefs = prefs ?: return
     var showCornerRadiusScreen by remember { mutableStateOf(false) }
 
@@ -189,7 +193,7 @@ fun AppearanceScreen(
                         ThemeSelectorSettingItem(
                             selectedMode = currentPrefs.darkThemeMode,
                             onModeSelected = themeViewModel::setDarkThemeMode,
-                            shape = shapeFor(currentIndex++, themeItemCount),
+                            shape = itemShapeFor(currentIndex++, themeItemCount),
                         )
 
                         // 1b. Material You Dynamic Color
@@ -205,7 +209,7 @@ fun AppearanceScreen(
                             icon = Icons.Rounded.Palette,
                             iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            shape = shapeFor(currentIndex++, themeItemCount),
+                            shape = itemShapeFor(currentIndex++, themeItemCount),
                         )
 
                         // 1c. Custom Palette Swatches (Directly below Dynamic Color)
@@ -215,7 +219,7 @@ fun AppearanceScreen(
                                 onSeedChange = themeViewModel::setSeedColor,
                                 pulseScale = pulseScale,
                                 pulseAlpha = pulseAlpha,
-                                shape = shapeFor(currentIndex++, themeItemCount),
+                                shape = itemShapeFor(currentIndex++, themeItemCount),
                             )
                         }
 
@@ -233,7 +237,7 @@ fun AppearanceScreen(
                                 icon = Icons.Rounded.DarkMode,
                                 iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                 iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                shape = shapeFor(currentIndex++, themeItemCount),
+                                shape = itemShapeFor(currentIndex++, themeItemCount),
                             )
                         }
                     }
@@ -267,7 +271,7 @@ fun AppearanceScreen(
                             icon = Icons.Rounded.Dock,
                             iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            shape = shapeFor(navIndex++, navItemCount),
+                            shape = itemShapeFor(navIndex++, navItemCount),
                         )
 
                         // NavBar Corner Radius Setting (Only visible when Floating is OFF!)
@@ -283,125 +287,12 @@ fun AppearanceScreen(
                                 icon = Icons.Rounded.RoundedCorner,
                                 iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                 iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                shape = shapeFor(navIndex++, navItemCount),
+                                shape = itemShapeFor(navIndex++, navItemCount),
                             )
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun SettingsSubsection(
-    title: String,
-    content: @Composable () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 2.dp),
-        )
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.Transparent),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            content()
-        }
-    }
-}
-
-private fun shapeFor(
-    index: Int,
-    total: Int,
-): RoundedCornerShape =
-    when {
-        total <= 1 -> RoundedCornerShape(24.dp)
-        index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-        index == total - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-        else -> RoundedCornerShape(4.dp)
-    }
-
-@Composable
-private fun SwitchSettingItem(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    icon: ImageVector,
-    shape: RoundedCornerShape,
-    iconContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    iconTint: Color = MaterialTheme.colorScheme.onPrimaryContainer,
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = shape,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = iconContainerColor,
-                modifier = Modifier.size(44.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                colors =
-                    SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        checkedBorderColor = Color.Transparent,
-                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
-                    ),
-            )
         }
     }
 }
@@ -486,143 +377,6 @@ private fun ThemeSelectorSettingItem(
                         }
                     onModeSelected(mode)
                 },
-            )
-        }
-    }
-}
-
-@Composable
-private fun PalettePickerSettingItem(
-    seedColor: Int,
-    onSeedChange: (Int) -> Unit,
-    pulseScale: Float,
-    pulseAlpha: Float,
-    shape: RoundedCornerShape,
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = shape,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(44.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Rounded.ColorLens,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Custom Accent Palette",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = "Select a vibrant seed accent color",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                items(PALETTE_ITEMS) { item ->
-                    SwatchDot(
-                        item = item,
-                        selected = item.seed == seedColor,
-                        pulseScale = pulseScale,
-                        pulseAlpha = pulseAlpha,
-                        onClick = { onSeedChange(item.seed) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ClickableSettingItem(
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    icon: ImageVector,
-    iconContainerColor: Color,
-    iconTint: Color,
-    shape: RoundedCornerShape,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        onClick = onClick,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = shape,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = iconContainerColor,
-                modifier = Modifier.size(44.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontFamily = GoogleSansRounded,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp),
             )
         }
     }

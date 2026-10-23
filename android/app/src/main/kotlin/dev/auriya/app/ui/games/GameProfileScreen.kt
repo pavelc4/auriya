@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import dev.auriya.app.data.stats.AutoRecordPrefs
 import dev.auriya.app.ui.components.AuriyaDragHandle
 import dev.auriya.app.ui.components.ExpressiveList
+import dev.auriya.app.ui.components.ProfilePickerBottomSheet
 import dev.auriya.app.ui.components.StatusBadge
 import dev.auriya.app.ui.components.StatusTone
 import dev.auriya.app.ui.components.getThermalInfo
@@ -72,7 +73,6 @@ fun GameProfileScreen(
     var selectedCeiling by remember(game.packageName, game.ceiling) { mutableStateOf(game.ceiling ?: "default") }
     var selectedThermal by remember(game.packageName, game.thermalPreset) { mutableStateOf(game.thermalPreset ?: "default") }
 
-    val modeOptions = remember { listOf("performance", "fas", "balance", "powersave") }
     val ceilingOptions = remember { listOf("default", "low", "balance", "high") }
     val thermalOptions = remember { listOf("default", "dynamic", "extreme", "class0", "incalls", "thermal20") }
     val effectiveGovOptions =
@@ -129,9 +129,8 @@ fun GameProfileScreen(
     }
 
     if (showModeSheet) {
-        ProfileModeSelectionBottomSheet(
-            selectedMode = selectedMode,
-            options = modeOptions,
+        ProfilePickerBottomSheet(
+            selectedProfile = selectedMode,
             onSelect = { updateAndSave(mode = it) },
             onDismiss = { showModeSheet = false },
             sheetState = modeSheetState,
@@ -654,160 +653,6 @@ private fun getProfileModeInfo(mode: String): Pair<androidx.compose.ui.graphics.
             )
         }
     }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ProfileModeSelectionBottomSheet(
-    selectedMode: String,
-    options: List<String>,
-    onSelect: (String) -> Unit,
-    onDismiss: () -> Unit,
-    sheetState: SheetState,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = { AuriyaDragHandle() },
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-    ) {
-        LazyColumn(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(top = 4.dp, bottom = 48.dp),
-        ) {
-            item {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.games_profile_mode),
-                        style =
-                            dev.auriya.app.ui.theme.ExpTitleTypography.titleMedium.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 28.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                textAlign = TextAlign.Center,
-                            ),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.games_profile_mode_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-
-            items(options, key = { it }) { opt ->
-                val isSelected = opt.equals(selectedMode, ignoreCase = true)
-                val (icon, subtitle) = getProfileModeInfo(opt)
-                val label =
-                    when (opt.lowercase()) {
-                        "fas", "fast" -> "FAS"
-                        "balance" -> "Balance"
-                        "powersave" -> "Powersave"
-                        else -> "Performance"
-                    }
-
-                Surface(
-                    onClick = {
-                        onSelect(opt)
-                        onDismiss()
-                    },
-                    shape = RoundedCornerShape(20.dp),
-                    color =
-                        if (isSelected) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainerHigh
-                        },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color =
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceContainerHighest
-                                },
-                            modifier = Modifier.size(42.dp),
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = null,
-                                    tint =
-                                        if (isSelected) {
-                                            MaterialTheme.colorScheme.onPrimary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                    modifier = Modifier.size(22.dp),
-                                )
-                            }
-                        }
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color =
-                                    if (isSelected) {
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface
-                                    },
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = subtitle,
-                                style = MaterialTheme.typography.bodySmall,
-                                color =
-                                    if (isSelected) {
-                                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                            )
-                        }
-
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Filled.Check,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
