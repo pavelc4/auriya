@@ -1,5 +1,10 @@
+pub mod android_cmd;
+pub mod display;
+pub mod info;
 pub mod init;
 pub mod memory;
+pub mod module_prop;
+pub mod procfs;
 pub mod sched;
 pub mod storage;
 pub mod touchpanel;

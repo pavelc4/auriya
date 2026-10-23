@@ -24,11 +24,17 @@ pub async fn get_app_supported_modes() -> Result<Vec<DisplayMode>> {
 }
 
 fn parse_app_supported_modes(input: &str) -> Result<Vec<DisplayMode>> {
-    // Look for appsSupportedModes first
-    let start_marker = "appsSupportedModes [";
+    // Look for appsSupportedModes first, then fallback to supportedModes on modern Android
+    let start_marker = if input.contains("appsSupportedModes [") {
+        "appsSupportedModes ["
+    } else if input.contains("supportedModes [") {
+        "supportedModes ["
+    } else {
+        "appsSupportedModes ["
+    };
     let start_idx = input
         .find(start_marker)
-        .context("Could not find appsSupportedModes in dumpsys output")?
+        .context("Could not find supported modes in dumpsys output")?
         + start_marker.len();
 
     let rest = &input[start_idx..];

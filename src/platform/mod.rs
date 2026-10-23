@@ -1,15 +1,18 @@
-pub mod android_cmd;
 pub mod common;
 pub mod cpu;
-pub mod display;
 pub mod gpu;
-pub mod module_prop;
-pub mod procfs;
 pub mod thermal;
 pub mod vendor;
 
-pub use android_cmd::CmdWriter;
+// Re-exports from common
+pub use common::android_cmd;
+pub use common::android_cmd::CmdWriter;
+pub use common::display;
+pub use common::display::DisplayMode;
+pub use common::info;
+pub use common::module_prop;
+pub use common::procfs;
 pub use common::*;
+
 pub use cpu::{CeilingController, CeilingLevel, CoreLayout};
-pub use display::DisplayMode;
 pub use thermal::ThermalCollector;

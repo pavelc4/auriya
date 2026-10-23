@@ -4,16 +4,16 @@ use crate::core::telemetry::battery::BatterySnapshot;
 use crate::core::telemetry::cpu::{ClusterType, CpuSnapshot};
 use crate::core::telemetry::gpu::GpuSnapshot;
 use crate::core::telemetry::thermal::ThermalSnapshot;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThermalCard {
     pub cpu_c: Option<f32>,
     pub gpu_c: Option<f32>,
     pub battery_c: Option<f32>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatteryCard {
     pub pct: Option<u8>,
     pub current_ma: Option<i32>,
@@ -22,7 +22,7 @@ pub struct BatteryCard {
     pub health: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CoreDto {
     pub id: usize,
     pub khz: u64,
@@ -31,27 +31,27 @@ pub struct CoreDto {
     pub online: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CpuCard {
     pub load_pct: f32,
     pub cores: Vec<CoreDto>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GpuCard {
     pub mhz: Option<u64>,
     pub load_pct: Option<u32>,
     pub vendor: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionCard {
     pub pkg: Option<String>,
     pub profile: String,
     pub active: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StatsSnapshot {
     pub fps: Option<FpsStats>,
     pub thermal: ThermalCard,

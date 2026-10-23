@@ -7,6 +7,7 @@ mod context;
 mod cpu;
 mod fas;
 mod gamelist;
+mod info_test;
 mod init;
 mod pid_tracker;
 mod pipeline;

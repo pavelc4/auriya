@@ -1,10 +1,11 @@
 mod app;
 mod client;
+pub mod commands;
 mod executor;
-mod output;
+pub mod output;
 
 use crate::Result;
-pub use app::Cli;
+pub use app::{Cli, Commands, LogLevel, ProfileMode};
 
 pub async fn run() -> Result<()> {
     use clap::Parser;

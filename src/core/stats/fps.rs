@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 /// A frame slower than `target_interval * JANK_FACTOR` counts as jank.
@@ -8,7 +8,7 @@ fn round1(x: f64) -> f64 {
     (x * 10.0).round() / 10.0
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FpsStats {
     /// Mean FPS over the window (`n / Σ frametime`).
     pub avg: f64,
