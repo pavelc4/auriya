@@ -1,224 +1,112 @@
 #!/system/bin/sh
-MODDIR="${0%/*}"
-MODPATH="/data/adb/modules/auriya"
-MODULE_CONFIG="/data/adb/.config/auriya"
-AURIYA_BIN="$MODPATH/system/bin/auriya"
-COMPANION_APK="$MODPATH/system/etc/auriya/service.apk"
+MODDIR="${MODDIR:-${0%/*}}"
+[ "$MODDIR" = "$0" ] && MODDIR="/data/adb/modules/auriya"
+
+MODULE_CONFIG="${MODULE_CONFIG:-/data/adb/.config/auriya}"
+AURIYA_BIN="$MODDIR/system/bin/auriya"
+COMPANION_APK="$MODDIR/system/etc/auriya/service.apk"
 SETTINGS_CFG="$MODULE_CONFIG/settings.toml"
 GAMELIST_CFG="$MODULE_CONFIG/gamelist.toml"
 STATUS_FILE="$MODULE_CONFIG/system_status"
 COMPANION_LOCK="$MODULE_CONFIG/companion.lock"
-LOGDIR="/data/adb/auriya"
-AURIYA_LOG="$LOGDIR/daemon.log"
+LOGDIR="${LOGDIR:-/data/adb/auriya}"
 COMPANION_LOG="$LOGDIR/companion.log"
 SOCK="/dev/socket/auriya.sock"
 
-_REMOVE_FLAG="/data/adb/modules/auriya/remove"
-[ ! -f "$_REMOVE_FLAG" ] && _REMOVE_FLAG="/data/adb/modules_update/auriya/remove"
-
-_kill_daemon() {
-  local pid
-  pid=$(pidof auriya 2>/dev/null)
-  [ -z "$pid" ] && return 0
-  kill -TERM "$pid" 2>/dev/null
-  local i=0
-  while [ $i -lt 5 ]; do
-    pidof auriya >/dev/null 2>&1 || return 0
-    sleep 1
-    i=$((i + 1))
-  done
-  kill -KILL "$pid" 2>/dev/null
-}
-
-_kill_companion() {
-  local pid
-  pid=$(pgrep -f AuriyaSysMon 2>/dev/null)
-  [ -z "$pid" ] && return 0
-  kill -TERM "$pid" 2>/dev/null
-  local i=0
-  while [ $i -lt 5 ]; do
-    pgrep -f AuriyaSysMon >/dev/null 2>&1 || return 0
-    sleep 1
-    i=$((i + 1))
-  done
-  kill -KILL "$pid" 2>/dev/null
-}
-
-_cleanup_all() {
-  log -t auriya "Remove flag detected; cleaning up..."
-  echo "[$(date)] Remove flag detected; cleaning up..." >>"$AURIYA_LOG"
-  sh "$MODPATH/uninstall.sh"
-}
-
-[ -f "$_REMOVE_FLAG" ] && {
-  _cleanup_all
+# 1. Removal Check
+if [ -f "$MODDIR/remove" ] || [ -f "/data/adb/modules_update/auriya/remove" ]; then
+  log -t auriya "Module marked for removal, executing cleanup..."
+  [ -f "$MODDIR/uninstall.sh" ] && sh "$MODDIR/uninstall.sh"
   exit 0
-}
+fi
 
-mkdir -p "$MODULE_CONFIG" "$LOGDIR"
-chmod 0755 "$MODULE_CONFIG" "$LOGDIR"
-
+# 2. Wait for Android Boot
 if [ "$(getprop sys.boot_completed)" != "1" ]; then
   until [ "$(getprop sys.boot_completed)" = "1" ]; do
     sleep 2
   done
-  sleep 5
+  sleep 3
 fi
 
+# 3. Prerequisites Check
+mkdir -p "$MODULE_CONFIG" "$LOGDIR"
+chmod 0755 "$MODULE_CONFIG" "$LOGDIR"
+
+if [ ! -f "$AURIYA_BIN" ] || [ ! -f "$COMPANION_APK" ]; then
+  log -t auriya "ERROR: Required daemon or companion binary not found"
+  exit 1
+fi
 chmod 0755 "$AURIYA_BIN"
 
-if [ ! -f "$AURIYA_BIN" ]; then
-  log -t auriya "ERROR: Binary not found at $AURIYA_BIN"
-  echo "[$(date)] ERROR: Binary not found" >>"$AURIYA_LOG"
-  exit 1
-fi
-
-if [ ! -f "$COMPANION_APK" ]; then
-  log -t auriya "ERROR: Companion APK not found at $COMPANION_APK"
-  echo "[$(date)] ERROR: Companion APK not found" >>"$AURIYA_LOG"
-  exit 1
-fi
-
-if [ ! -f "$SETTINGS_CFG" ]; then
-  log -t auriya "ERROR: Settings config not found at $SETTINGS_CFG"
-  echo "[$(date)] ERROR: Settings config not found" >>"$AURIYA_LOG"
-  exit 1
-fi
-
-if [ ! -f "$GAMELIST_CFG" ]; then
-  log -t auriya "ERROR: Gamelist config not found at $GAMELIST_CFG"
-  echo "[$(date)] ERROR: Gamelist config not found" >>"$AURIYA_LOG"
-  exit 1
-fi
-
-# Stop any previous companion. The flock will block us otherwise.
-if pgrep -f AuriyaSysMon >/dev/null 2>&1; then
-  log -t auriya "Stopping existing companion service..."
-  pkill -TERM -f AuriyaSysMon 2>/dev/null
-  for i in 1 2 3; do
-    pgrep -f AuriyaSysMon >/dev/null 2>&1 || break
-    sleep 1
-  done
-  pkill -KILL -f AuriyaSysMon 2>/dev/null
-fi
-
-if pidof auriya >/dev/null 2>&1; then
-  log -t auriya "Stopping existing daemon..."
-  killall -TERM auriya 2>/dev/null
-  for i in 1 2 3; do
-    pidof auriya >/dev/null 2>&1 || break
-    sleep 1
-  done
-
-  if pidof auriya >/dev/null 2>&1; then
-    killall -KILL auriya 2>/dev/null
-    sleep 1
+# 4. Stop Existing Instances
+stop_proc() {
+  local proc_name="$1"
+  local pids
+  pids=$(pidof "$proc_name" 2>/dev/null || true)
+  if [ -z "$pids" ]; then
+    pids=$(pgrep -x "$proc_name" 2>/dev/null || true)
   fi
-fi
-[ -S "$SOCK" ] && rm -f "$SOCK"
-# Force a fresh status file so the daemon's await loop only succeeds
-# once the companion has actually produced fresh data this boot.
-rm -f "$STATUS_FILE" "$COMPANION_LOCK"
+  # Safety: exclude own process and subshells
+  pids=$(echo "$pids" | grep -v "^$$$" | tr '\n' ' ' || true)
+  [ -z "${pids// /}" ] && return 0
 
-(
-  while true; do
-    sleep 5
-    _R="/data/adb/modules/auriya/remove"
-    [ ! -f "$_R" ] && _R="/data/adb/modules_update/auriya/remove"
-    if [ -f "$_R" ]; then
-      _cleanup_all
-      break
-    fi
-
-    # Supervise companion: auto-revive if killed or unexpectedly terminated
-    if ! pgrep -f AuriyaSysMon >/dev/null 2>&1; then
-      log -t auriya "Companion stopped unexpectedly, auto-reviving..."
-      nohup app_process -Djava.class.path="$COMPANION_APK" \
-        /system/bin --nice-name=AuriyaSysMon \
-        dev.auriya.service.Main \
-        >>"$COMPANION_LOG" 2>&1 &
-      sleep 2
-    fi
-
-    # Supervise daemon: auto-revive if killed or unexpectedly terminated
-    if ! pidof auriya >/dev/null 2>&1; then
-      if [ -f "$STATUS_FILE" ]; then
-        log -t auriya "Daemon stopped unexpectedly, auto-reviving..."
-        export RUST_LOG=info
-        export RUST_BACKTRACE=1
-        nohup "$AURIYA_BIN" --settings "$SETTINGS_CFG" --gamelist "$GAMELIST_CFG" >/dev/null 2>&1 &
-        sleep 2
-      fi
-    fi
+  kill -TERM $pids 2>/dev/null || true
+  for _ in 1 2 3; do
+    kill -0 $pids 2>/dev/null || return 0
+    sleep 1
   done
-) &
+  kill -KILL $pids 2>/dev/null || true
+}
 
-# Rotate companion log if it grew past 1MB.
+stop_proc AuriyaSysMon
+stop_proc auriya
+
+rm -f "$SOCK" "$STATUS_FILE" "$COMPANION_LOCK"
+
+# 5. Companion Log Rotation
 if [ -f "$COMPANION_LOG" ]; then
-  LOG_SIZE=$(stat -c%s "$COMPANION_LOG" 2>/dev/null || stat -f%z "$COMPANION_LOG" 2>/dev/null || echo 0)
-  if [ "$LOG_SIZE" -gt 1048576 ]; then
-    [ -f "$COMPANION_LOG.1" ] && rm -f "$COMPANION_LOG.1"
-    mv "$COMPANION_LOG" "$COMPANION_LOG.1"
+  log_size=$(stat -c%s "$COMPANION_LOG" 2>/dev/null || echo 0)
+  if [ "$log_size" -gt 1048576 ]; then
+    mv -f "$COMPANION_LOG" "$COMPANION_LOG.old"
   fi
 fi
-log -t auriya "Starting Auriya companion service..."
 
-# Launch the headless Kotlin companion via app_process so it inherits
-# the system uid handed to us by Magisk's service.d hook.
+# 6. Launch Companion Service
+log -t auriya "Starting companion service..."
 nohup app_process -Djava.class.path="$COMPANION_APK" \
   /system/bin --nice-name=AuriyaSysMon \
   dev.auriya.service.Main \
   >>"$COMPANION_LOG" 2>&1 &
 
-# Give the companion a couple of seconds to acquire its flock and
-# produce the first status snapshot. The daemon also waits up to 10s
-# internally so this is belt-and-braces.
-for i in 1 2 3 4 5 6 7 8 9 10; do
-  if [ -f "$STATUS_FILE" ]; then
-    log -t auriya "Companion produced status file"
-    break
-  fi
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  [ -f "$STATUS_FILE" ] && break
   sleep 1
 done
 
 if [ ! -f "$STATUS_FILE" ]; then
-  log -t auriya "ERROR: Companion did not produce $STATUS_FILE within 10s"
-  echo "[$(date)] ERROR: Companion startup timeout" >>"$AURIYA_LOG"
+  log -t auriya "ERROR: Companion failed to initialize $STATUS_FILE within 10s"
   exit 1
 fi
 
-if [ -f "$AURIYA_LOG" ]; then
-  LOG_SIZE=$(stat -c%s "$AURIYA_LOG" 2>/dev/null || stat -f%z "$AURIYA_LOG" 2>/dev/null || echo 0)
-  if [ "$LOG_SIZE" -gt 1048576 ]; then
-    [ -f "$AURIYA_LOG.2" ] && rm -f "$AURIYA_LOG.2"
-    [ -f "$AURIYA_LOG.1" ] && mv "$AURIYA_LOG.1" "$AURIYA_LOG.2"
-    mv "$AURIYA_LOG" "$AURIYA_LOG.1"
-  fi
-fi
+# 7. Launch Auriya Daemon
 log -t auriya "Starting Auriya daemon..."
-
 export RUST_LOG=info
 export RUST_BACKTRACE=1
 
 nohup "$AURIYA_BIN" --settings "$SETTINGS_CFG" --gamelist "$GAMELIST_CFG" >/dev/null 2>&1 &
-sleep 2
+
+for _ in 1 2 3 4 5; do
+  if pidof auriya >/dev/null 2>&1 && [ -S "$SOCK" ]; then
+    log -t auriya "Auriya daemon and IPC socket ready"
+    exit 0
+  fi
+  sleep 1
+done
 
 if pidof auriya >/dev/null 2>&1; then
-  DAEMON_PID=$(pidof auriya | awk '{print $1}')
-  log -t auriya "Daemon started successfully (PID: $DAEMON_PID)"
-  for i in 1 2 3 4 5; do
-    if [ -S "$SOCK" ]; then
-      if echo "PING" | nc -U "$SOCK" >/dev/null 2>&1; then
-        log -t auriya "IPC socket ready"
-        exit 0
-      fi
-    fi
-    sleep 1
-  done
-
-  log -t auriya "WARNING: IPC socket not responding"
+  log -t auriya "Auriya daemon running (socket pending)"
   exit 0
-else
-  log -t auriya "ERROR: Failed to start daemon"
-  exit 1
 fi
+
+log -t auriya "ERROR: Failed to start Auriya daemon"
+exit 1
