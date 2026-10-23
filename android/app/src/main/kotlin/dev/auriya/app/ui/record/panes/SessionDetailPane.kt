@@ -14,10 +14,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.data.AppPrefs
 import dev.auriya.app.data.stats.BenchmarkSession
+import dev.auriya.app.ui.record.components.SessionCpuLoadChartCard
+import dev.auriya.app.ui.record.components.SessionFpsChartCard
+import dev.auriya.app.ui.record.components.SessionFpsDistributionCard
 import dev.auriya.app.ui.record.components.SessionHeaderCard
 import dev.auriya.app.ui.record.components.SessionPerformanceMetricsCard
+import dev.auriya.app.ui.record.components.SessionThermalChartCard
 import dev.auriya.app.ui.record.components.SessionThermalHardwareRow
-import dev.auriya.app.ui.record.components.SessionTimelineChartCard
 
 @Composable
 fun SessionDetailPane(
@@ -53,11 +56,11 @@ fun SessionDetailPane(
                 )
             }
 
-            // Timeline Graph Card
+            // Timeline & Distribution Cards
             if (session.samples.size > 1) {
                 item {
                     Text(
-                        text = "TIMELINE METRICS GRAPH",
+                        text = "PERFORMANCE TIMELINE",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -66,17 +69,45 @@ fun SessionDetailPane(
                 }
 
                 item {
-                    SessionTimelineChartCard(
+                    SessionFpsChartCard(
                         session = session,
                         roundFps = roundFps,
                     )
                 }
+
+                item {
+                    SessionFpsDistributionCard(
+                        session = session,
+                    )
+                }
+
+                item {
+                    Text(
+                        text = "HARDWARE & THERMAL TIMELINES",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                    )
+                }
+
+                item {
+                    SessionThermalChartCard(
+                        session = session,
+                    )
+                }
+
+                item {
+                    SessionCpuLoadChartCard(
+                        session = session,
+                    )
+                }
             }
 
-            // Thermal Peak Section
+            // Thermal Peak Summary Section
             item {
                 Text(
-                    text = "THERMAL & HARDWARE STATS",
+                    text = "THERMAL & HARDWARE PEAKS",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
