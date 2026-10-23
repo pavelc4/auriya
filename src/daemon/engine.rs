@@ -40,28 +40,28 @@ pub struct Daemon {
     pub(crate) balance_governor: Arc<RwLock<String>>,
     pub(crate) default_mode: ProfileMode,
     pub(crate) normal_interval_ms: u64,
-    pub(crate) supported_modes: Arc<Vec<crate::core::display::DisplayMode>>,
+    pub(crate) supported_modes: Arc<Vec<crate::platform::display::DisplayMode>>,
     pub(crate) applied_refresh_rate: Option<u32>,
     pub(crate) cached_whitelist: HashSet<String>,
     pub(crate) status_cache: SystemStatusCache,
-    pub(crate) vendor_lock: crate::core::tweaks::vendor_lock::VendorLock,
+    pub(crate) vendor_lock: crate::platform::vendor::VendorLock,
     pub(crate) last_fps_config: Option<String>,
     pub(crate) pid_tracker: Option<crate::core::pid_tracker::PidTracker>,
-    pub(crate) ceiling_controller: crate::core::tweaks::ceiling::CeilingController,
-    pub(crate) ceiling_config: crate::core::tweaks::ceiling::CeilingConfig,
-    pub(crate) current_ceiling: Option<crate::core::tweaks::ceiling::CeilingLevel>,
+    pub(crate) ceiling_controller: crate::platform::cpu::ceiling::CeilingController,
+    pub(crate) ceiling_config: crate::platform::cpu::ceiling::CeilingConfig,
+    pub(crate) current_ceiling: Option<crate::platform::cpu::ceiling::CeilingLevel>,
     pub(crate) telemetry_hub: TelemetryHub,
     pub(crate) fps_meter: FpsMeter,
     pub(crate) ebpf: Option<crate::core::ebpf::EbpfFrameStream>,
     pub(crate) attached_ebpf_pid: Option<i32>,
-    pub(crate) last_dnd: Option<crate::core::cmd_writer::DndFilter>,
+    pub(crate) last_dnd: Option<crate::platform::android_cmd::DndFilter>,
     pub(crate) event_tx: EventSender,
 }
 
 impl Daemon {
     pub fn new(
         cfg: DaemonConfig,
-        supported_modes: Arc<Vec<crate::core::display::DisplayMode>>,
+        supported_modes: Arc<Vec<crate::platform::display::DisplayMode>>,
         status_cache: SystemStatusCache,
         event_tx: EventSender,
     ) -> Result<Self> {
@@ -136,23 +136,23 @@ impl Daemon {
 
         let ceiling_config = {
             let c = &cfg.settings.ceiling;
-            crate::core::tweaks::ceiling::CeilingConfig {
+            crate::platform::cpu::ceiling::CeilingConfig {
                 default: c
                     .default
-                    .parse::<crate::core::tweaks::ceiling::CeilingLevel>()
-                    .unwrap_or(crate::core::tweaks::ceiling::CeilingLevel::Balance),
+                    .parse::<crate::platform::cpu::ceiling::CeilingLevel>()
+                    .unwrap_or(crate::platform::cpu::ceiling::CeilingLevel::Balance),
                 low_freq_little_khz: c.low_freq_little_khz,
                 low_freq_big_khz: c.low_freq_big_khz,
             }
         };
 
-        let core_layout = crate::core::tweaks::ceiling::CoreLayout::detect();
+        let core_layout = crate::platform::cpu::ceiling::CoreLayout::detect();
         let normal_interval_ms = cfg.settings.daemon.check_interval_ms.max(100);
 
         let thermal_default = if cfg.settings.thermal.default.is_some() {
             None
         } else {
-            let stock = crate::core::tweaks::thermal::load_or_capture_rom_default(
+            let stock = crate::platform::thermal::sconfig::load_or_capture_rom_default(
                 &crate::core::config::thermal_default_path(),
             );
             if let Some(stock) = stock {
@@ -183,10 +183,10 @@ impl Daemon {
             tick_count: 0,
             watchdog: CompanionWatchdog::new(),
             status_cache,
-            vendor_lock: crate::core::tweaks::vendor_lock::VendorLock::new(),
+            vendor_lock: crate::platform::vendor::VendorLock::new(),
             last_fps_config: None,
             pid_tracker: None,
-            ceiling_controller: crate::core::tweaks::ceiling::CeilingController::new(),
+            ceiling_controller: crate::platform::cpu::ceiling::CeilingController::new(),
             ceiling_config,
             current_ceiling: None,
             telemetry_hub: TelemetryHub::new(&core_layout),
@@ -338,7 +338,7 @@ impl Daemon {
                 .unwrap_or(false);
             r1 && r2
         } else {
-            crate::core::cmd_writer::shared()
+            crate::platform::android_cmd::shared()
                 .write_refresh_rate(hz)
                 .is_ok()
         };
@@ -485,7 +485,7 @@ pub async fn run_with_config_and_logger(cfg: &DaemonConfig, reload: ReloadHandle
 }
 
 pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) -> Result<()> {
-    let supported_modes = match crate::core::display::get_app_supported_modes().await {
+    let supported_modes = match crate::platform::display::get_app_supported_modes().await {
         Ok(modes) => {
             debug!(target: "auriya::daemon", "Cached {} supported display modes", modes.len());
             Arc::new(modes)

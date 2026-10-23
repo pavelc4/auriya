@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::{fs, path::Path};
 use tracing::{debug, warn};
 
-use crate::core::tweaks::paths::snapdragon_paths;
+use crate::platform::cpu::governor::snapdragon_paths;
 
 mod perf {
     pub const GPU_PWRLEVEL: &str = "0";

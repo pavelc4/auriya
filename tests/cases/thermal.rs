@@ -1,4 +1,4 @@
-use auriya::core::tweaks::thermal::{ThermalPreset, capture_from};
+use auriya::platform::thermal::sconfig::{ThermalPreset, capture_from};
 use std::fs;
 
 #[test]

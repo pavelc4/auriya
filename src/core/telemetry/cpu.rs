@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::core::tweaks::ceiling::CoreLayout;
+use crate::platform::cpu::ceiling::CoreLayout;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ClusterType {

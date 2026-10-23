@@ -1,10 +1,10 @@
 use crate::core::config::gamelist::{GameList, GameProfile, GameProfileUpdate};
-use crate::core::display::DisplayMode;
 use crate::core::profile::ProfileMode;
 use crate::core::stats::{FpsStats, StatsSnapshot};
+use crate::daemon::engine::ReloadHandle;
 use crate::daemon::ipc::types::LogLevelCmd;
-use crate::daemon::run::ReloadHandle;
 use crate::daemon::state::CurrentState;
+use crate::platform::display::DisplayMode;
 use anyhow::{Result, anyhow};
 use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicBool, Ordering};

@@ -1,9 +1,9 @@
 pub mod battery;
 pub mod cpu;
 pub mod gpu;
-pub mod thermal;
+pub use crate::platform::thermal::zones as thermal;
 
-use crate::core::tweaks::ceiling::CoreLayout;
+use crate::platform::cpu::ceiling::CoreLayout;
 
 #[derive(Debug, Clone, Default)]
 pub struct TelemetrySnapshot {

@@ -1,6 +1,7 @@
-use crate::core::cmd_writer::{self, DndFilter};
-use crate::core::tweaks::{
-    cpu, gpu, init, memory, paths, sched, storage, touchpanel,
+use crate::platform::android_cmd::{self as cmd_writer, DndFilter};
+use crate::platform::{
+    cpu::{governor as paths, topology as cpu},
+    gpu, init, memory, sched, storage, touchpanel,
     vendor::{detect as soc, mtk, snapdragon},
 };
 use anyhow::Result;
@@ -232,9 +233,9 @@ pub fn apply_cpu_boost(governor: &str, pid: Option<i32>) -> Result<()> {
 }
 
 pub fn apply_ceiling(
-    controller: &mut crate::core::tweaks::ceiling::CeilingController,
-    level: crate::core::tweaks::ceiling::CeilingLevel,
-    config: &crate::core::tweaks::ceiling::CeilingConfig,
+    controller: &mut crate::platform::cpu::ceiling::CeilingController,
+    level: crate::platform::cpu::ceiling::CeilingLevel,
+    config: &crate::platform::cpu::ceiling::CeilingConfig,
 ) {
     if let Err(e) = controller.apply(level, config) {
         tracing::warn!(target: "auriya::ceiling", "Failed to apply ceiling {:?}: {e}", level);

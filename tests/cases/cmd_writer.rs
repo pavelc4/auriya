@@ -1,4 +1,4 @@
-use auriya::core::cmd_writer::{Cmd, CmdWriter, DndFilter};
+use auriya::platform::android_cmd::{Cmd, CmdWriter, DndFilter};
 use std::fs;
 use std::path::PathBuf;
 

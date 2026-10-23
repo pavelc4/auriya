@@ -1,8 +1,8 @@
 use auriya::core::config::gamelist::GameList;
-use auriya::core::display::DisplayMode;
 use auriya::daemon::context::DaemonContext;
 use auriya::daemon::ipc::types::LogLevelCmd;
 use auriya::daemon::state::CurrentState;
+use auriya::platform::display::DisplayMode;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex, RwLock};
 

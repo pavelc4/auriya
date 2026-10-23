@@ -1,4 +1,4 @@
-use auriya::core::tweaks::init::optimize_io_paths;
+use auriya::platform::init::optimize_io_paths;
 use std::fs;
 use tempfile::tempdir;
 

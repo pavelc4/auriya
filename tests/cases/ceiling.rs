@@ -1,4 +1,4 @@
-use auriya::core::tweaks::ceiling::{
+use auriya::platform::cpu::ceiling::{
     CeilingConfig, CeilingController, CeilingLevel, hw_max_freq_for_core,
 };
 use std::fs;

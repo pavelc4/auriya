@@ -1,4 +1,4 @@
-use auriya::core::procfs::{is_pid_valid, verify_pid_package};
+use auriya::platform::procfs::{is_pid_valid, verify_pid_package};
 
 #[test]
 fn test_is_pid_valid() {

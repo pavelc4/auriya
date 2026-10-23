@@ -40,10 +40,10 @@ async fn main() -> Result<()> {
         gamelist.game.len()
     );
 
-    let cfg = daemon::run::DaemonConfig {
+    let cfg = daemon::engine::DaemonConfig {
         log_debounce_ms: 5000,
         settings,
         gamelist,
     };
-    daemon::run::run_with_config_and_logger(&cfg, filter_handle).await
+    daemon::engine::run_with_config_and_logger(&cfg, filter_handle).await
 }

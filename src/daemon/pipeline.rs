@@ -54,8 +54,8 @@ impl Daemon {
 
         let focused_pid = if let Some(ref pkg) = pkg_opt {
             self.status_cache.focused_pid().filter(|&p| {
-                crate::core::procfs::is_pid_valid(p)
-                    && crate::core::procfs::verify_pid_package(p, pkg)
+                crate::platform::procfs::is_pid_valid(p)
+                    && crate::platform::procfs::verify_pid_package(p, pkg)
             })
         } else {
             None
@@ -155,9 +155,9 @@ impl Daemon {
                 self.last.profile_mode = Some(target);
             }
         }
-        self.apply_ceiling_for_state(Some(crate::core::tweaks::ceiling::CeilingLevel::Low), None);
+        self.apply_ceiling_for_state(Some(crate::platform::cpu::ceiling::CeilingLevel::Low), None);
         self.ebpf_detach();
-        self.sync_dnd(crate::core::cmd_writer::DndFilter::All);
+        self.sync_dnd(crate::platform::android_cmd::DndFilter::All);
         self.last.screen_awake = Some(screen_awake);
         self.last.battery_saver = Some(battery_saver);
         Ok(())
@@ -195,7 +195,7 @@ impl Daemon {
             f.reset();
         }
         self.fps_meter.clear();
-        self.sync_dnd(crate::core::cmd_writer::DndFilter::All);
+        self.sync_dnd(crate::platform::android_cmd::DndFilter::All);
 
         if self.last.pkg.is_some() || self.last.pid.is_some() {
             let was_game = self
@@ -271,7 +271,7 @@ impl Daemon {
             f.reset();
         }
         self.fps_meter.clear();
-        self.sync_dnd(crate::core::cmd_writer::DndFilter::All);
+        self.sync_dnd(crate::platform::android_cmd::DndFilter::All);
         let was_game = self
             .last
             .pkg
@@ -370,9 +370,10 @@ impl Daemon {
             }
         }
 
-        let ceiling_level = game_cfg
-            .and_then(|c| c.ceiling.as_deref())
-            .and_then(|s| s.parse::<crate::core::tweaks::ceiling::CeilingLevel>().ok());
+        let ceiling_level = game_cfg.and_then(|c| c.ceiling.as_deref()).and_then(|s| {
+            s.parse::<crate::platform::cpu::ceiling::CeilingLevel>()
+                .ok()
+        });
         self.apply_ceiling_for_state(ceiling_level, Some(pkg));
 
         let rr = game_cfg.and_then(|c| c.refresh_rate);
@@ -385,9 +386,9 @@ impl Daemon {
 
         self.ebpf_attach(pid);
         self.sync_dnd(if enable_dnd {
-            crate::core::cmd_writer::DndFilter::Priority
+            crate::platform::android_cmd::DndFilter::Priority
         } else {
-            crate::core::cmd_writer::DndFilter::All
+            crate::platform::android_cmd::DndFilter::All
         });
         self.last.pkg = Some(pkg.to_string());
         self.set_pid(Some(pid));
@@ -516,7 +517,7 @@ impl Daemon {
 
     pub(crate) fn apply_ceiling_for_state(
         &mut self,
-        game_override: Option<crate::core::tweaks::ceiling::CeilingLevel>,
+        game_override: Option<crate::platform::cpu::ceiling::CeilingLevel>,
         _pkg: Option<&str>,
     ) {
         let level = match game_override {
@@ -538,7 +539,7 @@ impl Daemon {
     }
 
     fn apply_thermal_for_game(&mut self, game_cfg: Option<&crate::core::config::GameProfile>) {
-        use crate::core::tweaks::thermal::{self, ThermalPreset};
+        use crate::platform::thermal::sconfig::{self as thermal, ThermalPreset};
 
         let thermal_enabled = self
             ._shared_settings
@@ -567,7 +568,7 @@ impl Daemon {
     }
 
     fn restore_thermal_default(&mut self) {
-        use crate::core::tweaks::thermal;
+        use crate::platform::thermal::sconfig as thermal;
 
         if self.last.thermal_applied.is_none() {
             return;
@@ -621,7 +622,7 @@ impl Daemon {
         }
     }
 
-    fn sync_dnd(&mut self, desired: crate::core::cmd_writer::DndFilter) {
+    fn sync_dnd(&mut self, desired: crate::platform::android_cmd::DndFilter) {
         if self.last_dnd == Some(desired) {
             return;
         }

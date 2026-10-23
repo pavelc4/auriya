@@ -1,4 +1,4 @@
-use auriya::core::tweaks::cpu::classify_from_freqs;
+use auriya::platform::cpu::topology::classify_from_freqs;
 
 /// Helper: turn a bitmask into a sorted Vec of core ids for assertions.
 fn ids(mask: u64) -> Vec<usize> {
