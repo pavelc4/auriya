@@ -13,7 +13,7 @@ lifecycle = "2.11.0"
 coil = "3.6.3"
 material-kolor = "5.0.1"
 graphics-shapes = "1.1.0"
-datastore = "1.2.1"
+datastore = "1.3.0"
 google-fonts = "1.11.4"
 libsu = "6.0.0"
 
