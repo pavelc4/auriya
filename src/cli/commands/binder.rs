@@ -42,6 +42,17 @@ fn handle_probe() -> Result<()> {
 
     #[cfg(target_os = "android")]
     {
+        let binder_mode = crate::platform::binder::get_user_preferred_display_mode()
+            .ok()
+            .flatten();
+        let binder_str = binder_mode
+            .map(|m| format!("{:.0}Hz", m))
+            .unwrap_or_else(|| "null (dynamic)".to_string());
+        println!("  Display Mode (Binder):      {}", binder_str);
+    }
+
+    #[cfg(target_os = "android")]
+    {
         if rsbinder::ProcessState::is_initialized() {
             for service in [
                 "power",
@@ -85,13 +96,21 @@ fn handle_dnd(mode: CliDndMode) -> Result<()> {
 fn handle_rate(hz: u32) -> Result<()> {
     apply_refresh_rate(hz)?;
     if hz == 0 {
-        println!("Restored original display refresh rate preferences");
+        println!("Restored original display refresh rate preferences (dynamic)");
     } else {
         println!("Applied display refresh rate: {}Hz", hz);
     }
 
     #[cfg(target_os = "android")]
     {
+        let binder_mode = crate::platform::binder::get_user_preferred_display_mode()
+            .ok()
+            .flatten();
+        let binder_str = binder_mode
+            .map(|m| format!("{:.0}Hz", m))
+            .unwrap_or_else(|| "null (dynamic)".to_string());
+        println!("Verified Native Binder mode: {}", binder_str);
+
         let peak = read_system_setting("system", "peak_refresh_rate");
         let min = read_system_setting("system", "min_refresh_rate");
         println!("Verified settings (peak: {}, min: {})", peak, min);
@@ -105,7 +124,7 @@ fn handle_test() -> Result<()> {
 
     let client = BinderClient::new();
     println!(
-        "[1/5] Binder Servicemanager: {}",
+        "[1/6] Binder Servicemanager: {}",
         if client.is_operational() {
             "PASS"
         } else {
@@ -152,14 +171,22 @@ fn handle_test() -> Result<()> {
     apply_refresh_rate(120)?;
     #[cfg(target_os = "android")]
     {
+        let binder_mode = crate::platform::binder::get_user_preferred_display_mode()
+            .ok()
+            .flatten();
+        println!("      Native Binder mode: {:?}", binder_mode);
         let peak = read_system_setting("system", "peak_refresh_rate");
         println!("      peak_refresh_rate is {} (expected: 120.0)", peak);
     }
     std::thread::sleep(std::time::Duration::from_millis(250));
-    println!("      Restoring Display Refresh Rate (0Hz / auto)...");
+    println!("      Restoring Display Refresh Rate (0Hz / dynamic)...");
     apply_refresh_rate(0)?;
     #[cfg(target_os = "android")]
     {
+        let binder_mode = crate::platform::binder::get_user_preferred_display_mode()
+            .ok()
+            .flatten();
+        println!("      Native Binder mode restored to {:?}", binder_mode);
         let peak = read_system_setting("system", "peak_refresh_rate");
         println!("      peak_refresh_rate restored to {}", peak);
     }

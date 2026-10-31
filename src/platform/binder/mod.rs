@@ -10,7 +10,7 @@ pub mod actuators;
 pub mod client;
 pub mod observer;
 
-pub use actuators::{DndMode, apply_dnd, apply_refresh_rate};
+pub use actuators::{DndMode, apply_dnd, apply_refresh_rate, get_user_preferred_display_mode};
 pub use client::BinderClient;
 pub use observer::{ProcessEvent, ProcessEventType, ProcessObserver};
 
