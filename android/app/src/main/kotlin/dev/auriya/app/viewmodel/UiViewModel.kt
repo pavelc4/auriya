@@ -274,10 +274,9 @@ class UiViewModel(
     }
 
     private fun loadConfigurationsSync() {
-        _thermalAvailable.value =
-            RootShell
-                .run("test -f /sys/class/thermal/thermal_message/sconfig && echo 1 || echo 0")
-                .trim() == "1"
+        val stats = dev.auriya.app.data.stats.StatsParser.fetchStats()
+        _thermalAvailable.value = stats?.thermal?.sconfig_supported
+            ?: java.io.File("/sys/class/thermal/thermal_message/sconfig").exists()
         runCatching {
             RootShell.readText(ConfigPaths.SETTINGS_FILE)?.let {
                 _settings.value = TomlParser.parseSettings(it)
@@ -301,33 +300,51 @@ class UiViewModel(
     }
 
     private fun initSystemInfoStaticSync() {
-        val modPath = "/data/adb/modules/auriya"
-        val out =
-            RootShell.run(
-                """
-                grep "^version=" $modPath/module.prop | cut -d= -f2; echo "|||";
-                grep "^versionCode=" $modPath/module.prop | cut -d= -f2; echo "|||";
-                getprop ro.product.cpu.abi; echo "|||";
-                stat -c %Y $modPath/module.prop
-                """.trimIndent(),
-            )
-        if (out.isEmpty()) return
-        val parts = out.split("|||").map { it.trim() }
-        val version = parts.getOrNull(0)?.ifEmpty { "Unknown" } ?: "Unknown"
-        val commit = parts.getOrNull(1)?.ifEmpty { "Unknown" } ?: "Unknown"
-        var arch = parts.getOrNull(2)?.ifEmpty { "Unknown" } ?: "Unknown"
+        val stats = dev.auriya.app.data.stats.StatsParser.fetchStats()
+        var version = stats?.daemon?.version?.ifEmpty { null }
+        var commit = stats?.daemon?.commit?.ifEmpty { null }
+        var arch = stats?.daemon?.arch?.ifEmpty { null }
+        var modTime = stats?.daemon?.mod_updated_secs
+
+        if (version == null || commit == null || arch == null) {
+            val modProp = java.io.File("/data/adb/modules/auriya/module.prop")
+            val content =
+                if (modProp.canRead()) {
+                    runCatching { modProp.readText() }.getOrNull()
+                } else {
+                    RootShell.readText("/data/adb/modules/auriya/module.prop")
+                }
+
+            if (content != null) {
+                for (line in content.lines()) {
+                    val trimmed = line.trim()
+                    if (trimmed.startsWith("version=")) {
+                        version = trimmed.substringAfter("version=").trim()
+                    } else if (trimmed.startsWith("versionCode=")) {
+                        val vc = trimmed.substringAfter("versionCode=").trim()
+                        if (commit == null) commit = vc
+                    }
+                }
+                if (modTime == null && modProp.exists()) {
+                    val m = modProp.lastModified()
+                    if (m > 0) modTime = m / 1000
+                }
+            }
+        }
+
+        val primaryAbi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"
         arch =
-            when {
-                arch.contains("arm64") -> "v8a"
-                arch.contains("armeabi") -> "v7a"
-                arch.contains("x86_64") -> "x64"
-                arch.contains("x86") -> "x86"
-                else -> arch
+            arch ?: when {
+                primaryAbi.contains("arm64") -> "v8a"
+                primaryAbi.contains("armeabi") -> "v7a"
+                primaryAbi.contains("x86_64") -> "x64"
+                primaryAbi.contains("x86") -> "x86"
+                else -> primaryAbi
             }
 
         var updateTimeStr = "Unknown"
-        parts.getOrNull(3)?.toLongOrNull()?.let { modTime ->
-            val diff = (System.currentTimeMillis() / 1000) - modTime
+        modTime?.let { timeSecs ->
+            val diff = (System.currentTimeMillis() / 1000) - timeSecs
             updateTimeStr =
                 when {
                     diff < 3600 -> "Updated ${diff / 60}m ago"
@@ -338,8 +355,8 @@ class UiViewModel(
 
         _systemInfo.value =
             _systemInfo.value.copy(
-                version = version,
-                commit = commit,
+                version = version ?: "Unknown",
+                commit = commit ?: "Unknown",
                 arch = arch,
                 deviceArch = arch,
                 updateTime = updateTimeStr,
@@ -389,6 +406,7 @@ class UiViewModel(
             if (stats.cpu?.available_governors?.isNotEmpty() == true) {
                 _availableGovernors.value = stats.cpu.available_governors
             }
+            _thermalAvailable.value = stats.thermal.sconfig_supported
             val profileStr = stats.session.profile.replaceFirstChar { it.uppercase() }
             val battery = stats.battery.pct?.let { "$it%" } ?: sysBattery
             val temp = stats.thermal.cpu_c?.let { "${it.toInt()}°C" }
@@ -399,9 +417,28 @@ class UiViewModel(
                 String.format(java.util.Locale.US, "%.1f MB", it)
             } ?: "-"
 
+            val daemonVersion = stats.daemon?.version?.ifEmpty { null } ?: _systemInfo.value.version
+            val daemonCommit = stats.daemon?.commit?.ifEmpty { null } ?: _systemInfo.value.commit
+            val daemonArch = stats.daemon?.arch?.ifEmpty { null } ?: _systemInfo.value.arch
+            val modTime = stats.daemon?.mod_updated_secs
+            val updateTimeStr =
+                modTime?.let { timeSecs ->
+                    val diff = (System.currentTimeMillis() / 1000) - timeSecs
+                    when {
+                        diff < 3600 -> "Updated ${diff / 60}m ago"
+                        diff < 86400 -> "Updated ${diff / 3600}h ago"
+                        else -> "Updated ${diff / 86400}d ago"
+                    }
+                } ?: _systemInfo.value.updateTime
+
             _daemonActive.value = true
             _systemInfo.value =
                 _systemInfo.value.copy(
+                    version = daemonVersion,
+                    commit = daemonCommit,
+                    arch = daemonArch,
+                    deviceArch = daemonArch,
+                    updateTime = updateTimeStr,
                     profile = profileStr,
                     battery = battery,
                     temp = temp,

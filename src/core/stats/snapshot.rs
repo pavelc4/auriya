@@ -11,6 +11,8 @@ pub struct ThermalCard {
     pub cpu_c: Option<f32>,
     pub gpu_c: Option<f32>,
     pub battery_c: Option<f32>,
+    #[serde(default)]
+    pub sconfig_supported: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,6 +62,14 @@ pub struct DaemonCard {
     pub rss_mb: f32,
     pub uptime_secs: u64,
     pub active_profile: String,
+    #[serde(default)]
+    pub version_code: String,
+    #[serde(default)]
+    pub commit: String,
+    #[serde(default)]
+    pub arch: String,
+    #[serde(default)]
+    pub mod_updated_secs: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -98,6 +108,76 @@ fn cluster_str(c: &ClusterType) -> &'static str {
         ClusterType::Little => "Little",
         ClusterType::Big => "Big",
         ClusterType::Prime => "Prime",
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ModulePropInfo {
+    version: String,
+    version_code: String,
+    commit: String,
+    mod_updated_secs: Option<u64>,
+}
+
+fn get_module_prop_info() -> &'static ModulePropInfo {
+    static INFO: std::sync::OnceLock<ModulePropInfo> = std::sync::OnceLock::new();
+    INFO.get_or_init(|| {
+        let prop_path = std::path::Path::new("/data/adb/modules/auriya/module.prop");
+        let mut version = env!("CARGO_PKG_VERSION").to_string();
+        let mut version_code = String::new();
+        let mut commit = String::new();
+
+        if let Ok(content) = std::fs::read_to_string(prop_path) {
+            for line in content.lines() {
+                let line = line.trim();
+                if let Some(val) = line.strip_prefix("version=") {
+                    version = val.trim().to_string();
+                } else if let Some(val) = line.strip_prefix("versionCode=") {
+                    version_code = val.trim().to_string();
+                }
+            }
+        }
+
+        if let Some(open) = version.find('(')
+            && let Some(close) = version.find(')')
+            && close > open
+        {
+            let inside = &version[open + 1..close];
+            let parts: Vec<&str> = inside.split('-').collect();
+            if parts.len() >= 2 {
+                commit = parts[1].to_string();
+            }
+        }
+        if commit.is_empty() {
+            commit = if !version_code.is_empty() {
+                version_code.clone()
+            } else {
+                "release".to_string()
+            };
+        }
+
+        let mod_updated_secs = std::fs::metadata(prop_path)
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs());
+
+        ModulePropInfo {
+            version,
+            version_code,
+            commit,
+            mod_updated_secs,
+        }
+    })
+}
+
+fn get_target_arch() -> &'static str {
+    match std::env::consts::ARCH {
+        "aarch64" => "v8a",
+        "arm" => "v7a",
+        "x86_64" => "x64",
+        "x86" => "x86",
+        other => other,
     }
 }
 
@@ -205,6 +285,12 @@ impl StatsSnapshot {
         let binder = sample_binder_card();
         let system = sample_system_card();
         let active_profile = profile.to_string().to_lowercase();
+        let mod_info = get_module_prop_info();
+        let daemon_version = if mod_info.version.is_empty() {
+            env!("CARGO_PKG_VERSION").to_string()
+        } else {
+            mod_info.version.clone()
+        };
 
         StatsSnapshot {
             fps,
@@ -212,6 +298,7 @@ impl StatsSnapshot {
                 cpu_c: thermal.and_then(|t| t.cpu_temp_c),
                 gpu_c: thermal.and_then(|t| t.gpu_temp_c),
                 battery_c: battery.temp_c,
+                sconfig_supported: crate::platform::thermal::sconfig_exists(),
             },
             battery: BatteryCard {
                 pct: battery.pct,
@@ -246,11 +333,15 @@ impl StatsSnapshot {
                 active,
             },
             daemon: DaemonCard {
-                version: env!("CARGO_PKG_VERSION").to_string(),
+                version: daemon_version,
                 pid,
                 rss_mb,
                 uptime_secs,
                 active_profile,
+                version_code: mod_info.version_code.clone(),
+                commit: mod_info.commit.clone(),
+                arch: get_target_arch().to_string(),
+                mod_updated_secs: mod_info.mod_updated_secs,
             },
             binder,
             system,

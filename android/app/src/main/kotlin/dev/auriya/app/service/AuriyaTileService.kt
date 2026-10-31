@@ -7,6 +7,7 @@ import android.service.quicksettings.TileService
 import android.widget.Toast
 import dev.auriya.app.R
 import dev.auriya.app.data.RootShell
+import dev.auriya.app.data.stats.StatsParser
 import dev.auriya.shared.config.ConfigPaths
 import dev.auriya.shared.config.TomlParser
 
@@ -18,34 +19,30 @@ class AuriyaTileService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        val current = RootShell.readText(ConfigPaths.CURRENT_PROFILE_FILE)?.trim() ?: "2"
-        val next =
+        val current =
+            StatsParser.fetchStats()?.session?.profile?.lowercase()
+                ?: RootShell.readText(ConfigPaths.CURRENT_PROFILE_FILE)?.trim()?.lowercase()
+                ?: "balance"
+        val nextMode =
             when (current) {
-                "1" -> "2"
-
-                // Performance -> Balance
-                "2" -> "3"
-
-                // Balance -> Powersave
-                "3" -> "1"
-
-                // Powersave -> Performance
+                "1", "performance" -> "balance"
+                "2", "balance" -> "powersave"
+                "3", "powersave" -> "performance"
+                else -> "balance"
+            }
+        val nextCode =
+            when (nextMode) {
+                "performance" -> "1"
+                "balance" -> "2"
+                "powersave" -> "3"
                 else -> "2"
             }
-        val profileString =
-            when (next) {
-                "1" -> "PERFORMANCE"
-                "2" -> "BALANCE"
-                "3" -> "POWERSAVE"
-                else -> "BALANCE"
-            }
-        val modeString = profileString.lowercase()
 
         // 1. Notify daemon via CLI
-        RootShell.exec("${ConfigPaths.AURIYACTL_BIN} set-profile $modeString")
+        RootShell.exec("${ConfigPaths.AURIYACTL_BIN} set-profile $nextMode")
 
-        // 2. Persist current profile code
-        RootShell.writeText(ConfigPaths.CURRENT_PROFILE_FILE, next)
+        // 2. Persist current profile code for backwards compatibility
+        RootShell.writeText(ConfigPaths.CURRENT_PROFILE_FILE, nextCode)
 
         // 3. Persist profile choice directly to settings.toml
         val settingsText = RootShell.readText(ConfigPaths.SETTINGS_FILE)
@@ -54,8 +51,8 @@ class AuriyaTileService : TileService() {
                 val settings = TomlParser.parseSettings(settingsText)
                 val updated =
                     settings.copy(
-                        daemon = settings.daemon.copy(defaultMode = modeString),
-                        fas = settings.fas.copy(defaultMode = modeString),
+                        daemon = settings.daemon.copy(defaultMode = nextMode),
+                        fas = settings.fas.copy(defaultMode = nextMode),
                     )
                 val serialized = TomlParser.serializeSettings(updated)
                 RootShell.writeText(ConfigPaths.SETTINGS_FILE, serialized)
@@ -64,13 +61,7 @@ class AuriyaTileService : TileService() {
         }
 
         // Show Toast Notification
-        val profileName =
-            when (next) {
-                "1" -> "Performance"
-                "2" -> "Balance"
-                "3" -> "Powersave"
-                else -> "Balance"
-            }
+        val profileName = nextMode.replaceFirstChar { it.uppercase() }
         Toast.makeText(this, "Auriya: Profile set to $profileName", Toast.LENGTH_SHORT).show()
 
         updateTileState()
@@ -78,12 +69,15 @@ class AuriyaTileService : TileService() {
 
     private fun updateTileState() {
         val tile = qsTile ?: return
-        val current = RootShell.readText(ConfigPaths.CURRENT_PROFILE_FILE)?.trim() ?: "2"
+        val current =
+            StatsParser.fetchStats()?.session?.profile?.lowercase()
+                ?: RootShell.readText(ConfigPaths.CURRENT_PROFILE_FILE)?.trim()?.lowercase()
+                ?: "balance"
         val (profileName, iconRes) =
             when (current) {
-                "1" -> Pair("Performance", R.drawable.ic_gamepad)
-                "2" -> Pair("Balance", R.drawable.ic_settings)
-                "3" -> Pair("Powersave", R.drawable.ic_battery)
+                "1", "performance" -> Pair("Performance", R.drawable.ic_gamepad)
+                "2", "balance" -> Pair("Balance", R.drawable.ic_settings)
+                "3", "powersave" -> Pair("Powersave", R.drawable.ic_battery)
                 else -> Pair("Balance", R.drawable.ic_settings)
             }
 

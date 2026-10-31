@@ -39,3 +39,48 @@ fn zero_durations_filtered() {
     let s = fps_stats_from_frametimes(&ft, 60);
     assert_eq!(s.frames, 2);
 }
+
+#[test]
+fn stats_snapshot_serialization_envelope() {
+    use auriya::core::profile::ProfileMode;
+    use auriya::core::stats::envelope::ApiResponse;
+    use auriya::core::stats::snapshot::StatsSnapshot;
+    use auriya::core::telemetry::battery::BatterySnapshot;
+
+    let battery = BatterySnapshot {
+        pct: Some(85),
+        current_ma: Some(-450),
+        voltage_v: Some(4.1),
+        temp_c: Some(31.5),
+        status: Some("Discharging".into()),
+        health: Some("Good".into()),
+    };
+
+    let snapshot = StatsSnapshot::build(
+        None,
+        None,
+        None,
+        None,
+        &battery,
+        Some("com.miHoYo.GenshinImpact"),
+        ProfileMode::Performance,
+        true,
+        3600,
+    );
+
+    let envelope = ApiResponse::ok(snapshot);
+    let json = serde_json::to_string(&envelope).expect("serialization failed");
+
+    assert!(json.contains("\"sconfig_supported\":"));
+    assert!(json.contains("\"version_code\":"));
+    assert!(json.contains("\"commit\":"));
+    assert!(json.contains("\"arch\":"));
+    assert!(json.contains("\"success\":true"));
+
+    let deserialized: ApiResponse<StatsSnapshot> =
+        serde_json::from_str(&json).expect("deserialization failed");
+    assert_eq!(
+        deserialized.data.as_ref().unwrap().daemon.active_profile,
+        "performance"
+    );
+}

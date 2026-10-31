@@ -43,6 +43,10 @@ data class DaemonInfo(
     val rss_mb: Float = 0f,
     val uptime_secs: Long = 0L,
     val active_profile: String = "balance",
+    val version_code: String = "",
+    val commit: String = "",
+    val arch: String = "v8a",
+    val mod_updated_secs: Long? = null,
 )
 
 data class BinderInfo(
@@ -73,6 +77,7 @@ data class Thermal(
     val cpu_c: Float? = null,
     val gpu_c: Float? = null,
     val battery_c: Float? = null,
+    val sconfig_supported: Boolean = false,
 )
 
 data class Battery(
@@ -247,6 +252,7 @@ object StatsParser {
                             } else {
                                 null
                             },
+                        sconfig_supported = thermalObj.optBoolean("sconfig_supported", false),
                     )
                 } else {
                     Thermal()
@@ -351,6 +357,15 @@ object StatsParser {
                         rss_mb = daemonObj.optDouble("rss_mb", 0.0).toFloat(),
                         uptime_secs = daemonObj.optLong("uptime_secs", 0L),
                         active_profile = daemonObj.optString("active_profile", "balance"),
+                        version_code = daemonObj.optString("version_code", ""),
+                        commit = daemonObj.optString("commit", ""),
+                        arch = daemonObj.optString("arch", "v8a"),
+                        mod_updated_secs =
+                            if (daemonObj.has("mod_updated_secs") && !daemonObj.isNull("mod_updated_secs")) {
+                                daemonObj.getLong("mod_updated_secs")
+                            } else {
+                                null
+                            },
                     )
                 } else {
                     null
