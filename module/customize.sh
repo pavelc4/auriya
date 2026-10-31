@@ -34,13 +34,11 @@ fi
 LIBS_DIR="$MODPATH/libs/$SOURCE_ARCH"
 DAEMON_SRC="$LIBS_DIR/auriya"
 CLI_SRC="$LIBS_DIR/auriyactl"
-COMPANION_SRC="$MODPATH/libs/companion/service.apk"
 USER_APP_SRC="$MODPATH/libs/companion/auriya-app.apk"
 CHECKSUMS_FILE="$LIBS_DIR/checksums.sha256"
 DAEMON_SHA="$LIBS_DIR/auriya.sha256"
 
 [ ! -f "$DAEMON_SRC" ] && abort "! Daemon binary not found for $SOURCE_ARCH"
-[ ! -f "$COMPANION_SRC" ] && abort "! Companion service APK not found"
 
 # 2. SHA256 Integrity Verification
 verify_sha() {
@@ -99,9 +97,6 @@ if [ -f "$CLI_SRC" ]; then
   chmod 0755 "$MODPATH/system/bin/auriyactl"
   HAS_CLI=true
 fi
-
-cp -f "$COMPANION_SRC" "$MODPATH/system/etc/auriya/service.apk"
-chmod 0644 "$MODPATH/system/etc/auriya/service.apk"
 
 # 4. Install User Manager App
 if [ -f "$USER_APP_SRC" ] && command -v pm >/dev/null 2>&1; then

@@ -1,6 +1,5 @@
 use super::status_file::STATUS_FILE;
 use super::{Daemon, ReloadHandle};
-use crate::daemon::companion::lock::start_companion_lock_watcher;
 use crate::daemon::model::config::DaemonConfig;
 use crate::daemon::model::event::{self, DaemonEvent};
 use crate::daemon::watcher::{start_config_watcher, start_module_update_watcher};
@@ -67,7 +66,6 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     let mut watch_rx = start_config_watcher(daemon.shared_gamelist.clone());
 
     start_module_update_watcher(daemon.event_tx.clone());
-    start_companion_lock_watcher(daemon.event_tx.clone());
 
     debug!(target: "auriya::daemon", "Tick loop started (adaptive: {}ms idle, {}ms gaming)", daemon.normal_interval_ms, INGAME_INTERVAL_MS);
 
@@ -146,9 +144,6 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                             });
                         }
                         daemon.tick().await;
-                    }
-                    DaemonEvent::CompanionDied => {
-                        daemon.watchdog.on_companion_died();
                     }
                     DaemonEvent::ModuleUpdate => {
                         info!(target: "auriya::daemon", "Daemon | Module update staged, stopping gracefully");

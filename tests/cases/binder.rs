@@ -1,15 +1,12 @@
 //! Integration tests for Native Binder IPC module.
 
-use auriya::platform::android_cmd::DndFilter;
 use auriya::platform::binder::{
     BinderClient, DndMode, ProcessEventType, ProcessObserver, apply_dnd, apply_refresh_rate,
 };
 use tokio::sync::mpsc;
 
 #[test]
-fn test_dnd_mode_conversions() {
-    assert_eq!(DndMode::from(DndFilter::All), DndMode::All);
-    assert_eq!(DndMode::from(DndFilter::Priority), DndMode::Priority);
+fn test_dnd_modes() {
     assert_eq!(DndMode::All as i32, 1);
     assert_eq!(DndMode::Priority as i32, 2);
 }
@@ -33,8 +30,8 @@ fn test_actuators_execution() {
 
 #[test]
 fn test_core_profile_dnd_integration() {
-    auriya::core::profile::request_dnd(DndFilter::Priority);
-    auriya::core::profile::request_dnd(DndFilter::All);
+    auriya::core::profile::request_dnd(auriya::core::profile::DndFilter::Priority);
+    auriya::core::profile::request_dnd(auriya::core::profile::DndFilter::All);
 }
 
 #[tokio::test]

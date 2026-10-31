@@ -32,10 +32,6 @@ name = "stream_perf"
 path = "tests/stream_perf.rs"
 
 [[test]]
-name = "watchdog_chaos"
-path = "tests/watchdog_chaos.rs"
-
-[[test]]
 name = "loom_concurrency"
 path = "tests/loom_concurrency.rs"
 

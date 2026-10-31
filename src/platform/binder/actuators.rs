@@ -12,15 +12,6 @@ pub enum DndMode {
     Priority = 2,
 }
 
-impl From<crate::platform::android_cmd::DndFilter> for DndMode {
-    fn from(filter: crate::platform::android_cmd::DndFilter) -> Self {
-        match filter {
-            crate::platform::android_cmd::DndFilter::All => DndMode::All,
-            crate::platform::android_cmd::DndFilter::Priority => DndMode::Priority,
-        }
-    }
-}
-
 /// Cached display state to remember user preferences prior to game override.
 #[derive(Debug, Default, Clone)]
 struct DisplayStateSnapshot {
@@ -154,15 +145,6 @@ fn read_settings_float(key: &str) -> Option<f32> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_dnd_mode_conversion() {
-        let all_filter = crate::platform::android_cmd::DndFilter::All;
-        assert_eq!(DndMode::from(all_filter), DndMode::All);
-
-        let prio_filter = crate::platform::android_cmd::DndFilter::Priority;
-        assert_eq!(DndMode::from(prio_filter), DndMode::Priority);
-    }
 
     #[test]
     fn test_apply_dnd_mock() {

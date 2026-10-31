@@ -24,5 +24,4 @@ dependencyResolutionManagement {
 rootProject.name = "auriya-android"
 
 include(":shared")
-include(":service")
 include(":app")

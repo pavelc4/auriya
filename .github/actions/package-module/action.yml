@@ -38,7 +38,7 @@ runs:
         cp gamelist.toml "$BUILD_DIR/module/" 2>/dev/null || true
         cp -r module/system "$BUILD_DIR/module/" 2>/dev/null || true
 
-        # 2. APKs (companion service + UI app)
+        # 2. User Manager App APK
         APPS_DIR="$BUILD_DIR/module/libs/companion"
         mkdir -p "$APPS_DIR"
 
@@ -53,23 +53,11 @@ runs:
             APP_APK=$(find . -name "*.apk" -path "*/app/*" -type f 2>/dev/null | head -1)
         fi
 
-        SERVICE_APK=$(find . -name "service-release.apk" -type f 2>/dev/null | head -1)
-        if [ -z "$SERVICE_APK" ]; then
-            SERVICE_APK=$(find . -name "*.apk" -path "*/service/*" -type f 2>/dev/null | head -1)
-        fi
-
         if [ -n "$APP_APK" ]; then
             cp "$APP_APK" "$APPS_DIR/auriya-app.apk"
             echo "Packaged app APK ($(du -h "$APP_APK" | cut -f1))"
         else
             echo "Warning: App APK not found — companion dir will be incomplete"
-        fi
-
-        if [ -n "$SERVICE_APK" ]; then
-            cp "$SERVICE_APK" "$APPS_DIR/service.apk"
-            echo "Packaged service APK ($(du -h "$SERVICE_APK" | cut -f1))"
-        else
-            echo "Warning: Service APK not found — companion dir will be incomplete"
         fi
 
         # 4. Binary (aarch64 only)

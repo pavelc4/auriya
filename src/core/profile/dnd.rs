@@ -1,35 +1,11 @@
-use crate::platform::android_cmd::DndFilter;
-use std::sync::atomic::{AtomicBool, Ordering};
 use tracing::debug;
 
-/// Set by the daemon each tick to indicate whether the companion service
-/// is believed to be alive. When `false`, `request_dnd` falls back to
-/// `settings put global zen_mode` directly instead of going through the
-/// companion's cmd_writer path.
-static COMPANION_ALIVE: AtomicBool = AtomicBool::new(true);
+pub use crate::platform::binder::DndMode as DndFilter;
 
-/// Update the global companion-alive flag. Called by the daemon tick
-/// after its health check.
-pub fn set_companion_alive(alive: bool) {
-    COMPANION_ALIVE.store(alive, Ordering::Release);
-}
-
-/// Request the companion service to apply the given DnD filter. The
-/// daemon cannot call NotificationManager itself — it would need to be
-/// an app rather than a root binary — so we hand the work off through
-/// the cmd file. When the companion is known dead we fall back to a
-/// `settings put global zen_mode` call directly (less polished — no status
-/// bar icon — but still functional).
-/// Driven by the daemon's game-session lifecycle (see `Daemon::sync_dnd`),
-/// not by profile transitions — DnD must toggle on game enter/exit even
-/// when the CPU/GPU profile itself does not change.
+/// Request the daemon to apply the given DnD filter via Native Binder IPC.
 #[inline]
 pub fn request_dnd(filter: DndFilter) {
-    let mode = match filter {
-        DndFilter::All => crate::platform::binder::DndMode::All,
-        DndFilter::Priority => crate::platform::binder::DndMode::Priority,
-    };
-    if let Err(e) = crate::platform::binder::apply_dnd(mode) {
+    if let Err(e) = crate::platform::binder::apply_dnd(filter) {
         tracing::warn!(
             target: "auriya::profile",
             "Failed to apply DnD {:?}: {}",

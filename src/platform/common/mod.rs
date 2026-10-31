@@ -1,4 +1,3 @@
-pub mod android_cmd;
 pub mod display;
 pub mod info;
 pub mod init;

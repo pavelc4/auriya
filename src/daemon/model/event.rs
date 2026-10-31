@@ -11,9 +11,6 @@ pub enum DaemonEvent {
         uid: i32,
         foreground: bool,
     },
-    /// The Android companion service released its liveness lock — it was
-    /// killed or crashed. The daemon should mark it dead and relaunch it.
-    CompanionDied,
     /// A module update was staged (`<MODULE_PATH>/update` appeared). The
     /// daemon should stop gracefully so the new version takes over on the
     /// next boot.

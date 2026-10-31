@@ -5,7 +5,6 @@ use crate::core::fps::FpsMeter;
 use crate::core::profile::ProfileMode;
 use crate::core::system_status::SystemStatusCache;
 use crate::core::telemetry::TelemetryHub;
-use crate::daemon::companion::watchdog::CompanionWatchdog;
 pub use crate::daemon::model::config::DaemonConfig;
 use crate::daemon::model::event::EventSender;
 use crate::daemon::model::state::{CurrentState, LastState};
@@ -35,7 +34,6 @@ pub struct Daemon {
     pub(crate) last_error: Option<(String, u128)>,
     pub(crate) error_debounce_ms: u128,
     pub(crate) tick_count: u64,
-    pub(crate) watchdog: CompanionWatchdog,
 
     pub(crate) fas_controller: Option<Arc<tokio::sync::Mutex<crate::core::fas::FasController>>>,
     pub(crate) balance_governor: Arc<RwLock<String>>,
@@ -182,7 +180,6 @@ impl Daemon {
             applied_refresh_rate: None,
             cached_whitelist,
             tick_count: 0,
-            watchdog: CompanionWatchdog::new(),
             status_cache,
             vendor_lock: crate::platform::vendor::VendorLock::new(),
             last_fps_config: None,
@@ -346,13 +343,6 @@ impl Daemon {
         self.tick_count = self.tick_count.wrapping_add(1);
         debug!(target: "auriya::daemon", "Tick #{}", self.tick_count);
 
-        if self
-            .tick_count
-            .is_multiple_of(crate::daemon::companion::watchdog::COMPANION_HEALTH_CHECK_TICKS)
-        {
-            self.watchdog.check_health(&self.status_cache);
-        }
-
         let gamelist = match self.shared_gamelist.read() {
             Ok(g) => Arc::clone(&g),
             Err(_) => {
@@ -398,7 +388,7 @@ impl Daemon {
             cur.screen_awake = self.last.screen_awake.unwrap_or(false);
             cur.battery_saver = self.last.battery_saver.unwrap_or(false);
             cur.profile = self.last.profile_mode.unwrap_or(self.default_mode);
-            cur.companion_alive = self.watchdog.alive;
+            cur.companion_alive = crate::platform::binder::BinderClient::is_healthy();
             cur.cpu_telemetry = telemetry.cpu;
             cur.gpu_telemetry = telemetry.gpu;
             cur.thermal_telemetry = telemetry.thermal;
