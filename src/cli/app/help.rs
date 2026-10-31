@@ -16,4 +16,6 @@ EXAMPLES:
   auriyactl monitor --oneline           Single-line compact telemetry
   auriyactl log -f                      Follow daemon logs in real-time
   auriyactl set-profile performance     Switch daemon power profile
-  auriyactl restart                     Gracefully restart daemon and companion";
+  auriyactl binder probe                Probe Android Binder servicemanager
+  auriyactl binder test                 Run automated Binder hardware verification
+  auriyactl restart                     Gracefully restart daemon";

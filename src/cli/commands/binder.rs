@@ -1,0 +1,149 @@
+//! Handler for Native Android Binder CLI commands and diagnostics.
+
+use crate::Result;
+use crate::cli::app::{BinderCommands, CliDndMode};
+use crate::platform::binder::{BinderClient, apply_dnd, apply_refresh_rate};
+
+pub async fn handle_binder(cmd: BinderCommands) -> Result<()> {
+    match cmd {
+        BinderCommands::Probe => handle_probe(),
+        BinderCommands::Test => handle_test(),
+        BinderCommands::Dnd { mode } => handle_dnd(mode),
+        BinderCommands::Rate { hz } => handle_rate(hz),
+    }
+}
+
+fn handle_probe() -> Result<()> {
+    println!("Native Android Binder Probe:");
+
+    let client = BinderClient::new();
+    let status_str = if client.is_operational() {
+        "Operational"
+    } else {
+        "Unavailable"
+    };
+    println!("  Binder IPC Status:          {}", status_str);
+
+    match client.is_screen_interactive() {
+        Ok(interactive) => println!("  PowerManager.isInteractive: {}", interactive),
+        Err(e) => println!("  PowerManager query:         Error ({:?})", e),
+    }
+
+    #[cfg(target_os = "android")]
+    {
+        if rsbinder::ProcessState::is_initialized() {
+            for service in ["power", "notification", "activity", "display"] {
+                let avail = rsbinder::hub::check_service(service).is_some();
+                println!(
+                    "  Service '{:<12}':     {}",
+                    service,
+                    if avail { "Available" } else { "Not found" }
+                );
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        println!("  (Running on host OS — Android Binder services mocked)");
+    }
+
+    Ok(())
+}
+
+fn handle_dnd(mode: CliDndMode) -> Result<()> {
+    let dnd_mode = mode.into();
+    apply_dnd(dnd_mode)?;
+    println!("Applied Do Not Disturb mode: {:?}", dnd_mode);
+
+    #[cfg(target_os = "android")]
+    {
+        let zen = read_system_setting("global", "zen_mode");
+        println!("Verified setting (global/zen_mode): {}", zen);
+    }
+
+    Ok(())
+}
+
+fn handle_rate(hz: u32) -> Result<()> {
+    apply_refresh_rate(hz)?;
+    if hz == 0 {
+        println!("Restored original display refresh rate preferences");
+    } else {
+        println!("Applied display refresh rate: {}Hz", hz);
+    }
+
+    #[cfg(target_os = "android")]
+    {
+        let peak = read_system_setting("system", "peak_refresh_rate");
+        let min = read_system_setting("system", "min_refresh_rate");
+        println!("Verified settings (peak: {}, min: {})", peak, min);
+    }
+
+    Ok(())
+}
+
+fn handle_test() -> Result<()> {
+    println!("Native Binder Hardware Test:");
+
+    let client = BinderClient::new();
+    println!(
+        "[1/5] Binder Servicemanager: {}",
+        if client.is_operational() {
+            "PASS"
+        } else {
+            "FAIL (unavailable)"
+        }
+    );
+
+    match client.is_screen_interactive() {
+        Ok(interactive) => println!("[2/5] PowerManager.isInteractive ({}): PASS", interactive),
+        Err(e) => println!("[2/5] PowerManager query: FAIL ({:?})", e),
+    }
+
+    println!("[3/5] Testing DnD actuator (Priority)...");
+    apply_dnd(crate::platform::binder::DndMode::Priority)?;
+    #[cfg(target_os = "android")]
+    {
+        let zen = read_system_setting("global", "zen_mode");
+        println!("      zen_mode is {} (expected: 1)", zen);
+    }
+    std::thread::sleep(std::time::Duration::from_millis(250));
+    println!("      Restoring DnD actuator (All)...");
+    apply_dnd(crate::platform::binder::DndMode::All)?;
+    #[cfg(target_os = "android")]
+    {
+        let zen = read_system_setting("global", "zen_mode");
+        println!("      zen_mode restored to {} (expected: 0)", zen);
+    }
+
+    println!("[4/5] Testing Display Refresh Rate actuator (120Hz)...");
+    apply_refresh_rate(120)?;
+    #[cfg(target_os = "android")]
+    {
+        let peak = read_system_setting("system", "peak_refresh_rate");
+        println!("      peak_refresh_rate is {} (expected: 120.0)", peak);
+    }
+    std::thread::sleep(std::time::Duration::from_millis(250));
+    println!("      Restoring Display Refresh Rate (0Hz / auto)...");
+    apply_refresh_rate(0)?;
+    #[cfg(target_os = "android")]
+    {
+        let peak = read_system_setting("system", "peak_refresh_rate");
+        println!("      peak_refresh_rate restored to {}", peak);
+    }
+
+    println!("\n[5/5] Binder self-test completed successfully.");
+    Ok(())
+}
+
+#[cfg(target_os = "android")]
+fn read_system_setting(namespace: &str, key: &str) -> String {
+    let out = std::process::Command::new("settings")
+        .args(["get", namespace, key])
+        .output();
+    match out {
+        Ok(o) => String::from_utf8_lossy(&o.stdout).trim().to_string(),
+        Err(e) => format!("err: {:?}", e),
+    }
+}

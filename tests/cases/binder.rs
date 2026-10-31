@@ -83,3 +83,45 @@ fn test_get_process_package() {
     assert!(!pkg.unwrap().is_empty());
     assert_eq!(auriya::platform::procfs::get_process_package(-1), None);
 }
+
+#[tokio::test]
+async fn test_cli_binder_commands() {
+    use auriya::cli::{BinderCommands, CliDndMode};
+
+    assert_eq!(
+        auriya::platform::binder::DndMode::from(CliDndMode::Priority),
+        auriya::platform::binder::DndMode::Priority
+    );
+    assert_eq!(
+        auriya::platform::binder::DndMode::from(CliDndMode::All),
+        auriya::platform::binder::DndMode::All
+    );
+
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Probe)
+            .await
+            .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Dnd {
+            mode: CliDndMode::Priority,
+        })
+        .await
+        .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Rate { hz: 90 })
+            .await
+            .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Rate { hz: 0 })
+            .await
+            .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Test)
+            .await
+            .is_ok()
+    );
+}

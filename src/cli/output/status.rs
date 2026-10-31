@@ -17,6 +17,9 @@ pub fn print_status(response: &str) {
     if let Some(&value) = map.get("ENABLED") {
         println!("  Enabled:     {}", value);
     }
+    if let Some(&value) = map.get("BINDER") {
+        println!("  Binder IPC:  {}", value);
+    }
     if let Some(&value) = map.get("PROFILE") {
         println!("  Profile:     {}", value);
     }

@@ -5,7 +5,7 @@ mod executor;
 pub mod output;
 
 use crate::Result;
-pub use app::{Cli, Commands, LogLevel, ProfileMode};
+pub use app::{BinderCommands, Cli, CliDndMode, Commands, LogLevel, ProfileMode};
 
 pub async fn run() -> Result<()> {
     setup_cli_panic_hook();

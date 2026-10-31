@@ -39,3 +39,18 @@ impl LogLevel {
         }
     }
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum CliDndMode {
+    All,
+    Priority,
+}
+
+impl From<CliDndMode> for crate::platform::binder::DndMode {
+    fn from(mode: CliDndMode) -> Self {
+        match mode {
+            CliDndMode::All => Self::All,
+            CliDndMode::Priority => Self::Priority,
+        }
+    }
+}

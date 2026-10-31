@@ -32,7 +32,11 @@ pub async fn execute(cli: Cli) -> Result<()> {
 fn requires_daemon(cmd: &Commands) -> bool {
     !matches!(
         cmd,
-        Commands::Restart | Commands::Status | Commands::Info | Commands::Log { .. }
+        Commands::Restart
+            | Commands::Status
+            | Commands::Info
+            | Commands::Log { .. }
+            | Commands::Binder { .. }
     )
 }
 
@@ -84,6 +88,7 @@ async fn dispatch(command: Commands, client: &IpcClient) -> Result<()> {
         Commands::SetLog { level } => commands::handle_set_log(client, level).await?,
         Commands::Inject { package } => commands::handle_inject(client, &package).await?,
         Commands::ClearInject => commands::handle_clear_inject(client).await?,
+        Commands::Binder { command } => commands::handle_binder(command).await?,
     }
     Ok(())
 }

@@ -45,8 +45,9 @@ async fn main() -> Result<()> {
         settings,
         gamelist,
     };
-    auriya::platform::module_prop::set_module_status("active 🚀");
+    auriya::platform::module_prop::set_module_status("active");
+    let _binder = auriya::platform::binder::BinderClient::new();
     let res = daemon::engine::run_with_config_and_logger(&cfg, filter_handle).await;
-    auriya::platform::module_prop::set_module_status("sleep 💤");
+    auriya::platform::module_prop::set_module_status("sleep");
     res
 }

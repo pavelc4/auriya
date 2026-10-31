@@ -13,3 +13,16 @@ pub mod observer;
 pub use actuators::{DndMode, apply_dnd, apply_refresh_rate};
 pub use client::BinderClient;
 pub use observer::{ProcessEvent, ProcessEventType, ProcessObserver};
+
+/// Ensure Binder ProcessState is initialized on Android platforms.
+pub fn ensure_initialized() -> bool {
+    #[cfg(target_os = "android")]
+    {
+        if !rsbinder::ProcessState::is_initialized()
+            && rsbinder::ProcessState::init_default().is_err()
+        {
+            return false;
+        }
+    }
+    true
+}

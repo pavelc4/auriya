@@ -31,9 +31,7 @@ impl BinderClient {
 
     fn probe_connection() -> bool {
         // Ensure ProcessState is initialized before accessing hub
-        if !rsbinder::ProcessState::is_initialized()
-            && rsbinder::ProcessState::init_default().is_err()
-        {
+        if !super::ensure_initialized() {
             tracing::debug!(target: "auriya::binder", "ProcessState::init_default failed (non-binder host environment)");
             return false;
         }

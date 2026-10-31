@@ -2,9 +2,9 @@ pub mod commands;
 pub mod help;
 pub mod types;
 
-pub use commands::Commands;
+pub use commands::{BinderCommands, Commands};
 pub use help::{EXAMPLES, cli_styles};
-pub use types::{LogLevel, ProfileMode};
+pub use types::{CliDndMode, LogLevel, ProfileMode};
 
 use clap::Parser;
 

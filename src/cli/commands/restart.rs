@@ -3,13 +3,12 @@ use anyhow::Context;
 use std::time::Duration;
 
 const DAEMON_BIN: &str = "auriya";
-const COMPANION_PROC: &str = "AuriyaSysMon";
 const CONFIG_DIR: &str = "/data/adb/.config/auriya";
 const LOG_DIR: &str = "/data/adb/auriya";
 const SERVICE_SCRIPT: &str = "/data/adb/modules/auriya/service.sh";
 
 pub fn handle_restart() -> Result<()> {
-    println!("Restarting daemon + companion...");
+    println!("Restarting daemon...");
     stop_processes();
     clear_runtime_state();
     launch_service()?;
@@ -18,28 +17,23 @@ pub fn handle_restart() -> Result<()> {
 }
 
 fn stop_processes() {
-    crate::platform::module_prop::set_module_status("sleep 💤");
+    crate::platform::module_prop::set_module_status("sleep");
     use std::process::{Command, Stdio};
-    for proc in [DAEMON_BIN, COMPANION_PROC] {
-        let _ = Command::new("killall")
-            .args(["-q", "-TERM", proc])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-    }
+    let _ = Command::new("killall")
+        .args(["-q", "-TERM", DAEMON_BIN])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
     std::thread::sleep(Duration::from_secs(2));
-    for proc in [DAEMON_BIN, COMPANION_PROC] {
-        let _ = Command::new("killall")
-            .args(["-q", "-KILL", proc])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-    }
+    let _ = Command::new("killall")
+        .args(["-q", "-KILL", DAEMON_BIN])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
 }
 
 fn clear_runtime_state() {
     let _ = std::fs::remove_file(format!("{CONFIG_DIR}/system_status"));
-    let _ = std::fs::remove_file(format!("{CONFIG_DIR}/companion.lock"));
     let _ = std::fs::write(format!("{LOG_DIR}/daemon.log"), "");
 }
 

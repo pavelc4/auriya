@@ -34,6 +34,12 @@ impl DaemonContext {
             Err(_) => "Unknown".to_string(),
         };
 
+        let binder = if crate::platform::binder::BinderClient::is_healthy() {
+            "OPERATIONAL"
+        } else {
+            "UNAVAILABLE"
+        };
+
         let telemetry = self
             .current_state
             .read()
@@ -41,7 +47,9 @@ impl DaemonContext {
             .map(|st| format_telemetry(&st))
             .unwrap_or_default();
 
-        format!("ENABLED={enabled} PACKAGES={n} OVERRIDE={ov:?} LOG_LEVEL={log_level}\n{telemetry}")
+        format!(
+            "ENABLED={enabled} BINDER={binder} PACKAGES={n} OVERRIDE={ov:?} LOG_LEVEL={log_level}\n{telemetry}"
+        )
     }
 
     /// Build full stats snapshot serialized as JSON.

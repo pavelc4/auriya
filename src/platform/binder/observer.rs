@@ -63,6 +63,10 @@ impl ProcessObserver {
     pub fn register(&self) -> Result<()> {
         #[cfg(target_os = "android")]
         {
+            if !super::ensure_initialized() {
+                anyhow::bail!("Binder ProcessState initialization failed");
+            }
+
             let _am = rsbinder::hub::check_service("activity")
                 .context("ActivityManager service not found")?;
 

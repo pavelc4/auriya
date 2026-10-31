@@ -1,5 +1,26 @@
-use super::types::{LogLevel, ProfileMode};
+use super::types::{CliDndMode, LogLevel, ProfileMode};
 use clap::Subcommand;
+
+#[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
+pub enum BinderCommands {
+    #[command(about = "Probe servicemanager and core Android Binder services")]
+    Probe,
+
+    #[command(about = "Run end-to-end automated Binder self-test")]
+    Test,
+
+    #[command(about = "Set Do Not Disturb mode via Binder actuator")]
+    Dnd {
+        #[arg(value_enum, help = "DnD mode (all or priority)")]
+        mode: CliDndMode,
+    },
+
+    #[command(about = "Set display refresh rate override (0 to restore)")]
+    Rate {
+        #[arg(help = "Target refresh rate in Hz (e.g. 60, 90, 120, or 0 to restore)")]
+        hz: u32,
+    },
+}
 
 #[derive(Subcommand)]
 pub enum Commands {
@@ -21,7 +42,7 @@ pub enum Commands {
     Reload,
 
     #[command(subcommand_help_heading = "Daemon Lifecycle")]
-    #[command(about = "Gracefully restart daemon and Android companion")]
+    #[command(about = "Gracefully restart daemon")]
     Restart,
 
     #[command(subcommand_help_heading = "Daemon Lifecycle")]
@@ -138,4 +159,11 @@ pub enum Commands {
     #[command(subcommand_help_heading = "Developer & Debug")]
     #[command(about = "Clear mock foreground injection override")]
     ClearInject,
+
+    #[command(subcommand_help_heading = "Developer & Debug")]
+    #[command(about = "Native Android Binder IPC diagnostics and actuators")]
+    Binder {
+        #[command(subcommand)]
+        command: BinderCommands,
+    },
 }

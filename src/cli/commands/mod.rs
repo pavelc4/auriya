@@ -1,3 +1,4 @@
+pub mod binder;
 pub mod debug;
 pub mod info;
 pub mod lifecycle;
@@ -7,6 +8,7 @@ pub mod restart;
 pub mod status;
 pub mod tuning;
 
+pub use binder::handle_binder;
 pub use debug::{
     handle_clear_inject, handle_get_rates, handle_inject, handle_list_packages, handle_set_log,
 };

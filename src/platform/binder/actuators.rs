@@ -33,6 +33,7 @@ pub fn apply_dnd(mode: DndMode) -> Result<()> {
     #[cfg(target_os = "android")]
     {
         // 1. Try direct Binder RPC to NotificationManager if initialized
+        let _ = super::ensure_initialized();
         if rsbinder::ProcessState::is_initialized()
             && let Some(_nm) = rsbinder::hub::check_service("notification")
         {
