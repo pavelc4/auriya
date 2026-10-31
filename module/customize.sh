@@ -34,7 +34,7 @@ fi
 LIBS_DIR="$MODPATH/libs/$SOURCE_ARCH"
 DAEMON_SRC="$LIBS_DIR/auriya"
 CLI_SRC="$LIBS_DIR/auriyactl"
-USER_APP_SRC="$MODPATH/libs/companion/auriya-app.apk"
+USER_APP_SRC="$MODPATH/libs/app/auriya-app.apk"
 CHECKSUMS_FILE="$LIBS_DIR/checksums.sha256"
 DAEMON_SHA="$LIBS_DIR/auriya.sha256"
 
@@ -85,7 +85,7 @@ elif [ -f "$DAEMON_SHA" ]; then
   ui_print "  SHA256 checksum verified"
 fi
 
-# 3. Deploy Binaries & Companion Service
+# 3. Deploy Binaries
 mkdir -p "$MODPATH/system/bin" "$MODPATH/system/etc/auriya"
 
 cp -f "$DAEMON_SRC" "$MODPATH/system/bin/auriya"

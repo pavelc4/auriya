@@ -39,7 +39,7 @@ runs:
         cp -r module/system "$BUILD_DIR/module/" 2>/dev/null || true
 
         # 2. User Manager App APK
-        APPS_DIR="$BUILD_DIR/module/libs/companion"
+        APPS_DIR="$BUILD_DIR/module/libs/app"
         mkdir -p "$APPS_DIR"
 
         # upload-artifact v7 stores files relative to glob pattern, not workspace
@@ -57,7 +57,7 @@ runs:
             cp "$APP_APK" "$APPS_DIR/auriya-app.apk"
             echo "Packaged app APK ($(du -h "$APP_APK" | cut -f1))"
         else
-            echo "Warning: App APK not found — companion dir will be incomplete"
+            echo "Warning: App APK not found — app dir will be incomplete"
         fi
 
         # 4. Binary (aarch64 only)

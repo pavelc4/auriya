@@ -65,22 +65,10 @@ _pm_uninstall() {
 _status "Auriya uninstall started. Do not reboot."
 _kill_by_name auriya
 
-COMPANION_PID=$(pgrep -f AuriyaSysMon 2>/dev/null)
-if [ -n "$COMPANION_PID" ]; then
-  kill -TERM "$COMPANION_PID" 2>/dev/null
-  for i in 1 2 3; do
-    pgrep -f AuriyaSysMon >/dev/null 2>&1 || break
-    sleep 1
-  done
-  pgrep -f AuriyaSysMon >/dev/null 2>&1 && kill -KILL "$COMPANION_PID" 2>/dev/null
-fi
-
 am force-stop dev.auriya.app 2>/dev/null
 am force-stop dev.auriya.app.debug 2>/dev/null
-am force-stop dev.auriya.service 2>/dev/null
 _pm_uninstall dev.auriya.app || true
 _pm_uninstall dev.auriya.app.debug || true
-_pm_uninstall dev.auriya.service || true
 
 _status "Apps removed. Cleaning module data."
 rm -f /dev/socket/auriya.sock

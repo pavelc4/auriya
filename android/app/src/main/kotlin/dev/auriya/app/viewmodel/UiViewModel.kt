@@ -107,9 +107,6 @@ class UiViewModel(
     private val _currentProfile = MutableStateFlow("2")
     val currentProfile: StateFlow<String> = _currentProfile.asStateFlow()
 
-    private val _foregroundApp = MutableStateFlow<String?>(null)
-    val foregroundApp: StateFlow<String?> = _foregroundApp.asStateFlow()
-
     private val _logs = MutableStateFlow("")
     val logs: StateFlow<String> = _logs.asStateFlow()
 
@@ -476,16 +473,6 @@ class UiViewModel(
                     ram = ram,
                 )
             if (rawProfile.isNotEmpty()) _currentProfile.value = rawProfile.lowercase()
-        }
-
-        // Foreground app from status file (root-only read).
-        RootShell.readText(ConfigPaths.STATUS_FILE)?.let { contents ->
-            val focusedAppLine = contents.lineSequence().firstOrNull { it.startsWith("focused_app") }
-            _foregroundApp.value =
-                focusedAppLine
-                    ?.split(" ")
-                    ?.filter { it.isNotEmpty() }
-                    ?.getOrNull(1)
         }
     }
 
