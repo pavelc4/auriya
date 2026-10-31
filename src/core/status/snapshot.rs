@@ -11,6 +11,7 @@ pub struct SystemStatus {
     pub screen_awake: Option<bool>,
     pub battery_saver: Option<bool>,
     pub zen_mode: Option<u8>,
+    pub is_floating: Option<bool>,
 }
 
 impl SystemStatus {
@@ -83,6 +84,7 @@ fn parse_line(line: &[u8], out: &mut SystemStatus) {
         b"screen_awake" => out.screen_awake = parse_bool(value),
         b"battery_saver" => out.battery_saver = parse_bool(value),
         b"zen_mode" => out.zen_mode = parse_u8(value),
+        b"is_floating" => out.is_floating = parse_bool(value),
         _ => {}
     }
 }

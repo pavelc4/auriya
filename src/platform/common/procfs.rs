@@ -120,10 +120,15 @@ pub fn find_pid_by_package(pkg: &str) -> Option<i32> {
 /// Query the currently focused foreground package and its PID directly on Android.
 /// Prioritizes zero-overhead Native Binder IPC without dumpsys.
 pub fn query_current_foreground() -> Option<(String, Option<i32>)> {
+    query_current_foreground_task().map(|t| (t.package, t.pid))
+}
+
+/// Query the currently focused foreground task including floating/freeform state.
+pub fn query_current_foreground_task() -> Option<crate::platform::binder::ForegroundTask> {
     #[cfg(target_os = "android")]
     {
         crate::platform::binder::BinderClient::new()
-            .get_foreground_app()
+            .get_foreground_task()
             .ok()
             .flatten()
     }

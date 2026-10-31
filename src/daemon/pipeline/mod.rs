@@ -21,6 +21,7 @@ pub struct PipelineInput {
     pub foreground_pkg: Option<String>,
     pub focused_pid: Option<i32>,
     pub is_pid_valid: bool,
+    pub is_floating: bool,
 }
 
 /// Decision determined during the Decide phase.

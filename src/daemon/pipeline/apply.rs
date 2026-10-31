@@ -43,6 +43,7 @@ impl Daemon {
         self.apply_ceiling_for_state(Some(crate::platform::cpu::ceiling::CeilingLevel::Low), None);
         self.ebpf_detach();
         self.sync_dnd(crate::platform::binder::DndMode::All);
+        let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
         self.last.screen_awake = Some(screen_awake);
         self.last.battery_saver = Some(battery_saver);
         Ok(())
@@ -81,6 +82,7 @@ impl Daemon {
         }
         self.fps_meter.clear();
         self.sync_dnd(crate::platform::binder::DndMode::All);
+        let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
 
         if self.last.pkg.is_some() || self.last.pid.is_some() {
             let was_game = self
@@ -162,6 +164,7 @@ impl Daemon {
         }
         self.fps_meter.clear();
         self.sync_dnd(crate::platform::binder::DndMode::All);
+        let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
         let was_game = self
             .last
             .pkg
@@ -281,6 +284,7 @@ impl Daemon {
         } else {
             crate::platform::binder::DndMode::All
         });
+        let _ = crate::platform::binder::set_wifi_low_latency_lock(true);
         self.last.pkg = Some(pkg.to_string());
         self.set_pid(Some(pid));
         Ok(())

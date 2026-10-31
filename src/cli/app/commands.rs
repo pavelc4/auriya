@@ -20,6 +20,12 @@ pub enum BinderCommands {
         #[arg(help = "Target refresh rate in Hz (e.g. 60, 90, 120, or 0 to restore)")]
         hz: u32,
     },
+
+    #[command(about = "Toggle or query Wi-Fi Low-Latency lock (WIFI_MODE_FULL_LOW_LATENCY)")]
+    Wifi {
+        #[arg(help = "Action: on, off, or status (default: status)")]
+        action: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]

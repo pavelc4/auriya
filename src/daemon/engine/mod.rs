@@ -337,6 +337,7 @@ impl Daemon {
         self.ceiling_controller.online_all();
         let _ = crate::platform::binder::apply_refresh_rate(0);
         let _ = crate::platform::binder::apply_dnd(crate::platform::binder::DndMode::All);
+        let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
     }
 
     pub async fn tick(&mut self) {

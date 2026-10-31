@@ -73,6 +73,11 @@ impl BinderClient {
     /// Query the currently focused foreground package and its PID directly via Native Binder IPC.
     /// Uses Android's `activity_task` service (IActivityTaskManager code 30 getFocusedRootTaskInfo).
     pub fn get_foreground_app(&self) -> Result<Option<(String, Option<i32>)>> {
+        Ok(self.get_foreground_task()?.map(|t| (t.package, t.pid)))
+    }
+
+    /// Query the focused foreground task including window bounds and floating/freeform state.
+    pub fn get_foreground_task(&self) -> Result<Option<ForegroundTask>> {
         if !self.connected {
             return Ok(None);
         }
@@ -113,6 +118,19 @@ impl BinderClient {
                 return Ok(None);
             }
 
+            // Inspect window bounds at offset 0x08 to detect floating / freeform windows
+            reply.set_data_position(0x08);
+            let has_bounds = reply.read_i32()?;
+            let is_floating = if has_bounds != 0 {
+                let left = reply.read_i32()?;
+                let top = reply.read_i32()?;
+                let right = reply.read_i32()?;
+                let bottom = reply.read_i32()?;
+                is_window_floating(left, top, right, bottom)
+            } else {
+                false
+            };
+
             // Seek to 0x24: ComponentName presence flag and UTF-16 string
             reply.set_data_position(0x24);
             let has_comp = reply.read_i32()?;
@@ -132,7 +150,11 @@ impl BinderClient {
             }
 
             let pid = crate::platform::common::procfs::find_pid_by_package(&pkg);
-            Ok(Some((pkg, pid)))
+            Ok(Some(ForegroundTask {
+                package: pkg,
+                pid,
+                is_floating,
+            }))
         }
 
         #[cfg(not(target_os = "android"))]
@@ -140,6 +162,29 @@ impl BinderClient {
             Ok(None)
         }
     }
+}
+
+/// Detailed information about the currently focused foreground task.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForegroundTask {
+    pub package: String,
+    pub pid: Option<i32>,
+    pub is_floating: bool,
+}
+
+/// Helper to determine if the window bounds indicate a floating, freeform, or split-screen window.
+pub fn is_window_floating(left: i32, top: i32, right: i32, bottom: i32) -> bool {
+    if left > 20 || top > 20 {
+        return true;
+    }
+    let width = (right - left).abs();
+    let height = (bottom - top).abs();
+    if width == 0 || height == 0 {
+        return false;
+    }
+    let min_dim = width.min(height);
+    let max_dim = width.max(height);
+    min_dim < 700 || max_dim < 1400
 }
 
 impl Default for BinderClient {

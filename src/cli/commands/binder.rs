@@ -10,7 +10,33 @@ pub async fn handle_binder(cmd: BinderCommands) -> Result<()> {
         BinderCommands::Test => handle_test(),
         BinderCommands::Dnd { mode } => handle_dnd(mode),
         BinderCommands::Rate { hz } => handle_rate(hz),
+        BinderCommands::Wifi { action } => handle_wifi(action),
     }
+}
+
+fn handle_wifi(action: Option<String>) -> Result<()> {
+    let act = action.as_deref().unwrap_or("status");
+    match act {
+        "on" | "enable" | "acquire" => {
+            crate::platform::binder::set_wifi_low_latency_lock(true)?;
+            println!("Acquired Wi-Fi Low-Latency lock (WIFI_MODE_FULL_LOW_LATENCY = 4)");
+        }
+        "off" | "disable" | "release" => {
+            crate::platform::binder::set_wifi_low_latency_lock(false)?;
+            println!("Released Wi-Fi Low-Latency lock");
+        }
+        "status" => {
+            let active = crate::platform::binder::is_wifi_low_latency_active();
+            println!(
+                "Wi-Fi Low-Latency Lock: {}",
+                if active { "Active (Held)" } else { "Inactive" }
+            );
+        }
+        other => {
+            eprintln!("Unknown action '{}'. Valid actions: on, off, status", other);
+        }
+    }
+    Ok(())
 }
 
 fn handle_probe() -> Result<()> {
@@ -29,12 +55,21 @@ fn handle_probe() -> Result<()> {
         Err(e) => println!("  PowerManager query:         Error ({:?})", e),
     }
 
-    match client.get_foreground_app() {
-        Ok(Some((pkg, pid))) => {
-            let pid_str = pid
+    match client.get_foreground_task() {
+        Ok(Some(task)) => {
+            let pid_str = task
+                .pid
                 .map(|p| p.to_string())
                 .unwrap_or_else(|| "None".to_string());
-            println!("  Foreground App:             {} (PID: {})", pkg, pid_str);
+            let win_str = if task.is_floating {
+                "Floating/Freeform (30 FPS cap)"
+            } else {
+                "Fullscreen"
+            };
+            println!(
+                "  Foreground App:             {} (PID: {}) [{}]",
+                task.package, pid_str, win_str
+            );
         }
         Ok(None) => println!("  Foreground App:             None"),
         Err(e) => println!("  Foreground App query:       Error ({:?})", e),
@@ -51,6 +86,15 @@ fn handle_probe() -> Result<()> {
         println!("  Display Mode (Binder):      {}", binder_str);
     }
 
+    println!(
+        "  Wi-Fi Low-Latency Lock:     {}",
+        if crate::platform::binder::is_wifi_low_latency_active() {
+            "Active (Held)"
+        } else {
+            "Inactive"
+        }
+    );
+
     #[cfg(target_os = "android")]
     {
         if rsbinder::ProcessState::is_initialized() {
@@ -60,6 +104,7 @@ fn handle_probe() -> Result<()> {
                 "activity",
                 "activity_task",
                 "display",
+                "wifi",
             ] {
                 let avail = rsbinder::hub::check_service(service).is_some();
                 println!(
@@ -124,7 +169,7 @@ fn handle_test() -> Result<()> {
 
     let client = BinderClient::new();
     println!(
-        "[1/6] Binder Servicemanager: {}",
+        "[1/7] Binder Servicemanager: {}",
         if client.is_operational() {
             "PASS"
         } else {
@@ -133,25 +178,31 @@ fn handle_test() -> Result<()> {
     );
 
     match client.is_screen_interactive() {
-        Ok(interactive) => println!("[2/6] PowerManager.isInteractive ({}): PASS", interactive),
-        Err(e) => println!("[2/6] PowerManager query: FAIL ({:?})", e),
+        Ok(interactive) => println!("[2/7] PowerManager.isInteractive ({}): PASS", interactive),
+        Err(e) => println!("[2/7] PowerManager query: FAIL ({:?})", e),
     }
 
-    match client.get_foreground_app() {
-        Ok(Some((pkg, pid))) => {
-            let pid_str = pid
+    match client.get_foreground_task() {
+        Ok(Some(task)) => {
+            let pid_str = task
+                .pid
                 .map(|p| p.to_string())
                 .unwrap_or_else(|| "None".to_string());
+            let win_str = if task.is_floating {
+                "floating (30 FPS cap)"
+            } else {
+                "fullscreen"
+            };
             println!(
-                "[3/6] Native Binder Foreground ({} | PID: {}): PASS",
-                pkg, pid_str
+                "[3/7] Native Binder Foreground ({} | PID: {} | {}): PASS",
+                task.package, pid_str, win_str
             );
         }
-        Ok(None) => println!("[3/6] Native Binder Foreground: PASS (no focused task)"),
-        Err(e) => println!("[3/6] Native Binder Foreground: FAIL ({:?})", e),
+        Ok(None) => println!("[3/7] Native Binder Foreground: PASS (no focused task)"),
+        Err(e) => println!("[3/7] Native Binder Foreground: FAIL ({:?})", e),
     }
 
-    println!("[4/6] Testing DnD actuator (Priority)...");
+    println!("[4/7] Testing DnD actuator (Priority)...");
     apply_dnd(crate::platform::binder::DndMode::Priority)?;
     #[cfg(target_os = "android")]
     {
@@ -167,7 +218,7 @@ fn handle_test() -> Result<()> {
         println!("      zen_mode restored to {} (expected: 0)", zen);
     }
 
-    println!("[5/6] Testing Display Refresh Rate actuator (120Hz)...");
+    println!("[5/7] Testing Display Refresh Rate actuator (120Hz)...");
     apply_refresh_rate(120)?;
     #[cfg(target_os = "android")]
     {
@@ -191,7 +242,23 @@ fn handle_test() -> Result<()> {
         println!("      peak_refresh_rate restored to {}", peak);
     }
 
-    println!("\n[6/6] Binder self-test completed successfully.");
+    println!("[6/7] Testing Wi-Fi Low-Latency lock actuator...");
+    let lock_res = crate::platform::binder::set_wifi_low_latency_lock(true);
+    let active = crate::platform::binder::is_wifi_low_latency_active();
+    println!(
+        "      Acquire Wi-Fi Low-Latency result: {:?} (Active: {})",
+        lock_res, active
+    );
+    std::thread::sleep(std::time::Duration::from_millis(250));
+    println!("      Restoring Wi-Fi Low-Latency lock...");
+    let rel_res = crate::platform::binder::set_wifi_low_latency_lock(false);
+    let active_after = crate::platform::binder::is_wifi_low_latency_active();
+    println!(
+        "      Release Wi-Fi Low-Latency result: {:?} (Active: {})",
+        rel_res, active_after
+    );
+
+    println!("\n[7/7] Binder self-test completed successfully.");
     Ok(())
 }
 

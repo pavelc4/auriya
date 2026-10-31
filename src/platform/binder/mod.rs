@@ -10,8 +10,11 @@ pub mod actuators;
 pub mod client;
 pub mod observer;
 
-pub use actuators::{DndMode, apply_dnd, apply_refresh_rate, get_user_preferred_display_mode};
-pub use client::BinderClient;
+pub use actuators::{
+    DndMode, apply_dnd, apply_refresh_rate, get_user_preferred_display_mode,
+    is_wifi_low_latency_active, set_wifi_low_latency_lock,
+};
+pub use client::{BinderClient, ForegroundTask, is_window_floating};
 pub use observer::{ProcessEvent, ProcessEventType, ProcessObserver};
 
 /// Ensure Binder ProcessState is initialized on Android platforms.

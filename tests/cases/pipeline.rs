@@ -30,6 +30,7 @@ fn test_decide_powersave_when_screen_off() {
         foreground_pkg: Some("com.mobile.legends".to_string()),
         focused_pid: Some(1234),
         is_pid_valid: true,
+        is_floating: false,
     };
 
     assert_eq!(
@@ -51,6 +52,7 @@ fn test_decide_powersave_when_battery_saver() {
         foreground_pkg: Some("com.mobile.legends".to_string()),
         focused_pid: Some(1234),
         is_pid_valid: true,
+        is_floating: false,
     };
 
     assert_eq!(
@@ -72,6 +74,7 @@ fn test_decide_no_foreground() {
         foreground_pkg: None,
         focused_pid: None,
         is_pid_valid: false,
+        is_floating: false,
     };
 
     assert_eq!(
@@ -93,6 +96,7 @@ fn test_decide_non_whitelisted() {
         foreground_pkg: Some("com.android.chrome".to_string()),
         focused_pid: Some(999),
         is_pid_valid: true,
+        is_floating: false,
     };
 
     assert_eq!(
@@ -130,6 +134,7 @@ fn test_decide_enter_game() {
         foreground_pkg: Some(pkg.to_string()),
         focused_pid: Some(5678),
         is_pid_valid: true,
+        is_floating: false,
     };
 
     assert_eq!(

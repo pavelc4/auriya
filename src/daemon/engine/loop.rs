@@ -118,6 +118,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                                     screen_awake: Some(true),
                                     battery_saver: None,
                                     zen_mode: None,
+                                    is_floating: None,
                                 });
                             }
                         }
@@ -159,6 +160,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                                 screen_awake: Some(true),
                                 battery_saver: None,
                                 zen_mode: None,
+                                is_floating: None,
                             });
                         }
                         daemon.tick().await;

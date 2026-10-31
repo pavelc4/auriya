@@ -29,7 +29,14 @@ impl Daemon {
             .unwrap_or(true);
         let enable_dnd = global_dnd && game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
 
-        if let Some(cfg) = game_cfg
+        if self.status_cache.is_floating() {
+            if self.last_fps_config.as_deref() != Some("floating_30") {
+                let mut f = fas_arc.lock().await;
+                f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Single(30));
+                self.last_fps_config = Some("floating_30".to_string());
+                debug!(target: "auriya::fas", "Floating/freeform window detected for {}, capping FAS to 30 FPS", pkg);
+            }
+        } else if let Some(cfg) = game_cfg
             && let Some(ref fps_cfg) = cfg.target_fps
         {
             let fps_key = fps_cfg

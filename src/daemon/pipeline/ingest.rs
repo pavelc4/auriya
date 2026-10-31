@@ -19,21 +19,25 @@ impl Daemon {
         }
 
         let mut focused_pid = None;
+        let mut is_floating = false;
         if pkg_opt.is_none() {
             #[cfg(target_os = "android")]
-            if let Some((pkg, pid)) = crate::platform::common::procfs::query_current_foreground() {
+            if let Some(task) = crate::platform::common::procfs::query_current_foreground_task() {
                 self.status_cache.store(crate::core::status::SystemStatus {
-                    focused_app: Some(pkg.clone()),
-                    focused_pid: pid,
+                    focused_app: Some(task.package.clone()),
+                    focused_pid: task.pid,
                     focused_uid: None,
                     screen_awake: Some(true),
                     battery_saver: None,
                     zen_mode: None,
+                    is_floating: Some(task.is_floating),
                 });
-                pkg_opt = Some(pkg);
-                focused_pid = pid;
+                pkg_opt = Some(task.package);
+                focused_pid = task.pid;
+                is_floating = task.is_floating;
             }
         } else {
+            is_floating = self.status_cache.is_floating();
             focused_pid = self.status_cache.focused_pid().filter(|&p| {
                 crate::platform::common::procfs::is_pid_valid(p)
                     && crate::platform::common::procfs::verify_pid_package(
@@ -56,6 +60,7 @@ impl Daemon {
             foreground_pkg: pkg_opt,
             focused_pid,
             is_pid_valid,
+            is_floating,
         }
     }
 }

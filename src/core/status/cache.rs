@@ -52,6 +52,15 @@ impl SystemStatusCache {
             .and_then(|g| g.as_ref().and_then(|s| s.focused_pid))
     }
 
+    /// Convenience: return whether the focused task is running in a floating or freeform window.
+    pub fn is_floating(&self) -> bool {
+        self.inner
+            .read()
+            .ok()
+            .and_then(|g| g.as_ref().and_then(|s| s.is_floating))
+            .unwrap_or(false)
+    }
+
     /// Convenience: derive the (`screen_awake`, `battery_saver`) pair
     /// the tick loop needs. Defaults to `(true, false)` when the
     /// respective field is unset.
