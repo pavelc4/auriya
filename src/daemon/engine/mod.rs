@@ -55,7 +55,7 @@ pub struct Daemon {
     pub(crate) fps_meter: FpsMeter,
     pub(crate) ebpf: Option<crate::core::ebpf::EbpfFrameStream>,
     pub(crate) attached_ebpf_pid: Option<i32>,
-    pub(crate) last_dnd: Option<crate::platform::android_cmd::DndFilter>,
+    pub(crate) last_dnd: Option<crate::platform::binder::DndMode>,
     pub(crate) event_tx: EventSender,
 }
 
@@ -324,29 +324,13 @@ impl Daemon {
         });
     }
 
-    pub(crate) fn apply_refresh_rate_fallback(&self, hz: u32) -> bool {
-        let ok = if !self.watchdog.alive {
-            debug!(target: "auriya::companion", "RR fallback: setting {hz}Hz");
-            let r1 = std::process::Command::new("settings")
-                .args(["put", "system", "min_refresh_rate", &hz.to_string()])
-                .status()
-                .map(|s| s.success())
-                .unwrap_or(false);
-            let r2 = std::process::Command::new("settings")
-                .args(["put", "system", "peak_refresh_rate", &hz.to_string()])
-                .status()
-                .map(|s| s.success())
-                .unwrap_or(false);
-            r1 && r2
+    pub(crate) fn apply_refresh_rate(&self, hz: u32) -> bool {
+        if let Err(e) = crate::platform::binder::apply_refresh_rate(hz) {
+            error!(target: "auriya::binder", "Failed to apply refresh rate {hz}Hz: {}", e);
+            false
         } else {
-            crate::platform::android_cmd::shared()
-                .write_refresh_rate(hz)
-                .is_ok()
-        };
-        if !ok {
-            error!(target: "auriya::companion", "Failed to apply refresh rate {hz}Hz");
+            true
         }
-        ok
     }
 
     pub(crate) fn shutdown_cleanup(&mut self) {
@@ -354,6 +338,8 @@ impl Daemon {
         self.vendor_lock.unlock_all();
         self.ceiling_controller.restore();
         self.ceiling_controller.online_all();
+        let _ = crate::platform::binder::apply_refresh_rate(0);
+        let _ = crate::platform::binder::apply_dnd(crate::platform::binder::DndMode::All);
     }
 
     pub async fn tick(&mut self) {

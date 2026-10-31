@@ -1,4 +1,4 @@
-use crate::platform::android_cmd::{self as cmd_writer, DndFilter};
+use crate::platform::android_cmd::DndFilter;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tracing::debug;
 
@@ -25,31 +25,18 @@ pub fn set_companion_alive(alive: bool) {
 /// when the CPU/GPU profile itself does not change.
 #[inline]
 pub fn request_dnd(filter: DndFilter) {
-    if COMPANION_ALIVE.load(Ordering::Acquire) {
-        if let Err(e) = cmd_writer::shared().write_dnd(filter) {
-            tracing::warn!(
-                target: "auriya::profile",
-                "Failed to write DnD {:?} to cmd file: {}",
-                filter,
-                e
-            );
-        } else {
-            debug!(target: "auriya::profile", "Requested DnD filter {:?}", filter);
-        }
-    } else {
-        let (zen_val, dnd_arg) = match filter {
-            DndFilter::All => ("0", "all"),
-            DndFilter::Priority => ("1", "priority"),
-        };
-        debug!(
+    let mode = match filter {
+        DndFilter::All => crate::platform::binder::DndMode::All,
+        DndFilter::Priority => crate::platform::binder::DndMode::Priority,
+    };
+    if let Err(e) = crate::platform::binder::apply_dnd(mode) {
+        tracing::warn!(
             target: "auriya::profile",
-            "DnD fallback (companion dead): zen_mode={zen_val}"
+            "Failed to apply DnD {:?}: {}",
+            filter,
+            e
         );
-        let _ = std::process::Command::new("su")
-            .args(["2000", "-c", &format!("cmd notification set_dnd {dnd_arg}")])
-            .status();
-        let _ = std::process::Command::new("settings")
-            .args(["put", "global", "zen_mode", zen_val])
-            .status();
+    } else {
+        debug!(target: "auriya::profile", "Requested DnD filter {:?}", filter);
     }
 }

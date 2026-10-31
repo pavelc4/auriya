@@ -42,7 +42,7 @@ impl Daemon {
         }
         self.apply_ceiling_for_state(Some(crate::platform::cpu::ceiling::CeilingLevel::Low), None);
         self.ebpf_detach();
-        self.sync_dnd(crate::platform::android_cmd::DndFilter::All);
+        self.sync_dnd(crate::platform::binder::DndMode::All);
         self.last.screen_awake = Some(screen_awake);
         self.last.battery_saver = Some(battery_saver);
         Ok(())
@@ -80,7 +80,7 @@ impl Daemon {
             f.reset();
         }
         self.fps_meter.clear();
-        self.sync_dnd(crate::platform::android_cmd::DndFilter::All);
+        self.sync_dnd(crate::platform::binder::DndMode::All);
 
         if self.last.pkg.is_some() || self.last.pid.is_some() {
             let was_game = self
@@ -103,7 +103,7 @@ impl Daemon {
             if self.applied_refresh_rate.is_some() {
                 let last_pkg = self.last.pkg.as_deref().unwrap_or("?");
                 debug!(target: "auriya::display", "Releasing game overrides for {} (no foreground)", last_pkg);
-                if self.apply_refresh_rate_fallback(0) {
+                if self.apply_refresh_rate(0) {
                     self.applied_refresh_rate = None;
                 }
             }
@@ -119,7 +119,7 @@ impl Daemon {
 
             if self.applied_refresh_rate.is_some() {
                 debug!(target: "auriya::display", "Releasing game overrides for {} ({})", pkg, reason);
-                if self.apply_refresh_rate_fallback(0) {
+                if self.apply_refresh_rate(0) {
                     self.applied_refresh_rate = None;
                 }
             }
@@ -156,7 +156,7 @@ impl Daemon {
             f.reset();
         }
         self.fps_meter.clear();
-        self.sync_dnd(crate::platform::android_cmd::DndFilter::All);
+        self.sync_dnd(crate::platform::binder::DndMode::All);
         let was_game = self
             .last
             .pkg
@@ -187,7 +187,7 @@ impl Daemon {
             && self.applied_refresh_rate.is_some()
         {
             debug!(target: "auriya::display", "Releasing refresh-rate override for {}", last_pkg);
-            if self.apply_refresh_rate_fallback(0) {
+            if self.apply_refresh_rate(0) {
                 self.applied_refresh_rate = None;
             }
         }
@@ -264,16 +264,16 @@ impl Daemon {
         let rr = game_cfg.and_then(|c| c.refresh_rate);
         let rr_changed = rr.is_some() && self.applied_refresh_rate != rr;
 
-        if rr_changed && self.apply_refresh_rate_fallback(rr.unwrap_or(0)) {
+        if rr_changed && self.apply_refresh_rate(rr.unwrap_or(0)) {
             debug!(target: "auriya::display", "Requested refresh rate {}Hz for {}", rr.unwrap_or(0), pkg);
             self.applied_refresh_rate = rr;
         }
 
         self.ebpf_attach(pid);
         self.sync_dnd(if enable_dnd {
-            crate::platform::android_cmd::DndFilter::Priority
+            crate::platform::binder::DndMode::Priority
         } else {
-            crate::platform::android_cmd::DndFilter::All
+            crate::platform::binder::DndMode::All
         });
         self.last.pkg = Some(pkg.to_string());
         self.set_pid(Some(pid));
@@ -387,11 +387,13 @@ impl Daemon {
         }
     }
 
-    fn sync_dnd(&mut self, desired: crate::platform::android_cmd::DndFilter) {
+    fn sync_dnd(&mut self, desired: crate::platform::binder::DndMode) {
         if self.last_dnd == Some(desired) {
             return;
         }
-        crate::core::profile::request_dnd(desired);
+        if let Err(e) = crate::platform::binder::apply_dnd(desired) {
+            tracing::warn!(target: "auriya::binder", "Failed to apply DnD {:?}: {}", desired, e);
+        }
         self.last_dnd = Some(desired);
         debug!(target: "auriya::daemon", "DnD → {:?}", desired);
     }

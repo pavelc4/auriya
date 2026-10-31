@@ -31,6 +31,12 @@ fn test_actuators_execution() {
     assert!(apply_refresh_rate(0).is_ok());
 }
 
+#[test]
+fn test_core_profile_dnd_integration() {
+    auriya::core::profile::request_dnd(DndFilter::Priority);
+    auriya::core::profile::request_dnd(DndFilter::All);
+}
+
 #[tokio::test]
 async fn test_observer_event_delivery_and_filtering() {
     let (tx, mut rx) = mpsc::channel(32);
