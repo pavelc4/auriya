@@ -5,6 +5,12 @@ use tokio::sync::mpsc;
 pub enum DaemonEvent {
     /// The tracked foreground game process (this PID) exited.
     PidExited(i32),
+    /// Foreground activity changed via Native Binder (pid, uid, foreground).
+    ForegroundChanged {
+        pid: i32,
+        uid: i32,
+        foreground: bool,
+    },
     /// The Android companion service released its liveness lock — it was
     /// killed or crashed. The daemon should mark it dead and relaunch it.
     CompanionDied,

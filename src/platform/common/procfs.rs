@@ -37,3 +37,20 @@ pub fn verify_pid_package(pid: i32, package: &str) -> bool {
     // those too via substring match.
     String::from_utf8_lossy(&cmdline[..]).contains(package)
 }
+
+/// Extract package name from `/proc/<pid>/cmdline`.
+pub fn get_process_package(pid: i32) -> Option<String> {
+    if pid <= 0 {
+        return None;
+    }
+    let cmdline = fs::read(format!("/proc/{pid}/cmdline")).ok()?;
+    let end = memchr(b'\0', &cmdline)
+        .or_else(|| memchr(b':', &cmdline))
+        .unwrap_or(cmdline.len());
+    let pkg = std::str::from_utf8(&cmdline[..end]).ok()?;
+    if pkg.is_empty() {
+        None
+    } else {
+        Some(pkg.to_string())
+    }
+}

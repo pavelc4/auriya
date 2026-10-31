@@ -77,3 +77,12 @@ async fn test_observer_saturation_resilience() {
     assert_eq!(first.pid, 1);
     assert_eq!(second.pid, 2);
 }
+
+#[test]
+fn test_get_process_package() {
+    let my_pid = std::process::id() as i32;
+    let pkg = auriya::platform::procfs::get_process_package(my_pid);
+    assert!(pkg.is_some());
+    assert!(!pkg.unwrap().is_empty());
+    assert_eq!(auriya::platform::procfs::get_process_package(-1), None);
+}

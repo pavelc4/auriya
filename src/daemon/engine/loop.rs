@@ -32,16 +32,20 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     };
 
     let status_path = PathBuf::from(STATUS_FILE);
-    let wait_timeout = Duration::from_secs(10);
-    if let Err(e) =
-        crate::core::system_status::watcher::await_status_file(&status_path, wait_timeout)
-    {
-        error!(target: "auriya::daemon", "Daemon | {e}");
-        return Err(e);
-    }
+    let (status_cache, mut status_rx) = if status_path.exists() {
+        crate::core::system_status::watcher::start_status_watcher(status_path)?
+    } else {
+        (
+            crate::core::system_status::SystemStatusCache::new(),
+            tokio::sync::mpsc::channel(1).1,
+        )
+    };
 
-    let (status_cache, mut status_rx) =
-        crate::core::system_status::watcher::start_status_watcher(status_path)?;
+    let (proc_tx, mut proc_rx) = tokio::sync::mpsc::channel(32);
+    let observer = crate::platform::binder::ProcessObserver::new(proc_tx);
+    if let Err(e) = observer.register() {
+        tracing::debug!(target: "auriya::binder", "ProcessObserver registration deferred: {:?}", e);
+    }
 
     let (event_tx, mut event_rx) = event::channel();
 
@@ -86,6 +90,32 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                 debug!(target: "auriya::daemon", "Status update received, triggering instant tick");
                 daemon.tick().await;
             }
+            Some(p_ev) = proc_rx.recv() => {
+                match p_ev.event_type {
+                    crate::platform::binder::ProcessEventType::ForegroundActivitiesChanged => {
+                        if p_ev.foreground
+                            && let Some(pkg) = crate::platform::common::procfs::get_process_package(p_ev.pid)
+                        {
+                            daemon.status_cache.store(crate::core::status::SystemStatus {
+                                focused_app: Some(pkg),
+                                focused_pid: Some(p_ev.pid),
+                                focused_uid: Some(p_ev.uid),
+                                screen_awake: Some(true),
+                                battery_saver: None,
+                                zen_mode: None,
+                            });
+                        }
+                        daemon.tick().await;
+                    }
+                    crate::platform::binder::ProcessEventType::ProcessDied
+                        if daemon.last.pid == Some(p_ev.pid) =>
+                    {
+                        debug!(target: "auriya::daemon", "Observed dead PID {}, triggering instant tick", p_ev.pid);
+                        daemon.tick().await;
+                    }
+                    _ => {}
+                }
+            }
             Some(msg) = watch_rx.recv() => {
                 if msg == "settings" {
                     daemon.reload_settings();
@@ -100,6 +130,21 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                 match ev {
                     DaemonEvent::PidExited(pid) => {
                         debug!(target: "auriya::daemon", "Tracked PID {} exited, triggering instant tick", pid);
+                        daemon.tick().await;
+                    }
+                    DaemonEvent::ForegroundChanged { pid, uid, foreground } => {
+                        if foreground
+                            && let Some(pkg) = crate::platform::common::procfs::get_process_package(pid)
+                        {
+                            daemon.status_cache.store(crate::core::status::SystemStatus {
+                                focused_app: Some(pkg),
+                                focused_pid: Some(pid),
+                                focused_uid: Some(uid),
+                                screen_awake: Some(true),
+                                battery_saver: None,
+                                zen_mode: None,
+                            });
+                        }
                         daemon.tick().await;
                     }
                     DaemonEvent::CompanionDied => {
