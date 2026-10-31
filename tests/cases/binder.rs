@@ -135,6 +135,32 @@ async fn test_cli_binder_commands() {
             .await
             .is_ok()
     );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Statusbar { action: None })
+            .await
+            .is_ok()
+    );
+}
+
+#[test]
+fn test_statusbar_lock_actuator() {
+    use auriya::platform::binder::{collapse_panels, is_statusbar_locked, set_statusbar_lock};
+
+    assert!(collapse_panels().is_ok());
+    assert!(!is_statusbar_locked());
+    assert!(set_statusbar_lock(true).is_ok());
+    assert!(set_statusbar_lock(false).is_ok());
+}
+
+#[tokio::test]
+async fn test_binder_display_modes_query() {
+    use auriya::platform::binder::query_binder_display_modes;
+    use auriya::platform::display::get_app_supported_modes;
+
+    let res = query_binder_display_modes(0);
+    assert!(res.is_ok());
+
+    let _modes = get_app_supported_modes().await;
 }
 
 #[test]

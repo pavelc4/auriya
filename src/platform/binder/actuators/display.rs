@@ -19,6 +19,79 @@ static DISPLAY_STATE: Mutex<DisplayStateSnapshot> = Mutex::new(DisplayStateSnaps
     snapshot_taken: false,
 });
 
+/// Query display supported modes directly from `IDisplayManager.getDisplayInfo(display_id)`.
+/// Bypasses `dumpsys display` subshell execution completely.
+pub fn query_binder_display_modes(
+    display_id: i32,
+) -> Result<Option<Vec<crate::platform::display::DisplayMode>>> {
+    #[cfg(target_os = "android")]
+    {
+        if !crate::platform::binder::ensure_initialized() {
+            return Ok(None);
+        }
+        let display_svc = match rsbinder::hub::check_service("display") {
+            Some(s) => s,
+            None => return Ok(None),
+        };
+        let proxy = match display_svc.as_proxy() {
+            Some(p) => p,
+            None => return Ok(None),
+        };
+        let mut data = proxy.prepare_transact(true)?;
+        data.write(&display_id)?;
+        // TRANSACTION_getDisplayInfo = 1
+        let reply_opt = proxy.submit_transact(1, &data, 0)?;
+        if let Some(mut rep) = reply_opt {
+            let size = rep.data_size();
+            let mut modes = Vec::new();
+            let mut pos = 0;
+            let mut mode_id = 1u32;
+            while pos + 16 <= size {
+                rep.set_data_position(pos);
+                if let (Ok(w), Ok(h), Ok(fps), Ok(vsync)) = (
+                    rep.read_i32(),
+                    rep.read_i32(),
+                    rep.read_f32(),
+                    rep.read_f32(),
+                ) && (360..=4320).contains(&w)
+                    && (360..=8192).contains(&h)
+                    && (23.9..=360.1).contains(&fps)
+                    && (fps - vsync).abs() < 0.5
+                {
+                    let fps_round = fps.round() as u32;
+                    if !modes
+                        .iter()
+                        .any(|m: &crate::platform::display::DisplayMode| {
+                            m.width == w as u32
+                                && m.height == h as u32
+                                && (m.fps.round() as u32) == fps_round
+                        })
+                    {
+                        modes.push(crate::platform::display::DisplayMode {
+                            id: mode_id,
+                            width: w as u32,
+                            height: h as u32,
+                            fps,
+                        });
+                        mode_id += 1;
+                    }
+                }
+                pos += 4;
+            }
+            if !modes.is_empty() {
+                return Ok(Some(modes));
+            }
+        }
+        Ok(None)
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = display_id;
+        Ok(None)
+    }
+}
+
 /// Query user preferred display refresh rate directly via Native Binder (code 47).
 /// Returns `None` if device is in default dynamic/auto refresh rate mode.
 pub fn get_user_preferred_display_mode() -> Result<Option<f32>> {

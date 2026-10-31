@@ -338,6 +338,8 @@ impl Daemon {
         let _ = crate::platform::binder::apply_refresh_rate(0);
         let _ = crate::platform::binder::apply_dnd(crate::platform::binder::DndMode::All);
         let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
+        let _ = crate::platform::binder::set_statusbar_lock(false);
+        let _ = crate::platform::binder::set_high_touch_polling_rate(false);
     }
 
     pub async fn tick(&mut self) {

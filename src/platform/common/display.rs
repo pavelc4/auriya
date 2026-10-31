@@ -16,11 +16,54 @@ pub struct DisplayMode {
     pub fps: f32,
 }
 
+/// Query supported display modes.
+/// Prioritizes Native Binder RPC (`IDisplayManager.getDisplayInfo(0)`) for zero subshell overhead,
+/// with fallback to `dumpsys display` on legacy or unsupported environments.
 pub async fn get_app_supported_modes() -> Result<Vec<DisplayMode>> {
+    #[cfg(target_os = "android")]
+    {
+        if let Ok(Some(modes)) = crate::platform::binder::query_binder_display_modes(0)
+            && !modes.is_empty()
+        {
+            return Ok(modes);
+        }
+    }
+
     let output = Command::new("dumpsys").arg("display").output().await?;
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     parse_app_supported_modes(&stdout)
+}
+
+/// Query the primary display screen resolution as `(width, height)`.
+/// First attempts to retrieve resolution from cached/Binder display modes,
+/// falling back to `wm size`.
+pub async fn get_screen_resolution() -> Option<(u32, u32)> {
+    if let Ok(modes) = get_app_supported_modes().await
+        && let Some(mode) = modes.iter().max_by_key(|m| m.width * m.height)
+        && mode.width > 0
+        && mode.height > 0
+    {
+        return Some((mode.width, mode.height));
+    }
+
+    let output = Command::new("wm").arg("size").output().await.ok()?;
+    let text = String::from_utf8_lossy(&output.stdout);
+    parse_wm_size(&text)
+}
+
+fn parse_wm_size(input: &str) -> Option<(u32, u32)> {
+    for line in input.lines() {
+        if let Some(rest) = line.split(':').nth(1) {
+            let dims: Vec<&str> = rest.trim().split('x').collect();
+            if dims.len() == 2
+                && let (Ok(w), Ok(h)) = (dims[0].trim().parse(), dims[1].trim().parse())
+            {
+                return Some((w, h));
+            }
+        }
+    }
+    None
 }
 
 fn parse_app_supported_modes(input: &str) -> Result<Vec<DisplayMode>> {

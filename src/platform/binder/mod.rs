@@ -11,8 +11,9 @@ pub mod client;
 pub mod observer;
 
 pub use actuators::{
-    DndMode, apply_dnd, apply_refresh_rate, get_user_preferred_display_mode,
-    is_high_touch_polling_rate_supported, is_wifi_low_latency_active, set_high_touch_polling_rate,
+    DndMode, apply_dnd, apply_refresh_rate, collapse_panels, get_user_preferred_display_mode,
+    is_high_touch_polling_rate_supported, is_statusbar_locked, is_wifi_low_latency_active,
+    query_binder_display_modes, set_high_touch_polling_rate, set_statusbar_lock,
     set_wifi_low_latency_lock,
 };
 pub use client::{BinderClient, ForegroundTask, is_window_floating};

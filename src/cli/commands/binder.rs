@@ -12,7 +12,41 @@ pub async fn handle_binder(cmd: BinderCommands) -> Result<()> {
         BinderCommands::Rate { hz } => handle_rate(hz),
         BinderCommands::Wifi { action } => handle_wifi(action),
         BinderCommands::Touch { action } => handle_touch(action),
+        BinderCommands::Statusbar { action } => handle_statusbar(action),
     }
+}
+
+fn handle_statusbar(action: Option<String>) -> Result<()> {
+    let act = action.as_deref().unwrap_or("status");
+    match act {
+        "lock" | "on" | "enable" => {
+            crate::platform::binder::collapse_panels()?;
+            crate::platform::binder::set_statusbar_lock(true)?;
+            println!("Status Bar Lock: active (notification shade & alerts disabled)");
+        }
+        "unlock" | "off" | "disable" => {
+            crate::platform::binder::set_statusbar_lock(false)?;
+            println!("Status Bar Lock: restored (notification shade & alerts restored)");
+        }
+        "status" => {
+            let active = crate::platform::binder::is_statusbar_locked();
+            println!(
+                "Status Bar Lock: {}",
+                if active {
+                    "Active (Locked)"
+                } else {
+                    "Inactive (Unlocked)"
+                }
+            );
+        }
+        other => {
+            eprintln!(
+                "Unknown action '{}'. Valid actions: lock, unlock, status",
+                other
+            );
+        }
+    }
+    Ok(())
 }
 
 fn handle_touch(action: Option<String>) -> Result<()> {
@@ -126,6 +160,15 @@ fn handle_probe() -> Result<()> {
     );
 
     println!(
+        "  Status Bar Lock:            {}",
+        if crate::platform::binder::is_statusbar_locked() {
+            "Active (Locked)"
+        } else {
+            "Inactive (Unlocked)"
+        }
+    );
+
+    println!(
         "  High Touch Polling Rate:    {}",
         if crate::platform::common::touchpanel::is_supported() {
             "Supported (Ready)"
@@ -143,6 +186,7 @@ fn handle_probe() -> Result<()> {
                 "activity",
                 "activity_task",
                 "display",
+                "statusbar",
                 "wifi",
                 "thermalservice",
                 "vendor.lineage.touch.IHighTouchPollingRate/default",
@@ -283,7 +327,7 @@ fn handle_test() -> Result<()> {
         println!("      peak_refresh_rate restored to {}", peak);
     }
 
-    println!("[6/7] Testing Wi-Fi Low-Latency lock actuator...");
+    println!("[6/8] Testing Wi-Fi Low-Latency lock actuator...");
     let lock_res = crate::platform::binder::set_wifi_low_latency_lock(true);
     let active = crate::platform::binder::is_wifi_low_latency_active();
     println!(
@@ -299,7 +343,23 @@ fn handle_test() -> Result<()> {
         rel_res, active_after
     );
 
-    println!("\n[7/7] Binder self-test completed successfully.");
+    println!("[7/8] Testing Status Bar lock actuator...");
+    let lock_res = crate::platform::binder::set_statusbar_lock(true);
+    let lock_active = crate::platform::binder::is_statusbar_locked();
+    println!(
+        "      Lock Status Bar result: {:?} (Active: {})",
+        lock_res, lock_active
+    );
+    std::thread::sleep(std::time::Duration::from_millis(250));
+    println!("      Restoring Status Bar lock...");
+    let rel_res = crate::platform::binder::set_statusbar_lock(false);
+    let lock_active_after = crate::platform::binder::is_statusbar_locked();
+    println!(
+        "      Unlock Status Bar result: {:?} (Active: {})",
+        rel_res, lock_active_after
+    );
+
+    println!("\n[8/8] Binder self-test completed successfully.");
     Ok(())
 }
 

@@ -32,6 +32,12 @@ pub enum BinderCommands {
         #[arg(help = "Action: on, off, or status (default: status)")]
         action: Option<String>,
     },
+
+    #[command(about = "Toggle or query status bar lock (lock notification panel & alerts)")]
+    Statusbar {
+        #[arg(help = "Action: lock, unlock, or status (default: status)")]
+        action: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]

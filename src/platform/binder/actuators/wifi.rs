@@ -63,7 +63,7 @@ pub fn set_wifi_low_latency_lock(enable: bool) -> Result<bool> {
             let mut data = proxy.prepare_transact(true)?;
             data.write(&token)?;
             data.write(&4i32)?; // WIFI_MODE_FULL_LOW_LATENCY = 4
-            data.write(&"auriya-gaming-wifi-lock".to_string())?;
+            data.write(&"auriya-wifi-lock".to_string())?;
             data.write(&0i32)?; // WorkSource = null
             data.write(&"dev.auriya".to_string())?;
             data.write(&0i32)?; // Bundle = null
