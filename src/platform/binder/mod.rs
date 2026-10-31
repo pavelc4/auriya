@@ -12,7 +12,8 @@ pub mod observer;
 
 pub use actuators::{
     DndMode, apply_dnd, apply_refresh_rate, get_user_preferred_display_mode,
-    is_wifi_low_latency_active, set_wifi_low_latency_lock,
+    is_high_touch_polling_rate_supported, is_wifi_low_latency_active, set_high_touch_polling_rate,
+    set_wifi_low_latency_lock,
 };
 pub use client::{BinderClient, ForegroundTask, is_window_floating};
 pub use observer::{ProcessEvent, ProcessEventType, ProcessObserver};

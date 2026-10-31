@@ -26,6 +26,12 @@ pub enum BinderCommands {
         #[arg(help = "Action: on, off, or status (default: status)")]
         action: Option<String>,
     },
+
+    #[command(about = "Toggle or query High Touch Polling Rate (sampling boost)")]
+    Touch {
+        #[arg(help = "Action: on, off, or status (default: status)")]
+        action: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]

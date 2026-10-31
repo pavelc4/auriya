@@ -11,7 +11,37 @@ pub async fn handle_binder(cmd: BinderCommands) -> Result<()> {
         BinderCommands::Dnd { mode } => handle_dnd(mode),
         BinderCommands::Rate { hz } => handle_rate(hz),
         BinderCommands::Wifi { action } => handle_wifi(action),
+        BinderCommands::Touch { action } => handle_touch(action),
     }
+}
+
+fn handle_touch(action: Option<String>) -> Result<()> {
+    let act = action.as_deref().unwrap_or("status");
+    match act {
+        "on" | "enable" => {
+            crate::platform::common::touchpanel::enable_game_mode()?;
+            println!("High touch polling rate enabled");
+        }
+        "off" | "disable" => {
+            crate::platform::common::touchpanel::disable_game_mode()?;
+            println!("High touch polling rate disabled");
+        }
+        "status" => {
+            let supp = crate::platform::common::touchpanel::is_supported();
+            println!(
+                "High Touch Polling Rate: {}",
+                if supp {
+                    "Supported (Ready)"
+                } else {
+                    "Not supported on this device"
+                }
+            );
+        }
+        other => {
+            eprintln!("Unknown action '{}'. Valid actions: on, off, status", other);
+        }
+    }
+    Ok(())
 }
 
 fn handle_wifi(action: Option<String>) -> Result<()> {
@@ -95,6 +125,15 @@ fn handle_probe() -> Result<()> {
         }
     );
 
+    println!(
+        "  High Touch Polling Rate:    {}",
+        if crate::platform::common::touchpanel::is_supported() {
+            "Supported (Ready)"
+        } else {
+            "Not supported on this device"
+        }
+    );
+
     #[cfg(target_os = "android")]
     {
         if rsbinder::ProcessState::is_initialized() {
@@ -106,6 +145,7 @@ fn handle_probe() -> Result<()> {
                 "display",
                 "wifi",
                 "thermalservice",
+                "vendor.lineage.touch.IHighTouchPollingRate/default",
             ] {
                 let avail = rsbinder::hub::check_service(service).is_some();
                 println!(
