@@ -1,4 +1,5 @@
 mod battery;
+mod binder;
 mod bottleneck;
 mod buffer;
 mod ceiling;

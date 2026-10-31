@@ -1,3 +1,4 @@
+pub mod binder;
 pub mod common;
 pub mod cpu;
 pub mod gpu;

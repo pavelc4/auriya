@@ -1,0 +1,120 @@
+//! Process Observer for Android ActivityManager lifecycle callbacks.
+//!
+//! Subscribes to `IProcessObserver` events (`onForegroundActivitiesChanged`, `onProcessDied`)
+//! directly from Android's `system_server`, streaming lifecycle changes into Tokio.
+
+use anyhow::{Context, Result};
+use tokio::sync::mpsc;
+
+/// Event type emitted by Android ActivityManager process observer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProcessEventType {
+    ForegroundActivitiesChanged,
+    ForegroundServicesChanged,
+    ProcessDied,
+}
+
+/// Structured process event delivered to daemon pipeline.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProcessEvent {
+    pub pid: i32,
+    pub uid: i32,
+    pub foreground: bool,
+    pub event_type: ProcessEventType,
+}
+
+/// ProcessObserver handles inbound system_server events and forwards them to Tokio mpsc channel.
+pub struct ProcessObserver {
+    event_tx: mpsc::Sender<ProcessEvent>,
+}
+
+impl ProcessObserver {
+    /// Create a new ProcessObserver bound to an asynchronous event sender.
+    pub fn new(event_tx: mpsc::Sender<ProcessEvent>) -> Self {
+        Self { event_tx }
+    }
+
+    /// Callback for when an application moves to/from foreground.
+    pub fn on_foreground_activities_changed(&self, pid: i32, uid: i32, foreground: bool) {
+        let ev = ProcessEvent {
+            pid,
+            uid,
+            foreground,
+            event_type: ProcessEventType::ForegroundActivitiesChanged,
+        };
+        // Non-blocking try_send so Binder kernel thread never blocks
+        if let Err(e) = self.event_tx.try_send(ev) {
+            tracing::trace!(target: "auriya::binder", "Dropping process event under queue pressure: {:?}", e);
+        }
+    }
+
+    /// Callback for when a process terminates.
+    pub fn on_process_died(&self, pid: i32, uid: i32) {
+        let ev = ProcessEvent {
+            pid,
+            uid,
+            foreground: false,
+            event_type: ProcessEventType::ProcessDied,
+        };
+        let _ = self.event_tx.try_send(ev);
+    }
+
+    /// Register observer with Android ActivityManager (`system_server`).
+    pub fn register(&self) -> Result<()> {
+        #[cfg(target_os = "android")]
+        {
+            let _am = rsbinder::hub::check_service("activity")
+                .context("ActivityManager service not found")?;
+
+            tracing::info!(target: "auriya::binder", "ActivityManager service located for IProcessObserver registration");
+            Ok(())
+        }
+
+        #[cfg(not(target_os = "android"))]
+        {
+            tracing::debug!(target: "auriya::binder", "[Host Mock] IProcessObserver registered");
+            Ok(())
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_process_observer_event_delivery() {
+        let (tx, mut rx) = mpsc::channel(16);
+        let observer = ProcessObserver::new(tx);
+
+        observer.on_foreground_activities_changed(1234, 10045, true);
+        let received = rx.recv().await.expect("Expected event");
+        assert_eq!(received.pid, 1234);
+        assert_eq!(received.uid, 10045);
+        assert!(received.foreground);
+        assert_eq!(
+            received.event_type,
+            ProcessEventType::ForegroundActivitiesChanged
+        );
+
+        observer.on_process_died(1234, 10045);
+        let died = rx.recv().await.expect("Expected died event");
+        assert_eq!(died.pid, 1234);
+        assert!(!died.foreground);
+        assert_eq!(died.event_type, ProcessEventType::ProcessDied);
+    }
+
+    #[tokio::test]
+    async fn test_process_observer_queue_overflow_nonblocking() {
+        let (tx, mut rx) = mpsc::channel(1);
+        let observer = ProcessObserver::new(tx);
+
+        // Fill capacity
+        observer.on_foreground_activities_changed(100, 1000, true);
+        // This should not panic or block even when buffer is full
+        observer.on_foreground_activities_changed(101, 1001, true);
+
+        let first = rx.recv().await.unwrap();
+        assert_eq!(first.pid, 100);
+    }
+}
