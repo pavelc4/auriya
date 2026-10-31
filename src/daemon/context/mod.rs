@@ -32,6 +32,7 @@ pub struct DaemonContext {
     pub profile_lock: Arc<Mutex<()>>,
     pub fas_controller: Option<Arc<tokio::sync::Mutex<crate::core::fas::FasController>>>,
     pub reload_handle: Option<ReloadHandle>,
+    pub start_time: std::time::Instant,
 }
 
 impl DaemonContext {

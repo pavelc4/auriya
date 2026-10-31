@@ -5,6 +5,7 @@ pub mod lifecycle;
 pub mod log;
 pub mod monitor;
 pub mod restart;
+pub mod stats;
 pub mod status;
 pub mod tuning;
 
@@ -17,6 +18,7 @@ pub use lifecycle::{handle_disable, handle_enable, handle_get_pid, handle_ping, 
 pub use log::handle_log;
 pub use monitor::handle_monitor;
 pub use restart::handle_restart;
+pub use stats::handle_stats;
 pub use status::handle_status;
 pub use tuning::{
     handle_add_game, handle_get_fps, handle_list_games, handle_remove_game, handle_set_fps,

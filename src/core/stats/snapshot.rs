@@ -52,6 +52,33 @@ pub struct SessionCard {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DaemonCard {
+    pub version: String,
+    pub pid: u32,
+    pub rss_mb: f32,
+    pub uptime_secs: u64,
+    pub active_profile: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BinderCard {
+    pub operational: bool,
+    pub screen_interactive: bool,
+    pub is_floating: bool,
+    pub wifi_low_latency: bool,
+    pub statusbar_locked: bool,
+    pub dnd_mode: u32,
+    pub refresh_rate_hz: Option<f32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemCard {
+    pub uptime_secs: u64,
+    pub ram_total_mb: u64,
+    pub ram_avail_mb: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StatsSnapshot {
     pub fps: Option<FpsStats>,
     pub thermal: ThermalCard,
@@ -59,6 +86,9 @@ pub struct StatsSnapshot {
     pub cpu: Option<CpuCard>,
     pub gpu: Option<GpuCard>,
     pub session: SessionCard,
+    pub daemon: DaemonCard,
+    pub binder: BinderCard,
+    pub system: Option<SystemCard>,
 }
 
 fn cluster_str(c: &ClusterType) -> &'static str {
@@ -66,6 +96,89 @@ fn cluster_str(c: &ClusterType) -> &'static str {
         ClusterType::Little => "Little",
         ClusterType::Big => "Big",
         ClusterType::Prime => "Prime",
+    }
+}
+
+fn sample_self_rss_mb() -> f32 {
+    #[cfg(target_os = "android")]
+    {
+        if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
+            for line in status.lines() {
+                if let Some(rest) = line.strip_prefix("VmRSS:")
+                    && let Some(val_str) = rest.split_whitespace().next()
+                    && let Ok(kb) = val_str.parse::<f32>()
+                {
+                    return kb / 1024.0;
+                }
+            }
+        }
+    }
+    0.0
+}
+
+fn sample_system_card() -> Option<SystemCard> {
+    #[cfg(target_os = "android")]
+    {
+        let mut info = std::mem::MaybeUninit::<libc::sysinfo>::uninit();
+        if unsafe { libc::sysinfo(info.as_mut_ptr()) } == 0 {
+            let info = unsafe { info.assume_init() };
+            let unit = info.mem_unit as u64;
+            let total_mb = (info.totalram.saturating_mul(unit)) / (1024 * 1024);
+            let free_mb = (info
+                .freeram
+                .saturating_add(info.bufferram)
+                .saturating_mul(unit))
+                / (1024 * 1024);
+            return Some(SystemCard {
+                uptime_secs: info.uptime as u64,
+                ram_total_mb: total_mb,
+                ram_avail_mb: free_mb,
+            });
+        }
+    }
+    None
+}
+
+fn sample_binder_card() -> BinderCard {
+    #[cfg(target_os = "android")]
+    {
+        let client = crate::platform::binder::BinderClient::new();
+        let operational = client.is_operational();
+        let screen_interactive = client.is_screen_interactive().unwrap_or(true);
+        let is_floating = client
+            .get_foreground_task()
+            .ok()
+            .flatten()
+            .map(|t| t.is_floating)
+            .unwrap_or(false);
+        let wifi_low_latency = crate::platform::binder::is_wifi_low_latency_active();
+        let statusbar_locked = crate::platform::binder::is_statusbar_locked();
+        let refresh_rate_hz = crate::platform::binder::get_user_preferred_display_mode()
+            .ok()
+            .flatten();
+
+        BinderCard {
+            operational,
+            screen_interactive,
+            is_floating,
+            wifi_low_latency,
+            statusbar_locked,
+            dnd_mode: 0,
+            refresh_rate_hz,
+        }
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        BinderCard {
+            operational: true,
+            screen_interactive: true,
+            is_floating: false,
+            wifi_low_latency: false,
+            statusbar_locked: false,
+            dnd_mode: 0,
+            refresh_rate_hz: Some(120.0),
+        }
     }
 }
 
@@ -83,7 +196,14 @@ impl StatsSnapshot {
         pkg: Option<&str>,
         profile: ProfileMode,
         active: bool,
+        uptime_secs: u64,
     ) -> Self {
+        let pid = std::process::id();
+        let rss_mb = sample_self_rss_mb();
+        let binder = sample_binder_card();
+        let system = sample_system_card();
+        let active_profile = profile.to_string().to_lowercase();
+
         StatsSnapshot {
             fps,
             thermal: ThermalCard {
@@ -119,9 +239,18 @@ impl StatsSnapshot {
             }),
             session: SessionCard {
                 pkg: pkg.map(str::to_string),
-                profile: profile.to_string().to_lowercase(),
+                profile: active_profile.clone(),
                 active,
             },
+            daemon: DaemonCard {
+                version: env!("CARGO_PKG_VERSION").to_string(),
+                pid,
+                rss_mb,
+                uptime_secs,
+                active_profile,
+            },
+            binder,
+            system,
         }
     }
 }

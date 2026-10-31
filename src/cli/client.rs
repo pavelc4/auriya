@@ -18,16 +18,20 @@ impl IpcClient {
         }
     }
 
-    pub async fn send(&self, command: &str) -> Result<String> {
+    pub async fn connect(&self) -> Result<UnixStream> {
         let mut stream = UnixStream::connect(&self.socket_path)
             .await
             .context("Failed to connect to daemon. Is it running?")?;
 
-        {
-            let mut reader = tokio::io::BufReader::new(&mut stream);
-            let mut greeting = String::new();
-            let _ = reader.read_line(&mut greeting).await;
-        }
+        let mut reader = tokio::io::BufReader::new(&mut stream);
+        let mut greeting = String::new();
+        let _ = reader.read_line(&mut greeting).await;
+
+        Ok(stream)
+    }
+
+    pub async fn send(&self, command: &str) -> Result<String> {
+        let mut stream = self.connect().await?;
 
         stream.write_all(command.as_bytes()).await?;
         stream.write_all(b"\n").await?;

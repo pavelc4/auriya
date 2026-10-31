@@ -310,6 +310,7 @@ impl Daemon {
             profile_lock: Arc::new(std::sync::Mutex::new(())),
             fas_controller: self.fas_controller.clone(),
             reload_handle: Some(filter_handle),
+            start_time: std::time::Instant::now(),
         });
 
         tokio::spawn(async move {

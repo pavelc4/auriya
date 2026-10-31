@@ -66,6 +66,7 @@ impl DaemonContext {
             None
         };
         let bat = crate::core::telemetry::battery::snapshot();
+        let uptime_secs = self.start_time.elapsed().as_secs();
 
         let snap = {
             let st = self.current_state.read().ok();
@@ -79,10 +80,12 @@ impl DaemonContext {
                 st.and_then(|s| s.pkg.as_deref()),
                 st.map(|s| s.profile).unwrap_or_default(),
                 st.map(|s| s.game_session).unwrap_or(false),
+                uptime_secs,
             )
         };
 
-        serde_json::to_string(&snap)
+        let response = crate::core::stats::ApiResponse::ok(snap);
+        serde_json::to_string(&response)
             .map(|json| format!("{json}\n"))
             .unwrap_or_else(|e| format!("ERR JSON {e:?}\n"))
     }

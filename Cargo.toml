@@ -74,6 +74,7 @@ tracing-subscriber = { version = "0.3.23", default-features = false, features = 
   "time",
 ] }
 time = { version = "0.3.55", features = ["formatting"] }
+uuid = { version = "1.29", default-features = false, features = ["v4", "fast-rng"] }
 libc = "0.2.191"
 clap = { version = "4.6.7", features = ["derive", "color", "suggestions"] }
 memchr = "2.8.3"

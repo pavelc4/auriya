@@ -38,6 +38,7 @@ fn create_test_context() -> DaemonContext {
         profile_lock: Arc::new(Mutex::new(())),
         fas_controller: None,
         reload_handle: None,
+        start_time: std::time::Instant::now(),
     }
 }
 

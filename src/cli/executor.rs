@@ -43,7 +43,9 @@ fn requires_daemon(cmd: &Commands) -> bool {
 fn is_streaming_command(cmd: &Commands) -> bool {
     matches!(
         cmd,
-        Commands::Monitor { .. } | Commands::Log { follow: true, .. }
+        Commands::Monitor { .. }
+            | Commands::Log { follow: true, .. }
+            | Commands::Stats { stream: true, .. }
     )
 }
 
@@ -60,6 +62,11 @@ async fn dispatch(command: Commands, client: &IpcClient) -> Result<()> {
 
         // Diagnostics & Telemetry
         Commands::Info => commands::handle_info(client).await?,
+        Commands::Stats {
+            json,
+            stream,
+            interval_ms,
+        } => commands::handle_stats(client, json, stream, interval_ms).await?,
         Commands::Monitor {
             oneline,
             interval_ms,

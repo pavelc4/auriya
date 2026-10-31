@@ -166,6 +166,21 @@ pub enum Commands {
     Info,
 
     #[command(subcommand_help_heading = "Diagnostics & Telemetry")]
+    #[command(about = "Query daemon telemetry snapshot (plain text summary or JSON envelope)")]
+    Stats {
+        #[arg(long, help = "Output raw JSON API envelope")]
+        json: bool,
+        #[arg(long, help = "Stream telemetry snapshots continuously")]
+        stream: bool,
+        #[arg(
+            long,
+            default_value = "1000",
+            help = "Stream refresh interval in milliseconds"
+        )]
+        interval_ms: u64,
+    },
+
+    #[command(subcommand_help_heading = "Diagnostics & Telemetry")]
     #[command(about = "Stream live telemetry (FPS, CPU, GPU, temp, battery, app) in real-time")]
     Monitor {
         #[arg(
