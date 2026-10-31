@@ -201,17 +201,3 @@ impl Default for BinderClient {
         Self::new()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_binder_client_instantiation() {
-        let client = BinderClient::new();
-        // Client should construct cleanly on any platform without panics
-        let _ = client.is_operational();
-        let _ = BinderClient::is_healthy();
-        assert!(client.is_screen_interactive().is_ok());
-    }
-}

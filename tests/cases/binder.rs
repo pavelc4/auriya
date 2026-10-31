@@ -125,4 +125,61 @@ async fn test_cli_binder_commands() {
             .await
             .is_ok()
     );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Wifi { action: None })
+            .await
+            .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Touch { action: None })
+            .await
+            .is_ok()
+    );
+}
+
+#[test]
+fn test_wifi_low_latency_actuator() {
+    use auriya::platform::binder::{is_wifi_low_latency_active, set_wifi_low_latency_lock};
+
+    assert!(!is_wifi_low_latency_active());
+    assert!(set_wifi_low_latency_lock(true).is_ok());
+    assert!(set_wifi_low_latency_lock(false).is_ok());
+}
+
+#[test]
+fn test_touch_polling_rate_actuator() {
+    use auriya::platform::binder::{
+        is_high_touch_polling_rate_supported, set_high_touch_polling_rate,
+    };
+
+    let _supported = is_high_touch_polling_rate_supported();
+    assert!(set_high_touch_polling_rate(true).is_ok());
+    assert!(set_high_touch_polling_rate(false).is_ok());
+}
+
+#[test]
+fn test_window_floating_detection() {
+    use auriya::platform::binder::is_window_floating;
+
+    // Fullscreen landscape window (0, 0, 2400, 1080)
+    assert!(!is_window_floating(0, 0, 2400, 1080));
+    // Fullscreen portrait window (0, 0, 1080, 2400)
+    assert!(!is_window_floating(0, 0, 1080, 2400));
+    // Floating/Freeform offset window
+    assert!(is_window_floating(100, 100, 800, 600));
+    // Small dimension window
+    assert!(is_window_floating(0, 0, 500, 500));
+}
+
+#[tokio::test]
+async fn test_observer_queue_overflow_nonblocking() {
+    let (tx, mut rx) = mpsc::channel(1);
+    let observer = ProcessObserver::new(tx);
+
+    observer.on_foreground_activities_changed(100, 1000, true);
+    // Overflow should not block or panic
+    observer.on_foreground_activities_changed(101, 1001, true);
+
+    let first = rx.recv().await.unwrap();
+    assert_eq!(first.pid, 100);
 }
