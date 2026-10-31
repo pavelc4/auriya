@@ -204,6 +204,22 @@ async fn test_cli_binder_commands() {
             .await
             .is_ok()
     );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Toast {
+            message: "Test Toast".to_string(),
+            long: false,
+        })
+        .await
+        .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Broadcast {
+            action: "dev.auriya.app.TEST".to_string(),
+            extra: vec!["key=val".to_string()],
+        })
+        .await
+        .is_ok()
+    );
 }
 
 #[test]
@@ -327,4 +343,27 @@ async fn test_observer_queue_overflow_nonblocking() {
 
     let first = rx.recv().await.unwrap();
     assert_eq!(first.pid, 100);
+}
+
+#[test]
+fn test_toast_actuator() {
+    use auriya::platform::binder::{show_toast, show_toast_with_duration};
+
+    let res = show_toast("Test message");
+    eprintln!("show_toast result: {:?}", res);
+    assert!(res.is_ok());
+    assert!(show_toast_with_duration("Test long message", 1).is_ok());
+}
+
+#[test]
+fn test_broadcast_actuator() {
+    use auriya::platform::binder::broadcast_intent;
+
+    let res = broadcast_intent(
+        "dev.auriya.app.TEST_ACTION",
+        &[("key", "val"), ("foo", "bar")],
+    );
+    eprintln!("broadcast_intent result: {:?}", res);
+    assert!(res.is_ok());
+    assert!(broadcast_intent("dev.auriya.app.TEST_ACTION_EMPTY", &[]).is_ok());
 }

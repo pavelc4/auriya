@@ -281,6 +281,7 @@ impl Daemon {
             };
             let app_name = pkg.rsplit('.').next().unwrap_or(pkg);
             let msg = format!("Auriya: Applied {} Profile ({})", mode_str, app_name);
+            let _ = crate::platform::binder::show_toast(&msg);
             broadcast_intent(
                 "dev.auriya.app.ACTION_GAME_ENTER",
                 &[("pkg", pkg), ("mode", mode_str), ("message", &msg)],
@@ -465,14 +466,7 @@ impl Daemon {
 }
 
 pub(crate) fn broadcast_intent(action: &str, extras: &[(&str, &str)]) {
-    let mut cmd_str = format!("am broadcast -a {action} -f 0x01000020 --include-stopped-packages");
-    for (k, v) in extras {
-        let escaped_v = v.replace('\"', "\\\"");
-        cmd_str.push_str(&format!(" --es {k} \"{escaped_v}\""));
+    if let Err(e) = crate::platform::binder::broadcast_intent(action, extras) {
+        tracing::debug!(target: "auriya::daemon", "Failed to broadcast intent via Binder: {:?}", e);
     }
-    let _ = std::process::Command::new("su")
-        .args(["2000", "-c", &cmd_str])
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn();
 }

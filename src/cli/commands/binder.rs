@@ -24,6 +24,8 @@ pub async fn handle_binder(cmd: BinderCommands) -> Result<()> {
         } => handle_vibrator(action.as_deref(), duration_ms),
         BinderCommands::Window { action, param } => handle_window(&action, param.as_deref()),
         BinderCommands::PowerSave { action } => handle_power_save(action.as_deref()),
+        BinderCommands::Toast { message, long } => handle_toast(&message, long),
+        BinderCommands::Broadcast { action, extra } => handle_broadcast(&action, &extra),
     }
 }
 
@@ -315,7 +317,7 @@ fn handle_test() -> Result<()> {
 
     let client = BinderClient::new();
     println!(
-        "[1/11] Binder Servicemanager: {}",
+        "[1/13] Binder Servicemanager: {}",
         if client.is_operational() {
             "PASS"
         } else {
@@ -324,8 +326,8 @@ fn handle_test() -> Result<()> {
     );
 
     match client.is_screen_interactive() {
-        Ok(interactive) => println!("[2/11] PowerManager.isInteractive ({}): PASS", interactive),
-        Err(e) => println!("[2/11] PowerManager query: FAIL ({:?})", e),
+        Ok(interactive) => println!("[2/13] PowerManager.isInteractive ({}): PASS", interactive),
+        Err(e) => println!("[2/13] PowerManager query: FAIL ({:?})", e),
     }
 
     match client.get_foreground_task() {
@@ -340,15 +342,15 @@ fn handle_test() -> Result<()> {
                 "fullscreen"
             };
             println!(
-                "[3/11] Native Binder Foreground ({} | PID: {} | {}): PASS",
+                "[3/13] Native Binder Foreground ({} | PID: {} | {}): PASS",
                 task.package, pid_str, win_str
             );
         }
-        Ok(None) => println!("[3/11] Native Binder Foreground: PASS (no focused task)"),
-        Err(e) => println!("[3/11] Native Binder Foreground: FAIL ({:?})", e),
+        Ok(None) => println!("[3/13] Native Binder Foreground: PASS (no focused task)"),
+        Err(e) => println!("[3/13] Native Binder Foreground: FAIL ({:?})", e),
     }
 
-    println!("[4/11] Testing DnD actuator (Priority)...");
+    println!("[4/13] Testing DnD actuator (Priority)...");
     apply_dnd(crate::platform::binder::DndMode::Priority)?;
     #[cfg(target_os = "android")]
     {
@@ -364,7 +366,7 @@ fn handle_test() -> Result<()> {
         println!("       zen_mode restored to {} (expected: 0)", zen);
     }
 
-    println!("[5/11] Testing Display Refresh Rate actuator (120Hz)...");
+    println!("[5/13] Testing Display Refresh Rate actuator (120Hz)...");
     apply_refresh_rate(120)?;
     #[cfg(target_os = "android")]
     {
@@ -388,7 +390,7 @@ fn handle_test() -> Result<()> {
         println!("       peak_refresh_rate restored to {}", peak);
     }
 
-    println!("[6/11] Testing Wi-Fi Low-Latency lock actuator...");
+    println!("[6/13] Testing Wi-Fi Low-Latency lock actuator...");
     let lock_res = crate::platform::binder::set_wifi_low_latency_lock(true);
     let active = crate::platform::binder::is_wifi_low_latency_active();
     println!(
@@ -404,7 +406,7 @@ fn handle_test() -> Result<()> {
         rel_res, active_after
     );
 
-    println!("[7/11] Testing Status Bar lock actuator...");
+    println!("[7/13] Testing Status Bar lock actuator...");
     let lock_res = crate::platform::binder::set_statusbar_lock(true);
     let lock_active = crate::platform::binder::is_statusbar_locked();
     println!(
@@ -420,7 +422,7 @@ fn handle_test() -> Result<()> {
         rel_res, lock_active_after
     );
 
-    println!("[8/11] Testing PowerHAL modes actuator...");
+    println!("[8/13] Testing PowerHAL modes actuator...");
     let mode_res = crate::platform::binder::set_power_mode(
         crate::platform::binder::PowerMode::ExpensiveRendering,
         true,
@@ -436,7 +438,7 @@ fn handle_test() -> Result<()> {
         false,
     );
 
-    println!("[9/11] Testing Vibrator HAL actuator...");
+    println!("[9/13] Testing Vibrator HAL actuator...");
     let vib_caps = crate::platform::binder::get_vibrator_capabilities();
     println!("       Vibrator HAL capabilities: {:?}", vib_caps);
     let pulse_res = crate::platform::binder::pulse_vibrator(30);
@@ -444,7 +446,7 @@ fn handle_test() -> Result<()> {
     let off_res = crate::platform::binder::silence_vibrator();
     println!("       Silence vibrator: {:?}", off_res);
 
-    println!("[10/11] Testing WindowManager actuator...");
+    println!("[10/13] Testing WindowManager actuator...");
     let freeze_res = crate::platform::binder::freeze_display_rotation(0, -1);
     let is_frozen = crate::platform::binder::is_display_rotation_frozen(0);
     println!(
@@ -456,11 +458,22 @@ fn handle_test() -> Result<()> {
     let anim_scales = crate::platform::binder::get_animation_scales();
     println!("        Animation scales: {:?}", anim_scales);
 
-    println!("[11/11] Testing Battery Saver actuator...");
+    println!("[11/13] Testing Battery Saver actuator...");
     let saver_active = crate::platform::binder::is_power_save_mode();
     println!("        Battery Saver active: {:?}", saver_active);
 
-    println!("\nNative Binder self-test completed successfully (all 11 checks passed).");
+    println!("[12/13] Testing Native Toast actuator...");
+    let toast_res = crate::platform::binder::show_toast("Auriya: Hardware self-test verified");
+    println!("        Show toast result: {:?}", toast_res);
+
+    println!("[13/13] Testing Direct Binder Broadcast actuator...");
+    let bcast_res = crate::platform::binder::broadcast_intent(
+        "dev.auriya.app.ACTION_GAME_EXIT",
+        &[("test", "true")],
+    );
+    println!("        Broadcast result: {:?}", bcast_res);
+
+    println!("\nNative Binder self-test completed successfully (all 13 checks passed).");
     Ok(())
 }
 
@@ -733,6 +746,31 @@ fn handle_power_save(action: Option<&str>) -> Result<()> {
             eprintln!("Unknown action '{}'. Valid actions: on, off, status", other);
         }
     }
+    Ok(())
+}
+
+fn handle_toast(message: &str, long: bool) -> Result<()> {
+    let duration = if long { 1 } else { 0 };
+    let success = crate::platform::binder::show_toast_with_duration(message, duration)?;
+    println!("Native Toast: '{}' (success: {})", message, success);
+    Ok(())
+}
+
+fn handle_broadcast(action: &str, extra: &[String]) -> Result<()> {
+    let mut parsed_extras = Vec::new();
+    for item in extra {
+        if let Some((k, v)) = item.split_once('=') {
+            parsed_extras.push((k.trim(), v.trim()));
+        } else {
+            parsed_extras.push((item.as_str(), ""));
+        }
+    }
+    crate::platform::binder::broadcast_intent(action, &parsed_extras)?;
+    println!(
+        "Dispatched Intent broadcast: '{}' ({} extras)",
+        action,
+        parsed_extras.len()
+    );
     Ok(())
 }
 

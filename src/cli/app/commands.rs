@@ -74,6 +74,22 @@ pub enum BinderCommands {
         #[arg(help = "Action: on, off, or status (default: status)")]
         action: Option<String>,
     },
+
+    #[command(about = "Display native Toast notification on active screen via NotificationManager")]
+    Toast {
+        #[arg(help = "Message text to display")]
+        message: String,
+        #[arg(long, help = "Display for longer duration (Toast.LENGTH_LONG)")]
+        long: bool,
+    },
+
+    #[command(about = "Dispatch explicit or broadcast Intent via ActivityManager")]
+    Broadcast {
+        #[arg(help = "Intent action string")]
+        action: String,
+        #[arg(short, long, help = "Key-value extra in format key=value")]
+        extra: Vec<String>,
+    },
 }
 
 #[derive(Subcommand)]
