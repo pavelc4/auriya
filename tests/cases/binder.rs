@@ -140,6 +140,125 @@ async fn test_cli_binder_commands() {
             .await
             .is_ok()
     );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Power {
+            action: "status".to_string(),
+            name: None,
+            value: None,
+        })
+        .await
+        .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Power {
+            action: "mode".to_string(),
+            name: Some("expensive".to_string()),
+            value: Some("on".to_string()),
+        })
+        .await
+        .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Power {
+            action: "boost".to_string(),
+            name: Some("interaction".to_string()),
+            value: Some("50".to_string()),
+        })
+        .await
+        .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Vibrator {
+            action: Some("status".to_string()),
+            duration_ms: None,
+        })
+        .await
+        .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Vibrator {
+            action: Some("pulse".to_string()),
+            duration_ms: Some(30),
+        })
+        .await
+        .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Window {
+            action: "rotation".to_string(),
+            param: Some("status".to_string()),
+        })
+        .await
+        .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::Window {
+            action: "anim".to_string(),
+            param: Some("1.0".to_string()),
+        })
+        .await
+        .is_ok()
+    );
+    assert!(
+        auriya::cli::commands::binder::handle_binder(BinderCommands::PowerSave { action: None })
+            .await
+            .is_ok()
+    );
+}
+
+#[test]
+fn test_power_hal_actuator() {
+    use auriya::platform::binder::{
+        PowerBoost, PowerMode, is_power_boost_supported, is_power_mode_supported, set_power_boost,
+        set_power_mode,
+    };
+
+    assert!(is_power_mode_supported(PowerMode::ExpensiveRendering));
+    assert!(is_power_mode_supported(PowerMode::SustainedPerformance));
+    assert!(set_power_mode(PowerMode::ExpensiveRendering, true).is_ok());
+    assert!(set_power_mode(PowerMode::ExpensiveRendering, false).is_ok());
+
+    assert!(is_power_boost_supported(PowerBoost::Interaction));
+    assert!(set_power_boost(PowerBoost::Interaction, 50).is_ok());
+}
+
+#[test]
+fn test_vibrator_actuator() {
+    use auriya::platform::binder::{get_vibrator_capabilities, pulse_vibrator, silence_vibrator};
+
+    let caps = get_vibrator_capabilities();
+    assert!(caps.is_ok());
+    assert!(silence_vibrator().is_ok());
+    assert!(pulse_vibrator(30).is_ok());
+}
+
+#[test]
+fn test_window_actuator() {
+    use auriya::platform::binder::{
+        freeze_display_rotation, get_animation_scales, is_display_rotation_frozen,
+        set_animation_scales, thaw_display_rotation,
+    };
+
+    assert!(freeze_display_rotation(0, -1).is_ok());
+    assert!(thaw_display_rotation(0).is_ok());
+    let frozen = is_display_rotation_frozen(0);
+    assert!(frozen.is_ok());
+
+    let scales = get_animation_scales();
+    assert!(scales.is_ok());
+    assert_eq!(scales.unwrap().len(), 3);
+    assert!(set_animation_scales(0.0).is_ok());
+    assert!(set_animation_scales(1.0).is_ok());
+}
+
+#[test]
+fn test_power_save_actuator() {
+    use auriya::platform::binder::{is_power_save_mode, set_power_save_mode_enabled};
+
+    let saver = is_power_save_mode();
+    assert!(saver.is_ok());
+    assert!(set_power_save_mode_enabled(true).is_ok());
+    assert!(set_power_save_mode_enabled(false).is_ok());
 }
 
 #[test]

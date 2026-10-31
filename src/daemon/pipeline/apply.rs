@@ -46,6 +46,18 @@ impl Daemon {
         let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
         let _ = crate::platform::binder::set_statusbar_lock(false);
         let _ = crate::platform::binder::set_high_touch_polling_rate(false);
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::ExpensiveRendering,
+            false,
+        );
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::SustainedPerformance,
+            false,
+        );
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::DeviceIdle,
+            true,
+        );
         self.last.screen_awake = Some(screen_awake);
         self.last.battery_saver = Some(battery_saver);
         Ok(())
@@ -87,7 +99,18 @@ impl Daemon {
         let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
         let _ = crate::platform::binder::set_statusbar_lock(false);
         let _ = crate::platform::binder::set_high_touch_polling_rate(false);
-
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::ExpensiveRendering,
+            false,
+        );
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::SustainedPerformance,
+            false,
+        );
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::DeviceIdle,
+            false,
+        );
         if self.last.pkg.is_some() || self.last.pid.is_some() {
             let was_game = self
                 .last
@@ -134,6 +157,34 @@ impl Daemon {
                     self.applied_refresh_rate = None;
                 }
             }
+            self.sync_dnd(crate::platform::binder::DndMode::All);
+            let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
+            let _ = crate::platform::binder::set_statusbar_lock(false);
+            let _ = crate::platform::binder::set_high_touch_polling_rate(false);
+            let _ = crate::platform::binder::set_power_mode(
+                crate::platform::binder::PowerMode::ExpensiveRendering,
+                false,
+            );
+            let _ = crate::platform::binder::set_power_mode(
+                crate::platform::binder::PowerMode::SustainedPerformance,
+                false,
+            );
+            let _ = crate::platform::binder::set_power_mode(
+                crate::platform::binder::PowerMode::DeviceIdle,
+                false,
+            );
+
+            let was_game = self
+                .last
+                .pkg
+                .as_ref()
+                .is_some_and(|p| self.cached_whitelist.contains(p));
+            if was_game {
+                let last_p = self.last.pkg.clone().unwrap_or_default();
+                broadcast_intent("dev.auriya.app.ACTION_GAME_EXIT", &[("pkg", &last_p)]);
+            }
+
+            debug!(target: "auriya::daemon", "Foreground: {} ({})", pkg, reason);
         }
 
         if self.last.profile_mode != Some(self.default_mode) {
@@ -167,23 +218,6 @@ impl Daemon {
             f.reset();
         }
         self.fps_meter.clear();
-        self.sync_dnd(crate::platform::binder::DndMode::All);
-        let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
-        let _ = crate::platform::binder::set_statusbar_lock(false);
-        let _ = crate::platform::binder::set_high_touch_polling_rate(false);
-        let was_game = self
-            .last
-            .pkg
-            .as_ref()
-            .is_some_and(|p| self.cached_whitelist.contains(p));
-        if was_game {
-            let last_p = self.last.pkg.clone().unwrap_or_default();
-            broadcast_intent("dev.auriya.app.ACTION_GAME_EXIT", &[("pkg", &last_p)]);
-        }
-
-        if self.last.pkg.as_deref() != Some(pkg) {
-            debug!(target: "auriya::daemon", "Foreground: {} ({})", pkg, reason);
-        }
 
         self.last.pkg = Some(pkg.to_string());
         self.last.pid = pid;
@@ -293,6 +327,19 @@ impl Daemon {
         let _ = crate::platform::binder::set_wifi_low_latency_lock(true);
         let _ = crate::platform::binder::set_statusbar_lock(true);
         let _ = crate::platform::binder::set_high_touch_polling_rate(true);
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::ExpensiveRendering,
+            true,
+        );
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::SustainedPerformance,
+            true,
+        );
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::DeviceIdle,
+            false,
+        );
+        let _ = crate::platform::binder::silence_vibrator();
         self.last.pkg = Some(pkg.to_string());
         self.set_pid(Some(pid));
         Ok(())

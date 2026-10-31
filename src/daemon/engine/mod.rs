@@ -340,6 +340,19 @@ impl Daemon {
         let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
         let _ = crate::platform::binder::set_statusbar_lock(false);
         let _ = crate::platform::binder::set_high_touch_polling_rate(false);
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::ExpensiveRendering,
+            false,
+        );
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::SustainedPerformance,
+            false,
+        );
+        let _ = crate::platform::binder::set_power_mode(
+            crate::platform::binder::PowerMode::DeviceIdle,
+            false,
+        );
+        let _ = crate::platform::binder::thaw_display_rotation(0);
     }
 
     pub async fn tick(&mut self) {

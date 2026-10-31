@@ -11,10 +11,13 @@ pub mod client;
 pub mod observer;
 
 pub use actuators::{
-    DndMode, apply_dnd, apply_refresh_rate, collapse_panels, get_user_preferred_display_mode,
-    is_high_touch_polling_rate_supported, is_statusbar_locked, is_wifi_low_latency_active,
-    query_binder_display_modes, set_high_touch_polling_rate, set_statusbar_lock,
-    set_wifi_low_latency_lock,
+    DndMode, PowerBoost, PowerMode, apply_dnd, apply_refresh_rate, collapse_panels,
+    freeze_display_rotation, get_animation_scales, get_user_preferred_display_mode,
+    get_vibrator_capabilities, is_display_rotation_frozen, is_high_touch_polling_rate_supported,
+    is_power_boost_supported, is_power_mode_supported, is_power_save_mode, is_statusbar_locked,
+    is_wifi_low_latency_active, pulse_vibrator, query_binder_display_modes, set_animation_scales,
+    set_high_touch_polling_rate, set_power_boost, set_power_mode, set_power_save_mode_enabled,
+    set_statusbar_lock, set_wifi_low_latency_lock, silence_vibrator, thaw_display_rotation,
 };
 pub use client::{BinderClient, ForegroundTask, is_window_floating};
 pub use observer::{ProcessEvent, ProcessEventType, ProcessObserver};

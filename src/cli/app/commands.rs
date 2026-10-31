@@ -38,6 +38,42 @@ pub enum BinderCommands {
         #[arg(help = "Action: lock, unlock, or status (default: status)")]
         action: Option<String>,
     },
+
+    #[command(
+        about = "Vendor Hardware PowerHAL modes (expensive-rendering, sustained, interaction)"
+    )]
+    Power {
+        #[arg(help = "Sub-action: mode, boost, or status")]
+        action: String,
+        #[arg(help = "Mode or boost name (expensive, sustained, fixed, idle, interaction)")]
+        name: Option<String>,
+        #[arg(help = "Value: on, off, or duration in ms")]
+        value: Option<String>,
+    },
+
+    #[command(about = "Trigger or silence hardware vibrator/haptics")]
+    Vibrator {
+        #[arg(help = "Action: off, pulse, or status (default: status)")]
+        action: Option<String>,
+        #[arg(help = "Duration in ms for pulse (default: 50)")]
+        duration_ms: Option<u32>,
+    },
+
+    #[command(
+        about = "Manage display orientation lock and window animation scale via WindowManager"
+    )]
+    Window {
+        #[arg(help = "Sub-action: rotation, anim, or status")]
+        action: String,
+        #[arg(help = "Parameter: freeze, thaw, or scale (e.g. 0.0, 1.0)")]
+        param: Option<String>,
+    },
+
+    #[command(about = "Toggle or query Android OS Battery Saver mode via PowerManager")]
+    PowerSave {
+        #[arg(help = "Action: on, off, or status (default: status)")]
+        action: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
