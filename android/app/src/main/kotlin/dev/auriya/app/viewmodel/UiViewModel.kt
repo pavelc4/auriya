@@ -61,13 +61,6 @@ class UiViewModel(
         dev.auriya.app.data.AppPrefs
             .getInstance(application)
 
-    private val _rootEnvironment =
-        MutableStateFlow(
-            dev.auriya.app.data
-                .RootEnvironmentInfo(),
-        )
-    val rootEnvironment: StateFlow<dev.auriya.app.data.RootEnvironmentInfo> = _rootEnvironment.asStateFlow()
-
     val liveStats: StateFlow<Stats?> = benchmarkRecorder.currentStats
 
     val roundFps: StateFlow<Boolean> = appPrefs.roundFps
@@ -186,7 +179,6 @@ class UiViewModel(
                     loadAvailableGovernors()
                     loadConfigurations()
                     initSystemInfoStatic()
-                    detectRootEnvironment()
                 }
             } finally {
                 _isCheckingRoot.value = false
@@ -209,22 +201,8 @@ class UiViewModel(
                 loadAvailableGovernors()
                 loadConfigurations()
                 initSystemInfoStatic()
-                detectRootEnvironment()
             }
         }
-    }
-
-    fun detectRootEnvironment() {
-        viewModelScope.launch(Dispatchers.IO) {
-            detectRootEnvironmentSync()
-        }
-    }
-
-    private suspend fun detectRootEnvironmentSync() {
-        val env =
-            dev.auriya.app.data.RootManagerDetector
-                .detect(getApplication<Application>())
-        _rootEnvironment.value = env
     }
 
     fun refresh(
@@ -239,7 +217,6 @@ class UiViewModel(
                 loadAvailableGovernors()
                 loadConfigurationsSync()
                 initSystemInfoStaticSync()
-                detectRootEnvironmentSync()
                 runCatching { pollOnce() }
             }
             val targetPm = pm ?: getApplication<Application>().packageManager
@@ -274,7 +251,6 @@ class UiViewModel(
         checkRoot()
         loadConfigurations()
         initSystemInfoStatic()
-        detectRootEnvironment()
         startMonitoring()
     }
 
