@@ -94,6 +94,7 @@ data class Core(
 data class Cpu(
     val load_pct: Float,
     val cores: List<Core> = emptyList(),
+    val available_governors: List<String> = emptyList(),
 )
 
 data class Gpu(
@@ -298,9 +299,20 @@ object StatsParser {
                             )
                         }
                     }
+                    val govArray = cpuObj.optJSONArray("available_governors")
+                    val govList = mutableListOf<String>()
+                    if (govArray != null) {
+                        for (i in 0 until govArray.length()) {
+                            val gov = govArray.optString(i)
+                            if (gov.isNotBlank()) {
+                                govList.add(gov)
+                            }
+                        }
+                    }
                     Cpu(
                         load_pct = cpuObj.optDouble("load_pct", 0.0).toFloat(),
                         cores = coresList,
+                        available_governors = govList,
                     )
                 } else {
                     null

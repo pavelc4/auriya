@@ -35,6 +35,8 @@ pub struct CoreDto {
 pub struct CpuCard {
     pub load_pct: f32,
     pub cores: Vec<CoreDto>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub available_governors: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -231,6 +233,7 @@ impl StatsSnapshot {
                         online: core.online,
                     })
                     .collect(),
+                available_governors: crate::platform::cpu::governor::available_governors().to_vec(),
             }),
             gpu: gpu.map(|g| GpuCard {
                 mhz: g.cur_freq_mhz,

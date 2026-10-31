@@ -56,10 +56,38 @@ impl CpuPaths {
 }
 
 static CPU_PATHS: OnceLock<CpuPaths> = OnceLock::new();
+static AVAILABLE_GOVERNORS: OnceLock<Vec<String>> = OnceLock::new();
 
 #[inline]
 pub fn cpu_paths() -> &'static CpuPaths {
     CPU_PATHS.get_or_init(CpuPaths::scan)
+}
+
+#[inline]
+pub fn available_governors() -> &'static [String] {
+    AVAILABLE_GOVERNORS.get_or_init(|| {
+        let candidates = [
+            "/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors",
+            "/sys/devices/system/cpu/cpufreq/policy0/scaling_available_governors",
+        ];
+        for path in candidates {
+            if let Ok(content) = std::fs::read_to_string(path) {
+                let list: Vec<String> = content
+                    .split_whitespace()
+                    .filter(|s| !s.is_empty())
+                    .map(|s| s.to_string())
+                    .collect();
+                if !list.is_empty() {
+                    return list;
+                }
+            }
+        }
+        vec![
+            "performance".to_string(),
+            "schedutil".to_string(),
+            "powersave".to_string(),
+        ]
+    })
 }
 
 pub fn set_governor_cached(governor: &str) {

@@ -279,20 +279,22 @@ class UiViewModel(
     }
 
     private fun loadAvailableGovernors() {
-        // Sysfs is world-readable for governor list, but reading via
-        // RootShell keeps a single code path for /sys access.
-        val raw =
-            RootShell.run(
-                "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors " +
-                    "/sys/devices/system/cpu/cpufreq/policy0/scaling_available_governors " +
-                    "/sys/devices/system/cpu/cpu*/cpufreq/scaling_available_governors 2>/dev/null",
-            )
-        val parsed = raw.split(Regex("\\s+")).filter { it.isNotBlank() }.distinct()
-        _availableGovernors.value =
-            parsed.ifEmpty {
-                // Fallback so the dropdown is never empty on weirder kernels.
-                listOf("performance", "schedutil", "powersave")
+        val stats = dev.auriya.app.data.stats.StatsParser.fetchStats()
+        if (stats?.cpu?.available_governors?.isNotEmpty() == true) {
+            _availableGovernors.value = stats.cpu.available_governors
+            return
+        }
+
+        val candidate = java.io.File("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors")
+        if (candidate.exists() && candidate.canRead()) {
+            val list = candidate.readText().split(Regex("\\s+")).filter { it.isNotBlank() }.distinct()
+            if (list.isNotEmpty()) {
+                _availableGovernors.value = list
+                return
             }
+        }
+
+        _availableGovernors.value = listOf("performance", "schedutil", "powersave")
     }
 
     private fun loadConfigurationsSync() {
@@ -408,6 +410,9 @@ class UiViewModel(
         val sysBattery = if (pct in 0..100) "$pct%" else "Unknown"
 
         if (stats != null) {
+            if (stats.cpu?.available_governors?.isNotEmpty() == true) {
+                _availableGovernors.value = stats.cpu.available_governors
+            }
             val profileStr = stats.session.profile.replaceFirstChar { it.uppercase() }
             val battery = stats.battery.pct?.let { "$it%" } ?: sysBattery
             val temp = stats.thermal.cpu_c?.let { "${it.toInt()}°C" }
