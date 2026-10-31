@@ -14,4 +14,7 @@ object ConfigPaths {
 
     /** Daemon writes the currently-applied profile mode here. */
     const val CURRENT_PROFILE_FILE: String = "$CONFIG_DIR/current_profile"
+
+    const val AURIYACTL_BIN: String = "/data/adb/modules/auriya/system/bin/auriyactl"
+    const val SOCKET_PATH: String = "/dev/socket/auriya.sock"
 }

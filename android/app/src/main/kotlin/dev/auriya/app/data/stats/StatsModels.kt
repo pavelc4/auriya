@@ -3,6 +3,7 @@ package dev.auriya.app.data.stats
 import android.net.LocalSocket
 import android.net.LocalSocketAddress
 import dev.auriya.app.data.RootShell
+import dev.auriya.shared.config.ConfigPaths
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -14,6 +15,16 @@ import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.BufferedWriter
 
+data class ApiResponse<T>(
+    val id: String,
+    val success: Boolean,
+    val code: Int,
+    val message: String,
+    val data: T? = null,
+    val timestamp_ms: Long = 0L,
+    val timestamp_iso: String = "",
+)
+
 data class Stats(
     val fps: Fps? = null,
     val thermal: Thermal = Thermal(),
@@ -21,6 +32,33 @@ data class Stats(
     val cpu: Cpu? = null,
     val gpu: Gpu? = null,
     val session: Session = Session(profile = "balance", active = false),
+    val daemon: DaemonInfo? = null,
+    val binder: BinderInfo? = null,
+    val system: SystemInfo? = null,
+)
+
+data class DaemonInfo(
+    val version: String = "",
+    val pid: Long = 0L,
+    val rss_mb: Float = 0f,
+    val uptime_secs: Long = 0L,
+    val active_profile: String = "balance",
+)
+
+data class BinderInfo(
+    val operational: Boolean = false,
+    val screen_interactive: Boolean = true,
+    val is_floating: Boolean = false,
+    val wifi_low_latency: Boolean = false,
+    val statusbar_locked: Boolean = false,
+    val dnd_mode: Int = 0,
+    val refresh_rate_hz: Float? = null,
+)
+
+data class SystemInfo(
+    val uptime_secs: Long = 0L,
+    val ram_total_mb: Long = 0L,
+    val ram_avail_mb: Long = 0L,
 )
 
 data class Fps(
@@ -74,7 +112,7 @@ object StatsParser {
     fun fetchStats(): Stats? {
         runCatching {
             val sock = LocalSocket()
-            sock.connect(LocalSocketAddress("/dev/socket/auriya.sock", LocalSocketAddress.Namespace.FILESYSTEM))
+            sock.connect(LocalSocketAddress(ConfigPaths.SOCKET_PATH, LocalSocketAddress.Namespace.FILESYSTEM))
             sock.soTimeout = 1000
             val writer = sock.outputStream.bufferedWriter()
             val reader = sock.inputStream.bufferedReader()
@@ -85,7 +123,7 @@ object StatsParser {
             if (line != null) return parseStatsJson(line)
         }
 
-        val raw = RootShell.run("printf 'GET_STATS\\nQUIT\\n' | timeout 2 nc -U /dev/socket/auriya.sock 2>/dev/null")
+        val raw = RootShell.run("${ConfigPaths.AURIYACTL_BIN} stats --json 2>/dev/null")
         val jsonLine = raw.lineSequence().firstOrNull { it.trimStart().startsWith("{") } ?: return null
         return parseStatsJson(jsonLine)
     }
@@ -105,7 +143,7 @@ object StatsParser {
                 val directSocket =
                     runCatching {
                         val sock = LocalSocket()
-                        sock.connect(LocalSocketAddress("/dev/socket/auriya.sock", LocalSocketAddress.Namespace.FILESYSTEM))
+                        sock.connect(LocalSocketAddress(ConfigPaths.SOCKET_PATH, LocalSocketAddress.Namespace.FILESYSTEM))
                         sock
                     }.getOrNull()
 
@@ -113,18 +151,16 @@ object StatsParser {
                     localSocket = directSocket
                     reader = directSocket.inputStream.bufferedReader()
                     writer = directSocket.outputStream.bufferedWriter()
+                    writer.write("STREAM_STATS $intervalMs\n")
+                    writer.flush()
                 } else {
                     val proc =
-                        ProcessBuilder("su", "-c", "nc -U /dev/socket/auriya.sock")
+                        ProcessBuilder("su", "-c", "${ConfigPaths.AURIYACTL_BIN} stats --stream --json --interval-ms $intervalMs")
                             .redirectErrorStream(true)
                             .start()
                     process = proc
                     reader = proc.inputStream.bufferedReader()
-                    writer = proc.outputStream.bufferedWriter()
                 }
-
-                writer.write("STREAM_STATS $intervalMs\n")
-                writer.flush()
 
                 while (currentCoroutineContext().isActive) {
                     val line = reader.readLine() ?: break
@@ -165,7 +201,8 @@ object StatsParser {
 
     fun parseStatsJson(jsonStr: String): Stats? =
         runCatching {
-            val root = JSONObject(jsonStr)
+            val rootObj = JSONObject(jsonStr)
+            val root = rootObj.optJSONObject("data") ?: rootObj
 
             val fpsObj = root.optJSONObject("fps")
             val fps =
@@ -293,6 +330,53 @@ object StatsParser {
                     Session()
                 }
 
+            val daemonObj = root.optJSONObject("daemon")
+            val daemon =
+                if (daemonObj != null) {
+                    DaemonInfo(
+                        version = daemonObj.optString("version", ""),
+                        pid = daemonObj.optLong("pid", 0L),
+                        rss_mb = daemonObj.optDouble("rss_mb", 0.0).toFloat(),
+                        uptime_secs = daemonObj.optLong("uptime_secs", 0L),
+                        active_profile = daemonObj.optString("active_profile", "balance"),
+                    )
+                } else {
+                    null
+                }
+
+            val binderObj = root.optJSONObject("binder")
+            val binder =
+                if (binderObj != null) {
+                    BinderInfo(
+                        operational = binderObj.optBoolean("operational", false),
+                        screen_interactive = binderObj.optBoolean("screen_interactive", true),
+                        is_floating = binderObj.optBoolean("is_floating", false),
+                        wifi_low_latency = binderObj.optBoolean("wifi_low_latency", false),
+                        statusbar_locked = binderObj.optBoolean("statusbar_locked", false),
+                        dnd_mode = binderObj.optInt("dnd_mode", 0),
+                        refresh_rate_hz =
+                            if (binderObj.has("refresh_rate_hz") && !binderObj.isNull("refresh_rate_hz")) {
+                                binderObj.getDouble("refresh_rate_hz").toFloat()
+                            } else {
+                                null
+                            },
+                    )
+                } else {
+                    null
+                }
+
+            val sysObj = root.optJSONObject("system")
+            val system =
+                if (sysObj != null) {
+                    SystemInfo(
+                        uptime_secs = sysObj.optLong("uptime_secs", 0L),
+                        ram_total_mb = sysObj.optLong("ram_total_mb", 0L),
+                        ram_avail_mb = sysObj.optLong("ram_avail_mb", 0L),
+                    )
+                } else {
+                    null
+                }
+
             Stats(
                 fps = fps,
                 thermal = thermal,
@@ -300,6 +384,9 @@ object StatsParser {
                 cpu = cpu,
                 gpu = gpu,
                 session = session,
+                daemon = daemon,
+                binder = binder,
+                system = system,
             )
         }.getOrNull()
 }

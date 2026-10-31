@@ -78,8 +78,8 @@ fun DeveloperOptionsContent(
                 onCheckedChange = {
                     debugMode = it
                     coroutineScope.launch(Dispatchers.IO) {
-                        val cmd = if (debugMode) "SETLOG DEBUG" else "SETLOG INFO"
-                        RootShell.exec("echo \"$cmd\" | nc -U /dev/socket/auriya.sock")
+                        val level = if (debugMode) "debug" else "info"
+                        RootShell.exec("${dev.auriya.shared.config.ConfigPaths.AURIYACTL_BIN} set-log $level")
                     }
                     Toast
                         .makeText(

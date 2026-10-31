@@ -398,79 +398,71 @@ class UiViewModel(
     }
 
     private fun pollOnce() {
-        val currentProfileFile = RootShell.readText(ConfigPaths.CURRENT_PROFILE_FILE)?.trim()
-        val rawProfile =
-            if (!currentProfileFile.isNullOrEmpty()) {
-                when (currentProfileFile) {
-                    "1" -> "Performance"
-                    "2" -> "Balance"
-                    "3" -> "Powersave"
-                    "4" -> "Fast"
-                    else -> currentProfileFile.replaceFirstChar { it.uppercase() }
-                }
-            } else {
-                val fromSettings =
-                    _settings.value.daemon.defaultMode
-                        .ifEmpty { _currentProfile.value }
-                when (fromSettings.lowercase()) {
-                    "performance" -> "Performance"
-                    "balance" -> "Balance"
-                    "powersave" -> "Powersave"
-                    "fast" -> "Fast"
-                    "" -> "Unknown"
-                    else -> fromSettings.replaceFirstChar { it.uppercase() }
-                }
-            }
-        val profileStr = rawProfile
+        val stats = dev.auriya.app.data.stats.StatsParser.fetchStats()
 
-        // Native battery percentage query without shell
+        // Battery query via Android system service as fallback
         val bm =
             getApplication<Application>()
                 .getSystemService(android.content.Context.BATTERY_SERVICE) as? android.os.BatteryManager
         val pct = bm?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
-        val battery = if (pct in 0..100) "$pct%" else "Unknown"
+        val sysBattery = if (pct in 0..100) "$pct%" else "Unknown"
 
-        val cmd =
-            """
-            PID=${'$'}(pidof auriya || echo "null"); echo ${'$'}PID; echo "|||";
-            if [ "${'$'}PID" != "null" ]; then grep -m1 VmRSS /proc/${'$'}PID/status 2>/dev/null | awk '{print ${'$'}2}'; else echo "-"; fi; echo "|||";
-            cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | head -n 5
-            """.trimIndent()
+        if (stats != null) {
+            val profileStr = stats.session.profile.replaceFirstChar { it.uppercase() }
+            val battery = stats.battery.pct?.let { "$it%" } ?: sysBattery
+            val temp = stats.thermal.cpu_c?.let { "${it.toInt()}°C" }
+                ?: stats.thermal.battery_c?.let { "${it.toInt()}°C" }
+                ?: "Unknown"
+            val pid = stats.daemon?.pid?.takeIf { it > 0L }?.toString()
+            val ram = stats.daemon?.rss_mb?.let {
+                String.format(java.util.Locale.US, "%.1f MB", it)
+            } ?: "-"
 
-        val out = RootShell.run(cmd)
-        if (out.isNotEmpty()) {
-            val parts = out.split("|||").map { it.trim() }
-            val pid = parts.getOrNull(0)?.ifEmpty { "null" } ?: "null"
-            val rss = parts.getOrNull(1)
-            val thermalRaw = parts.getOrNull(2)
-
-            var temp = "Unknown"
-            thermalRaw?.split("\n")?.forEach { t ->
-                val v = t.trim().toIntOrNull()
-                if (v != null && v > 1000) {
-                    temp = "${v / 1000}°C"
-                    return@forEach
-                }
-            }
-
-            val daemonActiveBool = pid != "null" && pid.isNotEmpty()
-            _daemonActive.value = daemonActiveBool
-
-            val ram =
-                if (daemonActiveBool && rss != null && rss != "-" && rss.toIntOrNull() != null) {
-                    "${String.format(java.util.Locale.US, "%.1f", rss.toDouble() / 1024.0)} MB"
-                } else {
-                    "-"
-                }
-
+            _daemonActive.value = true
             _systemInfo.value =
                 _systemInfo.value.copy(
                     profile = profileStr,
                     battery = battery,
                     temp = temp,
-                    pid = if (pid == "null") null else pid,
-                    daemonStatus = if (daemonActiveBool) "working" else "stopped",
+                    pid = pid,
+                    daemonStatus = "working",
                     ram = ram,
+                )
+            _currentProfile.value = stats.session.profile.lowercase()
+        } else {
+            val currentProfileFile = RootShell.readText(ConfigPaths.CURRENT_PROFILE_FILE)?.trim()
+            val rawProfile =
+                if (!currentProfileFile.isNullOrEmpty()) {
+                    when (currentProfileFile) {
+                        "1" -> "Performance"
+                        "2" -> "Balance"
+                        "3" -> "Powersave"
+                        "4" -> "Fast"
+                        else -> currentProfileFile.replaceFirstChar { it.uppercase() }
+                    }
+                } else {
+                    val fromSettings =
+                        _settings.value.daemon.defaultMode
+                            .ifEmpty { _currentProfile.value }
+                    when (fromSettings.lowercase()) {
+                        "performance" -> "Performance"
+                        "balance" -> "Balance"
+                        "powersave" -> "Powersave"
+                        "fast" -> "Fast"
+                        "" -> "Unknown"
+                        else -> fromSettings.replaceFirstChar { it.uppercase() }
+                    }
+                }
+
+            _daemonActive.value = false
+            _systemInfo.value =
+                _systemInfo.value.copy(
+                    profile = rawProfile,
+                    battery = sysBattery,
+                    temp = "Unknown",
+                    pid = null,
+                    daemonStatus = "stopped",
+                    ram = "-",
                 )
             if (rawProfile.isNotEmpty()) _currentProfile.value = rawProfile.lowercase()
         }
@@ -542,9 +534,7 @@ class UiViewModel(
             viewModelScope.launch(Dispatchers.IO) {
                 val content = TomlParser.serializeSettings(updated)
                 RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)
-                RootShell.exec(
-                    "printf 'SET_PROFILE ${modeString.uppercase()}\\nRELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null",
-                )
+                RootShell.exec("${ConfigPaths.AURIYACTL_BIN} set-profile $modeString")
             }
     }
 
@@ -556,8 +546,7 @@ class UiViewModel(
             viewModelScope.launch(Dispatchers.IO) {
                 val content = TomlParser.serializeSettings(newSettings)
                 RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)
-                val cmd = "printf 'SET_GOVERNOR $gov\\nRELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null || for p in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do [ -w \"\$p\" ] && echo $gov > \"\$p\" 2>/dev/null; done"
-                RootShell.exec(cmd)
+                RootShell.exec("${ConfigPaths.AURIYACTL_BIN} reload")
             }
     }
 
@@ -575,7 +564,7 @@ class UiViewModel(
             viewModelScope.launch(Dispatchers.IO) {
                 val content = TomlParser.serializeGameList(newList)
                 RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)
-                RootShell.exec("printf 'RELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null")
+                RootShell.exec("${ConfigPaths.AURIYACTL_BIN} reload")
             }
     }
 
@@ -592,7 +581,7 @@ class UiViewModel(
             viewModelScope.launch(Dispatchers.IO) {
                 val content = TomlParser.serializeGameList(newList)
                 RootShell.writeText(ConfigPaths.GAMELIST_FILE, content)
-                RootShell.exec("printf 'RELOAD\\nQUIT\\n' | nc -U /dev/socket/auriya.sock 2>/dev/null")
+                RootShell.exec("${ConfigPaths.AURIYACTL_BIN} reload")
             }
     }
 

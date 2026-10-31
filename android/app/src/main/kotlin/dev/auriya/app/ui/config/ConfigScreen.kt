@@ -571,7 +571,7 @@ fun ConfigScreen(viewModel: UiViewModel) {
                 val updated = settings.copy(daemon = settings.daemon.copy(logLevel = key))
                 persistChanges(updated)
                 dev.auriya.app.data.RootShell
-                    .exec("echo 'SETLOG ${key.uppercase()}' | nc -U /dev/socket/auriya.sock")
+                    .exec("${dev.auriya.shared.config.ConfigPaths.AURIYACTL_BIN} set-log ${key.lowercase()}")
                 Toast.makeText(context, "Log level set to ${key.uppercase()}", Toast.LENGTH_SHORT).show()
                 showLogLevelPopup = false
             },

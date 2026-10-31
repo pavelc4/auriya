@@ -41,8 +41,8 @@ class AuriyaTileService : TileService() {
             }
         val modeString = profileString.lowercase()
 
-        // 1. Notify daemon via UDS
-        RootShell.exec("echo 'SET_PROFILE $profileString' | nc -U /dev/socket/auriya.sock")
+        // 1. Notify daemon via CLI
+        RootShell.exec("${ConfigPaths.AURIYACTL_BIN} set-profile $modeString")
 
         // 2. Persist current profile code
         RootShell.writeText(ConfigPaths.CURRENT_PROFILE_FILE, next)

@@ -120,21 +120,8 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            val out = RootShell.run("printf 'STATUS\nQUIT\n' | timeout 2 nc -U /dev/socket/auriya.sock 2>/dev/null")
-            val gpuLine = out.lines().find { it.contains("GPU_FREQ=") }
-            val hasGpuIpc =
-                if (gpuLine != null) {
-                    val vendor = gpuLine.split(" ").find { it.startsWith("GPU_VENDOR=") }?.removePrefix("GPU_VENDOR=")
-                    val freq =
-                        gpuLine
-                            .split(" ")
-                            .find { it.startsWith("GPU_FREQ=") }
-                            ?.removePrefix("GPU_FREQ=")
-                            ?.toIntOrNull()
-                    (vendor != null && vendor != "None" && !vendor.contains("None")) || (freq != null && freq > 0)
-                } else {
-                    false
-                }
+            val stats = dev.auriya.app.data.stats.StatsParser.fetchStats()
+            val hasGpuIpc = stats?.gpu != null && ((stats.gpu.vendor != null && stats.gpu.vendor != "None") || (stats.gpu.mhz != null && stats.gpu.mhz > 0))
             val sysfsGpu =
                 java.io.File("/sys/class/kgsl/kgsl-3d0/gpuclk").exists() ||
                     java.io.File("/sys/class/kgsl/kgsl-3d0/clock_mhz").exists() ||
