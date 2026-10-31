@@ -18,16 +18,38 @@ impl Daemon {
             pkg_opt = self.status_cache.focused_package();
         }
 
-        let is_pid_valid = self.pid_tracker.as_ref().is_some_and(PidTracker::is_alive);
-
-        let focused_pid = if let Some(ref pkg) = pkg_opt {
-            self.status_cache.focused_pid().filter(|&p| {
-                crate::platform::common::procfs::is_pid_valid(p)
-                    && crate::platform::common::procfs::verify_pid_package(p, pkg)
-            })
+        let mut focused_pid = None;
+        if pkg_opt.is_none() {
+            #[cfg(target_os = "android")]
+            if let Some((pkg, pid)) = crate::platform::common::procfs::query_current_foreground() {
+                self.status_cache.store(crate::core::status::SystemStatus {
+                    focused_app: Some(pkg.clone()),
+                    focused_pid: pid,
+                    focused_uid: None,
+                    screen_awake: Some(true),
+                    battery_saver: None,
+                    zen_mode: None,
+                });
+                pkg_opt = Some(pkg);
+                focused_pid = pid;
+            }
         } else {
-            None
-        };
+            focused_pid = self.status_cache.focused_pid().filter(|&p| {
+                crate::platform::common::procfs::is_pid_valid(p)
+                    && crate::platform::common::procfs::verify_pid_package(
+                        p,
+                        pkg_opt.as_ref().unwrap(),
+                    )
+            });
+            if focused_pid.is_none() {
+                #[cfg(target_os = "android")]
+                if let Some(ref pkg) = pkg_opt {
+                    focused_pid = crate::platform::common::procfs::find_pid_by_package(pkg);
+                }
+            }
+        }
+
+        let is_pid_valid = self.pid_tracker.as_ref().is_some_and(PidTracker::is_alive);
 
         PipelineInput {
             power,

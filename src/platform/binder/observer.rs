@@ -19,6 +19,7 @@ pub enum ProcessEventType {
 pub struct ProcessEvent {
     pub pid: i32,
     pub uid: i32,
+    pub pkg: Option<String>,
     pub foreground: bool,
     pub event_type: ProcessEventType,
 }
@@ -39,6 +40,7 @@ impl ProcessObserver {
         let ev = ProcessEvent {
             pid,
             uid,
+            pkg: None,
             foreground,
             event_type: ProcessEventType::ForegroundActivitiesChanged,
         };
@@ -53,6 +55,7 @@ impl ProcessObserver {
         let ev = ProcessEvent {
             pid,
             uid,
+            pkg: None,
             foreground: false,
             event_type: ProcessEventType::ProcessDied,
         };
@@ -71,6 +74,37 @@ impl ProcessObserver {
                 .context("ActivityManager service not found")?;
 
             tracing::info!(target: "auriya::binder", "ActivityManager service located for IProcessObserver registration");
+
+            let event_tx = self.event_tx.clone();
+            tokio::spawn(async move {
+                let mut last_pkg: Option<String> = None;
+                let mut last_pid: Option<i32> = None;
+
+                loop {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+                    if let Some((pkg, pid_opt)) =
+                        crate::platform::common::procfs::query_current_foreground()
+                    {
+                        let changed = last_pkg.as_deref() != Some(&pkg)
+                            || (pid_opt.is_some() && pid_opt != last_pid);
+                        if changed {
+                            last_pkg = Some(pkg.clone());
+                            last_pid = pid_opt;
+                            let pid = pid_opt.unwrap_or(0);
+                            let ev = ProcessEvent {
+                                pid,
+                                uid: 0,
+                                pkg: Some(pkg),
+                                foreground: true,
+                                event_type: ProcessEventType::ForegroundActivitiesChanged,
+                            };
+                            let _ = event_tx.try_send(ev);
+                        }
+                    }
+                }
+            });
+
             Ok(())
         }
 

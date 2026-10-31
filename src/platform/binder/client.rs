@@ -69,6 +69,77 @@ impl BinderClient {
             Ok(true)
         }
     }
+
+    /// Query the currently focused foreground package and its PID directly via Native Binder IPC.
+    /// Uses Android's `activity_task` service (IActivityTaskManager code 30 getFocusedRootTaskInfo).
+    pub fn get_foreground_app(&self) -> Result<Option<(String, Option<i32>)>> {
+        if !self.connected {
+            return Ok(None);
+        }
+
+        #[cfg(target_os = "android")]
+        {
+            if !super::ensure_initialized() {
+                return Ok(None);
+            }
+
+            let atm = match rsbinder::hub::check_service("activity_task") {
+                Some(s) => s,
+                None => return Ok(None),
+            };
+            let proxy = match atm.as_proxy() {
+                Some(p) => p,
+                None => return Ok(None),
+            };
+
+            let data = proxy.prepare_transact(true)?;
+            // Transaction 30: getFocusedRootTaskInfo on IActivityTaskManager
+            let reply_opt = proxy.submit_transact(30, &data, 0)?;
+            let mut reply = match reply_opt {
+                Some(r) => r,
+                None => return Ok(None),
+            };
+
+            if reply.data_size() < 0x28 {
+                return Ok(None);
+            }
+
+            let ex = reply.read_i32()?;
+            if ex != 0 {
+                return Ok(None);
+            }
+            let is_null = reply.read_i32()?;
+            if is_null == 0 {
+                return Ok(None);
+            }
+
+            // Seek to 0x24: ComponentName presence flag and UTF-16 string
+            reply.set_data_position(0x24);
+            let has_comp = reply.read_i32()?;
+            if has_comp == 0 {
+                return Ok(None);
+            }
+
+            let comp_str: Option<String> = reply.read()?;
+            let comp = match comp_str {
+                Some(c) => c,
+                None => return Ok(None),
+            };
+
+            let pkg = comp.split('/').next().unwrap_or(&comp).trim().to_string();
+            if pkg.is_empty() {
+                return Ok(None);
+            }
+
+            let pid = crate::platform::common::procfs::find_pid_by_package(&pkg);
+            Ok(Some((pkg, pid)))
+        }
+
+        #[cfg(not(target_os = "android"))]
+        {
+            Ok(None)
+        }
+    }
 }
 
 impl Default for BinderClient {

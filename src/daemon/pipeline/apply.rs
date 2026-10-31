@@ -15,8 +15,8 @@ impl Daemon {
         match decision {
             PipelineDecision::Powersave => self.apply_powersave_state(),
             PipelineDecision::NoForeground => self.handle_no_foreground().await,
-            PipelineDecision::NonWhitelisted { pkg, reason } => {
-                self.apply_balance_and_clear(&pkg, reason).await
+            PipelineDecision::NonWhitelisted { pkg, pid, reason } => {
+                self.apply_balance_and_clear(&pkg, pid, reason).await
             }
             PipelineDecision::SameGameFas { pkg } => self.run_fas_pipeline(&pkg, gamelist).await,
             PipelineDecision::SameGameNoop => {
@@ -112,7 +112,12 @@ impl Daemon {
         Ok(())
     }
 
-    async fn apply_balance_and_clear(&mut self, pkg: &str, reason: &str) -> Result<()> {
+    async fn apply_balance_and_clear(
+        &mut self,
+        pkg: &str,
+        pid: Option<i32>,
+        reason: &str,
+    ) -> Result<()> {
         if self.last.pkg.as_deref() != Some(pkg) {
             self.vendor_lock.unlock_all();
             self.restore_thermal_default();
@@ -172,7 +177,8 @@ impl Daemon {
         }
 
         self.last.pkg = Some(pkg.to_string());
-        self.set_pid(None);
+        self.last.pid = pid;
+        self.pid_tracker = None;
         Ok(())
     }
 

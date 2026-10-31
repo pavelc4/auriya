@@ -54,3 +54,82 @@ pub fn get_process_package(pid: i32) -> Option<String> {
         Some(pkg.to_string())
     }
 }
+
+/// Parse package name from dumpsys window displays output.
+pub fn parse_focused_package_from_dumpsys(dumpsys_output: &str) -> Option<String> {
+    for line in dumpsys_output.lines() {
+        if let Some(idx) = line.find("mCurrentFocus=") {
+            let focus_part = &line[idx + "mCurrentFocus=".len()..];
+            if focus_part.starts_with("null") {
+                return None;
+            }
+            if let Some(slash_idx) = focus_part.find('/') {
+                let before_slash = &focus_part[..slash_idx];
+                let pkg = before_slash.rsplit([' ', '{']).next()?.trim();
+                if !pkg.is_empty() {
+                    return Some(pkg.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Find PID in Android's top-app cpuset cgroup matching `pkg`.
+pub fn find_top_app_pid_pub(pkg: &str) -> Option<i32> {
+    for cpuset_path in [
+        "/dev/cpuset/top-app/cgroup.procs",
+        "/sys/fs/cgroup/top-app/cgroup.procs",
+    ] {
+        if let Ok(content) = fs::read_to_string(cpuset_path) {
+            for line in content.lines() {
+                if let Ok(pid) = line.trim().parse::<i32>()
+                    && verify_pid_package(pid, pkg)
+                {
+                    return Some(pid);
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Find PID for package without spawning subshells or executing pidof.
+/// First inspects top-app cpuset, then scans in-memory `/proc` directly.
+pub fn find_pid_by_package(pkg: &str) -> Option<i32> {
+    if let Some(pid) = find_top_app_pid_pub(pkg) {
+        return Some(pid);
+    }
+
+    let Ok(entries) = fs::read_dir("/proc") else {
+        return None;
+    };
+    for entry in entries.flatten() {
+        let Ok(file_name) = entry.file_name().into_string() else {
+            continue;
+        };
+        if let Ok(pid) = file_name.parse::<i32>()
+            && verify_pid_package(pid, pkg)
+        {
+            return Some(pid);
+        }
+    }
+    None
+}
+
+/// Query the currently focused foreground package and its PID directly on Android.
+/// Prioritizes zero-overhead Native Binder IPC without dumpsys.
+pub fn query_current_foreground() -> Option<(String, Option<i32>)> {
+    #[cfg(target_os = "android")]
+    {
+        crate::platform::binder::BinderClient::new()
+            .get_foreground_app()
+            .ok()
+            .flatten()
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        None
+    }
+}

@@ -99,6 +99,7 @@ fn test_decide_non_whitelisted() {
         daemon.decide(&input, &gamelist),
         PipelineDecision::NonWhitelisted {
             pkg: "com.android.chrome".to_string(),
+            pid: Some(999),
             reason: "not whitelisted",
         }
     );

@@ -29,13 +29,30 @@ fn handle_probe() -> Result<()> {
         Err(e) => println!("  PowerManager query:         Error ({:?})", e),
     }
 
+    match client.get_foreground_app() {
+        Ok(Some((pkg, pid))) => {
+            let pid_str = pid
+                .map(|p| p.to_string())
+                .unwrap_or_else(|| "None".to_string());
+            println!("  Foreground App:             {} (PID: {})", pkg, pid_str);
+        }
+        Ok(None) => println!("  Foreground App:             None"),
+        Err(e) => println!("  Foreground App query:       Error ({:?})", e),
+    }
+
     #[cfg(target_os = "android")]
     {
         if rsbinder::ProcessState::is_initialized() {
-            for service in ["power", "notification", "activity", "display"] {
+            for service in [
+                "power",
+                "notification",
+                "activity",
+                "activity_task",
+                "display",
+            ] {
                 let avail = rsbinder::hub::check_service(service).is_some();
                 println!(
-                    "  Service '{:<12}':     {}",
+                    "  Service '{:<14}':   {}",
                     service,
                     if avail { "Available" } else { "Not found" }
                 );
@@ -97,11 +114,25 @@ fn handle_test() -> Result<()> {
     );
 
     match client.is_screen_interactive() {
-        Ok(interactive) => println!("[2/5] PowerManager.isInteractive ({}): PASS", interactive),
-        Err(e) => println!("[2/5] PowerManager query: FAIL ({:?})", e),
+        Ok(interactive) => println!("[2/6] PowerManager.isInteractive ({}): PASS", interactive),
+        Err(e) => println!("[2/6] PowerManager query: FAIL ({:?})", e),
     }
 
-    println!("[3/5] Testing DnD actuator (Priority)...");
+    match client.get_foreground_app() {
+        Ok(Some((pkg, pid))) => {
+            let pid_str = pid
+                .map(|p| p.to_string())
+                .unwrap_or_else(|| "None".to_string());
+            println!(
+                "[3/6] Native Binder Foreground ({} | PID: {}): PASS",
+                pkg, pid_str
+            );
+        }
+        Ok(None) => println!("[3/6] Native Binder Foreground: PASS (no focused task)"),
+        Err(e) => println!("[3/6] Native Binder Foreground: FAIL ({:?})", e),
+    }
+
+    println!("[4/6] Testing DnD actuator (Priority)...");
     apply_dnd(crate::platform::binder::DndMode::Priority)?;
     #[cfg(target_os = "android")]
     {
@@ -117,7 +148,7 @@ fn handle_test() -> Result<()> {
         println!("      zen_mode restored to {} (expected: 0)", zen);
     }
 
-    println!("[4/5] Testing Display Refresh Rate actuator (120Hz)...");
+    println!("[5/6] Testing Display Refresh Rate actuator (120Hz)...");
     apply_refresh_rate(120)?;
     #[cfg(target_os = "android")]
     {
@@ -133,7 +164,7 @@ fn handle_test() -> Result<()> {
         println!("      peak_refresh_rate restored to {}", peak);
     }
 
-    println!("\n[5/5] Binder self-test completed successfully.");
+    println!("\n[6/6] Binder self-test completed successfully.");
     Ok(())
 }
 

@@ -16,6 +16,7 @@ fn test_binder_client_lifecycle() {
     let client = BinderClient::new();
     let _ = client.is_operational();
     assert!(client.is_screen_interactive().is_ok());
+    assert!(client.get_foreground_app().is_ok());
 }
 
 #[test]

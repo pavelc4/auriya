@@ -91,17 +91,35 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
             Some(p_ev) = proc_rx.recv() => {
                 match p_ev.event_type {
                     crate::platform::binder::ProcessEventType::ForegroundActivitiesChanged => {
-                        if p_ev.foreground
-                            && let Some(pkg) = crate::platform::common::procfs::get_process_package(p_ev.pid)
-                        {
-                            daemon.status_cache.store(crate::core::status::SystemStatus {
-                                focused_app: Some(pkg),
-                                focused_pid: Some(p_ev.pid),
-                                focused_uid: Some(p_ev.uid),
-                                screen_awake: Some(true),
-                                battery_saver: None,
-                                zen_mode: None,
+                        if p_ev.foreground {
+                            let pkg = p_ev.pkg.or_else(|| {
+                                if p_ev.pid > 0 {
+                                    crate::platform::common::procfs::get_process_package(p_ev.pid)
+                                } else {
+                                    None
+                                }
+                            })
+                            .or_else(|| {
+                                crate::platform::common::procfs::query_current_foreground()
+                                    .map(|(p, _)| p)
                             });
+
+                            if let Some(pkg) = pkg {
+                                let pid = if p_ev.pid > 0 {
+                                    Some(p_ev.pid)
+                                } else {
+                                    crate::platform::common::procfs::find_pid_by_package(&pkg)
+                                };
+
+                                daemon.status_cache.store(crate::core::status::SystemStatus {
+                                    focused_app: Some(pkg),
+                                    focused_pid: pid,
+                                    focused_uid: Some(p_ev.uid),
+                                    screen_awake: Some(true),
+                                    battery_saver: None,
+                                    zen_mode: None,
+                                });
+                            }
                         }
                         daemon.tick().await;
                     }

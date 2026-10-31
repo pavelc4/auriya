@@ -28,10 +28,19 @@ pub struct PipelineInput {
 pub enum PipelineDecision {
     Powersave,
     NoForeground,
-    NonWhitelisted { pkg: String, reason: &'static str },
-    SameGameFas { pkg: String },
+    NonWhitelisted {
+        pkg: String,
+        pid: Option<i32>,
+        reason: &'static str,
+    },
+    SameGameFas {
+        pkg: String,
+    },
     SameGameNoop,
-    EnterGame { pkg: String, pid: i32 },
+    EnterGame {
+        pkg: String,
+        pid: i32,
+    },
 }
 
 impl Daemon {

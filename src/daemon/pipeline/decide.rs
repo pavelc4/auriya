@@ -32,6 +32,7 @@ impl Daemon {
         if !self.cached_whitelist.contains(pkg) {
             return PipelineDecision::NonWhitelisted {
                 pkg: pkg.clone(),
+                pid: input.focused_pid,
                 reason: "not whitelisted",
             };
         }
@@ -43,6 +44,7 @@ impl Daemon {
             },
             None => PipelineDecision::NonWhitelisted {
                 pkg: pkg.clone(),
+                pid: None,
                 reason: "PID not found",
             },
         }
