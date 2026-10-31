@@ -105,6 +105,7 @@ fn handle_probe() -> Result<()> {
                 "activity_task",
                 "display",
                 "wifi",
+                "thermalservice",
             ] {
                 let avail = rsbinder::hub::check_service(service).is_some();
                 println!(

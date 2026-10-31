@@ -259,11 +259,7 @@ impl rsbinder::Remotable for WifiLockToken {
         Ok(())
     }
 
-    fn on_dump(
-        &self,
-        _writer: &mut dyn std::io::Write,
-        _args: &[String],
-    ) -> rsbinder::Result<()> {
+    fn on_dump(&self, _writer: &mut dyn std::io::Write, _args: &[String]) -> rsbinder::Result<()> {
         Ok(())
     }
 }

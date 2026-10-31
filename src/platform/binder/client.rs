@@ -14,8 +14,13 @@ pub struct BinderClient {
 impl BinderClient {
     /// Create a new Binder client instance and test connection to servicemanager.
     pub fn new() -> Self {
-        let connected = Self::probe_connection();
-        BINDER_HEALTHY.store(connected, Ordering::Release);
+        let connected = if Self::is_healthy() {
+            true
+        } else {
+            let conn = Self::probe_connection();
+            BINDER_HEALTHY.store(conn, Ordering::Release);
+            conn
+        };
         Self { connected }
     }
 
@@ -38,11 +43,15 @@ impl BinderClient {
 
         match rsbinder::hub::default() {
             Ok(_) => {
-                tracing::info!(target: "auriya::binder", "Connected to Android servicemanager");
+                if !BINDER_HEALTHY.swap(true, Ordering::AcqRel) {
+                    tracing::info!(target: "auriya::binder", "Connected to Android servicemanager");
+                }
                 true
             }
             Err(e) => {
-                tracing::debug!(target: "auriya::binder", "servicemanager unavailable on this platform: {:?}", e);
+                if BINDER_HEALTHY.swap(false, Ordering::AcqRel) {
+                    tracing::warn!(target: "auriya::binder", "servicemanager connection lost: {:?}", e);
+                }
                 false
             }
         }
