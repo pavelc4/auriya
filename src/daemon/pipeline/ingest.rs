@@ -50,23 +50,8 @@ impl Daemon {
 
             #[cfg(target_os = "android")]
             {
-                match self.attached_ebpf_pids.as_slice() {
-                    [first, ..]
-                        if !pkg.is_empty()
-                            && self.attached_ebpf_pids.iter().all(|&p| {
-                                crate::platform::common::procfs::is_pid_valid(p)
-                                    && crate::platform::common::procfs::verify_pid_package(p, pkg)
-                            }) =>
-                    {
-                        package_pids.extend_from_slice(&self.attached_ebpf_pids);
-                        focused_pid = Some(*first);
-                    }
-                    _ => {
-                        package_pids =
-                            crate::platform::common::procfs::find_all_pids_by_package(pkg);
-                        focused_pid = package_pids.first().copied();
-                    }
-                }
+                package_pids = crate::platform::common::procfs::find_all_pids_by_package(pkg);
+                focused_pid = package_pids.first().copied();
             }
 
             // Fall back to cached PID if still valid and alive.

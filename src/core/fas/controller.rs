@@ -158,21 +158,34 @@ impl FasController {
     }
 
     /// Drain per-frame timestamps from the frame stream into the buffer
-    /// and advance controller state. Zero-heap allocation hot-path.
-    pub fn drain_frames(&mut self) {
+    /// and advance controller state. Falls back to hardware-sampled sysfs FPS
+    /// when eBPF uprobes yield zero frames (e.g. Vulkan or non-hooked direct surface rendering).
+    pub fn drain_frames_with_fallback(&mut self, fallback_fps: Option<f64>) {
         let count = self.source.drain_into_buffer(&mut self.buffer);
-        if count == 0 && self.buffer.time_since_last_frame() >= FRAME_TIMEOUT {
-            self.buffer.additional_frametime();
+        match (count, fallback_fps) {
+            (0, Some(fps)) if (0.1..=500.0).contains(&fps) => {
+                let dt = Duration::from_secs_f64(1.0 / fps);
+                self.buffer.push(dt);
+            }
+            (0, _) if self.buffer.time_since_last_frame() >= FRAME_TIMEOUT => {
+                self.buffer.additional_frametime();
+            }
+            _ => {}
         }
 
-        if self.buffer.target_fps.is_some() && self.buffer.state == BufferState::Usable {
-            self.advance_state();
-        } else {
-            self.transition_not_working();
+        match (self.buffer.target_fps.is_some(), self.buffer.state) {
+            (true, BufferState::Usable) => self.advance_state(),
+            _ => self.transition_not_working(),
         }
     }
 
-    pub async fn tick(&mut self) -> Result<ScalingAction> {
+    /// Drain per-frame timestamps from the frame stream into the buffer
+    /// and advance controller state. Zero-heap allocation hot-path.
+    pub fn drain_frames(&mut self) {
+        self.drain_frames_with_fallback(None);
+    }
+
+    pub async fn tick(&mut self, fallback_fps: Option<f64>) -> Result<ScalingAction> {
         if let Some(pid) = self.pid.filter(|_| !self.package.is_empty())
             && self.last_attached_pkg != self.package
         {
@@ -198,7 +211,7 @@ impl FasController {
             }
         }
 
-        self.drain_frames();
+        self.drain_frames_with_fallback(fallback_fps);
 
         let temp = self.thermal.get_max_temp().unwrap_or(0.0);
         if temp > self.tuning.thermal_threshold {

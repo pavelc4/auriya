@@ -20,27 +20,28 @@ pub fn run_watcher(path: PathBuf, cache: SystemStatusCache, tx: mpsc::Sender<()>
     };
     let filename = path.file_name().map(|n| n.to_os_string());
 
-    let mut watcher = match notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
-        let Ok(event) = res else {
-            return;
+    let mut watcher =
+        match notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+            let Ok(event) = res else {
+                return;
+            };
+            if !is_relevant(&event) {
+                return;
+            }
+            if !event_touches(&event, filename.as_deref()) {
+                return;
+            }
+            reload(&path, &cache, &tx);
+        }) {
+            Ok(w) => w,
+            Err(e) => {
+                error!(
+                    target: "auriya::status",
+                    "Failed to create status watcher: {e}"
+                );
+                return;
+            }
         };
-        if !is_relevant(&event) {
-            return;
-        }
-        if !event_touches(&event, filename.as_deref()) {
-            return;
-        }
-        reload(&path, &cache, &tx);
-    }) {
-        Ok(w) => w,
-        Err(e) => {
-            error!(
-                target: "auriya::status",
-                "Failed to create status watcher: {e}"
-            );
-            return;
-        }
-    };
 
     if let Err(e) = watcher.watch(&parent, RecursiveMode::NonRecursive) {
         error!(

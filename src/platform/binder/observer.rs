@@ -89,16 +89,19 @@ impl ProcessObserver {
                         let changed = last_pkg.as_deref() != Some(&pkg)
                             || (pid_opt.is_some() && pid_opt != last_pid);
                         if changed {
-                            last_pkg = Some(pkg.clone());
-                            last_pid = pid_opt;
                             let pid = pid_opt.unwrap_or(0);
                             let ev = ProcessEvent {
                                 pid,
                                 uid: 0,
-                                pkg: Some(pkg),
+                                pkg: Some(pkg.clone()),
                                 foreground: true,
                                 event_type: ProcessEventType::ForegroundActivitiesChanged,
                             };
+                            match last_pkg.as_mut() {
+                                Some(last) => last.clone_from(&pkg),
+                                None => last_pkg = Some(pkg),
+                            }
+                            last_pid = pid_opt;
                             let _ = event_tx.try_send(ev);
                         }
                     }

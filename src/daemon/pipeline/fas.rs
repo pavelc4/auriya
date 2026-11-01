@@ -129,10 +129,11 @@ impl Daemon {
         pid: Option<i32>,
         enable_dnd: bool,
     ) -> Result<bool> {
+        let fallback_fps = self.fps_meter.read().map(|r| r.fps);
         let action = {
             let mut fas_guard = fas.lock().await;
             fas_guard.set_package(pkg, pid);
-            fas_guard.tick().await?
+            fas_guard.tick(fallback_fps).await?
         };
 
         let pid_opt = self.last.pid;

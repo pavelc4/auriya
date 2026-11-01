@@ -32,8 +32,8 @@ pub enum BufferState {
     Usable,
 }
 
-const WARMUP: Duration = Duration::from_secs(1);
-const MIN_FRAMES_FOR_USABLE: usize = 60;
+const WARMUP: Duration = Duration::from_millis(500);
+const MIN_FRAMES_FOR_USABLE: usize = 5;
 
 #[derive(Debug)]
 pub struct FrameBuffer {
@@ -208,19 +208,23 @@ impl FrameBuffer {
 
         let current_fps = self.current_fps_long;
 
-        let min_fps = (targets.first().unwrap_or(&30) / 2).max(25);
-        if current_fps < min_fps as f64 {
+        let min_fps = match targets {
+            [single] => (*single / 2).clamp(15, 30) as f64,
+            _ => (targets.first().unwrap_or(&30).saturating_sub(10).max(10)) as f64,
+        };
+        if !self.frametimes.is_empty() && current_fps < min_fps {
             if self.target_fps.take().is_some() {
                 self.reset_governor();
             }
             return;
         }
 
+        let max_ceiling = match crate::platform::binder::get_active_display_refresh_rate() {
+            hz if hz > 0.0 => hz as u32,
+            _ => 144,
+        };
+
         if let [single] = targets {
-            let max_ceiling = match crate::platform::binder::get_active_display_refresh_rate() {
-                hz if hz > 0.0 => hz as u32,
-                _ => 144,
-            };
             let target = (*single).min(max_ceiling);
             if self.target_fps == Some(target) {
                 return;
@@ -231,11 +235,6 @@ impl FrameBuffer {
             self.target_fps = Some(target);
             return;
         }
-
-        let max_ceiling = match crate::platform::binder::get_active_display_refresh_rate() {
-            hz if hz > 0.0 => hz as u32,
-            _ => 144,
-        };
 
         let mut chosen = targets.last().copied();
         for window in targets.windows(2) {

@@ -149,6 +149,19 @@ pub async fn run_with_config(cfg: DaemonConfig, filter_handle: ReloadHandle) -> 
                                     is_floating: None,
                                 });
                             }
+                        } else if daemon.last.pid == Some(p_ev.pid)
+                            && let Some((pkg, pid)) =
+                                crate::platform::common::procfs::query_current_foreground()
+                        {
+                            daemon.status_cache.store(crate::core::status::SystemStatus {
+                                focused_app: Some(pkg),
+                                focused_pid: pid,
+                                focused_uid: None,
+                                screen_awake: Some(true),
+                                battery_saver: None,
+                                zen_mode: None,
+                                is_floating: None,
+                            });
                         }
                         daemon.tick().await;
                     }

@@ -72,6 +72,13 @@ impl Serialize for TargetFpsConfig {
 }
 
 impl TargetFpsConfig {
+    pub fn into_buffer_config(self) -> crate::core::fas::buffer::TargetFps {
+        match self {
+            Self::Single(v) => crate::core::fas::buffer::TargetFps::Single(v),
+            Self::Array(arr) => crate::core::fas::buffer::TargetFps::Array(arr),
+        }
+    }
+
     pub fn to_buffer_config(&self) -> crate::core::fas::buffer::TargetFps {
         match self {
             Self::Single(v) => crate::core::fas::buffer::TargetFps::Single(*v),

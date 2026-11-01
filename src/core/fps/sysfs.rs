@@ -14,7 +14,7 @@ pub const FPS_SYSFS_PATHS: &[&str] = &[
     "/sys/class/misc/mali0/device/fps",
 ];
 
-pub const SYSFS_POLL_INTERVAL: Duration = Duration::from_secs(2);
+pub const SYSFS_POLL_INTERVAL: Duration = Duration::from_millis(250);
 
 pub struct SysfsFpsReader {
     pub path: Option<String>,
@@ -32,7 +32,9 @@ impl SysfsFpsReader {
     pub fn new() -> Self {
         Self {
             path: Self::detect_sysfs(),
-            last_poll: Instant::now(),
+            last_poll: Instant::now()
+                .checked_sub(SYSFS_POLL_INTERVAL)
+                .unwrap_or_else(Instant::now),
             cached: None,
         }
     }
@@ -51,25 +53,39 @@ impl SysfsFpsReader {
 
     pub fn read(&mut self) -> Option<FpsReading> {
         let now = Instant::now();
-        if now.duration_since(self.last_poll) < SYSFS_POLL_INTERVAL {
-            return self.cached;
+        if self.path.is_none() {
+            self.path = Self::detect_sysfs();
         }
-        self.last_poll = now;
+        match self.cached.is_some() && now.duration_since(self.last_poll) < SYSFS_POLL_INTERVAL {
+            true => self.cached,
+            false => {
+                self.last_poll = now;
+                let path = self.path.as_ref()?;
+                let content = fs::read_to_string(path).ok()?;
+                let fps = parse_sysfs_fps(&content)?;
 
-        let path = self.path.as_ref()?;
-        let content = fs::read_to_string(path).ok()?;
-        let fps = parse_sysfs_fps(&content)?;
+                let max_hz = crate::platform::binder::get_active_display_refresh_rate();
+                let clamped = match max_hz {
+                    hz if hz > 0.0 && (fps - hz).abs() <= 0.75 => hz,
+                    hz if hz > 0.0 => fps.min(hz),
+                    _ => fps,
+                };
 
-        let reading = FpsReading {
-            fps,
-            source: FpsSource::Sysfs,
-        };
-        self.cached = Some(reading);
-        Some(reading)
+                let reading = FpsReading {
+                    fps: clamped,
+                    source: FpsSource::Sysfs,
+                };
+                self.cached = Some(reading);
+                Some(reading)
+            }
+        }
     }
 
     pub fn clear(&mut self) {
         self.cached = None;
+        self.last_poll = Instant::now()
+            .checked_sub(SYSFS_POLL_INTERVAL)
+            .unwrap_or_else(Instant::now);
     }
 }
 

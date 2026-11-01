@@ -51,6 +51,7 @@ impl Daemon {
         {
             f.reset();
         }
+        self.last_fps_config = None;
         self.fps_meter.clear();
         self.set_pid(None);
         self.sync_dnd(crate::platform::binder::DndMode::All);
@@ -110,6 +111,7 @@ impl Daemon {
         {
             f.reset();
         }
+        self.last_fps_config = None;
         self.fps_meter.clear();
         self.sync_dnd(crate::platform::binder::DndMode::All);
         let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
@@ -119,7 +121,6 @@ impl Daemon {
         if self.applied_refresh_rate.is_some() && self.apply_refresh_rate(0) {
             self.applied_refresh_rate = None;
         }
-        let _ = crate::platform::binder::set_high_touch_polling_rate(false);
         let _ = crate::platform::binder::set_power_mode(
             crate::platform::binder::PowerMode::ExpensiveRendering,
             false,
@@ -172,6 +173,7 @@ impl Daemon {
         if self.last.pkg.as_deref() != Some(pkg) {
             self.vendor_lock.unlock_all();
             self.restore_thermal_default();
+            self.last_fps_config = None;
 
             if self.applied_refresh_rate.is_some() {
                 debug!(target: "auriya::display", "Releasing game overrides for {} ({})", pkg, reason);
@@ -279,6 +281,7 @@ impl Daemon {
                 {
                     f.reset();
                 }
+                self.last_fps_config = None;
                 self.fps_meter.clear();
                 self.set_pid(None);
             }
@@ -289,12 +292,13 @@ impl Daemon {
     }
 
     async fn monitor_app_frames(&mut self, _pkg: &str) -> Result<()> {
+        let fallback_fps = self.fps_meter.read().map(|r| r.fps);
         if let Some(mut f) = self
             .fas_controller
             .as_ref()
             .and_then(|fas| fas.try_lock().ok())
         {
-            f.drain_frames();
+            f.drain_frames_with_fallback(fallback_fps);
         }
         Ok(())
     }
@@ -346,8 +350,20 @@ impl Daemon {
 
         let entering_game = self.last.pkg.as_deref() != Some(pkg);
         if entering_game {
+            self.last_fps_config = None;
+            self.fps_meter.clear();
             self.vendor_lock.lock_all();
             self.apply_thermal_for_game(game_cfg);
+            if let Some(cfg) = game_cfg
+                && let Some(ref fps_cfg) = cfg.target_fps
+                && let Some(mut f) = self
+                    .fas_controller
+                    .as_ref()
+                    .and_then(|fas| fas.try_lock().ok())
+            {
+                let buf_cfg = fps_cfg.to_buffer_config();
+                f.set_target_fps_config(buf_cfg);
+            }
 
             let mode_str = match target_mode {
                 ProfileMode::Performance => "Performance",
@@ -364,6 +380,14 @@ impl Daemon {
             );
         }
 
+        let primary_pid = match pids.first().copied() {
+            Some(p) => Some(p),
+            None if pid > 0 && crate::platform::common::procfs::verify_pid_package(pid, pkg) => {
+                Some(pid)
+            }
+            _ => None,
+        };
+
         if self.last.profile_mode != Some(target_mode) {
             let gov_guard = self.balance_governor.read().ok();
             let default_gov = gov_guard
@@ -376,7 +400,7 @@ impl Daemon {
                 .unwrap_or(default_gov);
             let res = match target_mode {
                 ProfileMode::Performance | ProfileMode::Fast => {
-                    profile::apply_performance_with_config(governor, enable_dnd, Some(pid))
+                    profile::apply_performance_with_config(governor, enable_dnd, primary_pid)
                 }
                 ProfileMode::Balance => profile::apply_balance(governor),
                 ProfileMode::Powersave => profile::apply_powersave(),
@@ -404,10 +428,6 @@ impl Daemon {
             self.applied_refresh_rate = rr;
         }
 
-        let primary_pid = match pid {
-            p if p > 0 && crate::platform::common::procfs::verify_pid_package(p, pkg) => Some(p),
-            _ => pids.first().copied(),
-        };
         match primary_pid {
             Some(p) => self.sync_ebpf_pids(std::slice::from_ref(&p)).await,
             None => self.ebpf_detach_all().await,
@@ -450,7 +470,7 @@ impl Daemon {
         }
 
         self.last.pkg = Some(pkg.to_string());
-        self.set_pid(Some(pid));
+        self.set_pid(primary_pid);
         Ok(())
     }
 
