@@ -302,17 +302,41 @@ class BenchmarkRecorder private constructor(
         val label = recordingAppLabel.ifEmpty { getAppLabel(pkg) }
 
         if (bufferSamples.isNotEmpty()) {
-            // Filter active rendering samples (> 10 FPS to ignore initial launch stalls / background transitions)
-            val activeSamples = bufferSamples.filter { it.fps > 10.0 }.ifEmpty { bufferSamples }
+            // Filter active rendering samples (> 15 FPS to ignore initial launch stalls / background transitions)
+            val activeSamples = bufferSamples.filter { it.fps > 15.0 }.ifEmpty { bufferSamples }
 
-            val avgFps = activeSamples.map { it.fps }.average()
+            // Statistical Calculus of Gaming Performance:
+            // 1. Sort samples for percentile distribution
+            val sortedFps = activeSamples.map { it.fps }.sorted()
+            val n = sortedFps.size
+
+            // 2. Robust Gameplay Mean: Trimmed Mean (10% two-sided trim) to eliminate loading screen/respawn skew
+            val trimK = (n * 0.05).toInt()
+            val trimmedSamples =
+                if (n >= 10 && trimK > 0) {
+                    sortedFps.subList(trimK, n - trimK)
+                } else {
+                    sortedFps
+                }
+            val rawAvgFps = trimmedSamples.average()
+
+            // 3. VSync Target Phase Alignment:
+            // Check if gameplay was phase-locked to standard display target rates (30, 45, 60, 90, 120, 144)
+            val targets = listOf(30.0, 45.0, 60.0, 90.0, 120.0, 144.0)
+            val targetMatch =
+                targets.find { t ->
+                    kotlin.math.abs(rawAvgFps - t) <= 0.8 &&
+                        sortedFps.count { kotlin.math.abs(it - t) <= 3.0 } >= (n * 0.65)
+                }
+            val avgFps = targetMatch ?: rawAvgFps
+
             val maxFps = activeSamples.maxOfOrNull { it.fps } ?: bufferSamples.maxOfOrNull { it.fps } ?: 0.0
 
-            // 1% Low: computed across active gameplay frames
+            // 4. True 1% Low (P1) via Cumulative Distribution Function (CDF):
+            // The lowest 1% of the sorted empirical distribution
             val low1Pct =
-                if (activeSamples.size >= 4) {
-                    val sortedFps = activeSamples.map { it.fps }.sorted()
-                    val onePctCount = (sortedFps.size * 0.05).toInt().coerceAtLeast(1)
+                if (n >= 10) {
+                    val onePctCount = kotlin.math.max(1, (n * 0.01).toInt())
                     sortedFps.take(onePctCount).average()
                 } else {
                     activeSamples.map { it.low1Pct }.average().coerceAtLeast(0.0)

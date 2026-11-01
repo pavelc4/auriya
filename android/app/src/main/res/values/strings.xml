@@ -6,15 +6,15 @@
     <string name="nav_home">Home</string>
     <string name="nav_games">Games</string>
     <string name="nav_config">Config</string>
-    <string name="nav_record">Record</string>
+    <string name="nav_record">Telemetry</string>
 
     <!-- Headers (Short & Clean) -->
     <string name="games_title">Games</string>
     <string name="games_subtitle">Per-game tuning</string>
     <string name="config_title">Config</string>
     <string name="config_subtitle">Daemon &amp; kernel tuning</string>
-    <string name="record_title">Record</string>
-    <string name="record_subtitle">FPS &amp; telemetry stats</string>
+    <string name="record_title">Telemetry</string>
+    <string name="record_subtitle">Telemetry &amp; frame time</string>
     <string name="settings_title">Settings</string>
     <string name="settings_subtitle">App &amp; daemon preferences</string>
 

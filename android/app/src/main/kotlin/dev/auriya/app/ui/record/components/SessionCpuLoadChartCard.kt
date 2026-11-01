@@ -5,8 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -44,9 +42,10 @@ import androidx.compose.ui.unit.sp
 import dev.auriya.app.R
 import dev.auriya.app.data.stats.BenchmarkSession
 import dev.auriya.app.ui.theme.GoogleSansRounded
+import kotlin.math.roundToInt
 
 /**
- * Dedicated CPU Load Timeline Chart Card with area gradient and scrubbing.
+ * Dedicated CPU Load Timeline Chart Card with smooth scrubbing and statistical info.
  */
 @Composable
 fun SessionCpuLoadChartCard(
@@ -57,11 +56,12 @@ fun SessionCpuLoadChartCard(
     if (samples.size < 2) return
 
     var scrubIndex by remember { mutableStateOf<Int?>(null) }
+    var scrubPixelX by remember { mutableStateOf<Float?>(null) }
     val scrubSample = scrubIndex?.let { samples.getOrNull(it) }
 
     val loadColor = MaterialTheme.colorScheme.tertiary
     val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.20f)
-    val guidelineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
+    val guidelineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
 
     val peakLoad =
         remember(samples) {
@@ -86,42 +86,7 @@ fun SessionCpuLoadChartCard(
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
-            // 2. Interactive Tooltip Pill
-            AnimatedVisibility(
-                visible = scrubSample != null,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                if (scrubSample != null) {
-                    val timeSec = scrubSample.timestampOffsetMs / 1000
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = formatDuration(timeSec),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            Text(
-                                text = "CPU Load: %.1f%%".format(scrubSample.cpuLoad),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = loadColor,
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 3. High-Fidelity Canvas
+            // 2. High-Fidelity Canvas with Fixed Floating Tooltip Overlay (Prevents Height Shifting)
             Box(
                 modifier =
                     Modifier
@@ -130,28 +95,26 @@ fun SessionCpuLoadChartCard(
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.4f))
                         .pointerInput(samples.size) {
-                            detectDragGestures(
-                                onDragStart = { offset ->
-                                    val stepX = size.width / (samples.size - 1).coerceAtLeast(1)
-                                    scrubIndex = (offset.x / stepX).toInt().coerceIn(0, samples.size - 1)
-                                },
-                                onDrag = { change, _ ->
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val w = size.width.toFloat()
+                                val stepX = w / (samples.size - 1).coerceAtLeast(1)
+                                val startX = down.position.x.coerceIn(0f, w)
+                                scrubPixelX = startX
+                                scrubIndex = (startX / stepX).roundToInt().coerceIn(0, samples.size - 1)
+
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull() ?: break
+                                    if (!change.pressed) break
+                                    val currentX = change.position.x.coerceIn(0f, w)
+                                    scrubPixelX = currentX
+                                    scrubIndex = (currentX / stepX).roundToInt().coerceIn(0, samples.size - 1)
                                     change.consume()
-                                    val stepX = size.width / (samples.size - 1).coerceAtLeast(1)
-                                    scrubIndex = (change.position.x / stepX).toInt().coerceIn(0, samples.size - 1)
-                                },
-                                onDragEnd = { scrubIndex = null },
-                                onDragCancel = { scrubIndex = null },
-                            )
-                        }.pointerInput(samples.size) {
-                            detectTapGestures(
-                                onTap = { offset ->
-                                    val stepX = size.width / (samples.size - 1).coerceAtLeast(1)
-                                    val idx = (offset.x / stepX).toInt().coerceIn(0, samples.size - 1)
-                                    scrubIndex = if (scrubIndex == idx) null else idx
-                                },
-                                onDoubleTap = { scrubIndex = null },
-                            )
+                                }
+                                scrubIndex = null
+                                scrubPixelX = null
+                            }
                         },
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -212,27 +175,60 @@ fun SessionCpuLoadChartCard(
                         style = Stroke(width = 2.4.dp.toPx(), cap = StrokeCap.Round),
                     )
 
-                    // Scrub Line & Dots
+                    // Scrub Line & Dots at exact pixel coordinate
                     scrubIndex?.let { idx ->
-                        val scrubX = idx * stepX
+                        val targetX = scrubPixelX ?: (idx * stepX)
                         val currentSample = samples[idx]
                         val sy = h - (currentSample.cpuLoad / 100f).coerceIn(0f, 1f) * h
 
                         drawLine(
                             color = guidelineColor,
-                            start = Offset(scrubX, 0f),
-                            end = Offset(scrubX, h),
-                            strokeWidth = 1.2.dp.toPx(),
+                            start = Offset(targetX, 0f),
+                            end = Offset(targetX, h),
+                            strokeWidth = 1.4.dp.toPx(),
                             pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f),
                         )
 
-                        drawCircle(color = loadColor, radius = 5.dp.toPx(), center = Offset(scrubX, sy))
-                        drawCircle(color = Color.White, radius = 2.dp.toPx(), center = Offset(scrubX, sy))
+                        drawCircle(color = loadColor, radius = 5.dp.toPx(), center = Offset(targetX, sy))
+                        drawCircle(color = Color.White, radius = 2.dp.toPx(), center = Offset(targetX, sy))
+                    }
+                }
+
+                // Smooth Floating Tooltip (Inside Box so layout never jumps)
+                if (scrubSample != null) {
+                    val timeSec = scrubSample.timestampOffsetMs / 1000
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.95f),
+                        shadowElevation = 4.dp,
+                        modifier =
+                            Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = formatDuration(timeSec),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Text(
+                                text = "CPU Load: %.1f%%".format(scrubSample.cpuLoad),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = loadColor,
+                            )
+                        }
                     }
                 }
             }
 
-            // 4. Time Range & Info Row
+            // 3. Time Range & Info Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

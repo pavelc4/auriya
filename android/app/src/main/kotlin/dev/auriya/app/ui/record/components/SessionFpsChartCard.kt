@@ -5,8 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,9 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -47,9 +46,10 @@ import dev.auriya.app.R
 import dev.auriya.app.data.AppPrefs
 import dev.auriya.app.data.stats.BenchmarkSession
 import dev.auriya.app.ui.theme.GoogleSansRounded
+import kotlin.math.roundToInt
 
 /**
- * Dedicated FPS Timeline Chart Card with interactive scrubbing and 1% Low reference curve.
+ * Dedicated FPS Timeline Chart Card with interactive smooth scrubbing and statistical reference metrics.
  * Conforms to Material 3 Data Visualization guidelines.
  */
 @Composable
@@ -72,7 +72,19 @@ fun SessionFpsChartCard(
             }
         }
 
+    // Statistical stability calculation: frames within +-5 FPS of target/avg
+    val stabilityPct =
+        remember(samples, session.avgFps) {
+            val target = session.avgFps
+            if (target > 0 && samples.isNotEmpty()) {
+                (samples.count { kotlin.math.abs(it.fps - target) <= 5.0 }.toFloat() / samples.size * 100f).coerceIn(0f, 100f)
+            } else {
+                100f
+            }
+        }
+
     var scrubIndex by remember { mutableStateOf<Int?>(null) }
+    var scrubPixelX by remember { mutableStateOf<Float?>(null) }
     val scrubSample = scrubIndex?.let { samples.getOrNull(it) }
 
     Surface(
@@ -84,60 +96,39 @@ fun SessionFpsChartCard(
             modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // 1. Header Title
-            Text(
-                text = stringResource(R.string.record_chart_fps_title),
-                fontFamily = GoogleSansRounded,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-
-            // 2. Interactive Tooltip Pill (Shows when user scrubs across timeline)
-            AnimatedVisibility(
-                visible = scrubSample != null,
-                enter = fadeIn(),
-                exit = fadeOut(),
+            // 1. Header Title & Target Badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                if (scrubSample != null) {
-                    val timeSec = scrubSample.timestampOffsetMs / 1000
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = formatDuration(timeSec),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            Text(
-                                text = "FPS: ${AppPrefs.formatFps(scrubSample.fps, roundFps)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                text = "1% Low: ${AppPrefs.formatFps(scrubSample.low1Pct, roundFps)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                Text(
+                    text = stringResource(R.string.record_chart_fps_title),
+                    fontFamily = GoogleSansRounded,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                ) {
+                    Text(
+                        text = "Avg ${AppPrefs.formatFps(session.avgFps, roundFps)} FPS",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
                 }
             }
 
-            // 3. High-Fidelity Canvas
+            // 2. High-Fidelity Canvas with Fixed Floating Tooltip Overlay (Prevents Height Shifting)
             val fpsColor = MaterialTheme.colorScheme.primary
             val low1PctColor = MaterialTheme.colorScheme.tertiary
             val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.20f)
-            val guidelineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
+            val guidelineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
 
             Box(
                 modifier =
@@ -147,36 +138,26 @@ fun SessionFpsChartCard(
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.4f))
                         .pointerInput(samples.size) {
-                            detectDragGestures(
-                                onDragStart = { offset ->
-                                    val stepX = size.width / (samples.size - 1).coerceAtLeast(1)
-                                    val idx = (offset.x / stepX).toInt().coerceIn(0, samples.size - 1)
-                                    scrubIndex = idx
-                                },
-                                onDrag = { change, _ ->
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val w = size.width.toFloat()
+                                val stepX = w / (samples.size - 1).coerceAtLeast(1)
+                                val startX = down.position.x.coerceIn(0f, w)
+                                scrubPixelX = startX
+                                scrubIndex = (startX / stepX).roundToInt().coerceIn(0, samples.size - 1)
+
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull() ?: break
+                                    if (!change.pressed) break
+                                    val currentX = change.position.x.coerceIn(0f, w)
+                                    scrubPixelX = currentX
+                                    scrubIndex = (currentX / stepX).roundToInt().coerceIn(0, samples.size - 1)
                                     change.consume()
-                                    val stepX = size.width / (samples.size - 1).coerceAtLeast(1)
-                                    val idx = (change.position.x / stepX).toInt().coerceIn(0, samples.size - 1)
-                                    scrubIndex = idx
-                                },
-                                onDragEnd = {
-                                    scrubIndex = null
-                                },
-                                onDragCancel = {
-                                    scrubIndex = null
-                                },
-                            )
-                        }.pointerInput(samples.size) {
-                            detectTapGestures(
-                                onTap = { offset ->
-                                    val stepX = size.width / (samples.size - 1).coerceAtLeast(1)
-                                    val idx = (offset.x / stepX).toInt().coerceIn(0, samples.size - 1)
-                                    scrubIndex = if (scrubIndex == idx) null else idx
-                                },
-                                onDoubleTap = {
-                                    scrubIndex = null
-                                },
-                            )
+                                }
+                                scrubIndex = null
+                                scrubPixelX = null
+                            }
                         },
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -184,7 +165,7 @@ fun SessionFpsChartCard(
                     val h = size.height
                     val stepX = w / (samples.size - 1).coerceAtLeast(1)
 
-                    // Guidelines for 30, 60, 90, 120 FPS
+                    // Reference guidelines for 30, 60, 90, 120 FPS
                     val guideValues = listOf(30f, 60f, 90f, 120f, 144f).filter { it <= maxFpsScale }
                     for (g in guideValues) {
                         val y = h - (g / maxFpsScale) * h
@@ -257,9 +238,9 @@ fun SessionFpsChartCard(
                         style = Stroke(width = 2.6.dp.toPx(), cap = StrokeCap.Round),
                     )
 
-                    // Scrub Line & Dots
+                    // Scrub Line & Dots at exact pixel coordinate
                     scrubIndex?.let { idx ->
-                        val scrubX = idx * stepX
+                        val targetX = scrubPixelX ?: (idx * stepX)
                         val currentSample = samples[idx]
                         val scrubFpsY = h - (currentSample.fps.toFloat() / maxFpsScale).coerceIn(0f, 1f) * h
                         val scrubLowY = h - (currentSample.low1Pct.toFloat() / maxFpsScale).coerceIn(0f, 1f) * h
@@ -267,9 +248,9 @@ fun SessionFpsChartCard(
                         // Vertical guide line
                         drawLine(
                             color = guidelineColor,
-                            start = Offset(scrubX, 0f),
-                            end = Offset(scrubX, h),
-                            strokeWidth = 1.2.dp.toPx(),
+                            start = Offset(targetX, 0f),
+                            end = Offset(targetX, h),
+                            strokeWidth = 1.4.dp.toPx(),
                             pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f),
                         )
 
@@ -277,25 +258,63 @@ fun SessionFpsChartCard(
                         drawCircle(
                             color = low1PctColor,
                             radius = 3.5.dp.toPx(),
-                            center = Offset(scrubX, scrubLowY),
+                            center = Offset(targetX, scrubLowY),
                         )
 
                         // Main FPS dot with white center
                         drawCircle(
                             color = fpsColor,
                             radius = 6.dp.toPx(),
-                            center = Offset(scrubX, scrubFpsY),
+                            center = Offset(targetX, scrubFpsY),
                         )
                         drawCircle(
                             color = Color.White,
                             radius = 2.5.dp.toPx(),
-                            center = Offset(scrubX, scrubFpsY),
+                            center = Offset(targetX, scrubFpsY),
                         )
+                    }
+                }
+
+                // Smooth Floating Tooltip (Inside Box so layout never jumps)
+                if (scrubSample != null) {
+                    val timeSec = scrubSample.timestampOffsetMs / 1000
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.95f),
+                        shadowElevation = 4.dp,
+                        modifier =
+                            Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 8.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = formatDuration(timeSec),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Text(
+                                text = "FPS: ${AppPrefs.formatFps(scrubSample.fps, roundFps)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = "1% Low: ${AppPrefs.formatFps(scrubSample.low1Pct, roundFps)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
 
-            // 4. Time Range & Legend Row
+            // 3. Time Range & Legend Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -362,6 +381,62 @@ fun SessionFpsChartCard(
                     fontSize = 11.sp,
                 )
             }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+
+            // 4. Statistical Data Summary Row (Always visible underneath the chart)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FpsStatPill(
+                    label = "Avg",
+                    value = "${AppPrefs.formatFps(session.avgFps, roundFps)} FPS",
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                FpsStatPill(
+                    label = "1% Low",
+                    value = "${AppPrefs.formatFps(session.minLow1Pct, roundFps)} FPS",
+                    color = low1PctColor,
+                )
+                FpsStatPill(
+                    label = "Peak",
+                    value = "${AppPrefs.formatFps(session.maxFps, roundFps)} FPS",
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                FpsStatPill(
+                    label = "Stability",
+                    value = "%.1f%%".format(stabilityPct),
+                    color = if (stabilityPct >= 90f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun FpsStatPill(
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = color,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 10.sp,
+        )
     }
 }

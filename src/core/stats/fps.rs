@@ -44,7 +44,27 @@ pub fn fps_stats_from_frametimes(frametimes: &[Duration], target_fps: u32) -> Fp
     }
 
     let sum: f64 = ft.iter().sum();
-    let avg = frames as f64 / sum; // 1 / mean_frametime
+    let raw_avg = frames as f64 / sum; // 1 / mean_frametime
+
+    // Align to target VSync frequency when within jitter tolerance (e.g. 119.5 - 120.5 -> 120.0)
+    let standard_targets = [30.0, 45.0, 60.0, 90.0, 120.0, 144.0];
+    let candidate = if target_fps > 0 {
+        Some(f64::from(target_fps))
+    } else {
+        standard_targets
+            .iter()
+            .copied()
+            .find(|&t| (raw_avg - t).abs() <= 0.55)
+    };
+    let avg = if let Some(target) = candidate {
+        if (raw_avg - target).abs() <= 0.55 {
+            target
+        } else {
+            raw_avg
+        }
+    } else {
+        raw_avg
+    };
 
     let min_ft = ft.iter().copied().fold(f64::INFINITY, f64::min);
     let peak = if min_ft > 0.0 { 1.0 / min_ft } else { 0.0 };

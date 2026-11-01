@@ -6,15 +6,15 @@
     <string name="nav_home">Beranda</string>
     <string name="nav_games">Game</string>
     <string name="nav_config">Konfigurasi</string>
-    <string name="nav_record">Rekam</string>
+    <string name="nav_record">Telemetri</string>
 
     <!-- Headers (Short & Clean) -->
     <string name="games_title">Game</string>
     <string name="games_subtitle">Tuning per-game</string>
     <string name="config_title">Konfigurasi</string>
     <string name="config_subtitle">Tuning daemon &amp; kernel</string>
-    <string name="record_title">Rekam</string>
-    <string name="record_subtitle">Statistik FPS &amp; telemetri</string>
+    <string name="record_title">Telemetri</string>
+    <string name="record_subtitle">Telemetri &amp; frame time</string>
     <string name="settings_title">Setelan</string>
     <string name="settings_subtitle">Preferensi aplikasi &amp; daemon</string>
 

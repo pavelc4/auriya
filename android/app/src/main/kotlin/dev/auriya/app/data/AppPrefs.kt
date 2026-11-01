@@ -83,7 +83,9 @@ class AppPrefs private constructor(
         ): String {
             if (fps == null || fps <= 0.0) return "--"
             return if (roundFps) {
-                "${fps.roundToInt()}"
+                val targets = listOf(30, 45, 60, 90, 120, 144)
+                val snapped = targets.find { kotlin.math.abs(fps - it) <= 0.6 }
+                if (snapped != null) "$snapped" else "${fps.roundToInt()}"
             } else {
                 "%.1f".format(fps)
             }
@@ -95,7 +97,9 @@ class AppPrefs private constructor(
         ): String {
             if (fps == null || fps <= 0f) return "--"
             return if (roundFps) {
-                "${fps.roundToInt()}"
+                val targets = listOf(30, 45, 60, 90, 120, 144)
+                val snapped = targets.find { kotlin.math.abs(fps - it) <= 0.6f }
+                if (snapped != null) "$snapped" else "${fps.roundToInt()}"
             } else {
                 "%.1f".format(fps)
             }
