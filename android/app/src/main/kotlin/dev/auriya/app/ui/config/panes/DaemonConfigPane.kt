@@ -43,11 +43,17 @@ fun LazyListScope.daemonConfigPane(
                     .stringResource(dev.auriya.app.R.string.config_sec_daemon_controls),
         ) {
             val total = 3
+            val displayDefaultMode =
+                if (defaultMode.equals("fast", ignoreCase = true) || defaultMode.equals("fas", ignoreCase = true)) {
+                    "FAS"
+                } else {
+                    defaultMode.replaceFirstChar { it.uppercase() }
+                }
             ClickableSettingItem(
                 title =
                     androidx.compose.ui.res
                         .stringResource(dev.auriya.app.R.string.config_default_profile),
-                subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.home_active_profile)}: ${defaultMode.replaceFirstChar { it.uppercase() }}",
+                subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.home_active_profile)}: $displayDefaultMode",
                 onClick = onOpenPresetPicker,
                 icon = Icons.Outlined.Tune,
                 shape = itemShapeFor(0, total),

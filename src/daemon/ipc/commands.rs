@@ -70,7 +70,7 @@ impl FromStr for Command {
                 "PERFORMANCE" | "1" => Ok(Command::SetProfile(ProfileMode::Performance)),
                 "BALANCE" | "2" => Ok(Command::SetProfile(ProfileMode::Balance)),
                 "POWERSAVE" | "3" => Ok(Command::SetProfile(ProfileMode::Powersave)),
-                "FAST" | "4" => Ok(Command::SetProfile(ProfileMode::Fast)),
+                "FAST" | "FAS" | "4" => Ok(Command::SetProfile(ProfileMode::Fast)),
                 _ => Err("usage: SETPROFILE <PERFORMANCE|BALANCE|POWERSAVE|FAST>"),
             },
 

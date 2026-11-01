@@ -75,7 +75,12 @@ impl FasTuning {
     /// This is what makes `fas.default_mode` and every `[modes.*]` block
     /// (including `fast`) actually affect FAS behaviour.
     pub fn from_settings(settings: &crate::core::config::Settings) -> Self {
-        let mode = settings.modes.get(&settings.fas.default_mode);
+        let mode_key = if settings.fas.default_mode == "fas" {
+            "fast"
+        } else {
+            settings.fas.default_mode.as_str()
+        };
+        let mode = settings.modes.get(mode_key);
         if mode.is_none() {
             tracing::warn!(
                 target: "auriya::fas",

@@ -36,7 +36,7 @@ impl std::str::FromStr for ProfileMode {
             "performance" | "1" => Ok(ProfileMode::Performance),
             "balance" | "2" => Ok(ProfileMode::Balance),
             "powersave" | "3" => Ok(ProfileMode::Powersave),
-            "fast" | "4" => Ok(ProfileMode::Fast),
+            "fast" | "fas" | "4" => Ok(ProfileMode::Fast),
             _ => Err(()),
         }
     }

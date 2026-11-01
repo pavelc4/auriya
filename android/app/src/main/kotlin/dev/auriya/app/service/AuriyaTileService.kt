@@ -27,7 +27,8 @@ class AuriyaTileService : TileService() {
             when (current) {
                 "1", "performance" -> "balance"
                 "2", "balance" -> "powersave"
-                "3", "powersave" -> "performance"
+                "3", "powersave" -> "fast"
+                "4", "fast", "fas" -> "performance"
                 else -> "balance"
             }
         val nextCode =
@@ -35,6 +36,7 @@ class AuriyaTileService : TileService() {
                 "performance" -> "1"
                 "balance" -> "2"
                 "powersave" -> "3"
+                "fast", "fas" -> "4"
                 else -> "2"
             }
 
@@ -78,6 +80,7 @@ class AuriyaTileService : TileService() {
                 "1", "performance" -> Pair("Performance", R.drawable.ic_gamepad)
                 "2", "balance" -> Pair("Balance", R.drawable.ic_settings)
                 "3", "powersave" -> Pair("Powersave", R.drawable.ic_battery)
+                "4", "fast", "fas" -> Pair("FAS", R.drawable.ic_gamepad)
                 else -> Pair("Balance", R.drawable.ic_settings)
             }
 

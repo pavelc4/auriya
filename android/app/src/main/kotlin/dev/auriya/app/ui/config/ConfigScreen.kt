@@ -547,16 +547,18 @@ fun ConfigScreen(viewModel: UiViewModel) {
         ProfilePickerPopup(
             defaultMode = defaultMode,
             onSelect = { key ->
-                defaultMode = key
+                val normalizedKey = if (key.equals("fas", ignoreCase = true) || key.equals("fast", ignoreCase = true)) "fast" else key
+                defaultMode = normalizedKey
                 val currentSettings = viewModel.settings.value
                 val updated =
                     currentSettings.copy(
-                        daemon = currentSettings.daemon.copy(defaultMode = key),
-                        fas = currentSettings.fas.copy(defaultMode = key),
+                        daemon = currentSettings.daemon.copy(defaultMode = normalizedKey),
+                        fas = currentSettings.fas.copy(defaultMode = normalizedKey),
                     )
                 persistChanges(updated)
-                viewModel.updateProfile(key)
-                Toast.makeText(context, "Default profile set to ${key.replaceFirstChar { c -> c.uppercase() }}", Toast.LENGTH_SHORT).show()
+                viewModel.updateProfile(normalizedKey)
+                val displayLabel = if (normalizedKey == "fast") "FAS" else normalizedKey.replaceFirstChar { c -> c.uppercase() }
+                Toast.makeText(context, "Default profile set to $displayLabel", Toast.LENGTH_SHORT).show()
                 showPresetPopup = false
             },
             onDismiss = { showPresetPopup = false },

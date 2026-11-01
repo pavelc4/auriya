@@ -5,6 +5,7 @@ pub enum ProfileMode {
     Performance,
     Balance,
     Powersave,
+    #[value(alias = "fas")]
     Fast,
 }
 

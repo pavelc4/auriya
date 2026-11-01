@@ -38,7 +38,7 @@ fun MiniMetricRow(
             "performance", "1" -> "Perf"
             "balance", "2" -> "Balance"
             "powersave", "3" -> "Saver"
-            "fast" -> "Fast"
+            "fast", "fas", "4" -> "FAS"
             else -> profile
         }
     Row(

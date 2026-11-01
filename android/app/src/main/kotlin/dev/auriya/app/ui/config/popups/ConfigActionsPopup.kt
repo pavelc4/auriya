@@ -1,6 +1,7 @@
 package dev.auriya.app.ui.config.popups
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -73,15 +74,24 @@ fun ConfigActionsPopup(
                     icon = Icons.Outlined.Share,
                     selected = false,
                     onClick = {
-                        val content = TomlParser.serializeSettings(settings)
-                        val sendIntent =
-                            Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, content)
-                                putExtra(Intent.EXTRA_TITLE, "settings.toml")
-                                type = "text/plain"
-                            }
-                        context.startActivity(Intent.createChooser(sendIntent, "Export settings.toml"))
+                        runCatching {
+                            val content = TomlParser.serializeSettings(settings)
+                            val sendIntent =
+                                Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, content)
+                                    putExtra(Intent.EXTRA_TITLE, "settings.toml")
+                                    type = "text/plain"
+                                }
+                            val chooserIntent =
+                                Intent.createChooser(sendIntent, "Export settings.toml").apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                            context.startActivity(chooserIntent)
+                        }.onFailure { e ->
+                            e.printStackTrace()
+                            Toast.makeText(context, "Failed to export config: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                        }
                         onDismiss()
                     },
                 )

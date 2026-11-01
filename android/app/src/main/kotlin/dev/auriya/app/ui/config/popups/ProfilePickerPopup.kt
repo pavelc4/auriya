@@ -13,11 +13,17 @@ fun ProfilePickerPopup(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val displayMode =
+        if (defaultMode.equals("fast", ignoreCase = true) || defaultMode.equals("fas", ignoreCase = true)) {
+            "FAS"
+        } else {
+            defaultMode.replaceFirstChar { it.uppercase() }
+        }
     ProfilePickerBottomSheet(
         selectedProfile = defaultMode,
         onSelect = onSelect,
         onDismiss = onDismiss,
         title = stringResource(R.string.config_default_profile),
-        subtitle = "${stringResource(R.string.common_active)}: ${defaultMode.replaceFirstChar { it.uppercase() }}",
+        subtitle = "${stringResource(R.string.common_active)}: $displayMode",
     )
 }

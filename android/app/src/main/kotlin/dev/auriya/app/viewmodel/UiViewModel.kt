@@ -408,7 +408,13 @@ class UiViewModel(
                 _availableGovernors.value = stats.cpu.available_governors
             }
             _thermalAvailable.value = stats.thermal.sconfig_supported
-            val profileStr = stats.session.profile.replaceFirstChar { it.uppercase() }
+            val rawProfile = stats.session.profile
+            val profileStr =
+                if (rawProfile.equals("fast", ignoreCase = true) || rawProfile.equals("fas", ignoreCase = true)) {
+                    "FAS"
+                } else {
+                    rawProfile.replaceFirstChar { it.uppercase() }
+                }
             val battery = stats.battery.pct?.let { "$it%" } ?: sysBattery
             val temp = stats.thermal.cpu_c?.let { "${it.toInt()}°C" }
                 ?: stats.thermal.battery_c?.let { "${it.toInt()}°C" }
@@ -456,7 +462,7 @@ class UiViewModel(
                         "1" -> "Performance"
                         "2" -> "Balance"
                         "3" -> "Powersave"
-                        "4" -> "Fast"
+                        "4", "fas", "fast" -> "FAS"
                         else -> currentProfileFile.replaceFirstChar { it.uppercase() }
                     }
                 } else {
@@ -467,7 +473,7 @@ class UiViewModel(
                         "performance" -> "Performance"
                         "balance" -> "Balance"
                         "powersave" -> "Powersave"
-                        "fast" -> "Fast"
+                        "fast", "fas", "4" -> "FAS"
                         "" -> "Unknown"
                         else -> fromSettings.replaceFirstChar { it.uppercase() }
                     }
@@ -532,7 +538,7 @@ class UiViewModel(
                 "1", "performance" -> "performance"
                 "2", "balance" -> "balance"
                 "3", "powersave" -> "powersave"
-                "4", "fast" -> "fast"
+                "4", "fast", "fas" -> "fast"
                 else -> "balance"
             }
         _currentProfile.value = modeString
@@ -545,7 +551,7 @@ class UiViewModel(
         _settings.value = updated
         _systemInfo.value =
             _systemInfo.value.copy(
-                profile = modeString.replaceFirstChar { it.uppercase() },
+                profile = if (modeString == "fast") "FAS" else modeString.replaceFirstChar { it.uppercase() },
             )
 
         updateProfileJob?.cancel()

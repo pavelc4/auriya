@@ -63,7 +63,11 @@ fun shareSessionCsv(
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
-        context.startActivity(Intent.createChooser(intent, "Share CSV Report with..."))
+        val chooser =
+            Intent.createChooser(intent, "Share CSV Report with...").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        context.startActivity(chooser)
     }.onFailure { e ->
         e.printStackTrace()
         Toast.makeText(context, "Failed to share: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
@@ -77,33 +81,48 @@ fun copyMarkdownReport(
     context: Context,
     session: BenchmarkSession,
 ) {
-    val displayJank =
-        if (session.samples.isNotEmpty()) {
-            session.samples.maxOfOrNull { it.jank } ?: session.totalJank
+    runCatching {
+        val displayJank =
+            if (session.samples.isNotEmpty()) {
+                session.samples.maxOfOrNull { it.jank } ?: session.totalJank
+            } else {
+                session.totalJank
+            }
+
+        val report =
+            buildString {
+                appendLine("### Auriya Benchmark Report: **${session.appLabel}**")
+                appendLine("- **Package:** `${session.packageName}`")
+                val displayProfile =
+                    if (session.profile.equals("fast", ignoreCase = true) || session.profile.equals("fas", ignoreCase = true)) {
+                        "FAS"
+                    } else {
+                        session.profile.replaceFirstChar { it.uppercase() }
+                    }
+                appendLine("- **Profile:** `$displayProfile`")
+                appendLine("- **Duration:** ${formatDuration(session.durationSeconds)} (${session.samplesCount} samples)")
+                appendLine("- **Average FPS:** **%.1f FPS**".format(java.util.Locale.US, session.avgFps))
+                appendLine("- **1% Low FPS:** **%.1f FPS**".format(java.util.Locale.US, session.minLow1Pct))
+                if (session.low01Pct > 0.0) appendLine("- **0.1% Low FPS:** **%.1f FPS**".format(java.util.Locale.US, session.low01Pct))
+                if (session.stdDevMs > 0.0) appendLine("- **Frame Pacing (σ):** **%.2f ms**".format(java.util.Locale.US, session.stdDevMs))
+                appendLine("- **Peak FPS:** **%.1f FPS**".format(java.util.Locale.US, session.maxFps))
+                appendLine("- **Jank Stutter:** $displayJank frames")
+                appendLine("- **Avg CPU Load:** %.1f%%".format(java.util.Locale.US, session.avgCpuLoad))
+                if (session.maxCpuTemp != null) appendLine("- **Peak CPU Temp:** %.1f°C".format(java.util.Locale.US, session.maxCpuTemp))
+                if (session.maxBatteryTemp != null) appendLine("- **Peak Battery Temp:** %.1f°C".format(java.util.Locale.US, session.maxBatteryTemp))
+                appendLine()
+                appendLine("*Captured with Auriya Daemon v2.0*")
+            }
+
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        if (clipboard != null) {
+            clipboard.setPrimaryClip(ClipData.newPlainText("Auriya Benchmark Report", report))
+            Toast.makeText(context, "Benchmark report copied to clipboard!", Toast.LENGTH_SHORT).show()
         } else {
-            session.totalJank
+            Toast.makeText(context, "Clipboard service unavailable", Toast.LENGTH_SHORT).show()
         }
-
-    val report =
-        buildString {
-            appendLine("### Auriya Benchmark Report: **${session.appLabel}**")
-            appendLine("- **Package:** `${session.packageName}`")
-            appendLine("- **Profile:** `${session.profile}`")
-            appendLine("- **Duration:** ${formatDuration(session.durationSeconds)} (${session.samplesCount} samples)")
-            appendLine("- **Average FPS:** **%.1f FPS**".format(session.avgFps))
-            appendLine("- **1% Low FPS:** **%.1f FPS**".format(session.minLow1Pct))
-            if (session.low01Pct > 0.0) appendLine("- **0.1% Low FPS:** **%.1f FPS**".format(session.low01Pct))
-            if (session.stdDevMs > 0.0) appendLine("- **Frame Pacing (σ):** **%.2f ms**".format(session.stdDevMs))
-            appendLine("- **Peak FPS:** **%.1f FPS**".format(session.maxFps))
-            appendLine("- **Jank Stutter:** $displayJank frames")
-            appendLine("- **Avg CPU Load:** %.1f%%".format(session.avgCpuLoad))
-            if (session.maxCpuTemp != null) appendLine("- **Peak CPU Temp:** %.1f°C".format(session.maxCpuTemp))
-            if (session.maxBatteryTemp != null) appendLine("- **Peak Battery Temp:** %.1f°C".format(session.maxBatteryTemp))
-            appendLine()
-            appendLine("*Captured with Auriya Daemon v2.0*")
-        }
-
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    clipboard.setPrimaryClip(ClipData.newPlainText("Auriya Benchmark Report", report))
-    Toast.makeText(context, "Benchmark report copied to clipboard!", Toast.LENGTH_SHORT).show()
+    }.onFailure { e ->
+        e.printStackTrace()
+        Toast.makeText(context, "Failed to copy: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+    }
 }
