@@ -3,11 +3,11 @@ use kala_ebpf::FrameProbe;
 use std::sync::mpsc as std_mpsc;
 use std::thread;
 use std::time::Duration;
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, oneshot};
 
 enum Cmd {
-    Attach(i32, std_mpsc::Sender<Result<()>>),
-    Detach(i32, std_mpsc::Sender<Result<bool>>),
+    Attach(i32, oneshot::Sender<Result<()>>),
+    Detach(i32, oneshot::Sender<Result<bool>>),
 }
 
 pub struct EbpfFrameStream {
@@ -66,39 +66,31 @@ impl EbpfFrameStream {
         self.rx.resubscribe()
     }
 
-    /// Attach the BPF program to a target process.
-    /// Blocking with a 1s timeout.
-    pub fn attach(&self, pid: i32) -> Result<()> {
-        let (reply_tx, reply_rx) = std_mpsc::channel();
+    /// Attach the BPF program to a target process asynchronously.
+    /// Non-blocking with a 1s timeout.
+    pub async fn attach(&self, pid: i32) -> Result<()> {
+        let (reply_tx, reply_rx) = oneshot::channel();
         self.cmd_tx
             .send(Cmd::Attach(pid, reply_tx))
             .map_err(|_| anyhow!("eBPF worker died"))?;
-        match reply_rx.recv_timeout(Duration::from_secs(1)) {
-            Ok(res) => res,
-            Err(std_mpsc::RecvTimeoutError::Timeout) => {
-                Err(anyhow!("attach({pid}) timed out after 1s"))
-            }
-            Err(std_mpsc::RecvTimeoutError::Disconnected) => {
-                Err(anyhow!("eBPF worker dropped reply channel"))
-            }
+        match tokio::time::timeout(Duration::from_secs(1), reply_rx).await {
+            Ok(Ok(res)) => res,
+            Ok(Err(_)) => Err(anyhow!("eBPF worker dropped reply channel")),
+            Err(_) => Err(anyhow!("attach({pid}) timed out after 1s")),
         }
     }
 
-    /// Detach the BPF program from a target process so the worker stops
-    /// draining its frames. Blocking with a 1s timeout.
-    pub fn detach(&self, pid: i32) -> Result<bool> {
-        let (reply_tx, reply_rx) = std_mpsc::channel();
+    /// Detach the BPF program from a target process asynchronously.
+    /// Non-blocking with a 1s timeout.
+    pub async fn detach(&self, pid: i32) -> Result<bool> {
+        let (reply_tx, reply_rx) = oneshot::channel();
         self.cmd_tx
             .send(Cmd::Detach(pid, reply_tx))
             .map_err(|_| anyhow!("eBPF worker died"))?;
-        match reply_rx.recv_timeout(Duration::from_secs(1)) {
-            Ok(res) => res,
-            Err(std_mpsc::RecvTimeoutError::Timeout) => {
-                Err(anyhow!("detach({pid}) timed out after 1s"))
-            }
-            Err(std_mpsc::RecvTimeoutError::Disconnected) => {
-                Err(anyhow!("eBPF worker dropped reply channel"))
-            }
+        match tokio::time::timeout(Duration::from_secs(1), reply_rx).await {
+            Ok(Ok(res)) => res,
+            Ok(Err(_)) => Err(anyhow!("eBPF worker dropped reply channel")),
+            Err(_) => Err(anyhow!("detach({pid}) timed out after 1s")),
         }
     }
 }

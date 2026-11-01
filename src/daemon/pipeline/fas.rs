@@ -77,8 +77,8 @@ impl Daemon {
         }
 
         match (pids.is_empty(), self.last.pid) {
-            (false, _) => self.sync_ebpf_pids(pids),
-            (true, Some(ref pid)) => self.sync_ebpf_pids(std::slice::from_ref(pid)),
+            (false, _) => self.sync_ebpf_pids(pids).await,
+            (true, Some(ref pid)) => self.sync_ebpf_pids(std::slice::from_ref(pid)).await,
             (true, None) => {}
         }
 

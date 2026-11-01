@@ -81,12 +81,40 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
         };
 
         tokio::select! {
-            _ = time::sleep(Duration::from_millis(sleep_ms)) => {
-                daemon.tick().await;
+            biased;
+            _ = signal::ctrl_c() => {
+                info!(target: "auriya::daemon", "Daemon | Received Ctrl-C, shutting down");
+                daemon.shutdown_cleanup();
+                break;
             }
-            Some(_) = status_rx.recv() => {
-                debug!(target: "auriya::daemon", "Status update received, triggering instant tick");
-                daemon.tick().await;
+            Some(ev) = event_rx.recv() => {
+                match ev {
+                    DaemonEvent::PidExited(pid) => {
+                        debug!(target: "auriya::daemon", "Tracked PID {} exited, triggering instant tick", pid);
+                        daemon.tick().await;
+                    }
+                    DaemonEvent::ForegroundChanged { pid, uid, foreground } => {
+                        if foreground
+                            && let Some(pkg) = crate::platform::common::procfs::get_process_package(pid)
+                        {
+                            daemon.status_cache.store(crate::core::status::SystemStatus {
+                                focused_app: Some(pkg),
+                                focused_pid: Some(pid),
+                                focused_uid: Some(uid),
+                                screen_awake: Some(true),
+                                battery_saver: None,
+                                zen_mode: None,
+                                is_floating: None,
+                            });
+                        }
+                        daemon.tick().await;
+                    }
+                    DaemonEvent::ModuleUpdate => {
+                        info!(target: "auriya::daemon", "Daemon | Module update staged, stopping gracefully");
+                        daemon.shutdown_cleanup();
+                        break;
+                    }
+                }
             }
             Some(p_ev) = proc_rx.recv() => {
                 match p_ev.event_type {
@@ -143,39 +171,12 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
                     daemon.tick().await;
                 }
             }
-            Some(ev) = event_rx.recv() => {
-                match ev {
-                    DaemonEvent::PidExited(pid) => {
-                        debug!(target: "auriya::daemon", "Tracked PID {} exited, triggering instant tick", pid);
-                        daemon.tick().await;
-                    }
-                    DaemonEvent::ForegroundChanged { pid, uid, foreground } => {
-                        if foreground
-                            && let Some(pkg) = crate::platform::common::procfs::get_process_package(pid)
-                        {
-                            daemon.status_cache.store(crate::core::status::SystemStatus {
-                                focused_app: Some(pkg),
-                                focused_pid: Some(pid),
-                                focused_uid: Some(uid),
-                                screen_awake: Some(true),
-                                battery_saver: None,
-                                zen_mode: None,
-                                is_floating: None,
-                            });
-                        }
-                        daemon.tick().await;
-                    }
-                    DaemonEvent::ModuleUpdate => {
-                        info!(target: "auriya::daemon", "Daemon | Module update staged, stopping gracefully");
-                        daemon.shutdown_cleanup();
-                        break;
-                    }
-                }
+            Some(_) = status_rx.recv() => {
+                debug!(target: "auriya::daemon", "Status update received, triggering instant tick");
+                daemon.tick().await;
             }
-            _ = signal::ctrl_c() => {
-                info!(target: "auriya::daemon", "Daemon | Received Ctrl-C, shutting down");
-                daemon.shutdown_cleanup();
-                break;
+            _ = time::sleep(Duration::from_millis(sleep_ms)) => {
+                daemon.tick().await;
             }
         }
     }

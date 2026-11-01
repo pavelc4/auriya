@@ -13,7 +13,7 @@ impl Daemon {
         gamelist: &GameList,
     ) -> Result<()> {
         match decision {
-            PipelineDecision::Powersave => self.apply_powersave_state(),
+            PipelineDecision::Powersave => self.apply_powersave_state().await,
             PipelineDecision::NoForeground => self.handle_no_foreground().await,
             PipelineDecision::NonWhitelisted {
                 pkg,
@@ -31,7 +31,7 @@ impl Daemon {
         }
     }
 
-    fn apply_powersave_state(&mut self) -> Result<()> {
+    async fn apply_powersave_state(&mut self) -> Result<()> {
         let (screen_awake, battery_saver) = self.status_cache.power_state();
         let target = ProfileMode::Powersave;
         if self.last.profile_mode != Some(target) {
@@ -43,7 +43,7 @@ impl Daemon {
             }
         }
         self.apply_ceiling_for_state(Some(crate::platform::cpu::ceiling::CeilingLevel::Low), None);
-        self.ebpf_detach_all();
+        self.ebpf_detach_all().await;
         if let Some(mut f) = self
             .fas_controller
             .as_ref()
@@ -99,7 +99,7 @@ impl Daemon {
         }
 
         self.apply_ceiling_for_state(None, None);
-        self.ebpf_detach_all();
+        self.ebpf_detach_all().await;
         if let Some(mut f) = self
             .fas_controller
             .as_ref()
@@ -236,7 +236,7 @@ impl Daemon {
 
         match effective_pids {
             [first, ..] => {
-                self.sync_ebpf_pids(effective_pids);
+                self.sync_ebpf_pids(effective_pids).await;
                 let primary_pid = Some(*first);
                 self.set_pid(primary_pid);
                 if let Some(mut f) = self
@@ -250,7 +250,7 @@ impl Daemon {
                 }
             }
             [] => {
-                self.ebpf_detach_all();
+                self.ebpf_detach_all().await;
                 if let Some(mut f) = self
                     .fas_controller
                     .as_ref()
@@ -378,8 +378,8 @@ impl Daemon {
         }
 
         match (pids.is_empty(), pid) {
-            (false, _) => self.sync_ebpf_pids(pids),
-            (true, p) => self.sync_ebpf_pids(std::slice::from_ref(&p)),
+            (false, _) => self.sync_ebpf_pids(pids).await,
+            (true, p) => self.sync_ebpf_pids(std::slice::from_ref(&p)).await,
         }
         self.sync_dnd(if enable_dnd {
             crate::platform::binder::DndMode::Priority
@@ -499,7 +499,7 @@ impl Daemon {
         }
     }
 
-    pub(crate) fn sync_ebpf_pids(&mut self, target_pids: &[i32]) {
+    pub(crate) async fn sync_ebpf_pids(&mut self, target_pids: &[i32]) {
         let Some(listener) = self.ebpf.as_ref() else {
             return;
         };
@@ -512,7 +512,7 @@ impl Daemon {
             .filter(|p| !target_pids.contains(p))
             .collect();
         for pid in to_detach {
-            match listener.detach(pid) {
+            match listener.detach(pid).await {
                 Ok(_) => debug!(target: "auriya::ebpf", "Detached frame probe from {pid}"),
                 Err(e) => warn!(target: "auriya::ebpf", "detach({pid}): {e}"),
             }
@@ -522,7 +522,7 @@ impl Daemon {
         // Attach new target PIDs
         for &pid in target_pids {
             if !self.attached_ebpf_pids.contains(&pid) {
-                match listener.attach(pid) {
+                match listener.attach(pid).await {
                     Ok(_) => {
                         self.attached_ebpf_pids.push(pid);
                         debug!(target: "auriya::ebpf", "Attached frame probe to {pid}");
@@ -533,12 +533,12 @@ impl Daemon {
         }
     }
 
-    pub(crate) fn ebpf_detach_all(&mut self) {
+    pub(crate) async fn ebpf_detach_all(&mut self) {
         let Some(listener) = self.ebpf.as_ref() else {
             return;
         };
         for pid in self.attached_ebpf_pids.drain(..) {
-            match listener.detach(pid) {
+            match listener.detach(pid).await {
                 Ok(_) => debug!(target: "auriya::ebpf", "Detached frame probe from {pid}"),
                 Err(e) => warn!(target: "auriya::ebpf", "detach({pid}): {e}"),
             }

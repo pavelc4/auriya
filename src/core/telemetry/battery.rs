@@ -11,7 +11,12 @@
 
 use std::fs;
 
-const BASE: &str = "/sys/class/power_supply/battery";
+const CAPACITY_PATH: &str = "/sys/class/power_supply/battery/capacity";
+const TEMP_PATH: &str = "/sys/class/power_supply/battery/temp";
+const CURRENT_NOW_PATH: &str = "/sys/class/power_supply/battery/current_now";
+const VOLTAGE_NOW_PATH: &str = "/sys/class/power_supply/battery/voltage_now";
+const STATUS_PATH: &str = "/sys/class/power_supply/battery/status";
+const HEALTH_PATH: &str = "/sys/class/power_supply/battery/health";
 
 #[derive(Debug, Clone, Default)]
 pub struct BatterySnapshot {
@@ -32,21 +37,29 @@ pub struct BatterySnapshot {
     pub health: Option<String>,
 }
 
-fn read_i32(node: &str) -> Option<i32> {
-    fs::read_to_string(format!("{BASE}/{node}"))
+fn read_i32(path: &str) -> Option<i32> {
+    let mut buf = [0u8; 32];
+    let n = match fs::File::open(path) {
+        Ok(mut f) => std::io::Read::read(&mut f, &mut buf).ok()?,
+        Err(_) => return None,
+    };
+    std::str::from_utf8(&buf[..n])
         .ok()?
         .trim()
         .parse::<i32>()
         .ok()
 }
 
-fn read_str(node: &str) -> Option<String> {
-    let s = fs::read_to_string(format!("{BASE}/{node}")).ok()?;
-    let t = s.trim();
-    if t.is_empty() {
-        None
-    } else {
-        Some(t.to_string())
+fn read_str(path: &str) -> Option<String> {
+    let mut buf = [0u8; 32];
+    let n = match fs::File::open(path) {
+        Ok(mut f) => std::io::Read::read(&mut f, &mut buf).ok()?,
+        Err(_) => return None,
+    };
+    let s = std::str::from_utf8(&buf[..n]).ok()?.trim();
+    match s.is_empty() {
+        true => None,
+        false => Some(s.to_string()),
     }
 }
 
@@ -72,14 +85,14 @@ pub fn parse_temp_c(raw: i32) -> Option<f32> {
 }
 
 pub fn snapshot() -> BatterySnapshot {
-    let pct = read_i32("capacity").and_then(|v| u8::try_from(v.clamp(0, 100)).ok());
-    let temp_c = read_i32("temp").and_then(parse_temp_c);
+    let pct = read_i32(CAPACITY_PATH).and_then(|v| u8::try_from(v.clamp(0, 100)).ok());
+    let temp_c = read_i32(TEMP_PATH).and_then(parse_temp_c);
     // current_now / voltage_now are in µA / µV.
-    let current_ma = read_i32("current_now").map(|ua| ua / 1000);
+    let current_ma = read_i32(CURRENT_NOW_PATH).map(|ua| ua / 1000);
     let voltage_v =
-        read_i32("voltage_now").map(|uv| (uv as f32 / 1_000_000.0 * 100.0).round() / 100.0);
-    let status = read_str("status");
-    let health = read_str("health");
+        read_i32(VOLTAGE_NOW_PATH).map(|uv| (uv as f32 / 1_000_000.0 * 100.0).round() / 100.0);
+    let status = read_str(STATUS_PATH);
+    let health = read_str(HEALTH_PATH);
 
     BatterySnapshot {
         pct,

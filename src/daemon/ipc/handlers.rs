@@ -182,12 +182,7 @@ where
 
     loop {
         tokio::select! {
-            _ = ticker.tick() => {
-                let json = ctx.build_stats_json().await;
-                if w.write_all(json.as_bytes()).await.is_err() {
-                    break;
-                }
-            }
+            biased;
             res = reader.read_line(&mut line) => {
                 match res {
                     Ok(n) if n > 0 => {
@@ -199,6 +194,12 @@ where
                         line.clear();
                     }
                     _ => break,
+                }
+            }
+            _ = ticker.tick() => {
+                let json = ctx.build_stats_json().await;
+                if w.write_all(json.as_bytes()).await.is_err() {
+                    break;
                 }
             }
         }
