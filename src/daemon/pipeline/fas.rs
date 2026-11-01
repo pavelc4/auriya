@@ -13,7 +13,7 @@ impl Daemon {
         pids: &[i32],
         gamelist: &GameList,
     ) -> Result<()> {
-        let Some(fas_arc) = self.fas_controller.as_ref().cloned() else {
+        let Some(fas_arc) = self.fas_controller.as_ref().map(Arc::clone) else {
             return Ok(());
         };
         let game_cfg = gamelist.find(pkg);
