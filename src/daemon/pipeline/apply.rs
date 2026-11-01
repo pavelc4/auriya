@@ -46,6 +46,7 @@ impl Daemon {
         let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
         let _ = crate::platform::binder::set_statusbar_lock(false);
         let _ = crate::platform::binder::set_high_touch_polling_rate(false);
+        let _ = crate::platform::binder::thaw_display_rotation(0);
         let _ = crate::platform::binder::set_power_mode(
             crate::platform::binder::PowerMode::ExpensiveRendering,
             false,
@@ -98,6 +99,8 @@ impl Daemon {
         self.sync_dnd(crate::platform::binder::DndMode::All);
         let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
         let _ = crate::platform::binder::set_statusbar_lock(false);
+        let _ = crate::platform::binder::set_high_touch_polling_rate(false);
+        let _ = crate::platform::binder::thaw_display_rotation(0);
         let _ = crate::platform::binder::set_high_touch_polling_rate(false);
         let _ = crate::platform::binder::set_power_mode(
             crate::platform::binder::PowerMode::ExpensiveRendering,
@@ -161,6 +164,7 @@ impl Daemon {
             let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
             let _ = crate::platform::binder::set_statusbar_lock(false);
             let _ = crate::platform::binder::set_high_touch_polling_rate(false);
+            let _ = crate::platform::binder::thaw_display_rotation(0);
             let _ = crate::platform::binder::set_power_mode(
                 crate::platform::binder::PowerMode::ExpensiveRendering,
                 false,
@@ -325,22 +329,38 @@ impl Daemon {
         } else {
             crate::platform::binder::DndMode::All
         });
-        let _ = crate::platform::binder::set_wifi_low_latency_lock(true);
-        let _ = crate::platform::binder::set_statusbar_lock(true);
-        let _ = crate::platform::binder::set_high_touch_polling_rate(true);
-        let _ = crate::platform::binder::set_power_mode(
-            crate::platform::binder::PowerMode::ExpensiveRendering,
-            true,
-        );
-        let _ = crate::platform::binder::set_power_mode(
-            crate::platform::binder::PowerMode::SustainedPerformance,
-            true,
-        );
+
+        let wifi_lock = game_cfg.map(|c| c.wifi_lock).unwrap_or(true);
+        let statusbar_lock = game_cfg.map(|c| c.statusbar_lock).unwrap_or(true);
+        let touch_boost = game_cfg.map(|c| c.touch_boost).unwrap_or(true);
+        let power_hal = game_cfg.map(|c| c.power_hal).unwrap_or(true);
+        let silence_vibrator = game_cfg.map(|c| c.silence_vibrator).unwrap_or(false);
+        let freeze_rotation = game_cfg.map(|c| c.freeze_rotation).unwrap_or(false);
+
+        let _ = crate::platform::binder::set_wifi_low_latency_lock(wifi_lock);
+        let _ = crate::platform::binder::set_statusbar_lock(statusbar_lock);
+        let _ = crate::platform::binder::set_high_touch_polling_rate(touch_boost);
+        if power_hal {
+            let _ = crate::platform::binder::set_power_mode(
+                crate::platform::binder::PowerMode::ExpensiveRendering,
+                true,
+            );
+            let _ = crate::platform::binder::set_power_mode(
+                crate::platform::binder::PowerMode::SustainedPerformance,
+                true,
+            );
+        }
         let _ = crate::platform::binder::set_power_mode(
             crate::platform::binder::PowerMode::DeviceIdle,
             false,
         );
-        let _ = crate::platform::binder::silence_vibrator();
+        if silence_vibrator {
+            let _ = crate::platform::binder::silence_vibrator();
+        }
+        if freeze_rotation {
+            let _ = crate::platform::binder::freeze_display_rotation(0, -1);
+        }
+
         self.last.pkg = Some(pkg.to_string());
         self.set_pid(Some(pid));
         Ok(())

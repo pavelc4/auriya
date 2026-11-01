@@ -178,6 +178,12 @@ object TomlParser {
         var currentMode: String? = null
         var currentCeiling: String? = null
         var currentThermal: String? = null
+        var currentWifiLock = true
+        var currentStatusbarLock = true
+        var currentTouchBoost = true
+        var currentPowerHal = true
+        var currentSilenceVibrator = false
+        var currentFreezeRotation = false
 
         fun commitCurrentGame() {
             if (currentPkg.isNotEmpty()) {
@@ -191,6 +197,12 @@ object TomlParser {
                         mode = currentMode,
                         ceiling = currentCeiling,
                         thermalPreset = currentThermal,
+                        wifiLock = currentWifiLock,
+                        statusbarLock = currentStatusbarLock,
+                        touchBoost = currentTouchBoost,
+                        powerHal = currentPowerHal,
+                        silenceVibrator = currentSilenceVibrator,
+                        freezeRotation = currentFreezeRotation,
                     ),
                 )
             }
@@ -210,6 +222,12 @@ object TomlParser {
                 currentMode = null
                 currentCeiling = null
                 currentThermal = null
+                currentWifiLock = true
+                currentStatusbarLock = true
+                currentTouchBoost = true
+                currentPowerHal = true
+                currentSilenceVibrator = false
+                currentFreezeRotation = false
                 return@forEach
             }
 
@@ -227,6 +245,12 @@ object TomlParser {
                 "mode" -> currentMode = parseStringValue(value)
                 "ceiling" -> currentCeiling = parseStringValue(value)
                 "thermal_preset" -> currentThermal = parseStringValue(value)
+                "wifi_lock" -> currentWifiLock = value.toBooleanStrictOrNull() ?: true
+                "statusbar_lock" -> currentStatusbarLock = value.toBooleanStrictOrNull() ?: true
+                "touch_boost" -> currentTouchBoost = value.toBooleanStrictOrNull() ?: true
+                "power_hal" -> currentPowerHal = value.toBooleanStrictOrNull() ?: true
+                "silence_vibrator" -> currentSilenceVibrator = value.toBooleanStrictOrNull() ?: false
+                "freeze_rotation" -> currentFreezeRotation = value.toBooleanStrictOrNull() ?: false
             }
         }
         commitCurrentGame()
@@ -256,6 +280,12 @@ object TomlParser {
                 if (game.thermalPreset != null) {
                     append("thermal_preset = \"").append(game.thermalPreset).append("\"\n")
                 }
+                append("wifi_lock = ").append(game.wifiLock).append("\n")
+                append("statusbar_lock = ").append(game.statusbarLock).append("\n")
+                append("touch_boost = ").append(game.touchBoost).append("\n")
+                append("power_hal = ").append(game.powerHal).append("\n")
+                append("silence_vibrator = ").append(game.silenceVibrator).append("\n")
+                append("freeze_rotation = ").append(game.freezeRotation).append("\n")
                 append("\n")
             }
         }

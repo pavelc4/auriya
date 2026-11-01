@@ -13,6 +13,12 @@ fn test_gamelist_add_find_and_update() {
         mode: None,
         ceiling: None,
         thermal_preset: None,
+        wifi_lock: true,
+        statusbar_lock: true,
+        touch_boost: true,
+        power_hal: true,
+        silence_vibrator: false,
+        freeze_rotation: false,
     };
 
     assert!(gl.add(p).is_ok());
@@ -28,6 +34,12 @@ fn test_gamelist_add_find_and_update() {
         mode: None,
         ceiling: None,
         thermal_preset: None,
+        wifi_lock: true,
+        statusbar_lock: true,
+        touch_boost: true,
+        power_hal: true,
+        silence_vibrator: false,
+        freeze_rotation: false,
     };
     assert!(gl.add(p_dup).is_err());
 
@@ -40,6 +52,13 @@ fn test_gamelist_add_find_and_update() {
         mode: Some("fast".to_string()),
         fps_array: None,
         ceiling: Some("high".to_string()),
+        thermal_preset: None,
+        wifi_lock: Some(false),
+        statusbar_lock: Some(true),
+        touch_boost: Some(true),
+        power_hal: Some(false),
+        silence_vibrator: Some(true),
+        freeze_rotation: Some(true),
     };
     assert!(gl.update("com.mobile.legends", upd).is_ok());
 
@@ -49,6 +68,9 @@ fn test_gamelist_add_find_and_update() {
     assert_eq!(found.refresh_rate, Some(120));
     assert_eq!(found.mode.as_deref(), Some("fast"));
     assert_eq!(found.ceiling.as_deref(), Some("high"));
+    assert!(!found.wifi_lock);
+    assert!(found.silence_vibrator);
+    assert!(found.freeze_rotation);
     match found.target_fps {
         Some(TargetFpsConfig::Single(fps)) => assert_eq!(fps, 90),
         _ => panic!("expected Single(90)"),
@@ -74,6 +96,12 @@ fn test_gamelist_remove() {
             mode: None,
             ceiling: None,
             thermal_preset: None,
+            wifi_lock: true,
+            statusbar_lock: true,
+            touch_boost: true,
+            power_hal: true,
+            silence_vibrator: false,
+            freeze_rotation: false,
         }],
     };
 

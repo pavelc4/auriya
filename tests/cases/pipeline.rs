@@ -122,6 +122,12 @@ fn test_decide_enter_game() {
             mode: Some("performance".to_string()),
             ceiling: None,
             thermal_preset: None,
+            wifi_lock: true,
+            statusbar_lock: true,
+            touch_boost: true,
+            power_hal: true,
+            silence_vibrator: false,
+            freeze_rotation: false,
         }],
     };
     let daemon = create_test_daemon(gamelist.clone());

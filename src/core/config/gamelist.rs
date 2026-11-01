@@ -86,6 +86,10 @@ pub struct GameList {
     pub game: Vec<GameProfile>,
 }
 
+const fn default_true() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GameProfile {
     pub package: String,
@@ -101,6 +105,18 @@ pub struct GameProfile {
     pub ceiling: Option<String>,
     #[serde(default)]
     pub thermal_preset: Option<String>,
+    #[serde(default = "default_true")]
+    pub wifi_lock: bool,
+    #[serde(default = "default_true")]
+    pub statusbar_lock: bool,
+    #[serde(default = "default_true")]
+    pub touch_boost: bool,
+    #[serde(default = "default_true")]
+    pub power_hal: bool,
+    #[serde(default)]
+    pub silence_vibrator: bool,
+    #[serde(default)]
+    pub freeze_rotation: bool,
 }
 
 impl GameList {
@@ -179,6 +195,27 @@ impl GameList {
         if upd.ceiling.is_some() {
             profile.ceiling = upd.ceiling;
         }
+        if upd.thermal_preset.is_some() {
+            profile.thermal_preset = upd.thermal_preset;
+        }
+        if let Some(w) = upd.wifi_lock {
+            profile.wifi_lock = w;
+        }
+        if let Some(s) = upd.statusbar_lock {
+            profile.statusbar_lock = s;
+        }
+        if let Some(t) = upd.touch_boost {
+            profile.touch_boost = t;
+        }
+        if let Some(p) = upd.power_hal {
+            profile.power_hal = p;
+        }
+        if let Some(v) = upd.silence_vibrator {
+            profile.silence_vibrator = v;
+        }
+        if let Some(f) = upd.freeze_rotation {
+            profile.freeze_rotation = f;
+        }
         Ok(())
     }
 }
@@ -192,4 +229,11 @@ pub struct GameProfileUpdate {
     pub mode: Option<String>,
     pub fps_array: Option<Vec<u32>>,
     pub ceiling: Option<String>,
+    pub thermal_preset: Option<String>,
+    pub wifi_lock: Option<bool>,
+    pub statusbar_lock: Option<bool>,
+    pub touch_boost: Option<bool>,
+    pub power_hal: Option<bool>,
+    pub silence_vibrator: Option<bool>,
+    pub freeze_rotation: Option<bool>,
 }

@@ -53,6 +53,12 @@ fun GameProfileScreen(
     var enableDnd by remember(game.packageName, game.enableDnd) { mutableStateOf(game.enableDnd) }
     var selectedCeiling by remember(game.packageName, game.ceiling) { mutableStateOf(game.ceiling ?: "default") }
     var selectedThermal by remember(game.packageName, game.thermalPreset) { mutableStateOf(game.thermalPreset ?: "default") }
+    var wifiLock by remember(game.packageName, game.wifiLock) { mutableStateOf(game.wifiLock) }
+    var statusbarLock by remember(game.packageName, game.statusbarLock) { mutableStateOf(game.statusbarLock) }
+    var touchBoost by remember(game.packageName, game.touchBoost) { mutableStateOf(game.touchBoost) }
+    var powerHal by remember(game.packageName, game.powerHal) { mutableStateOf(game.powerHal) }
+    var silenceVibrator by remember(game.packageName, game.silenceVibrator) { mutableStateOf(game.silenceVibrator) }
+    var freezeRotation by remember(game.packageName, game.freezeRotation) { mutableStateOf(game.freezeRotation) }
 
     val ceilingOptions = remember { listOf("default", "low", "balance", "high") }
     val thermalOptions = remember { listOf("default", "dynamic", "extreme", "class0", "incalls", "thermal20") }
@@ -87,6 +93,12 @@ fun GameProfileScreen(
         fps: Float = targetFps,
         refresh: Float = refreshRate,
         dnd: Boolean = enableDnd,
+        wifi: Boolean = wifiLock,
+        statusbar: Boolean = statusbarLock,
+        touch: Boolean = touchBoost,
+        power: Boolean = powerHal,
+        silence: Boolean = silenceVibrator,
+        freeze: Boolean = freezeRotation,
     ) {
         selectedMode = mode
         selectedGov = gov
@@ -95,6 +107,12 @@ fun GameProfileScreen(
         targetFps = fps
         refreshRate = refresh
         enableDnd = dnd
+        wifiLock = wifi
+        statusbarLock = statusbar
+        touchBoost = touch
+        powerHal = power
+        silenceVibrator = silence
+        freezeRotation = freeze
         onSave(
             GameProfile(
                 packageName = game.packageName,
@@ -105,6 +123,12 @@ fun GameProfileScreen(
                 mode = mode,
                 ceiling = if (ceiling == "default") null else ceiling,
                 thermalPreset = if (thermal == "default") null else thermal,
+                wifiLock = wifi,
+                statusbarLock = statusbar,
+                touchBoost = touch,
+                powerHal = power,
+                silenceVibrator = silence,
+                freezeRotation = freeze,
             ),
         )
     }
@@ -161,6 +185,12 @@ fun GameProfileScreen(
                     fps = 60f,
                     refresh = 0f,
                     dnd = true,
+                    wifi = true,
+                    statusbar = true,
+                    touch = true,
+                    power = true,
+                    silence = false,
+                    freeze = false,
                 )
             },
             onRemove =
@@ -213,6 +243,8 @@ fun GameProfileScreen(
                         dnd = enableDnd,
                         gov = selectedGov,
                         ceiling = selectedCeiling,
+                        wifiLock = wifiLock,
+                        touchBoost = touchBoost,
                     )
                 }
 
@@ -307,6 +339,71 @@ fun GameProfileScreen(
                                         autoRecord = it
                                         autoRecordPrefs.setAutoRecordEnabled(game.packageName, it)
                                     },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Section 3: Hardware & OS Actuators
+                item {
+                    SectionLabel(stringResource(R.string.games_actuators_section))
+                }
+
+                item {
+                    ExpressiveList(count = 6) { index ->
+                        when (index) {
+                            0 -> {
+                                SwitchRow(
+                                    title = stringResource(R.string.games_wifi_lock),
+                                    subtitle = stringResource(R.string.games_wifi_lock_desc),
+                                    checked = wifiLock,
+                                    onCheck = { updateAndSave(wifi = it) },
+                                )
+                            }
+
+                            1 -> {
+                                SwitchRow(
+                                    title = stringResource(R.string.games_statusbar_lock),
+                                    subtitle = stringResource(R.string.games_statusbar_lock_desc),
+                                    checked = statusbarLock,
+                                    onCheck = { updateAndSave(statusbar = it) },
+                                )
+                            }
+
+                            2 -> {
+                                SwitchRow(
+                                    title = stringResource(R.string.games_touch_boost),
+                                    subtitle = stringResource(R.string.games_touch_boost_desc),
+                                    checked = touchBoost,
+                                    onCheck = { updateAndSave(touch = it) },
+                                )
+                            }
+
+                            3 -> {
+                                SwitchRow(
+                                    title = stringResource(R.string.games_power_hal),
+                                    subtitle = stringResource(R.string.games_power_hal_desc),
+                                    checked = powerHal,
+                                    onCheck = { updateAndSave(power = it) },
+                                )
+                            }
+
+                            4 -> {
+                                SwitchRow(
+                                    title = stringResource(R.string.games_silence_vibrator),
+                                    subtitle = stringResource(R.string.games_silence_vibrator_desc),
+                                    checked = silenceVibrator,
+                                    onCheck = { updateAndSave(silence = it) },
+                                )
+                            }
+
+                            5 -> {
+                                SwitchRow(
+                                    title = stringResource(R.string.games_freeze_rotation),
+                                    subtitle = stringResource(R.string.games_freeze_rotation_desc),
+                                    checked = freezeRotation,
+                                    onCheck = { updateAndSave(freeze = it) },
                                 )
                             }
                         }

@@ -109,6 +109,8 @@ fun GameProfileHeroHeader(
     dnd: Boolean,
     gov: String,
     ceiling: String,
+    wifiLock: Boolean = true,
+    touchBoost: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val displayMode =
@@ -208,6 +210,24 @@ fun GameProfileHeroHeader(
                             text = "DnD",
                             containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
                             contentColor = MaterialTheme.colorScheme.error,
+                        )
+                    }
+
+                    if (wifiLock) {
+                        CompactMetricChip(
+                            icon = Icons.Outlined.Wifi,
+                            text = "Low Latency",
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+
+                    if (touchBoost) {
+                        CompactMetricChip(
+                            icon = Icons.Outlined.TouchApp,
+                            text = "Touch Boost",
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
                     }
                 }

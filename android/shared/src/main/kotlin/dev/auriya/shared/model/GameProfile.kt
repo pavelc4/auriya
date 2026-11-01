@@ -9,6 +9,12 @@ data class GameProfile(
     val mode: String? = null,
     val ceiling: String? = null,
     val thermalPreset: String? = null,
+    val wifiLock: Boolean = true,
+    val statusbarLock: Boolean = true,
+    val touchBoost: Boolean = true,
+    val powerHal: Boolean = true,
+    val silenceVibrator: Boolean = false,
+    val freezeRotation: Boolean = false,
 )
 
 data class GameList(
