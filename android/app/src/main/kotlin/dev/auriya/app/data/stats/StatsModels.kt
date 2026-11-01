@@ -69,6 +69,8 @@ data class Fps(
     val avg: Double,
     val peak: Double,
     val low_1pct: Double,
+    val low_01pct: Double = 0.0,
+    val std_dev_ms: Double = 0.0,
     val jank: Int,
     val frames: Int,
 )
@@ -217,6 +219,8 @@ object StatsParser {
                         avg = fpsObj.optDouble("avg", 0.0),
                         peak = fpsObj.optDouble("peak", 0.0),
                         low_1pct = fpsObj.optDouble("low_1pct", 0.0),
+                        low_01pct = fpsObj.optDouble("low_01pct", 0.0),
+                        std_dev_ms = fpsObj.optDouble("std_dev_ms", 0.0),
                         jank = fpsObj.optInt("jank", 0),
                         frames = fpsObj.optInt("frames", 0),
                     )

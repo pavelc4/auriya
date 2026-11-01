@@ -199,4 +199,5 @@ dependencies {
     implementation(libs.libsu.core)
     implementation(libs.libsu.io)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    testImplementation("junit:junit:4.13.2")
 }

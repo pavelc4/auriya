@@ -137,6 +137,8 @@ impl FasController {
                 avg: 0.0,
                 peak: 0.0,
                 low_1pct: 0.0,
+                low_01pct: 0.0,
+                std_dev_ms: 0.0,
                 jank: 0,
                 frames: 0,
             };

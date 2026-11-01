@@ -222,6 +222,22 @@ fun SessionPerformanceMetricsCard(
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
                 )
                 DetailStatItem(
+                    title = "0.1% Low",
+                    value = if (session.low01Pct > 0.0) "${AppPrefs.formatFps(session.low01Pct, roundFps)} FPS" else "--",
+                    icon = Icons.AutoMirrored.Filled.TrendingDown,
+                )
+                DetailStatItem(
+                    title = "Pacing (σ)",
+                    value = if (session.stdDevMs > 0.0) "%.2f ms".format(session.stdDevMs) else "< 1.0 ms",
+                    icon = Icons.Outlined.Timeline,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                DetailStatItem(
                     title = stringResource(R.string.record_jank_stutter),
                     value = "$displayJank frames",
                     icon = Icons.Outlined.WarningAmber,
@@ -230,6 +246,11 @@ fun SessionPerformanceMetricsCard(
                     title = stringResource(R.string.record_avg_cpu_load),
                     value = "%.1f%%".format(session.avgCpuLoad),
                     icon = Icons.Outlined.Memory,
+                )
+                DetailStatItem(
+                    title = "Duration",
+                    value = formatDuration(session.durationSeconds),
+                    icon = Icons.Outlined.Timer,
                 )
             }
         }

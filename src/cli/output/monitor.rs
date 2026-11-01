@@ -6,8 +6,8 @@ pub fn print_monitor_frame(snap: &StatsSnapshot, oneline: bool) {
             format!("{:.1} FPS", f.avg)
         } else {
             format!(
-                "{:.1} FPS (1% low: {:.1}, peak: {:.0})",
-                f.avg, f.low_1pct, f.peak
+                "{:.1} FPS (1% low: {:.1}, 0.1% low: {:.1}, peak: {:.0}, σ: {:.2}ms)",
+                f.avg, f.low_1pct, f.low_01pct, f.peak, f.std_dev_ms
             )
         }
     } else if snap.session.active {

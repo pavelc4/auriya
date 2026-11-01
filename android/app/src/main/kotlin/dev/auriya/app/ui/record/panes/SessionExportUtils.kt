@@ -92,6 +92,8 @@ fun copyMarkdownReport(
             appendLine("- **Duration:** ${formatDuration(session.durationSeconds)} (${session.samplesCount} samples)")
             appendLine("- **Average FPS:** **%.1f FPS**".format(session.avgFps))
             appendLine("- **1% Low FPS:** **%.1f FPS**".format(session.minLow1Pct))
+            if (session.low01Pct > 0.0) appendLine("- **0.1% Low FPS:** **%.1f FPS**".format(session.low01Pct))
+            if (session.stdDevMs > 0.0) appendLine("- **Frame Pacing (σ):** **%.2f ms**".format(session.stdDevMs))
             appendLine("- **Peak FPS:** **%.1f FPS**".format(session.maxFps))
             appendLine("- **Jank Stutter:** $displayJank frames")
             appendLine("- **Avg CPU Load:** %.1f%%".format(session.avgCpuLoad))

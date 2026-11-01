@@ -259,6 +259,55 @@ fun FpsDetailPane(
             }
 
             item {
+                val low01Pct =
+                    if (isLive) {
+                        dev.auriya.app.data.AppPrefs.formatFps(fps.low_01pct, roundFps)
+                    } else if (lastSession != null && lastSession.low01Pct > 0.0) {
+                        dev.auriya.app.data.AppPrefs.formatFps(lastSession.low01Pct, roundFps)
+                    } else {
+                        "--"
+                    }
+
+                val stdDev =
+                    if (isLive) {
+                        "%.2f ms".format(fps.std_dev_ms)
+                    } else if (lastSession != null && lastSession.stdDevMs > 0.0) {
+                        "%.2f ms".format(lastSession.stdDevMs)
+                    } else {
+                        "--"
+                    }
+
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    DetailCard(
+                        title = "0.1% Low",
+                        value = if (low01Pct != "--") "$low01Pct FPS" else "--",
+                        desc = "Threshold of worst 0.1% lag spikes",
+                        icon = Icons.AutoMirrored.Filled.TrendingDown,
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                    )
+                    DetailCard(
+                        title = "Frame Pacing (σ)",
+                        value = stdDev,
+                        desc = "Std dev variance (≤ 2.0ms is stable)",
+                        icon = Icons.Outlined.Timeline,
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                    )
+                }
+            }
+
+            item {
                 val jank =
                     if (isLive) {
                         "${fps.jank}"
