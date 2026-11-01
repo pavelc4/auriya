@@ -105,7 +105,7 @@ fun computeSessionStats(samples: List<BenchmarkSample>): SessionStatsResult {
     // 5. Peak FPS clamped to physical scanout ceiling
     val rawMaxFps = activeSamples.maxOfOrNull { it.fps } ?: 0.0
     val maxFps =
-        if (dominantTarget != null && rawMaxFps > dominantTarget && kotlin.math.abs(avgFps - dominantTarget) <= 5.0) {
+        if (dominantTarget != null && rawMaxFps > dominantTarget) {
             dominantTarget
         } else {
             rawMaxFps
@@ -267,39 +267,48 @@ class BenchmarkRepository(
         val computed = computeSessionStats(samplesList)
 
         // Read stored metrics with VSync scanout validation and robust fallback
-        val rawStoredAvg = if (obj.has("avgFps") && obj.getDouble("avgFps") > 0.0) {
-            obj.getDouble("avgFps")
+        val standardTargets = listOf(30.0, 45.0, 60.0, 90.0, 120.0, 144.0)
+        val finalAvgFps = if (samplesList.isNotEmpty()) {
+            computed.avgFps
+        } else if (obj.has("avgFps") && obj.getDouble("avgFps") > 0.0) {
+            val raw = obj.getDouble("avgFps")
+            standardTargets.find { kotlin.math.abs(raw - it) <= 1.5 } ?: raw
         } else {
             computed.avgFps
         }
-        val standardTargets = listOf(30.0, 45.0, 60.0, 90.0, 120.0, 144.0)
-        val matchedTarget = standardTargets.find { kotlin.math.abs(rawStoredAvg - it) <= 0.8 }
-        val finalAvgFps = matchedTarget ?: rawStoredAvg
 
-        val finalLow1Pct = if (obj.has("minLow1Pct") && obj.getDouble("minLow1Pct") > 0.0) {
+        val finalLow1Pct = if (samplesList.isNotEmpty()) {
+            computed.minLow1Pct
+        } else if (obj.has("minLow1Pct") && obj.getDouble("minLow1Pct") > 0.0) {
             obj.getDouble("minLow1Pct").coerceAtMost(finalAvgFps)
         } else {
             computed.minLow1Pct
         }
-        val finalLow01Pct = if (obj.has("low01Pct") && obj.getDouble("low01Pct") > 0.0) {
+
+        val finalLow01Pct = if (samplesList.isNotEmpty()) {
+            computed.low01Pct
+        } else if (obj.has("low01Pct") && obj.getDouble("low01Pct") > 0.0) {
             obj.getDouble("low01Pct").coerceAtMost(finalLow1Pct)
         } else {
             computed.low01Pct
         }
-        val finalStdDevMs = if (obj.has("stdDevMs") && obj.getDouble("stdDevMs") > 0.0) {
+
+        val finalStdDevMs = if (samplesList.isNotEmpty()) {
+            computed.stdDevMs
+        } else if (obj.has("stdDevMs") && obj.getDouble("stdDevMs") > 0.0) {
             obj.getDouble("stdDevMs")
         } else {
             computed.stdDevMs
         }
-        val rawStoredMax = if (obj.has("maxFps") && obj.getDouble("maxFps") > 0.0) {
-            obj.getDouble("maxFps")
+
+        val finalMaxFps = if (samplesList.isNotEmpty()) {
+            computed.maxFps
+        } else if (obj.has("maxFps") && obj.getDouble("maxFps") > 0.0) {
+            val raw = obj.getDouble("maxFps")
+            val matchedTarget = standardTargets.find { kotlin.math.abs(finalAvgFps - it) <= 2.0 }
+            if (matchedTarget != null && raw > matchedTarget) matchedTarget else raw
         } else {
             computed.maxFps
-        }
-        val finalMaxFps = if (matchedTarget != null && rawStoredMax > matchedTarget && kotlin.math.abs(finalAvgFps - matchedTarget) <= 5.0) {
-            matchedTarget
-        } else {
-            rawStoredMax
         }
         val finalJank = if (obj.has("totalJank")) obj.optInt("totalJank") else computed.totalJank
 

@@ -223,7 +223,7 @@ impl Daemon {
                 .as_ref()
                 .and_then(|fas| fas.try_lock().ok())
             {
-                f.set_package(pkg.to_string(), Some(pid));
+                f.set_package(pkg, Some(pid));
                 f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(vec![
                     30, 45, 60, 90, 120, 144,
                 ]));

@@ -15,6 +15,7 @@ mod platform;
 mod procfs;
 mod settings;
 mod stats;
+mod stream_parser;
 mod system_status;
 mod thermal;
 mod watcher;

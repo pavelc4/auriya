@@ -92,15 +92,18 @@ impl FasController {
         self.transition_not_working();
     }
 
-    pub fn set_package(&mut self, package: String, pid: Option<i32>) {
+    pub fn set_package(&mut self, package: &str, pid: Option<i32>) {
         if self.package == package {
             return;
         }
         tracing::debug!(target: "auriya::fas", "Switching to package: {}", package);
-        self.package = package;
+        self.package.clear();
+        self.package.push_str(package);
         self.pid = pid;
         self.last_attached_pkg.clear();
-        self.buffer.clear();
+        // Warm handover: reset governor queues without discarding real frame telemetry,
+        // preventing sudden drop to 0 FPS on the UI during app transitions.
+        self.buffer.reset_governor();
         self.bottleneck.reset();
         self.transition_not_working();
     }
@@ -112,13 +115,13 @@ impl FasController {
     }
 
     pub fn set_target_fps(&mut self, fps: u32) {
-        self.buffer = FrameBuffer::new(TargetFps::Single(fps));
+        self.buffer.set_target_fps_config(TargetFps::Single(fps));
         self.bottleneck.reset();
         self.transition_not_working();
     }
 
     pub fn set_target_fps_config(&mut self, config: TargetFps) {
-        self.buffer = FrameBuffer::new(config);
+        self.buffer.set_target_fps_config(config);
         self.bottleneck.reset();
         self.transition_not_working();
     }
@@ -129,37 +132,34 @@ impl FasController {
 
     /// Windowed FPS stats (avg/peak/1%-low/jank) for IPC telemetry APIs,
     /// computed from the most recent 1-second window of real presented frames.
+    /// Uses stack-allocated buffer for strict zero-heap allocation hot-path execution.
     pub fn fps_stats(&self) -> crate::core::stats::FpsStats {
         if self.package.is_empty()
             || self.buffer.time_since_last_frame() >= Duration::from_millis(1500)
         {
-            return crate::core::stats::FpsStats {
-                avg: 0.0,
-                peak: 0.0,
-                low_1pct: 0.0,
-                low_01pct: 0.0,
-                std_dev_ms: 0.0,
-                jank: 0,
-                frames: 0,
-            };
+            return crate::core::stats::FpsStats::empty();
         }
-        let target = self.get_target_fps();
-        let window_size = (target as usize).clamp(30, 240);
-        crate::core::stats::fps_stats_from_frametimes(
-            &self.buffer.recent_real_frametimes(window_size),
-            target,
-        )
+        let target = self.buffer.target_fps.unwrap_or(0);
+        let window_size = if target > 0 {
+            ((target * 2) as usize).clamp(60, 240)
+        } else {
+            120
+        };
+        let mut buf = [0.0f64; 240];
+        let count = self
+            .buffer
+            .copy_recent_real_frametimes_secs(&mut buf[..window_size]);
+        if count == 0 {
+            return crate::core::stats::FpsStats::empty();
+        }
+        crate::core::stats::fps_stats_compute_in_place(&mut buf[..count], target, None)
     }
 
     /// Drain per-frame timestamps from the frame stream into the buffer
-    /// and advance controller state. Used for continuous zero-overhead FPS metering.
+    /// and advance controller state. Zero-heap allocation hot-path.
     pub fn drain_frames(&mut self) {
-        let frames = self.source.drain_frame_times();
-        if !frames.is_empty() {
-            for ft in frames {
-                self.buffer.push(ft);
-            }
-        } else if self.buffer.time_since_last_frame() >= FRAME_TIMEOUT {
+        let count = self.source.drain_into_buffer(&mut self.buffer);
+        if count == 0 && self.buffer.time_since_last_frame() >= FRAME_TIMEOUT {
             self.buffer.additional_frametime();
         }
 

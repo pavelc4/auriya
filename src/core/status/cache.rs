@@ -62,9 +62,21 @@ impl SystemStatusCache {
     }
 
     /// Convenience: derive the (`screen_awake`, `battery_saver`) pair
-    /// the tick loop needs. Defaults to `(true, false)` when the
-    /// respective field is unset.
+    /// the tick loop needs. Uses Native Binder IPowerManager for real-time interactive state on Android.
     pub fn power_state(&self) -> (bool, bool) {
+        #[cfg(target_os = "android")]
+        {
+            let client = crate::platform::binder::BinderClient::new();
+            if let Ok(interactive) = client.is_screen_interactive() {
+                let guard = self.inner.read().ok();
+                let saver = match guard.as_deref().and_then(|opt| opt.as_ref()) {
+                    Some(s) => s.battery_saver.unwrap_or(false),
+                    None => false,
+                };
+                return (interactive, saver);
+            }
+        }
+
         let guard = self.inner.read().ok();
         match guard.as_deref().and_then(|opt| opt.as_ref()) {
             Some(s) => (

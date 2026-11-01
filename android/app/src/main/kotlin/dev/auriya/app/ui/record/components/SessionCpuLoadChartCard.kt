@@ -5,7 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -94,34 +95,29 @@ fun SessionCpuLoadChartCard(
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.4f))
                         .pointerInput(samples) {
-                            detectDragGestures(
-                                onDragStart = { offset ->
-                                    val w = size.width.toFloat()
-                                    val stepX = w / (samples.size - 1).coerceAtLeast(1)
-                                    val startX = offset.x.coerceIn(0f, w)
-                                    scrubPixelX = startX
-                                    scrubIndex = (startX / stepX).roundToInt().coerceIn(0, samples.size - 1)
-                                },
-                                onDragEnd = {
-                                    scrubIndex = null
-                                    scrubPixelX = null
-                                },
-                                onDragCancel = {
-                                    scrubIndex = null
-                                    scrubPixelX = null
-                                },
-                                onDrag = { change, _ ->
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val w = size.width.toFloat()
+                                val stepX = w / (samples.size - 1).coerceAtLeast(1)
+
+                                fun updatePointer(posX: Float) {
+                                    val clampedX = posX.coerceIn(0f, w)
+                                    scrubPixelX = clampedX
+                                    scrubIndex = (clampedX / stepX).roundToInt().coerceIn(0, samples.size - 1)
+                                }
+
+                                updatePointer(down.position.x)
+
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull() ?: break
+                                    if (!change.pressed) break
+                                    updatePointer(change.position.x)
                                     change.consume()
-                                    val w = size.width.toFloat()
-                                    val stepX = w / (samples.size - 1).coerceAtLeast(1)
-                                    val currentX = change.position.x.coerceIn(0f, w)
-                                    scrubPixelX = currentX
-                                    val idx = (currentX / stepX).roundToInt().coerceIn(0, samples.size - 1)
-                                    if (scrubIndex != idx) {
-                                        scrubIndex = idx
-                                    }
-                                },
-                            )
+                                }
+                                scrubIndex = null
+                                scrubPixelX = null
+                            }
                         },
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -182,11 +178,17 @@ fun SessionCpuLoadChartCard(
                         style = Stroke(width = 2.4.dp.toPx(), cap = StrokeCap.Round),
                     )
 
-                    // Scrub Line & Dots at exact pixel coordinate
-                    scrubIndex?.let { idx ->
-                        val targetX = scrubPixelX ?: (idx * stepX)
-                        val currentSample = samples[idx]
-                        val sy = h - (currentSample.cpuLoad / 100f).coerceIn(0f, 1f) * h
+                    // Continuous Smooth Scrub Line & Dots along exact curve
+                    scrubPixelX?.let { targetX ->
+                        val rawIdx = (targetX / stepX).coerceIn(0f, (samples.size - 1).toFloat())
+                        val i0 = rawIdx.toInt().coerceIn(0, samples.size - 1)
+                        val i1 = (i0 + 1).coerceAtMost(samples.size - 1)
+                        val frac = rawIdx - i0
+
+                        val s0 = samples[i0]
+                        val s1 = samples[i1]
+                        val interpLoad = s0.cpuLoad + frac * (s1.cpuLoad - s0.cpuLoad)
+                        val sy = h - (interpLoad / 100f).coerceIn(0f, 1f) * h
 
                         drawLine(
                             color = guidelineColor,

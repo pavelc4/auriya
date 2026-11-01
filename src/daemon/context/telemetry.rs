@@ -6,31 +6,29 @@ use std::sync::atomic::Ordering;
 impl DaemonContext {
     /// Format foreground PID response.
     pub fn get_pid(&self) -> String {
-        let st = self
-            .current_state
-            .read()
-            .ok()
-            .map(|g| g.clone())
-            .unwrap_or_default();
-        match (st.pkg, st.pid) {
-            (Some(p), Some(id)) => format!("PKG={p} PID={id}\n"),
-            (Some(p), None) => format!("PKG={p} PID=None\n"),
-            _ => "PKG=None PID=None\n".into(),
+        match self.current_state.read() {
+            Ok(ref st) => match (&st.pkg, st.pid) {
+                (Some(p), Some(id)) => format!("PKG={p} PID={id}\n"),
+                (Some(p), None) => format!("PKG={p} PID=None\n"),
+                _ => "PKG=None PID=None\n".into(),
+            },
+            Err(_) => "PKG=None PID=None\n".into(),
         }
     }
 
     /// Format daemon status report with telemetry.
     pub fn status(&self) -> String {
         let enabled = self.enabled.load(Ordering::Acquire);
-        let n = self
-            .shared_config
-            .read()
-            .ok()
-            .map(|c| c.game.len())
-            .unwrap_or(0);
-        let ov = self.override_foreground.read().ok().and_then(|o| o.clone());
+        let n = match self.shared_config.read() {
+            Ok(ref c) => c.game.len(),
+            Err(_) => 0,
+        };
+        let ov = match self.override_foreground.read() {
+            Ok(ref o) => o.as_deref().map(str::to_string),
+            Err(_) => None,
+        };
         let log_level = match self.current_log_level.read() {
-            Ok(l) => format!("{l:?}"),
+            Ok(ref l) => format!("{l:?}"),
             Err(_) => "Unknown".to_string(),
         };
 
@@ -40,12 +38,10 @@ impl DaemonContext {
             "UNAVAILABLE"
         };
 
-        let telemetry = self
-            .current_state
-            .read()
-            .ok()
-            .map(|st| format_telemetry(&st))
-            .unwrap_or_default();
+        let telemetry = match self.current_state.read() {
+            Ok(ref st) => format_telemetry(st),
+            Err(_) => String::new(),
+        };
 
         format!(
             "ENABLED={enabled} BINDER={binder} PACKAGES={n} OVERRIDE={ov:?} LOG_LEVEL={log_level}\n{telemetry}"
@@ -58,7 +54,7 @@ impl DaemonContext {
             .current_state
             .read()
             .ok()
-            .map(|s| s.pkg.is_some() && s.pid.is_some() && s.screen_awake)
+            .map(|s| s.pkg.is_some())
             .unwrap_or(false);
         let fps = if is_monitored {
             self.get_fps_stats().await.filter(|f| f.frames > 0)

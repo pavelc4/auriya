@@ -9,6 +9,7 @@
 //   - drain_frame_times()    — drain every per-frame delta produced
 //                              since the last call, ordered oldest → newest
 
+use super::buffer::FrameBuffer;
 use anyhow::Result;
 use std::time::Duration;
 use tokio::sync::broadcast;
@@ -33,11 +34,44 @@ impl FrameSource {
     /// The actual eBPF attach is handled by `EbpfFrameStream::attach`.
     /// This method records the package name for bookkeeping.
     pub fn attach(&mut self, package: &str, _pid: i32) -> Result<()> {
-        self.package = package.to_string();
+        if self.package != package {
+            self.package.clear();
+            self.package.push_str(package);
+        }
         Ok(())
     }
 
-    /// Drain every per-frame delta produced since the last call.
+    pub fn drain_into_buffer(&mut self, buffer: &mut FrameBuffer) -> usize {
+        let mut count = 0;
+        loop {
+            match self.rx.try_recv() {
+                Ok(dt) => {
+                    if dt < Duration::from_millis(500) {
+                        buffer.push(dt);
+                        count += 1;
+                    }
+                }
+                Err(broadcast::error::TryRecvError::Empty) => break,
+                Err(broadcast::error::TryRecvError::Closed) => {
+                    tracing::error!(
+                        target: "auriya::fas",
+                        "eBPF broadcast closed; FAS frame consumption terminated"
+                    );
+                    break;
+                }
+                Err(broadcast::error::TryRecvError::Lagged(n)) => {
+                    tracing::debug!(
+                        target: "auriya::fas",
+                        "eBPF broadcast lagged by {n} frames"
+                    );
+                    continue;
+                }
+            }
+        }
+        count
+    }
+
+    /// Drain every per-frame delta produced since the last call into an owned vector.
     pub fn drain_frame_times(&mut self) -> Vec<Duration> {
         let mut out = Vec::new();
         loop {
@@ -62,16 +96,6 @@ impl FrameSource {
                     continue;
                 }
             }
-        }
-
-        if !out.is_empty() {
-            tracing::debug!(
-                target: "auriya::fas",
-                "drained {} frame deltas (first {:.2}ms last {:.2}ms)",
-                out.len(),
-                out.first().unwrap().as_secs_f64() * 1000.0,
-                out.last().unwrap().as_secs_f64() * 1000.0
-            );
         }
         out
     }

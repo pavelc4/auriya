@@ -55,6 +55,27 @@ fn peak_clamped_to_display_scanout_ceiling() {
 }
 
 #[test]
+fn vsync_120hz_snaps_119_boundary_jitter_and_clamps_peak() {
+    use auriya::core::stats::fps_stats_from_frametimes_with_display;
+
+    // 118 frames at 8.38ms (119.3 FPS) + 1 frame at 8.10ms (123.4 FPS raw peak)
+    // Simulates discrete 1-second window boundary truncation on 120Hz panel
+    let mut ft: Vec<Duration> = std::iter::repeat_n(ms(8.38), 118).collect();
+    ft.push(ms(8.10));
+
+    let s = fps_stats_from_frametimes_with_display(&ft, 0, Some(120.0));
+
+    assert_eq!(s.frames, 119);
+    // Boundary jitter (119.3 FPS raw) with pristine pacing (sigma < 1.0ms) snaps cleanly to 120.0 FPS
+    assert_eq!(
+        s.avg, 120.0,
+        "snaps 119.3 boundary jitter to 120Hz VSync target"
+    );
+    // 123.4 FPS peak queue burst clamped strictly to 120.0Hz physical scanout ceiling
+    assert_eq!(s.peak, 120.0, "peak clamped to 120.0Hz scanout ceiling");
+}
+
+#[test]
 fn extreme_micro_stutter_captured_in_p01() {
     // 1000 frames: 998 clean 16.6ms + 1 × 33.3ms + 1 × 100ms stall (extreme spike)
     let mut ft: Vec<Duration> = std::iter::repeat_n(ms(16.666), 998).collect();

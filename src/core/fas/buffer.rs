@@ -108,6 +108,13 @@ impl FrameBuffer {
         self.unusable_since = Some(Instant::now());
     }
 
+    pub fn reset_governor(&mut self) {
+        self.frametimes.clear();
+        self.current_fps_long = 0.0;
+        self.current_fps_short = 0.0;
+        self.mark_unusable();
+    }
+
     pub fn clear(&mut self) {
         self.frametimes.clear();
         self.real_frametimes.clear();
@@ -130,6 +137,20 @@ impl FrameBuffer {
     /// ensuring telemetry APIs (`GET_STATS`, `STREAM_STATS`) reflect true render rate.
     pub fn recent_real_frametimes(&self, n: usize) -> Vec<Duration> {
         self.real_frametimes.iter().take(n).copied().collect()
+    }
+
+    pub fn copy_recent_real_frametimes_secs(&self, out: &mut [f64]) -> usize {
+        let count = out.len().min(self.real_frametimes.len());
+        for (i, dt) in self.real_frametimes.iter().take(count).enumerate() {
+            out[i] = dt.as_secs_f64();
+        }
+        count
+    }
+
+    /// Update target FPS configuration without discarding real frame telemetry.
+    pub fn set_target_fps_config(&mut self, config: TargetFps) {
+        self.target_fps_config = config;
+        self.detect_target_fps();
     }
 
     /// Newest frame in the ring (front), or None if empty.
@@ -183,11 +204,7 @@ impl FrameBuffer {
         let min_fps = targets.first().unwrap_or(&30).saturating_sub(10).max(10);
         if current_fps < min_fps as f64 {
             if self.target_fps.take().is_some() {
-                self.frametimes.clear();
-                self.real_frametimes.clear();
-                self.current_fps_long = 0.0;
-                self.current_fps_short = 0.0;
-                self.mark_unusable();
+                self.reset_governor();
             }
             return;
         }
@@ -212,11 +229,7 @@ impl FrameBuffer {
         }
 
         if self.target_fps.is_some() {
-            self.frametimes.clear();
-            self.real_frametimes.clear();
-            self.current_fps_long = 0.0;
-            self.current_fps_short = 0.0;
-            self.mark_unusable();
+            self.reset_governor();
         }
         self.target_fps = new_target;
     }

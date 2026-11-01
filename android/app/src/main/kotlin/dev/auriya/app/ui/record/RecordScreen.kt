@@ -498,6 +498,7 @@ fun RecordScreen(
                         color = MaterialTheme.colorScheme.surfaceContainerLowest,
                     ) {
                         val roundFps by viewModel.roundFps.collectAsStateWithLifecycle()
+                        val lastSession = benchmarkSessions.firstOrNull()
                         LazyColumn(
                             modifier =
                                 Modifier
@@ -510,8 +511,7 @@ fun RecordScreen(
                             item {
                                 val session = liveStats?.session
                                 val fps = liveStats?.fps
-                                val isSessionActive = session?.active == true
-                                val lastSession = benchmarkSessions.firstOrNull()
+                                val isSessionActive = session?.active == true || (fps != null && fps.avg > 0.0)
 
                                 Surface(
                                     shape = RoundedCornerShape(24.dp),
@@ -562,52 +562,26 @@ fun RecordScreen(
                                                 )
                                             }
 
-                                            if (isSessionActive) {
-                                                Surface(
-                                                    shape = RoundedCornerShape(6.dp),
-                                                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                                    ) {
-                                                        Box(
-                                                            modifier =
-                                                                Modifier
-                                                                    .size(6.dp)
-                                                                    .clip(CircleShape)
-                                                                    .background(MaterialTheme.colorScheme.tertiary),
-                                                        )
-                                                        Text(
-                                                            text =
-                                                                androidx.compose.ui.res
-                                                                    .stringResource(dev.auriya.app.R.string.common_active),
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                                            fontSize = 10.sp,
-                                                        )
-                                                    }
+                                            val activePkgName = session?.pkg
+                                            val rightHeaderLabel =
+                                                when {
+                                                    isSessionActive && !activePkgName.isNullOrEmpty() ->
+                                                        activePkgName.substringAfterLast('.')
+                                                    lastSession != null ->
+                                                        lastSession.appLabel
+                                                    else ->
+                                                        "System Monitor"
                                                 }
-                                            } else if (lastSession != null) {
-                                                Text(
-                                                    text = lastSession.appLabel,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    fontSize = 11.sp,
-                                                )
-                                            } else {
-                                                Text(
-                                                    text = "System Monitor",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    fontSize = 11.sp,
-                                                )
-                                            }
+
+                                            Text(
+                                                text = rightHeaderLabel,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                fontSize = 11.sp,
+                                            )
                                         }
 
                                         Row(
@@ -681,10 +655,12 @@ fun RecordScreen(
                                             androidx.compose.ui.res
                                                 .stringResource(dev.auriya.app.R.string.record_fps_frametimes),
                                         subtitle =
-                                            if (fps != null && liveStats?.session?.active == true) {
+                                            if (fps != null && fps.frames > 0) {
                                                 "Avg ${dev.auriya.app.data.AppPrefs.formatFps(fps.avg, roundFps)} FPS • 1% Low ${dev.auriya.app.data.AppPrefs.formatFps(fps.low_1pct, roundFps)} FPS • ${fps.jank} Jank"
+                                            } else if (lastSession != null) {
+                                                "Last: Avg ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.avgFps, roundFps)} FPS • 1% Low ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.minLow1Pct, roundFps)} FPS"
                                             } else {
-                                                "View real-time frame rates and sparkline"
+                                                "Real-time frame pacing and latency"
                                             },
                                         onClick = { activeSubScreen = RecordSubScreen.FPS_DETAILS },
                                         shape = itemShapeFor(0, 3),

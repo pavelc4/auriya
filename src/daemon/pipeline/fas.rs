@@ -90,7 +90,7 @@ impl Daemon {
     ) -> Result<bool> {
         let action = {
             let mut fas_guard = fas.lock().await;
-            fas_guard.set_package(pkg.to_string(), pid);
+            fas_guard.set_package(pkg, pid);
             fas_guard.tick().await?
         };
 
