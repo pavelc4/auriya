@@ -45,6 +45,8 @@ pub struct CoreDto {
     pub cluster: Cow<'static, str>,
     #[serde(default)]
     pub online: bool,
+    #[serde(default)]
+    pub load_pct: f32,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -377,6 +379,7 @@ impl StatsSnapshot {
                         gov: intern_governor(core.governor.as_str()),
                         cluster: Cow::Borrowed(cluster_str(&core.cluster)),
                         online: core.online,
+                        load_pct: core.load_pct,
                     })
                     .collect(),
                 available_governors: crate::platform::cpu::governor::available_governors().to_vec(),

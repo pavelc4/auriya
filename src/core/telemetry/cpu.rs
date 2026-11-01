@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 
 use crate::platform::cpu::ceiling::CoreLayout;
@@ -16,6 +17,7 @@ pub struct CoreTelemetry {
     pub cur_freq_khz: u64,
     pub governor: String,
     pub cluster: ClusterType,
+    pub load_pct: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -24,25 +26,30 @@ pub struct CpuSnapshot {
     pub load_pct: f32,
 }
 
-#[derive(Default)]
-struct CpuLoadState {
+#[derive(Default, Clone)]
+struct LoadPair {
     prev_total: u64,
     prev_idle: u64,
 }
 
 #[derive(Default)]
 pub struct CpuCollector {
-    load: CpuLoadState,
+    total_load: LoadPair,
+    core_loads: HashMap<usize, LoadPair>,
 }
 
 impl CpuCollector {
     pub fn snapshot(&mut self, layout: &CoreLayout) -> CpuSnapshot {
-        let cores = self.read_cores(layout);
-        let load_pct = self.compute_load();
+        let (load_pct, core_load_map) = self.compute_loads();
+        let cores = self.read_cores(layout, &core_load_map);
         CpuSnapshot { cores, load_pct }
     }
 
-    fn read_cores(&self, layout: &CoreLayout) -> Vec<CoreTelemetry> {
+    fn read_cores(
+        &self,
+        layout: &CoreLayout,
+        core_load_map: &HashMap<usize, f32>,
+    ) -> Vec<CoreTelemetry> {
         let mut cores = Vec::with_capacity(layout.all_core_ids.len());
 
         for &id in &layout.all_core_ids {
@@ -58,36 +65,92 @@ impl CpuCollector {
                 ClusterType::Little
             };
 
+            let load_pct = core_load_map.get(&id).copied().unwrap_or(0.0);
+
             cores.push(CoreTelemetry {
                 core_id: id,
                 online,
                 cur_freq_khz,
                 governor,
                 cluster,
+                load_pct,
             });
         }
 
         cores
     }
 
-    fn compute_load(&mut self) -> f32 {
-        if let Some(total) = read_proc_stat_total()
-            && let Some(idle) = read_proc_stat_idle()
-        {
-            let prev_total = self.load.prev_total;
-            let prev_idle = self.load.prev_idle;
-            self.load.prev_total = total;
-            self.load.prev_idle = idle;
+    fn compute_loads(&mut self) -> (f32, HashMap<usize, f32>) {
+        let mut total_load = 0.0f32;
+        let mut core_map = HashMap::new();
 
-            if prev_total > 0 {
-                let d_total = total.saturating_sub(prev_total);
-                let d_idle = idle.saturating_sub(prev_idle);
-                if d_total > 0 {
-                    return 100.0 * (d_total.saturating_sub(d_idle)) as f32 / d_total as f32;
+        let Ok(content) = fs::read_to_string("/proc/stat") else {
+            return (0.0, core_map);
+        };
+
+        for line in content.lines() {
+            if let Some(rest) = line.strip_prefix("cpu ") {
+                let parts: Vec<&str> = rest.split_whitespace().collect();
+                let total: u64 = parts.iter().filter_map(|s| s.parse::<u64>().ok()).sum();
+                let idle: u64 = parts
+                    .get(3)
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .unwrap_or(0)
+                    + parts
+                        .get(4)
+                        .and_then(|s| s.parse::<u64>().ok())
+                        .unwrap_or(0);
+
+                if self.total_load.prev_total > 0 {
+                    let d_total = total.saturating_sub(self.total_load.prev_total);
+                    let d_idle = idle.saturating_sub(self.total_load.prev_idle);
+                    if d_total > 0 {
+                        total_load = (100.0 * (d_total.saturating_sub(d_idle)) as f32
+                            / d_total as f32)
+                            .clamp(0.0, 100.0);
+                    }
                 }
+                self.total_load.prev_total = total;
+                self.total_load.prev_idle = idle;
+            } else if let Some(rest) = line.strip_prefix("cpu") {
+                let mut iter = rest.split_whitespace();
+                let Some(core_id_str) = iter.next() else {
+                    continue;
+                };
+                let Ok(core_id) = core_id_str.parse::<usize>() else {
+                    continue;
+                };
+
+                let parts: Vec<&str> = iter.collect();
+                let total: u64 = parts.iter().filter_map(|s| s.parse::<u64>().ok()).sum();
+                let idle: u64 = parts
+                    .get(3)
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .unwrap_or(0)
+                    + parts
+                        .get(4)
+                        .and_then(|s| s.parse::<u64>().ok())
+                        .unwrap_or(0);
+
+                let pair = self.core_loads.entry(core_id).or_default();
+                if pair.prev_total > 0 {
+                    let d_total = total.saturating_sub(pair.prev_total);
+                    let d_idle = idle.saturating_sub(pair.prev_idle);
+                    if d_total > 0 {
+                        let pct = (100.0 * (d_total.saturating_sub(d_idle)) as f32
+                            / d_total as f32)
+                            .clamp(0.0, 100.0);
+                        core_map.insert(core_id, pct);
+                    }
+                }
+                pair.prev_total = total;
+                pair.prev_idle = idle;
+            } else if !line.starts_with("cpu") {
+                break;
             }
         }
-        0.0
+
+        (total_load, core_map)
     }
 }
 
@@ -119,26 +182,4 @@ fn read_governor(core: usize) -> String {
         .ok()
         .map(|s| s.trim().to_string())
         .unwrap_or_default()
-}
-
-fn read_proc_stat_total() -> Option<u64> {
-    let content = fs::read_to_string("/proc/stat").ok()?;
-    let line = content.lines().next()?;
-    let val: u64 = line
-        .split_whitespace()
-        .skip(1)
-        .filter_map(|s| s.parse::<u64>().ok())
-        .sum();
-    Some(val)
-}
-
-fn read_proc_stat_idle() -> Option<u64> {
-    let content = fs::read_to_string("/proc/stat").ok()?;
-    let line = content.lines().next()?;
-    let parts: Vec<&str> = line.split_whitespace().collect();
-    if parts.len() > 4 {
-        parts[4].parse::<u64>().ok()
-    } else {
-        None
-    }
 }

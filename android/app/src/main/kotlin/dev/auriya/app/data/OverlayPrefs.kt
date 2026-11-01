@@ -43,42 +43,49 @@ class OverlayPrefs private constructor(
         }
 
     var showFps: Boolean
-        get() = legacyPrefs.getBoolean("show_fps", true)
+        get() = legacyPrefs.getBoolean("show_fps", false)
         set(value) {
             legacyPrefs.edit().putBoolean("show_fps", value).apply()
             scope.launch { dataStore.edit { it[booleanPreferencesKey("show_fps")] = value } }
         }
 
+    var roundFps: Boolean
+        get() = legacyPrefs.getBoolean("round_fps", true)
+        set(value) {
+            legacyPrefs.edit().putBoolean("round_fps", value).apply()
+            scope.launch { dataStore.edit { it[booleanPreferencesKey("round_fps")] = value } }
+        }
+
     var showCpu: Boolean
-        get() = legacyPrefs.getBoolean("show_cpu", true)
+        get() = legacyPrefs.getBoolean("show_cpu", false)
         set(value) {
             legacyPrefs.edit().putBoolean("show_cpu", value).apply()
             scope.launch { dataStore.edit { it[booleanPreferencesKey("show_cpu")] = value } }
         }
 
     var showGpu: Boolean
-        get() = legacyPrefs.getBoolean("show_gpu", true)
+        get() = legacyPrefs.getBoolean("show_gpu", false)
         set(value) {
             legacyPrefs.edit().putBoolean("show_gpu", value).apply()
             scope.launch { dataStore.edit { it[booleanPreferencesKey("show_gpu")] = value } }
         }
 
     var showRam: Boolean
-        get() = legacyPrefs.getBoolean("show_ram", true)
+        get() = legacyPrefs.getBoolean("show_ram", false)
         set(value) {
             legacyPrefs.edit().putBoolean("show_ram", value).apply()
             scope.launch { dataStore.edit { it[booleanPreferencesKey("show_ram")] = value } }
         }
 
     var showTemp: Boolean
-        get() = legacyPrefs.getBoolean("show_temp", true)
+        get() = legacyPrefs.getBoolean("show_temp", false)
         set(value) {
             legacyPrefs.edit().putBoolean("show_temp", value).apply()
             scope.launch { dataStore.edit { it[booleanPreferencesKey("show_temp")] = value } }
         }
 
     var showBattery: Boolean
-        get() = legacyPrefs.getBoolean("show_battery", true)
+        get() = legacyPrefs.getBoolean("show_battery", false)
         set(value) {
             legacyPrefs.edit().putBoolean("show_battery", value).apply()
             scope.launch { dataStore.edit { it[booleanPreferencesKey("show_battery")] = value } }

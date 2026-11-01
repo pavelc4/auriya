@@ -96,6 +96,7 @@ data class Core(
     val gov: String,
     val cluster: String,
     val online: Boolean,
+    val load_pct: Float = 0f,
 )
 
 data class Cpu(
@@ -305,6 +306,7 @@ object StatsParser {
                                     gov = cObj.optString("gov", ""),
                                     cluster = cObj.optString("cluster", ""),
                                     online = cObj.optBoolean("online", true),
+                                    load_pct = cObj.optDouble("load_pct", 0.0).toFloat(),
                                 ),
                             )
                         }

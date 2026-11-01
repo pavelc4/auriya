@@ -135,10 +135,19 @@ android {
                     "META-INF/DEPENDENCIES",
                     "META-INF/NOTICE*",
                     "META-INF/LICENSE*",
+                    "META-INF/INDEX.LIST",
+                    "META-INF/io.netty.versions.properties",
+                    "DebugProbesKt.bin",
+                    "META-INF/proguard/**",
+                    "META-INF/*.properties",
                     "kotlin/**",
                     "**.txt",
                     "**.proto",
+                    "**/*.md",
                 )
+        }
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
 

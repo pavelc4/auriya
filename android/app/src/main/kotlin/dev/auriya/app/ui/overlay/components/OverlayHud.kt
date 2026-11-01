@@ -6,12 +6,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.auriya.app.ui.theme.GoogleSansRounded
+
+data class CpuClusterInfo(
+    val name: String,
+    val mhz: Long,
+    val loadPct: Float,
+)
+
+data class CpuCoreInfo(
+    val id: Int,
+    val mhz: Long,
+    val loadPct: Float,
+)
 
 data class OverlayTelemetry(
     val fps: String = "--",
@@ -19,6 +33,8 @@ data class OverlayTelemetry(
     val cpuText: String = "",
     val cpuClusters: List<String> = emptyList(),
     val cpuClusterLabels: List<String> = emptyList(),
+    val cpuClusterList: List<CpuClusterInfo> = emptyList(),
+    val cpuCoreList: List<CpuCoreInfo> = emptyList(),
     val cpuStyle: String = "tags",
     val cpuLoadPct: Float = 0f,
     val maxCpuFreqGHz: Float = 0f,
@@ -33,18 +49,17 @@ data class OverlayTelemetry(
 @Composable
 fun OverlayHud(
     telemetry: OverlayTelemetry,
-    showFps: Boolean,
-    showCpu: Boolean,
-    showGpu: Boolean,
-    showRam: Boolean,
-    showTemp: Boolean,
-    showBattery: Boolean,
-    textSizeSp: Float,
-    bgOpacity: Float,
-    paddingDp: Float,
-    cornerRadiusDp: Float,
-    layoutStyle: String,
-    overlayMode: String,
+    showFps: Boolean = false,
+    showCpu: Boolean = false,
+    showGpu: Boolean = false,
+    showRam: Boolean = false,
+    showTemp: Boolean = false,
+    showBattery: Boolean = false,
+    textSizeSp: Float = 12f,
+    bgOpacity: Float = 1f,
+    paddingDp: Float = 12f,
+    cornerRadiusDp: Float = 16f,
+    overlayMode: String = "Full",
     modifier: Modifier = Modifier,
 ) {
     val isMinimal = overlayMode == "Minimal"
@@ -53,7 +68,7 @@ fun OverlayHud(
     val padding = paddingDp.dp
     val cornerRadius = cornerRadiusDp.dp
 
-    val hasCpu = showCpu && (telemetry.cpuText.isNotEmpty() || telemetry.cpuClusters.isNotEmpty() || telemetry.cpuLoadPct > 0f)
+    val hasCpu = showCpu && (telemetry.cpuText.isNotEmpty() || telemetry.cpuClusters.isNotEmpty() || telemetry.cpuClusterList.isNotEmpty() || telemetry.cpuCoreList.isNotEmpty() || telemetry.cpuLoadPct > 0f)
     val hasGpu = showGpu && telemetry.gpuText.isNotEmpty()
     val hasRam = showRam && telemetry.ramText.isNotEmpty()
     val hasTemp = showTemp && telemetry.tempText.isNotEmpty()
@@ -69,27 +84,37 @@ fun OverlayHud(
             hasBat,
         ).count { it }
 
-    // Auto-switch to vertical layout when items are crowded (>= 4 items or >= 3 with multi-cluster CPU)
-    val forceVertical =
-        layoutStyle == "Vertical" ||
-            activeCount >= 4 ||
-            (activeCount >= 3 && hasCpu && telemetry.cpuClusters.size >= 2)
-    val isVertical = forceVertical
+    val isMultiRowCpu = hasCpu && (telemetry.cpuStyle == "clusters" || telemetry.cpuStyle == "cores")
+    val isVertical = isMultiRowCpu || activeCount > 3
 
-    // Single unified solid pill / card container — NO double pills, NO borders, NO status dots!
-    val pillShape =
-        if (isVertical) {
-            RoundedCornerShape(cornerRadius.coerceAtLeast(20.dp))
-        } else {
-            RoundedCornerShape(percent = 50)
+    // Outer backing container — directly respects cornerRadius and bgOpacity (cached to eliminate per-frame GC allocations)
+    val pillShape = remember(cornerRadiusDp) { RoundedCornerShape(cornerRadiusDp.dp) }
+    val innerPillShape =
+        remember(cornerRadiusDp) {
+            if (cornerRadiusDp >= 24f) {
+                RoundedCornerShape(percent = 50)
+            } else {
+                val radius = (cornerRadiusDp * 0.7f).coerceIn(0f, 16f)
+                RoundedCornerShape(radius.dp)
+            }
         }
 
+    val containerHigh = MaterialTheme.colorScheme.surfaceContainerHigh
     val surfaceColor =
-        if (bgOpacity >= 0.98f) {
-            MaterialTheme.colorScheme.surfaceContainerHigh
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = bgOpacity)
+        remember(bgOpacity, containerHigh) {
+            if (bgOpacity >= 0.98f) {
+                containerHigh
+            } else {
+                containerHigh.copy(alpha = bgOpacity.coerceIn(0f, 1f))
+            }
         }
+
+    val hPadding = remember(paddingDp) { paddingDp.dp }
+    val vPadding = remember(paddingDp) { (paddingDp * 0.55f).coerceAtLeast(2f).dp }
+    val itemSpacing = remember(paddingDp) { (paddingDp * 0.35f).coerceIn(2f, 8f).dp }
+    val rowSpacing = remember(paddingDp) { (paddingDp * 0.45f).coerceIn(3f, 10f).dp }
+    val pillHPadding = remember(paddingDp) { (paddingDp * 0.55f).coerceIn(5f, 12f).dp }
+    val pillVPadding = remember(paddingDp) { (paddingDp * 0.22f).coerceIn(1.5f, 6f).dp }
 
     Surface(
         shape = pillShape,
@@ -97,9 +122,6 @@ fun OverlayHud(
         tonalElevation = 2.dp,
         modifier = modifier,
     ) {
-        val hPadding = if (isVertical) (padding * 0.85f).coerceIn(10.dp, 16.dp) else (padding * 1.1f).coerceIn(12.dp, 18.dp)
-        val vPadding = if (isVertical) (padding * 0.65f).coerceIn(6.dp, 12.dp) else (padding * 0.45f).coerceIn(5.dp, 8.dp)
-
         Box(
             modifier =
                 Modifier.padding(
@@ -109,7 +131,7 @@ fun OverlayHud(
         ) {
             if (isVertical) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(itemSpacing),
                     horizontalAlignment = Alignment.Start,
                 ) {
                     HudItems(
@@ -121,14 +143,19 @@ fun OverlayHud(
                         hasTemp = hasTemp,
                         hasBat = hasBat,
                         isMinimal = isMinimal,
+                        isVertical = true,
                         textSize = textSizeSp,
                         subTextSize = subTextSize.value,
+                        pillShape = innerPillShape,
+                        pillHPadding = pillHPadding,
+                        pillVPadding = pillVPadding,
                     )
                 }
             } else {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(rowSpacing),
+                    verticalArrangement = Arrangement.spacedBy(itemSpacing),
+                    modifier = Modifier.wrapContentSize(),
                 ) {
                     HudItems(
                         telemetry = telemetry,
@@ -139,12 +166,40 @@ fun OverlayHud(
                         hasTemp = hasTemp,
                         hasBat = hasBat,
                         isMinimal = isMinimal,
+                        isVertical = false,
                         textSize = textSizeSp,
                         subTextSize = subTextSize.value,
+                        pillShape = innerPillShape,
+                        pillHPadding = pillHPadding,
+                        pillVPadding = pillVPadding,
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MetricPill(
+    containerColor: Color,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(percent = 50),
+    hPadding: androidx.compose.ui.unit.Dp = 8.dp,
+    vPadding: androidx.compose.ui.unit.Dp = 2.5.dp,
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit,
+) {
+    Surface(
+        shape = shape,
+        color = containerColor,
+        tonalElevation = 1.dp,
+        modifier = modifier,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.5.dp),
+            modifier = Modifier.padding(horizontal = hPadding, vertical = vPadding),
+            content = content,
+        )
     }
 }
 
@@ -158,20 +213,26 @@ private fun HudItems(
     hasTemp: Boolean,
     hasBat: Boolean,
     isMinimal: Boolean,
+    isVertical: Boolean,
     textSize: Float,
     subTextSize: Float,
+    pillShape: androidx.compose.ui.graphics.Shape,
+    pillHPadding: androidx.compose.ui.unit.Dp,
+    pillVPadding: androidx.compose.ui.unit.Dp,
 ) {
     if (showFps) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        MetricPill(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            shape = pillShape,
+            hPadding = pillHPadding,
+            vPadding = pillVPadding,
         ) {
             Text(
                 text = telemetry.fps,
                 fontSize = textSize.sp,
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 maxLines = 1,
                 softWrap = false,
             )
@@ -181,7 +242,7 @@ private fun HudItems(
                     fontSize = (subTextSize * 0.82f).sp,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                     maxLines = 1,
                     softWrap = false,
                 )
@@ -190,64 +251,176 @@ private fun HudItems(
     }
 
     if (hasCpu) {
-        Row(
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            if (!isMinimal) {
-                Text(
-                    text = "CPU",
-                    fontSize = (subTextSize * 0.85f).sp,
-                    fontFamily = GoogleSansRounded,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.padding(top = 1.dp),
-                )
-            }
-            if (telemetry.cpuClusterLabels.isNotEmpty() && telemetry.cpuClusters.isNotEmpty()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(1.5.dp),
-                ) {
-                    telemetry.cpuClusterLabels.zip(telemetry.cpuClusters).forEach { (lbl, freq) ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Text(
-                                text = lbl,
-                                fontSize = (subTextSize * 0.85f).sp,
-                                fontWeight = FontWeight.Black,
-                                fontFamily = GoogleSansRounded,
-                                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.85f),
-                            )
-                            Text(
-                                text = freq,
-                                fontSize = subTextSize.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = GoogleSansRounded,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            )
-                        }
+        when {
+            telemetry.cpuStyle == "clusters" && telemetry.cpuClusterList.isNotEmpty() -> {
+                telemetry.cpuClusterList.forEach { cluster ->
+                    MetricPill(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = pillShape,
+                        hPadding = pillHPadding,
+                        vPadding = pillVPadding,
+                    ) {
+                        Text(
+                            text = "${cluster.name}:",
+                            fontSize = (subTextSize * 0.85f).sp,
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                        val loadPct = cluster.loadPct.coerceIn(0f, 100f).toInt()
+                        Text(
+                            text = "${cluster.mhz} MHz · $loadPct%",
+                            fontSize = (subTextSize * 0.9f).sp,
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
                     }
                 }
-            } else {
-                Text(
-                    text = if (telemetry.cpuText.isNotEmpty()) telemetry.cpuText else telemetry.cpuClusters.joinToString(" "),
-                    fontSize = subTextSize.sp,
-                    fontFamily = GoogleSansRounded,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    maxLines = 1,
-                    softWrap = false,
-                )
+            }
+
+            telemetry.cpuStyle == "cores" && telemetry.cpuCoreList.isNotEmpty() -> {
+                telemetry.cpuCoreList.forEach { core ->
+                    MetricPill(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = pillShape,
+                        hPadding = pillHPadding,
+                        vPadding = pillVPadding,
+                    ) {
+                        Text(
+                            text = "cpu${core.id}:",
+                            fontSize = (subTextSize * 0.85f).sp,
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                        val loadPct = core.loadPct.coerceIn(0f, 100f).toInt()
+                        Text(
+                            text = "${core.mhz} MHz · $loadPct%",
+                            fontSize = (subTextSize * 0.9f).sp,
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    }
+                }
+            }
+
+            telemetry.cpuStyle == "overview" -> {
+                MetricPill(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = pillShape,
+                    hPadding = pillHPadding,
+                    vPadding = pillVPadding,
+                ) {
+                    if (!isMinimal) {
+                        Text(
+                            text = "CPU",
+                            fontSize = (subTextSize * 0.85f).sp,
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    }
+                    Text(
+                        text = telemetry.cpuText.ifEmpty { "%.0f%%".format(telemetry.cpuLoadPct) },
+                        fontSize = subTextSize.sp,
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
+            }
+
+            else -> {
+                // Default "tags" style (compact inline cluster badges)
+                MetricPill(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = pillShape,
+                    hPadding = pillHPadding,
+                    vPadding = pillVPadding,
+                ) {
+                    if (!isMinimal) {
+                        Text(
+                            text = "CPU",
+                            fontSize = (subTextSize * 0.85f).sp,
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    }
+                    if (telemetry.cpuClusterLabels.isNotEmpty() && telemetry.cpuClusters.isNotEmpty()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.5.dp),
+                        ) {
+                            telemetry.cpuClusterLabels.zip(telemetry.cpuClusters).forEachIndexed { idx, (lbl, freq) ->
+                                if (idx > 0) {
+                                    Text(
+                                        text = "·",
+                                        fontSize = subTextSize.sp,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f),
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                    )
+                                }
+                                Text(
+                                    text = lbl,
+                                    fontSize = (subTextSize * 0.85f).sp,
+                                    fontWeight = FontWeight.Black,
+                                    fontFamily = GoogleSansRounded,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                )
+                                Text(
+                                    text = freq,
+                                    fontSize = subTextSize.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = GoogleSansRounded,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = if (telemetry.cpuText.isNotEmpty()) telemetry.cpuText else telemetry.cpuClusters.joinToString(" "),
+                            fontSize = subTextSize.sp,
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    }
+                }
             }
         }
     }
 
     if (hasGpu) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        MetricPill(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            shape = pillShape,
+            hPadding = pillHPadding,
+            vPadding = pillVPadding,
         ) {
             if (!isMinimal) {
                 Text(
@@ -255,7 +428,9 @@ private fun HudItems(
                     fontSize = (subTextSize * 0.85f).sp,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
             Text(
@@ -263,7 +438,7 @@ private fun HudItems(
                 fontSize = subTextSize.sp,
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 softWrap = false,
             )
@@ -271,9 +446,11 @@ private fun HudItems(
     }
 
     if (hasRam) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        MetricPill(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            shape = pillShape,
+            hPadding = pillHPadding,
+            vPadding = pillVPadding,
         ) {
             if (!isMinimal) {
                 Text(
@@ -281,7 +458,9 @@ private fun HudItems(
                     fontSize = (subTextSize * 0.85f).sp,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
             Text(
@@ -289,7 +468,7 @@ private fun HudItems(
                 fontSize = subTextSize.sp,
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 softWrap = false,
             )
@@ -297,16 +476,18 @@ private fun HudItems(
     }
 
     if (hasTemp) {
-        val (tempLabelColor, tempValColor) =
-            when {
-                telemetry.rawCpuTemp >= 48f -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onErrorContainer
-                telemetry.rawCpuTemp >= 40f -> MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.onTertiaryContainer
-                else -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondaryContainer
+        val (tempContainer, tempTextCol) =
+            if (telemetry.rawCpuTemp >= 48f) {
+                MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurface
             }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        MetricPill(
+            containerColor = tempContainer,
+            shape = pillShape,
+            hPadding = pillHPadding,
+            vPadding = pillVPadding,
         ) {
             if (!isMinimal) {
                 Text(
@@ -314,7 +495,9 @@ private fun HudItems(
                     fontSize = (subTextSize * 0.85f).sp,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Black,
-                    color = tempLabelColor,
+                    color = tempTextCol.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
             Text(
@@ -322,7 +505,7 @@ private fun HudItems(
                 fontSize = subTextSize.sp,
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold,
-                color = tempValColor,
+                color = tempTextCol,
                 maxLines = 1,
                 softWrap = false,
             )
@@ -330,16 +513,18 @@ private fun HudItems(
     }
 
     if (hasBat) {
-        val (batLabelColor, batValColor) =
-            when {
-                telemetry.rawBatTemp >= 43f -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onErrorContainer
-                telemetry.rawBatTemp >= 38f -> MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.onTertiaryContainer
-                else -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimaryContainer
+        val (batContainer, batTextCol) =
+            if (telemetry.rawBatTemp >= 43f) {
+                MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurface
             }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        MetricPill(
+            containerColor = batContainer,
+            shape = pillShape,
+            hPadding = pillHPadding,
+            vPadding = pillVPadding,
         ) {
             if (!isMinimal) {
                 Text(
@@ -347,7 +532,9 @@ private fun HudItems(
                     fontSize = (subTextSize * 0.85f).sp,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Black,
-                    color = batLabelColor,
+                    color = batTextCol.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
             Text(
@@ -355,7 +542,7 @@ private fun HudItems(
                 fontSize = subTextSize.sp,
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold,
-                color = batValColor,
+                color = batTextCol,
                 maxLines = 1,
                 softWrap = false,
             )

@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -49,6 +50,8 @@ import dev.auriya.app.data.OverlayPrefs
 import dev.auriya.app.data.RootShell
 import dev.auriya.app.data.stats.Stats
 import dev.auriya.app.data.stats.StatsParser
+import dev.auriya.app.ui.overlay.components.CpuClusterInfo
+import dev.auriya.app.ui.overlay.components.CpuCoreInfo
 import dev.auriya.app.ui.overlay.components.OverlayHud
 import dev.auriya.app.ui.overlay.components.OverlayTelemetry
 import dev.auriya.app.ui.theme.AuriyaTheme
@@ -61,6 +64,96 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private object CpuStatReader {
+    private var prevTotal = 0L
+    private var prevIdle = 0L
+    private val prevCoreTotals = mutableMapOf<Int, Long>()
+    private val prevCoreIdles = mutableMapOf<Int, Long>()
+
+    data class CpuLoadResult(
+        val totalLoadPct: Float,
+        val coreLoads: Map<Int, Float>,
+    )
+
+    private fun parseNumbers(line: String, startOffset: Int): LongArray {
+        val result = LongArray(10)
+        var count = 0
+        var current = 0L
+        var inNum = false
+        for (i in startOffset until line.length) {
+            val c = line[i]
+            if (c in '0'..'9') {
+                current = current * 10L + (c - '0')
+                inNum = true
+            } else if (inNum) {
+                if (count < 10) result[count++] = current
+                current = 0L
+                inNum = false
+            }
+        }
+        if (inNum && count < 10) result[count++] = current
+        return result
+    }
+
+    fun readCpuLoads(): CpuLoadResult {
+        var totalLoad = 0f
+        val coreLoads = mutableMapOf<Int, Float>()
+
+        try {
+            val file = java.io.File("/proc/stat")
+            if (!file.exists()) return CpuLoadResult(0f, emptyMap())
+
+            file.useLines { lines ->
+                for (line in lines) {
+                    if (line.startsWith("cpu ")) {
+                        val nums = parseNumbers(line, 4)
+                        val total = nums.sum()
+                        val idle = nums.getOrElse(3) { 0L } + nums.getOrElse(4) { 0L }
+                        if (prevTotal > 0L) {
+                            val dTotal = total - prevTotal
+                            val dIdle = idle - prevIdle
+                            if (dTotal > 0L) {
+                                totalLoad = (100f * (dTotal - dIdle).coerceAtLeast(0L) / dTotal.toFloat()).coerceIn(0f, 100f)
+                            }
+                        }
+                        prevTotal = total
+                        prevIdle = idle
+                    } else if (line.startsWith("cpu")) {
+                        val spaceIdx = line.indexOf(' ')
+                        if (spaceIdx > 3) {
+                            val coreIdStr = line.substring(3, spaceIdx)
+                            val coreId = coreIdStr.toIntOrNull()
+                            if (coreId != null) {
+                                val nums = parseNumbers(line, spaceIdx + 1)
+                                val total = nums.sum()
+                                val idle = nums.getOrElse(3) { 0L } + nums.getOrElse(4) { 0L }
+                                val pTotal = prevCoreTotals[coreId] ?: 0L
+                                val pIdle = prevCoreIdles[coreId] ?: 0L
+                                if (pTotal > 0L) {
+                                    val dTotal = total - pTotal
+                                    val dIdle = idle - pIdle
+                                    if (dTotal > 0L) {
+                                        val pct = (100f * (dTotal - dIdle).coerceAtLeast(0L) / dTotal.toFloat()).coerceIn(0f, 100f)
+                                        coreLoads[coreId] = pct
+                                    }
+                                }
+                                prevCoreTotals[coreId] = total
+                                prevCoreIdles[coreId] = idle
+                            }
+                        }
+                    } else if (!line.startsWith("cpu")) {
+                        break
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // ignore
+        }
+
+        return CpuLoadResult(totalLoad, coreLoads)
+    }
+}
 
 class OverlayService :
     Service(),
@@ -83,6 +176,8 @@ class OverlayService :
         val fps: String = "--",
         val cpuClusters: List<String> = emptyList(),
         val cpuClusterLabels: List<String> = emptyList(),
+        val cpuClusterList: List<CpuClusterInfo> = emptyList(),
+        val cpuCoreList: List<CpuCoreInfo> = emptyList(),
         val cpuLoadPct: Float = 0f,
         val maxCpuFreqGHz: Float = 0f,
         val gpuFreq: String = "--",
@@ -96,7 +191,44 @@ class OverlayService :
         val hasGpu: Boolean = false,
     )
 
+    data class OverlayConfigState(
+        val showFps: Boolean = false,
+        val roundFps: Boolean = true,
+        val showCpu: Boolean = false,
+        val showGpu: Boolean = false,
+        val showRam: Boolean = false,
+        val showTemp: Boolean = false,
+        val showBattery: Boolean = false,
+        val textSizeSp: Float = 12f,
+        val bgOpacity: Float = 1f,
+        val paddingDp: Float = 8f,
+        val cornerRadiusDp: Float = 16f,
+        val overlayMode: String = "Full",
+        val cpuStyle: String = "tags",
+    )
+
     private val telemetryState = mutableStateOf(TelemetryData())
+    private val configState = mutableStateOf(OverlayConfigState())
+
+    private fun refreshConfig() {
+        val prefs = OverlayPrefs.getInstance(this)
+        configState.value =
+            OverlayConfigState(
+                showFps = prefs.showFps,
+                roundFps = prefs.roundFps,
+                showCpu = prefs.showCpu,
+                showGpu = prefs.showGpu,
+                showRam = prefs.showRam,
+                showTemp = prefs.showTemp,
+                showBattery = prefs.showBattery,
+                textSizeSp = prefs.textSizeSp,
+                bgOpacity = prefs.bgOpacity,
+                paddingDp = prefs.paddingDp,
+                cornerRadiusDp = prefs.cornerRadiusDp,
+                overlayMode = prefs.overlayMode,
+                cpuStyle = prefs.cpuStyle,
+            )
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -106,6 +238,7 @@ class OverlayService :
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
+        refreshConfig()
     }
 
     override fun onStartCommand(
@@ -115,6 +248,7 @@ class OverlayService :
     ): Int {
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
         startAsForeground()
+        refreshConfig()
         if (overlayView == null) {
             createOverlay()
         }
@@ -168,23 +302,24 @@ class OverlayService :
                 setViewTreeLifecycleOwner(this@OverlayService)
                 setViewTreeSavedStateRegistryOwner(this@OverlayService)
                 setViewTreeViewModelStoreOwner(this@OverlayService)
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
                 setContent {
                     AuriyaTheme(prefs = null) {
-                        val showFps = prefs.showFps
-                        val showCpu = prefs.showCpu
-                        val showGpu = prefs.showGpu
-                        val showRam = prefs.showRam
-                        val showTemp = prefs.showTemp
-                        val showBattery = prefs.showBattery
+                        val config = configState.value
+                        val showFps = config.showFps
+                        val showCpu = config.showCpu
+                        val showGpu = config.showGpu
+                        val showRam = config.showRam
+                        val showTemp = config.showTemp
+                        val showBattery = config.showBattery
                         val hasAnyMetric = showFps || showCpu || showGpu || showRam || showTemp || showBattery
 
-                        val textSizeSp = prefs.textSizeSp
-                        val bgOpacity = prefs.bgOpacity
-                        val paddingDp = prefs.paddingDp
-                        val cornerRadiusDp = prefs.cornerRadiusDp
-                        val layoutStyle = prefs.layoutStyle
-                        val overlayMode = prefs.overlayMode
-                        val cpuStyle = prefs.cpuStyle
+                        val textSizeSp = config.textSizeSp
+                        val bgOpacity = config.bgOpacity
+                        val paddingDp = config.paddingDp
+                        val cornerRadiusDp = config.cornerRadiusDp
+                        val overlayMode = config.overlayMode
+                        val cpuStyle = config.cpuStyle
 
                         if (hasAnyMetric) {
                             val data = telemetryState.value
@@ -254,6 +389,8 @@ class OverlayService :
                                     cpuText = cpuText,
                                     cpuClusters = data.cpuClusters,
                                     cpuClusterLabels = data.cpuClusterLabels,
+                                    cpuClusterList = data.cpuClusterList,
+                                    cpuCoreList = data.cpuCoreList,
                                     cpuStyle = cpuStyle,
                                     cpuLoadPct = data.cpuLoadPct,
                                     maxCpuFreqGHz = data.maxCpuFreqGHz,
@@ -277,7 +414,6 @@ class OverlayService :
                                 bgOpacity = bgOpacity,
                                 paddingDp = paddingDp,
                                 cornerRadiusDp = cornerRadiusDp,
-                                layoutStyle = layoutStyle,
                                 overlayMode = overlayMode,
                                 modifier =
                                     Modifier.pointerInput(Unit) {
@@ -358,37 +494,45 @@ class OverlayService :
         // 1. FPS
         var fpsVal = "0"
         var rawFpsNum = 0f
-        if (stats?.session?.active == true && stats.fps != null && stats.fps.avg > 0) {
-            val roundFps =
-                dev.auriya.app.data.AppPrefs
-                    .getInstance(this)
-                    .roundFps.value
-            fpsVal =
-                dev.auriya.app.data.AppPrefs
-                    .formatFps(stats.fps.avg, roundFps)
+        val roundFps = OverlayPrefs.getInstance(this).roundFps
+        if (stats?.fps != null && stats.fps.avg > 0) {
+            fpsVal = dev.auriya.app.data.AppPrefs.formatFps(stats.fps.avg, roundFps)
             rawFpsNum = stats.fps.avg.toFloat()
         }
 
         // 3. CPU Clusters & Load
         val cpuClusters = mutableListOf<String>()
         val cpuClusterLabels = mutableListOf<String>()
+        val cpuClusterList = mutableListOf<CpuClusterInfo>()
+        val cpuCoreList = mutableListOf<CpuCoreInfo>()
         var maxFreqKHz = 0L
-        val cpuLoadPct = stats?.cpu?.load_pct ?: 0f
+
+        val procStat = CpuStatReader.readCpuLoads()
+        val cpuLoadPct = if (stats?.cpu?.load_pct != null && stats.cpu.load_pct > 0f) stats.cpu.load_pct else procStat.totalLoadPct
 
         stats?.cpu?.cores?.let { cores ->
             val clustersMap = mutableMapOf<Int, MutableList<Long>>()
+            val clusterLoadsMap = mutableMapOf<Int, MutableList<Float>>()
             val clusterNameMap = mutableMapOf<Int, String>()
+            val clusterLabelMap = mutableMapOf<Int, String>()
+
             cores.forEach { core ->
-                val (clusterId, label) =
+                val mhz = core.khz / 1000L
+                val coreLoad = if (core.load_pct > 0f) core.load_pct else (procStat.coreLoads[core.id] ?: cpuLoadPct)
+                cpuCoreList.add(CpuCoreInfo(core.id, mhz, coreLoad))
+
+                val (clusterId, name, label) =
                     when (core.cluster.lowercase().trim()) {
-                        "little", "0" -> Pair(0, "L")
-                        "big", "mid", "1" -> Pair(1, if (cores.any { it.cluster.equals("prime", ignoreCase = true) }) "M" else "B")
-                        "prime", "2" -> Pair(2, "P")
-                        else -> Pair(core.cluster.toIntOrNull() ?: 0, "C${core.cluster}")
+                        "little", "0" -> Triple(0, "little", "L")
+                        "big", "mid", "1" -> Triple(1, "big", if (cores.any { it.cluster.equals("prime", ignoreCase = true) }) "M" else "B")
+                        "prime", "2" -> Triple(2, "prime", "P")
+                        else -> Triple(core.cluster.toIntOrNull() ?: 0, "cpu${core.cluster}", "C${core.cluster}")
                     }
                 if (core.khz > 0) {
                     clustersMap.getOrPut(clusterId) { mutableListOf() }.add(core.khz)
-                    clusterNameMap[clusterId] = label
+                    clusterLoadsMap.getOrPut(clusterId) { mutableListOf() }.add(coreLoad)
+                    clusterNameMap[clusterId] = name
+                    clusterLabelMap[clusterId] = label
                     if (core.khz > maxFreqKHz) maxFreqKHz = core.khz
                 }
             }
@@ -396,8 +540,12 @@ class OverlayService :
                 val freqs = clustersMap[cId]!!
                 val avgFreqKHz = freqs.average()
                 val freqGHz = avgFreqKHz / 1_000_000.0
+                val avgLoad = clusterLoadsMap[cId]?.average()?.toFloat() ?: cpuLoadPct
+                val avgMhz = (avgFreqKHz / 1000.0).toLong()
+
                 cpuClusters.add("%.1f".format(freqGHz))
-                cpuClusterLabels.add(clusterNameMap[cId] ?: "C")
+                cpuClusterLabels.add(clusterLabelMap[cId] ?: "C")
+                cpuClusterList.add(CpuClusterInfo(clusterNameMap[cId] ?: "cluster", avgMhz, avgLoad))
             }
         }
         val maxCpuFreqGHz = if (maxFreqKHz > 0) maxFreqKHz / 1_000_000f else 0f
@@ -463,6 +611,8 @@ class OverlayService :
             fps = fpsVal,
             cpuClusters = cpuClusters,
             cpuClusterLabels = cpuClusterLabels,
+            cpuClusterList = cpuClusterList,
+            cpuCoreList = cpuCoreList,
             cpuLoadPct = cpuLoadPct,
             maxCpuFreqGHz = maxCpuFreqGHz,
             gpuFreq = gpuFreqVal,

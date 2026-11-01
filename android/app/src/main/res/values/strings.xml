@@ -390,6 +390,8 @@
     <string name="overlay_sec_telemetry">TELEMETRY METRICS</string>
     <string name="overlay_fps_counter">FPS Counter</string>
     <string name="overlay_fps_counter_sub">Display active frame rate monitoring</string>
+    <string name="overlay_round_fps">Round FPS Value</string>
+    <string name="overlay_round_fps_sub">Round frame rate to nearest integer</string>
     <string name="overlay_cpu_clusters">CPU Clusters</string>
     <string name="overlay_cpu_clusters_sub">Monitor Little, Mid, Big core frequencies</string>
     <string name="overlay_gpu_metrics">GPU Metrics</string>
@@ -403,7 +405,6 @@
     <string name="overlay_sec_display_layout">DISPLAY &amp; LAYOUT</string>
     <string name="overlay_hud_mode">HUD Format Mode</string>
     <string name="overlay_cpu_style">CPU Metric Style</string>
-    <string name="overlay_layout_orientation">Layout Orientation</string>
     <string name="settings_app_title">App</string>
     <string name="settings_app_sub">General application settings and developer tools</string>
     <string name="games_priority_notif_sub">Priority notifications on launch</string>

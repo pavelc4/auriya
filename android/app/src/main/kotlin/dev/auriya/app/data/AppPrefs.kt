@@ -32,7 +32,7 @@ class AppPrefs private constructor(
     private val dataStore = context.appPrefsDataStore
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private val _roundFps = MutableStateFlow(false)
+    private val _roundFps = MutableStateFlow(true)
     val roundFps: StateFlow<Boolean> = _roundFps.asStateFlow()
 
     private val _gamesBannerDismissed = MutableStateFlow(false)
@@ -41,7 +41,7 @@ class AppPrefs private constructor(
     init {
         scope.launch {
             dataStore.data.collectLatest { prefs ->
-                _roundFps.value = prefs[KEY_ROUND_FPS] ?: false
+                _roundFps.value = prefs[KEY_ROUND_FPS] ?: true
                 _gamesBannerDismissed.value = prefs[KEY_GAMES_BANNER_DISMISSED] ?: false
             }
         }

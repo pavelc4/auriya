@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.auriya.app.data.OverlayPrefs
 import dev.auriya.app.ui.components.*
+import dev.auriya.app.ui.overlay.components.CpuClusterInfo
+import dev.auriya.app.ui.overlay.components.CpuCoreInfo
 import dev.auriya.app.ui.overlay.components.OverlayHud
 import dev.auriya.app.ui.overlay.components.OverlayTelemetry
 import dev.auriya.app.ui.theme.GoogleSansRounded
@@ -32,15 +34,16 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
     val prefs = remember { OverlayPrefs.getInstance(context) }
     var enableOverlay by remember { mutableStateOf(prefs.enabled) }
     var showFps by remember { mutableStateOf(prefs.showFps) }
+    var roundFps by remember { mutableStateOf(prefs.roundFps) }
     var showCpu by remember { mutableStateOf(prefs.showCpu) }
     var showGpu by remember { mutableStateOf(prefs.showGpu) }
     var showRam by remember { mutableStateOf(prefs.showRam) }
     var showTemp by remember { mutableStateOf(prefs.showTemp) }
     var showBattery by remember { mutableStateOf(prefs.showBattery) }
 
-    var layoutStyle by remember { mutableStateOf(prefs.layoutStyle) }
     var overlayMode by remember { mutableStateOf(prefs.overlayMode) }
     var cpuStyle by remember { mutableStateOf(prefs.cpuStyle) }
+    var showCpuStyleSheet by remember { mutableStateOf(false) }
     var updateIntervalMs by remember { mutableStateOf(prefs.updateIntervalMs) }
 
     var textSizeSp by remember { mutableStateOf(prefs.textSizeSp) }
@@ -98,13 +101,30 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
     }
 
     val previewTelemetry =
-        remember(cpuStyle) {
+        remember(cpuStyle, roundFps) {
             OverlayTelemetry(
-                fps = "120",
+                fps = if (roundFps) "120" else "119.8",
                 rawFps = 119.8f,
-                cpuText = "L1.1 M1.7 P0.8",
+                cpuText = if (cpuStyle == "overview") "34% @ 2.4 GHz" else "L 1.1 · M 1.7 · P 0.8",
                 cpuClusters = listOf("1.1", "1.7", "0.8"),
                 cpuClusterLabels = listOf("L", "M", "P"),
+                cpuClusterList =
+                    listOf(
+                        CpuClusterInfo("little", 1804L, 30f),
+                        CpuClusterInfo("big", 1881L, 13f),
+                        CpuClusterInfo("prime", 1036L, 7f),
+                    ),
+                cpuCoreList =
+                    listOf(
+                        CpuCoreInfo(0, 1056L, 35f),
+                        CpuCoreInfo(1, 1056L, 33f),
+                        CpuCoreInfo(2, 1056L, 37f),
+                        CpuCoreInfo(3, 1056L, 34f),
+                        CpuCoreInfo(4, 1881L, 13f),
+                        CpuCoreInfo(5, 1881L, 12f),
+                        CpuCoreInfo(6, 1881L, 14f),
+                        CpuCoreInfo(7, 2918L, 11f),
+                    ),
                 cpuStyle = cpuStyle,
                 cpuLoadPct = 34f,
                 maxCpuFreqGHz = 2.4f,
@@ -121,30 +141,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // --- 1. OVERLAY ACTIVATION SUBSECTION ---
-        SettingsSubsection(
-            title =
-                androidx.compose.ui.res
-                    .stringResource(dev.auriya.app.R.string.overlay_sec_activation),
-        ) {
-            SwitchSettingItem(
-                title =
-                    androidx.compose.ui.res
-                        .stringResource(dev.auriya.app.R.string.overlay_show),
-                subtitle =
-                    if (hasOverlayPermission) {
-                        "Display real-time telemetry HUD over running apps"
-                    } else {
-                        "Tap to grant system overlay permission"
-                    },
-                checked = enableOverlay,
-                onCheckedChange = { enableOverlay = it },
-                icon = Icons.Rounded.Layers,
-                shape = itemShapeFor(0, 1),
-            )
-        }
-
-        // --- 2. LIVE HUD PREVIEW ---
+        // --- 1. LIVE HUD PREVIEW ---
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             shape = RoundedCornerShape(20.dp),
@@ -182,7 +179,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = "Material 3 Expressive · Monet dynamic color",
+                            text = "Real-time visual preview of your overlay layout",
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = GoogleSansRounded,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -215,11 +212,33 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                         bgOpacity = bgOpacity,
                         paddingDp = paddingDp,
                         cornerRadiusDp = cornerRadiusDp,
-                        layoutStyle = layoutStyle,
                         overlayMode = overlayMode,
                     )
                 }
             }
+        }
+
+        // --- 2. OVERLAY ACTIVATION SUBSECTION ---
+        SettingsSubsection(
+            title =
+                androidx.compose.ui.res
+                    .stringResource(dev.auriya.app.R.string.overlay_sec_activation),
+        ) {
+            SwitchSettingItem(
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.overlay_show),
+                subtitle =
+                    if (hasOverlayPermission) {
+                        "Display real-time telemetry HUD over running apps"
+                    } else {
+                        "Tap to grant system overlay permission"
+                    },
+                checked = enableOverlay,
+                onCheckedChange = { enableOverlay = it },
+                icon = Icons.Rounded.Layers,
+                shape = itemShapeFor(0, 1),
+            )
         }
 
         // --- 3. TELEMETRY METRICS SUBSECTION ---
@@ -231,6 +250,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
             val metricsList =
                 buildList {
                     add("fps")
+                    if (showFps) add("round_fps")
                     add("cpu")
                     if (isGpuAvailable) add("gpu")
                     add("ram")
@@ -247,7 +267,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                     androidx.compose.ui.res
                         .stringResource(dev.auriya.app.R.string.overlay_fps_counter_sub),
                 checked = showFps,
-                enabled = enableOverlay,
                 onCheckedChange = {
                     showFps = it
                     prefs.showFps = it
@@ -257,6 +276,29 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 shape = itemShapeFor(metricsList.indexOf("fps"), totalMetrics),
             )
 
+            if (showFps) {
+                SwitchSettingItem(
+                    title =
+                        androidx.compose.ui.res
+                            .stringResource(dev.auriya.app.R.string.overlay_round_fps),
+                    subtitle =
+                        if (roundFps) {
+                            "Rounding to nearest integer (e.g. 120 FPS)"
+                        } else {
+                            "Showing decimal precision (e.g. 119.8 FPS)"
+                        },
+                    checked = roundFps,
+                    onCheckedChange = {
+                        roundFps = it
+                        prefs.roundFps = it
+                        dev.auriya.app.data.AppPrefs.getInstance(context).setRoundFps(it)
+                        restartOverlay(context)
+                    },
+                    icon = Icons.Rounded.Pin,
+                    shape = itemShapeFor(metricsList.indexOf("round_fps"), totalMetrics),
+                )
+            }
+
             SwitchSettingItem(
                 title =
                     androidx.compose.ui.res
@@ -265,7 +307,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                     androidx.compose.ui.res
                         .stringResource(dev.auriya.app.R.string.overlay_cpu_clusters_sub),
                 checked = showCpu,
-                enabled = enableOverlay,
                 onCheckedChange = {
                     showCpu = it
                     prefs.showCpu = it
@@ -284,7 +325,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                         androidx.compose.ui.res
                             .stringResource(dev.auriya.app.R.string.overlay_gpu_metrics_sub),
                     checked = showGpu,
-                    enabled = enableOverlay,
                     onCheckedChange = {
                         showGpu = it
                         prefs.showGpu = it
@@ -303,7 +343,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                     androidx.compose.ui.res
                         .stringResource(dev.auriya.app.R.string.overlay_ram_usage_sub),
                 checked = showRam,
-                enabled = enableOverlay,
                 onCheckedChange = {
                     showRam = it
                     prefs.showRam = it
@@ -321,7 +360,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                     androidx.compose.ui.res
                         .stringResource(dev.auriya.app.R.string.overlay_cpu_temp_sub),
                 checked = showTemp,
-                enabled = enableOverlay,
                 onCheckedChange = {
                     showTemp = it
                     prefs.showTemp = it
@@ -339,7 +377,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                     androidx.compose.ui.res
                         .stringResource(dev.auriya.app.R.string.overlay_battery_temp_sub),
                 checked = showBattery,
-                enabled = enableOverlay,
                 onCheckedChange = {
                     showBattery = it
                     prefs.showBattery = it
@@ -356,6 +393,8 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 androidx.compose.ui.res
                     .stringResource(dev.auriya.app.R.string.overlay_sec_display_layout),
         ) {
+            val totalLayoutItems = 2
+
             SegmentedSettingItem(
                 title =
                     androidx.compose.ui.res
@@ -369,8 +408,24 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                     prefs.overlayMode = overlayMode
                     restartOverlay(context)
                 },
-                shape = itemShapeFor(0, 1),
-                enabled = enableOverlay,
+                shape = itemShapeFor(0, totalLayoutItems),
+            )
+
+            ClickableSettingItem(
+                title =
+                    androidx.compose.ui.res
+                        .stringResource(dev.auriya.app.R.string.overlay_cpu_style),
+                subtitle =
+                    when (cpuStyle) {
+                        "tags" -> "Tags · Compact cluster badges"
+                        "clusters" -> "Clusters · little, big, prime breakdown"
+                        "cores" -> "Cores · cpu0 to cpu7 individual breakdown"
+                        else -> "Overview · Total CPU utilization & peak clock"
+                    },
+                icon = Icons.Rounded.Memory,
+                shape = itemShapeFor(1, totalLayoutItems),
+                onClick = { showCpuStyleSheet = true },
+                showChevron = true,
             )
         }
 
@@ -402,7 +457,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 displayValueFormatter = { "%.1f s".format(it) },
                 shape = itemShapeFor(0, totalTuningItems),
                 steps = 23,
-                enabled = enableOverlay,
             )
 
             SliderSettingItem(
@@ -421,7 +475,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 displayValueFormatter = { "${it.toInt()} sp" },
                 shape = itemShapeFor(1, totalTuningItems),
                 steps = 11,
-                enabled = enableOverlay,
             )
 
             SliderSettingItem(
@@ -439,7 +492,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 valueRange = 0f..1f,
                 displayValueFormatter = { "${(it * 100).toInt()}%" },
                 shape = itemShapeFor(2, totalTuningItems),
-                enabled = enableOverlay,
             )
 
             SliderSettingItem(
@@ -457,7 +509,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 valueRange = 4f..24f,
                 displayValueFormatter = { "${it.toInt()} dp" },
                 shape = itemShapeFor(3, totalTuningItems),
-                enabled = enableOverlay,
             )
 
             SliderSettingItem(
@@ -475,9 +526,20 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 valueRange = 0f..32f,
                 displayValueFormatter = { "${it.toInt()} dp" },
                 shape = itemShapeFor(4, totalTuningItems),
-                enabled = enableOverlay,
             )
         }
+    }
+
+    if (showCpuStyleSheet) {
+        CpuMetricStyleBottomSheet(
+            selectedStyle = cpuStyle,
+            onStyleSelected = {
+                cpuStyle = it
+                prefs.cpuStyle = it
+                restartOverlay(context)
+            },
+            onDismiss = { showCpuStyleSheet = false },
+        )
     }
 }
 
@@ -488,8 +550,16 @@ private fun restartOverlay(context: Context) {
         android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M ||
             android.provider.Settings.canDrawOverlays(context)
 
-    context.stopService(Intent(context, dev.auriya.app.service.OverlayService::class.java))
     if (enabled && hasPermission) {
-        context.startService(Intent(context, dev.auriya.app.service.OverlayService::class.java))
+        val intent = Intent(context, dev.auriya.app.service.OverlayService::class.java).apply {
+            action = "dev.auriya.action.UPDATE_OVERLAY_CONFIG"
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    } else {
+        context.stopService(Intent(context, dev.auriya.app.service.OverlayService::class.java))
     }
 }

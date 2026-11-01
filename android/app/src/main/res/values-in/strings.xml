@@ -395,7 +395,6 @@
     <string name="overlay_sec_display_layout">TAMPILAN &amp; TATA LETAK</string>
     <string name="overlay_hud_mode">Mode Format HUD</string>
     <string name="overlay_cpu_style">Gaya Metrik CPU</string>
-    <string name="overlay_layout_orientation">Orientasi Tata Letak</string>
     <string name="settings_app_title">Aplikasi</string>
     <string name="settings_app_sub">Pengaturan umum aplikasi dan opsi pengembang</string>
     <string name="games_priority_notif_sub">Notifikasi prioritas saat diluncurkan</string>
