@@ -143,7 +143,12 @@ impl Daemon {
         let pid_opt = self.last.pid;
         match action {
             ScalingAction::BoostGpu => {
-                self.apply_boost_if_needed("BOOST_GPU", profile::apply_gpu_boost)
+                debug!(target: "auriya::fas", "FAS decision: BOOST_GPU → boosting GPU clock");
+                if let Err(e) = profile::apply_gpu_boost() {
+                    error!(target: "auriya::fas", ?e, "Failed to apply BOOST_GPU");
+                }
+                self.last.profile_mode = Some(ProfileMode::Performance);
+                Ok(true)
             }
             ScalingAction::BoostCpu => self.apply_boost_if_needed("BOOST_CPU", || {
                 profile::apply_cpu_boost(game_governor, pid_opt)
