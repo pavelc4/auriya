@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -417,24 +418,40 @@ class OverlayService :
                                 overlayMode = overlayMode,
                                 modifier =
                                     Modifier.pointerInput(Unit) {
+                                        var accX = 0f
+                                        var accY = 0f
+                                        var screenW = 0
+                                        var screenH = 0
+
                                         detectDragGestures(
+                                            onDragStart = {
+                                                val dm = resources.displayMetrics
+                                                screenW = dm.widthPixels
+                                                screenH = dm.heightPixels
+                                                accX = params.x.toFloat()
+                                                accY = params.y.toFloat()
+                                            },
                                             onDragEnd = {
                                                 prefs.overlayX = params.x
                                                 prefs.overlayY = params.y
                                             },
                                         ) { change, dragAmount ->
                                             change.consume()
-                                            val displayMetrics = resources.displayMetrics
-                                            val screenWidth = displayMetrics.widthPixels
-                                            val screenHeight = displayMetrics.heightPixels
-                                            val viewWidth = overlayView?.width ?: 0
-                                            val viewHeight = overlayView?.height ?: 0
-                                            val maxX = (screenWidth - viewWidth).coerceAtLeast(0)
-                                            val maxY = (screenHeight - viewHeight).coerceAtLeast(0)
+                                            accX += dragAmount.x
+                                            accY += dragAmount.y
+                                            val viewW = overlayView?.width ?: 0
+                                            val viewH = overlayView?.height ?: 0
+                                            val maxX = (screenW - viewW).coerceAtLeast(0)
+                                            val maxY = (screenH - viewH).coerceAtLeast(0)
 
-                                            params.x = (params.x + dragAmount.x.toInt()).coerceIn(0, maxX)
-                                            params.y = (params.y + dragAmount.y.toInt()).coerceIn(0, maxY)
-                                            overlayView?.let { wm.updateViewLayout(it, params) }
+                                            val newX = accX.roundToInt().coerceIn(0, maxX)
+                                            val newY = accY.roundToInt().coerceIn(0, maxY)
+
+                                            if (newX != params.x || newY != params.y) {
+                                                params.x = newX
+                                                params.y = newY
+                                                overlayView?.let { wm.updateViewLayout(it, params) }
+                                            }
                                         }
                                     },
                             )

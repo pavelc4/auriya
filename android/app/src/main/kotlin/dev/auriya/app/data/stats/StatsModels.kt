@@ -1,5 +1,6 @@
 package dev.auriya.app.data.stats
 
+import androidx.compose.runtime.Immutable
 import android.net.LocalSocket
 import android.net.LocalSocketAddress
 import dev.auriya.app.data.RootShell
@@ -25,6 +26,7 @@ data class ApiResponse<T>(
     val timestamp_iso: String = "",
 )
 
+@Immutable
 data class Stats(
     val fps: Fps? = null,
     val thermal: Thermal = Thermal(),
@@ -37,6 +39,7 @@ data class Stats(
     val system: SystemInfo? = null,
 )
 
+@Immutable
 data class DaemonInfo(
     val version: String = "",
     val pid: Long = 0L,
@@ -49,6 +52,7 @@ data class DaemonInfo(
     val mod_updated_secs: Long? = null,
 )
 
+@Immutable
 data class BinderInfo(
     val operational: Boolean = false,
     val screen_interactive: Boolean = true,
@@ -59,12 +63,14 @@ data class BinderInfo(
     val refresh_rate_hz: Float? = null,
 )
 
+@Immutable
 data class SystemInfo(
     val uptime_secs: Long = 0L,
     val ram_total_mb: Long = 0L,
     val ram_avail_mb: Long = 0L,
 )
 
+@Immutable
 data class Fps(
     val avg: Double,
     val peak: Double,
@@ -75,6 +81,7 @@ data class Fps(
     val frames: Int,
 )
 
+@Immutable
 data class Thermal(
     val cpu_c: Float? = null,
     val gpu_c: Float? = null,
@@ -82,6 +89,7 @@ data class Thermal(
     val sconfig_supported: Boolean = false,
 )
 
+@Immutable
 data class Battery(
     val pct: Int? = null,
     val current_ma: Int? = null,
@@ -90,6 +98,7 @@ data class Battery(
     val health: String? = null,
 )
 
+@Immutable
 data class Core(
     val id: Int,
     val khz: Long,
@@ -99,18 +108,21 @@ data class Core(
     val load_pct: Float = 0f,
 )
 
+@Immutable
 data class Cpu(
     val load_pct: Float,
     val cores: List<Core> = emptyList(),
     val available_governors: List<String> = emptyList(),
 )
 
+@Immutable
 data class Gpu(
     val mhz: Long? = null,
     val load_pct: Int? = null,
     val vendor: String? = null,
 )
 
+@Immutable
 data class Session(
     val pkg: String? = null,
     val profile: String = "balance",
