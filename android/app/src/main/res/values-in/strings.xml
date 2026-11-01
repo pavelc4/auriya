@@ -98,6 +98,12 @@
     <string name="games_tuner_subtitle">Sesuaikan governor CPU, target FPS, refresh rate, dan DnD per game.</string>
 
     <!-- Config Sub-screens -->
+    <string name="config_performance_engine">FAS &amp; Performa</string>
+    <string name="config_performance_engine_sub">Penjadwalan frame FAS, mitigasi jitter &amp; tuning mode</string>
+    <string name="config_system_services">Layanan Sistem &amp; Daemon</string>
+    <string name="config_system_services_sub">Siklus hidup daemon, governor CPU, dan otomatisasi game</string>
+    <string name="config_floating_overlay">Overlay Melayang</string>
+    <string name="config_floating_overlay_sub">HUD game real-time, transparansi, dan chip metrik</string>
     <string name="config_daemon">Daemon</string>
     <string name="config_daemon_sub">Status daemon, logging, dan mode idle</string>
     <string name="config_cpu">CPU Governor</string>

@@ -100,6 +100,12 @@
     <string name="games_tuner_subtitle">Tune CPU governor, target FPS, refresh rate and DnD per game.</string>
 
     <!-- Config Sub-screens -->
+    <string name="config_performance_engine">FAS &amp; Performance</string>
+    <string name="config_performance_engine_sub">Frame-aware scheduling, adaptive governor, and mode tuning</string>
+    <string name="config_system_services">System &amp; Daemon Services</string>
+    <string name="config_system_services_sub">Daemon lifecycle, CPU governor, and game automation</string>
+    <string name="config_floating_overlay">Floating Overlay</string>
+    <string name="config_floating_overlay_sub">Real-time gaming HUD, transparency, and metric chips</string>
     <string name="config_daemon">Daemon</string>
     <string name="config_daemon_sub">Daemon health check, logging, and idle mode</string>
     <string name="config_cpu">CPU Governor</string>

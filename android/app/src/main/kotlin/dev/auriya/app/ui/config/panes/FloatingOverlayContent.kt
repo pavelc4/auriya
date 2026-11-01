@@ -1,4 +1,4 @@
-package dev.auriya.app.ui.settings
+package dev.auriya.app.ui.config.panes
 
 import android.content.Context
 import android.content.Intent

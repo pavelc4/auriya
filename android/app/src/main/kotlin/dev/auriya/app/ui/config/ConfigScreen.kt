@@ -41,12 +41,9 @@ import kotlin.math.roundToLong
 
 private enum class ConfigSubScreen {
     NONE,
-    DAEMON,
-    CPU,
-    FAS,
-    DYNAMIC_GOVERNOR,
-    DND,
-    PROFILES,
+    PERFORMANCE_ENGINE,
+    SYSTEM_SERVICES,
+    FLOATING_OVERLAY,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -181,22 +178,16 @@ fun ConfigScreen(viewModel: UiViewModel) {
                 val titleRes =
                     when (activeSubScreen) {
                         ConfigSubScreen.NONE -> dev.auriya.app.R.string.config_title
-                        ConfigSubScreen.DAEMON -> dev.auriya.app.R.string.config_daemon
-                        ConfigSubScreen.CPU -> dev.auriya.app.R.string.config_cpu
-                        ConfigSubScreen.FAS -> dev.auriya.app.R.string.config_fas
-                        ConfigSubScreen.DYNAMIC_GOVERNOR -> dev.auriya.app.R.string.config_dynamic_gov
-                        ConfigSubScreen.DND -> dev.auriya.app.R.string.config_dnd
-                        ConfigSubScreen.PROFILES -> dev.auriya.app.R.string.config_profiles
+                        ConfigSubScreen.PERFORMANCE_ENGINE -> dev.auriya.app.R.string.config_performance_engine
+                        ConfigSubScreen.SYSTEM_SERVICES -> dev.auriya.app.R.string.config_system_services
+                        ConfigSubScreen.FLOATING_OVERLAY -> dev.auriya.app.R.string.config_floating_overlay
                     }
                 val subtitleRes =
                     when (activeSubScreen) {
                         ConfigSubScreen.NONE -> dev.auriya.app.R.string.config_subtitle
-                        ConfigSubScreen.DAEMON -> dev.auriya.app.R.string.config_daemon_sub
-                        ConfigSubScreen.CPU -> dev.auriya.app.R.string.config_cpu_sub
-                        ConfigSubScreen.FAS -> dev.auriya.app.R.string.config_fas_sub
-                        ConfigSubScreen.DYNAMIC_GOVERNOR -> dev.auriya.app.R.string.config_dynamic_gov_sub
-                        ConfigSubScreen.DND -> dev.auriya.app.R.string.config_dnd_sub
-                        ConfigSubScreen.PROFILES -> dev.auriya.app.R.string.config_profiles_sub
+                        ConfigSubScreen.PERFORMANCE_ENGINE -> dev.auriya.app.R.string.config_performance_engine_sub
+                        ConfigSubScreen.SYSTEM_SERVICES -> dev.auriya.app.R.string.config_system_services_sub
+                        ConfigSubScreen.FLOATING_OVERLAY -> dev.auriya.app.R.string.config_floating_overlay_sub
                     }
                 Text(
                     text =
@@ -286,121 +277,57 @@ fun ConfigScreen(viewModel: UiViewModel) {
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(3.dp),
                                 ) {
-                                    val total = 6
-
-                                    SettingsMenuItem(
-                                        icon = Icons.Outlined.Dns,
-                                        title =
-                                            androidx.compose.ui.res
-                                                .stringResource(dev.auriya.app.R.string.config_daemon),
-                                        subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.home_active_profile)}: ${defaultMode.replaceFirstChar {
-                                            it.uppercase()
-                                        }} · ${checkIntervalMs.roundToInt()}ms",
-                                        onClick = { activeSubScreen = ConfigSubScreen.DAEMON },
-                                        shape = itemShapeFor(0, total),
-                                    )
-
-                                    SettingsMenuItem(
-                                        icon = Icons.Outlined.Speed,
-                                        title =
-                                            androidx.compose.ui.res
-                                                .stringResource(dev.auriya.app.R.string.config_cpu),
-                                        subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.games_cpu_governor)}: $defaultGov",
-                                        onClick = { activeSubScreen = ConfigSubScreen.CPU },
-                                        shape = itemShapeFor(1, total),
-                                    )
+                                    val total = 3
 
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.AutoGraph,
                                         title =
                                             androidx.compose.ui.res
-                                                .stringResource(dev.auriya.app.R.string.config_fas),
+                                                .stringResource(dev.auriya.app.R.string.config_performance_engine),
                                         subtitle =
                                             if (fasEnabled) {
-                                                "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.common_active)} · Target ${fasTargetFps.roundToInt()} FPS · ${fasThermalThreshold.roundToInt()}°C"
+                                                "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.common_active)} · Target ${fasTargetFps.roundToInt()} FPS · ${if (dgEnabled) "Adaptive Gov" else "Static"}"
                                             } else {
                                                 androidx.compose.ui.res
                                                     .stringResource(dev.auriya.app.R.string.common_disabled)
                                             },
-                                        onClick = { activeSubScreen = ConfigSubScreen.FAS },
+                                        onClick = { activeSubScreen = ConfigSubScreen.PERFORMANCE_ENGINE },
+                                        shape = itemShapeFor(0, total),
+                                    )
+
+                                    val displayDefaultMode =
+                                        if (defaultMode.equals("fast", ignoreCase = true) || defaultMode.equals("fas", ignoreCase = true)) {
+                                            "FAS"
+                                        } else {
+                                            defaultMode.replaceFirstChar { it.uppercase() }
+                                        }
+                                    SettingsMenuItem(
+                                        icon = Icons.Outlined.Dns,
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.config_system_services),
+                                        subtitle = "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.home_active_profile)}: $displayDefaultMode · Gov: $defaultGov · ${checkIntervalMs.roundToInt()}ms",
+                                        onClick = { activeSubScreen = ConfigSubScreen.SYSTEM_SERVICES },
+                                        shape = itemShapeFor(1, total),
+                                    )
+
+                                    SettingsMenuItem(
+                                        icon = Icons.Outlined.Layers,
+                                        title =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.config_floating_overlay),
+                                        subtitle =
+                                            androidx.compose.ui.res
+                                                .stringResource(dev.auriya.app.R.string.config_floating_overlay_sub),
+                                        onClick = { activeSubScreen = ConfigSubScreen.FLOATING_OVERLAY },
                                         shape = itemShapeFor(2, total),
-                                    )
-
-                                    SettingsMenuItem(
-                                        icon = Icons.Outlined.DynamicForm,
-                                        title =
-                                            androidx.compose.ui.res
-                                                .stringResource(dev.auriya.app.R.string.config_dynamic_gov),
-                                        subtitle =
-                                            if (dgEnabled) {
-                                                "${androidx.compose.ui.res.stringResource(dev.auriya.app.R.string.common_active)} · Jitter CV: ${String.format(java.util.Locale.US, "%.2f", dgCvThreshold)} · ${dgDebounceFrames.roundToInt()}f"
-                                            } else {
-                                                androidx.compose.ui.res
-                                                    .stringResource(dev.auriya.app.R.string.common_disabled)
-                                            },
-                                        onClick = { activeSubScreen = ConfigSubScreen.DYNAMIC_GOVERNOR },
-                                        shape = itemShapeFor(3, total),
-                                    )
-
-                                    SettingsMenuItem(
-                                        icon = Icons.Outlined.DoNotDisturbOn,
-                                        title =
-                                            androidx.compose.ui.res
-                                                .stringResource(dev.auriya.app.R.string.config_dnd),
-                                        subtitle =
-                                            if (dndEnabled) {
-                                                androidx.compose.ui.res
-                                                    .stringResource(dev.auriya.app.R.string.config_dnd_auto_game_desc)
-                                            } else {
-                                                androidx.compose.ui.res
-                                                    .stringResource(dev.auriya.app.R.string.common_disabled)
-                                            },
-                                        onClick = { activeSubScreen = ConfigSubScreen.DND },
-                                        shape = itemShapeFor(4, total),
-                                    )
-
-                                    SettingsMenuItem(
-                                        icon = Icons.Outlined.Tune,
-                                        title =
-                                            androidx.compose.ui.res
-                                                .stringResource(dev.auriya.app.R.string.config_profiles),
-                                        subtitle =
-                                            androidx.compose.ui.res
-                                                .stringResource(dev.auriya.app.R.string.config_profiles_sub),
-                                        onClick = { activeSubScreen = ConfigSubScreen.PROFILES },
-                                        shape = itemShapeFor(5, total),
                                     )
                                 }
                             }
                         }
 
-                        ConfigSubScreen.DAEMON -> {
-                            daemonConfigPane(
-                                defaultMode = defaultMode,
-                                logLevel = logLevel,
-                                checkIntervalMs = checkIntervalMs,
-                                onOpenPresetPicker = { showPresetPopup = true },
-                                onOpenLogLevelPicker = { showLogLevelPopup = true },
-                                onCheckIntervalChange = { checkIntervalMs = it },
-                                onCheckIntervalFinished = {
-                                    val updated =
-                                        settings.copy(
-                                            daemon = settings.daemon.copy(checkIntervalMs = checkIntervalMs.roundToLong()),
-                                        )
-                                    persistChanges(updated)
-                                },
-                            )
-                        }
-
-                        ConfigSubScreen.CPU -> {
-                            cpuConfigPane(
-                                defaultGov = defaultGov,
-                                onOpenGovPicker = { showGovPopup = true },
-                            )
-                        }
-
-                        ConfigSubScreen.FAS -> {
-                            fasConfigPane(
+                        ConfigSubScreen.PERFORMANCE_ENGINE -> {
+                            fasEngineConfigPane(
                                 fasEnabled = fasEnabled,
                                 fasTargetFps = fasTargetFps,
                                 fasPollIntervalMs = fasPollIntervalMs,
@@ -436,11 +363,6 @@ fun ConfigScreen(viewModel: UiViewModel) {
                                         )
                                     persistChanges(updated)
                                 },
-                            )
-                        }
-
-                        ConfigSubScreen.DYNAMIC_GOVERNOR -> {
-                            dynamicGovernorConfigPane(
                                 dgEnabled = dgEnabled,
                                 dgCvThreshold = dgCvThreshold,
                                 dgDebounceFrames = dgDebounceFrames,
@@ -454,8 +376,6 @@ fun ConfigScreen(viewModel: UiViewModel) {
                                 },
                                 onCvThresholdChange = { dgCvThreshold = it },
                                 onCvThresholdFinished = {
-                                    // 0.05f widens to 0.05000000074505806 as a Double;
-                                    // round to the slider step before persisting.
                                     val rounded = (dgCvThreshold * 100).roundToInt() / 100.0
                                     dgCvThreshold = rounded.toFloat()
                                     val updated =
@@ -472,22 +392,6 @@ fun ConfigScreen(viewModel: UiViewModel) {
                                         )
                                     persistChanges(updated)
                                 },
-                            )
-                        }
-
-                        ConfigSubScreen.DND -> {
-                            dndConfigPane(
-                                dndEnabled = dndEnabled,
-                                onDndEnabledChange = {
-                                    dndEnabled = it
-                                    val updated = settings.copy(dnd = settings.dnd.copy(defaultEnable = it))
-                                    persistChanges(updated)
-                                },
-                            )
-                        }
-
-                        ConfigSubScreen.PROFILES -> {
-                            profileTuningConfigPane(
                                 selectedModeKey = selectedModeKey,
                                 modeMargin = modeMargin,
                                 modeThermal = modeThermal,
@@ -519,6 +423,38 @@ fun ConfigScreen(viewModel: UiViewModel) {
                                     persistChanges(updated)
                                 },
                             )
+                        }
+
+                        ConfigSubScreen.SYSTEM_SERVICES -> {
+                            systemServicesConfigPane(
+                                defaultMode = defaultMode,
+                                logLevel = logLevel,
+                                checkIntervalMs = checkIntervalMs,
+                                onOpenPresetPicker = { showPresetPopup = true },
+                                onOpenLogLevelPicker = { showLogLevelPopup = true },
+                                onCheckIntervalChange = { checkIntervalMs = it },
+                                onCheckIntervalFinished = {
+                                    val updated =
+                                        settings.copy(
+                                            daemon = settings.daemon.copy(checkIntervalMs = checkIntervalMs.roundToLong()),
+                                        )
+                                    persistChanges(updated)
+                                },
+                                defaultGov = defaultGov,
+                                onOpenGovPicker = { showGovPopup = true },
+                                dndEnabled = dndEnabled,
+                                onDndEnabledChange = {
+                                    dndEnabled = it
+                                    val updated = settings.copy(dnd = settings.dnd.copy(defaultEnable = it))
+                                    persistChanges(updated)
+                                },
+                            )
+                        }
+
+                        ConfigSubScreen.FLOATING_OVERLAY -> {
+                            item {
+                                FloatingOverlayContent()
+                            }
                         }
                     }
                 }

@@ -49,7 +49,6 @@ import java.io.File
 private enum class SettingsSubScreen {
     NONE,
     APP,
-    FLOATING_OVERLAY,
     DEVELOPER_OPTIONS,
 }
 
@@ -107,7 +106,7 @@ fun SettingsScreen(
                 onClick = {
                     when (activeSubScreen) {
                         SettingsSubScreen.DEVELOPER_OPTIONS -> activeSubScreen = SettingsSubScreen.APP
-                        SettingsSubScreen.APP, SettingsSubScreen.FLOATING_OVERLAY -> activeSubScreen = SettingsSubScreen.NONE
+                        SettingsSubScreen.APP -> activeSubScreen = SettingsSubScreen.NONE
                         SettingsSubScreen.NONE -> onNavigateBack()
                     }
                 },
@@ -144,11 +143,6 @@ fun SettingsScreen(
                                     .stringResource(R.string.settings_app_title)
                             }
 
-                            SettingsSubScreen.FLOATING_OVERLAY -> {
-                                androidx.compose.ui.res
-                                    .stringResource(R.string.settings_floating_overlay)
-                            }
-
                             SettingsSubScreen.DEVELOPER_OPTIONS -> {
                                 androidx.compose.ui.res
                                     .stringResource(R.string.settings_dev_options)
@@ -169,11 +163,6 @@ fun SettingsScreen(
                             SettingsSubScreen.APP -> {
                                 androidx.compose.ui.res
                                     .stringResource(R.string.settings_app_sub)
-                            }
-
-                            SettingsSubScreen.FLOATING_OVERLAY -> {
-                                androidx.compose.ui.res
-                                    .stringResource(R.string.settings_floating_overlay_desc)
                             }
 
                             SettingsSubScreen.DEVELOPER_OPTIONS -> {
@@ -253,7 +242,7 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(3.dp),
                                 ) {
-                                    val totalItems = 4
+                                    val totalItems = 3
 
                                     SettingsMenuItem(
                                         icon = Icons.Filled.Build,
@@ -280,18 +269,6 @@ fun SettingsScreen(
                                     )
 
                                     SettingsMenuItem(
-                                        icon = Icons.Filled.Layers,
-                                        title =
-                                            androidx.compose.ui.res
-                                                .stringResource(R.string.settings_floating_overlay),
-                                        subtitle =
-                                            androidx.compose.ui.res
-                                                .stringResource(R.string.settings_floating_overlay_desc),
-                                        onClick = { activeSubScreen = SettingsSubScreen.FLOATING_OVERLAY },
-                                        shape = itemShapeFor(2, totalItems),
-                                    )
-
-                                    SettingsMenuItem(
                                         icon = Icons.Filled.Info,
                                         title =
                                             androidx.compose.ui.res
@@ -300,7 +277,7 @@ fun SettingsScreen(
                                             androidx.compose.ui.res
                                                 .stringResource(R.string.settings_about_desc),
                                         onClick = onNavigateToAbout,
-                                        shape = itemShapeFor(3, totalItems),
+                                        shape = itemShapeFor(2, totalItems),
                                     )
                                 }
                             }
@@ -387,12 +364,6 @@ fun SettingsScreen(
                                         showChevron = true,
                                     )
                                 }
-                            }
-                        }
-
-                        SettingsSubScreen.FLOATING_OVERLAY -> {
-                            item {
-                                FloatingOverlayContent()
                             }
                         }
 
