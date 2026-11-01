@@ -82,7 +82,7 @@ impl TargetFpsConfig {
     pub fn to_buffer_config(&self) -> crate::core::fas::buffer::TargetFps {
         match self {
             Self::Single(v) => crate::core::fas::buffer::TargetFps::Single(*v),
-            Self::Array(arr) => crate::core::fas::buffer::TargetFps::Array(arr.clone()),
+            Self::Array(arr) => crate::core::fas::buffer::TargetFps::Array(arr.to_vec()),
         }
     }
 }

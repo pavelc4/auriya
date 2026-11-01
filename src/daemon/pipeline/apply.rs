@@ -244,7 +244,7 @@ impl Daemon {
 
         match effective_pids {
             [first, ..] => {
-                self.sync_ebpf_pids(std::slice::from_ref(first)).await;
+                self.sync_ebpf_pids(effective_pids).await;
                 let primary_pid = Some(*first);
                 self.set_pid(primary_pid);
                 if let Some(mut f) = self
@@ -348,21 +348,31 @@ impl Daemon {
             })
             .unwrap_or(ProfileMode::Performance);
 
+        let primary_pid = match pids.first().copied() {
+            Some(p) => Some(p),
+            None if pid > 0 && crate::platform::common::procfs::verify_pid_package(pid, pkg) => {
+                Some(pid)
+            }
+            _ => None,
+        };
+
         let entering_game = self.last.pkg.as_deref() != Some(pkg);
         if entering_game {
             self.last_fps_config = None;
-            self.fps_meter.clear();
             self.vendor_lock.lock_all();
             self.apply_thermal_for_game(game_cfg);
-            if let Some(cfg) = game_cfg
-                && let Some(ref fps_cfg) = cfg.target_fps
-                && let Some(mut f) = self
-                    .fas_controller
-                    .as_ref()
-                    .and_then(|fas| fas.try_lock().ok())
+            if let Some(mut f) = self
+                .fas_controller
+                .as_ref()
+                .and_then(|fas| fas.try_lock().ok())
             {
-                let buf_cfg = fps_cfg.to_buffer_config();
-                f.set_target_fps_config(buf_cfg);
+                f.set_package(pkg, primary_pid);
+                if let Some(cfg) = game_cfg
+                    && let Some(ref fps_cfg) = cfg.target_fps
+                {
+                    let buf_cfg = fps_cfg.to_buffer_config();
+                    f.set_target_fps_config(buf_cfg);
+                }
             }
 
             let mode_str = match target_mode {
@@ -379,14 +389,6 @@ impl Daemon {
                 &[("pkg", pkg), ("mode", mode_str), ("message", &msg)],
             );
         }
-
-        let primary_pid = match pids.first().copied() {
-            Some(p) => Some(p),
-            None if pid > 0 && crate::platform::common::procfs::verify_pid_package(pid, pkg) => {
-                Some(pid)
-            }
-            _ => None,
-        };
 
         if self.last.profile_mode != Some(target_mode) {
             let gov_guard = self.balance_governor.read().ok();
@@ -428,9 +430,12 @@ impl Daemon {
             self.applied_refresh_rate = rr;
         }
 
-        match primary_pid {
-            Some(p) => self.sync_ebpf_pids(std::slice::from_ref(&p)).await,
-            None => self.ebpf_detach_all().await,
+        if !pids.is_empty() {
+            self.sync_ebpf_pids(pids).await;
+        } else if let Some(p) = primary_pid {
+            self.sync_ebpf_pids(std::slice::from_ref(&p)).await;
+        } else {
+            self.ebpf_detach_all().await;
         }
         self.sync_dnd(if enable_dnd {
             crate::platform::binder::DndMode::Priority

@@ -66,10 +66,18 @@ impl DaemonContext {
             .current_state
             .read()
             .ok()
-            .map(|s| s.pkg.is_some() && s.pid.is_some())
+            .map(|s| s.pkg.is_some())
             .unwrap_or(false);
         let measured = if is_monitored {
-            self.current_state.read().ok().and_then(|s| s.fps)
+            self.current_state
+                .read()
+                .ok()
+                .and_then(|s| s.fps)
+                .or_else(|| {
+                    crate::core::fps::SysfsFpsReader::new()
+                        .read()
+                        .map(|r| r.fps)
+                })
         } else {
             None
         };

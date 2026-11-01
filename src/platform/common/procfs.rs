@@ -101,10 +101,12 @@ pub fn find_all_pids_by_package(pkg: &str) -> Vec<i32> {
     }
     let mut candidates = Vec::with_capacity(4);
 
-    // 1. Inspect Android top-app cpuset
+    // 1. Inspect Android top-app and foreground cpusets
     for cpuset_path in [
         "/dev/cpuset/top-app/cgroup.procs",
         "/sys/fs/cgroup/top-app/cgroup.procs",
+        "/dev/cpuset/foreground/cgroup.procs",
+        "/sys/fs/cgroup/foreground/cgroup.procs",
     ] {
         if let Ok(content) = fs::read_to_string(cpuset_path) {
             for line in content.lines() {
@@ -115,14 +117,11 @@ pub fn find_all_pids_by_package(pkg: &str) -> Vec<i32> {
                     candidates.push(pid);
                 }
             }
-            if !candidates.is_empty() {
-                break;
-            }
         }
     }
 
-    // 2. Discover any other sub-processes under /proc only if top-app cpuset yielded nothing
-    if candidates.is_empty()
+    // 2. Discover any other sub-processes under /proc if fewer than 2 candidates found
+    if candidates.len() < 2
         && let Ok(entries) = fs::read_dir("/proc")
     {
         for entry in entries.flatten() {

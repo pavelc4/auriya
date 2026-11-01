@@ -38,10 +38,10 @@ impl SystemStatusCache {
     /// Convenience: return the focused package name from the latest
     /// snapshot, if any.
     pub fn focused_package(&self) -> Option<String> {
-        self.inner
-            .read()
-            .ok()
-            .and_then(|g| g.as_ref().and_then(|s| s.focused_app.clone()))
+        self.inner.read().ok().and_then(|g| {
+            g.as_ref()
+                .and_then(|s| s.focused_app.as_deref().map(String::from))
+        })
     }
 
     /// Convenience: return the focused PID from the latest snapshot.

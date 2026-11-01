@@ -77,24 +77,31 @@ impl DaemonContext {
                     }
                     Some(f)
                 }
-                (None, true) => match st.and_then(|s| s.fps) {
-                    Some(val) => {
-                        let clamped = match display_hz {
-                            hz if hz > 0.0 => val.min(hz),
-                            _ => val,
-                        };
-                        Some(crate::core::stats::FpsStats {
-                            avg: clamped,
-                            low_1pct: clamped,
-                            low_01pct: clamped,
-                            peak: clamped,
-                            std_dev_ms: 0.0,
-                            jank: 0,
-                            frames: 1,
-                        })
+                (None, true) => {
+                    let fallback_val = st.and_then(|s| s.fps).or_else(|| {
+                        crate::core::fps::SysfsFpsReader::new()
+                            .read()
+                            .map(|r| r.fps)
+                    });
+                    match fallback_val {
+                        Some(val) => {
+                            let clamped = match display_hz {
+                                hz if hz > 0.0 => val.min(hz),
+                                _ => val,
+                            };
+                            Some(crate::core::stats::FpsStats {
+                                avg: clamped,
+                                low_1pct: clamped,
+                                low_01pct: clamped,
+                                peak: clamped,
+                                std_dev_ms: 0.0,
+                                jank: 0,
+                                frames: 1,
+                            })
+                        }
+                        None => None,
                     }
-                    None => None,
-                },
+                }
                 (None, false) => None,
             };
 

@@ -62,7 +62,10 @@ impl SysfsFpsReader {
                 self.last_poll = now;
                 let path = self.path.as_ref()?;
                 let content = fs::read_to_string(path).ok()?;
-                let fps = parse_sysfs_fps(&content)?;
+                let fps = match parse_sysfs_fps(&content) {
+                    Some(f) => f,
+                    None => self.cached?.fps,
+                };
 
                 let max_hz = crate::platform::binder::get_active_display_refresh_rate();
                 let clamped = match max_hz {
@@ -97,7 +100,7 @@ pub fn parse_sysfs_fps(content: &str) -> Option<f64> {
         return None;
     }
     if let Ok(v) = trimmed.parse::<f64>() {
-        return (v > 0.0 && v <= 500.0).then_some(v);
+        return (0.0..=500.0).contains(&v).then_some(v);
     }
     for part in trimmed.split(|c: char| c.is_whitespace() || c == ',' || c == ';') {
         let part = part.trim();
@@ -108,7 +111,7 @@ pub fn parse_sysfs_fps(content: &str) -> Option<f64> {
             .or_else(|| part.strip_prefix("FPS="))
             && let Ok(v) = val_str.trim().parse::<f64>()
         {
-            return (v > 0.0 && v <= 500.0).then_some(v);
+            return (0.0..=500.0).contains(&v).then_some(v);
         }
     }
     let mut words = trimmed.split_whitespace();
@@ -118,7 +121,7 @@ pub fn parse_sysfs_fps(content: &str) -> Option<f64> {
             && let Some(next) = words.next()
             && let Ok(v) = next.parse::<f64>()
         {
-            return (v > 0.0 && v <= 500.0).then_some(v);
+            return (0.0..=500.0).contains(&v).then_some(v);
         }
     }
     None

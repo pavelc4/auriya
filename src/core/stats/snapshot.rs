@@ -209,10 +209,9 @@ fn get_module_prop_info() -> &'static ModulePropInfo {
             }
         }
         if commit.is_empty() {
-            commit = if !version_code.is_empty() {
-                version_code.clone()
-            } else {
-                "release".to_string()
+            commit = match version_code.as_str() {
+                "" => "release".into(),
+                vc => vc.into(),
             };
         }
 

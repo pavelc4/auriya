@@ -94,6 +94,9 @@ impl FasController {
 
     pub fn set_package(&mut self, package: &str, pid: Option<i32>) {
         if self.package == package {
+            if self.pid != pid {
+                self.pid = pid;
+            }
             return;
         }
         tracing::debug!(target: "auriya::fas", "Switching to package: {}", package);

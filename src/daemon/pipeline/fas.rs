@@ -29,7 +29,7 @@ impl Daemon {
                     .read()
                     .ok()
                     .as_deref()
-                    .cloned()
+                    .map(String::from)
                     .unwrap_or_else(|| "schedutil".to_string());
                 &default_gov
             }
@@ -106,8 +106,12 @@ impl Daemon {
             Some(p) if crate::platform::common::procfs::verify_pid_package(p, pkg) => Some(p),
             _ => pids.first().copied(),
         };
-        if let Some(ref pid) = primary_pid {
+        if !pids.is_empty() {
+            self.sync_ebpf_pids(pids).await;
+        } else if let Some(ref pid) = primary_pid {
             self.sync_ebpf_pids(std::slice::from_ref(pid)).await;
+        }
+        if let Some(ref pid) = primary_pid {
             self.set_pid(Some(*pid));
         }
 

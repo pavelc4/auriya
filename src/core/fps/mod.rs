@@ -3,4 +3,5 @@ pub mod sysfs;
 pub mod types;
 
 pub use meter::FpsMeter;
+pub use sysfs::SysfsFpsReader;
 pub use types::{FpsReading, FpsSource};

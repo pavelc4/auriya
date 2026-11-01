@@ -11,8 +11,11 @@ impl Daemon {
             battery_saver,
         };
 
-        let mut pkg_opt: Option<String> =
-            self.override_foreground.read().ok().and_then(|o| o.clone());
+        let mut pkg_opt: Option<String> = self
+            .override_foreground
+            .read()
+            .ok()
+            .and_then(|o| o.as_deref().map(String::from));
 
         if pkg_opt.is_none() {
             pkg_opt = self.status_cache.focused_package();
@@ -33,8 +36,9 @@ impl Daemon {
                 }
                 is_floating = task.is_floating;
 
+                let pkg_name = task.package;
                 self.status_cache.store(crate::core::status::SystemStatus {
-                    focused_app: Some(task.package.clone()),
+                    focused_app: Some(pkg_name.as_str().into()),
                     focused_pid: task.pid,
                     focused_uid: None,
                     screen_awake: Some(true),
@@ -42,7 +46,7 @@ impl Daemon {
                     zen_mode: None,
                     is_floating: Some(task.is_floating),
                 });
-                pkg_opt = Some(task.package);
+                pkg_opt = Some(pkg_name);
             }
         } else {
             is_floating = self.status_cache.is_floating();
@@ -54,19 +58,28 @@ impl Daemon {
                 focused_pid = package_pids.first().copied();
             }
 
-            // Fall back to cached PID if still valid and alive.
-            if focused_pid.is_none() {
-                focused_pid = self.status_cache.focused_pid().filter(|&p| {
-                    crate::platform::common::procfs::is_pid_valid(p)
-                        && crate::platform::common::procfs::verify_pid_package(p, pkg)
-                });
-                if let Some(p) = focused_pid {
-                    package_pids.push(p);
+            // Fall back to cached PID if still valid and alive, or merge if not yet present.
+            match (focused_pid, self.status_cache.focused_pid()) {
+                (None, Some(cached))
+                    if crate::platform::common::procfs::is_pid_valid(cached)
+                        && crate::platform::common::procfs::verify_pid_package(cached, pkg) =>
+                {
+                    focused_pid = Some(cached);
+                    package_pids.push(cached);
                 }
+                (Some(_), Some(cached))
+                    if !package_pids.contains(&cached)
+                        && crate::platform::common::procfs::is_pid_valid(cached)
+                        && crate::platform::common::procfs::verify_pid_package(cached, pkg) =>
+                {
+                    package_pids.push(cached);
+                }
+                _ => {}
             }
         }
 
-        let is_pid_valid = self.pid_tracker.as_ref().is_some_and(PidTracker::is_alive);
+        let is_pid_valid =
+            !package_pids.is_empty() || self.pid_tracker.as_ref().is_some_and(PidTracker::is_alive);
 
         PipelineInput {
             power,

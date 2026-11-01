@@ -77,7 +77,7 @@ impl ProcessObserver {
 
             let event_tx = self.event_tx;
             tokio::spawn(async move {
-                let mut last_pkg: Option<String> = None;
+                let mut last_pkg_hash: Option<u64> = None;
                 let mut last_pid: Option<i32> = None;
 
                 loop {
@@ -86,14 +86,18 @@ impl ProcessObserver {
                     if let Some((pkg, pid_opt)) =
                         crate::platform::common::procfs::query_current_foreground()
                     {
-                        let changed = last_pkg.as_deref() != Some(&pkg)
+                        let hash = {
+                            use std::hash::{Hash, Hasher};
+                            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                            pkg.hash(&mut hasher);
+                            hasher.finish()
+                        };
+                        let changed = last_pkg_hash != Some(hash)
                             || (pid_opt.is_some() && pid_opt != last_pid);
                         if changed {
+                            last_pkg_hash = Some(hash);
+                            last_pid = pid_opt;
                             let pid = pid_opt.unwrap_or(0);
-                            match last_pkg.as_mut() {
-                                Some(last) => last.clone_from(&pkg),
-                                None => last_pkg = Some(pkg.clone()),
-                            }
                             let ev = ProcessEvent {
                                 pid,
                                 uid: 0,
@@ -101,7 +105,6 @@ impl ProcessObserver {
                                 foreground: true,
                                 event_type: ProcessEventType::ForegroundActivitiesChanged,
                             };
-                            last_pid = pid_opt;
                             let _ = event_tx.try_send(ev);
                         }
                     }

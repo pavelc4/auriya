@@ -60,7 +60,7 @@ pub struct Daemon {
 
 impl Daemon {
     pub fn new(
-        cfg: DaemonConfig,
+        mut cfg: DaemonConfig,
         supported_modes: Arc<Vec<crate::platform::display::DisplayMode>>,
         status_cache: SystemStatusCache,
         event_tx: EventSender,
@@ -69,7 +69,9 @@ impl Daemon {
         let shared_current = Arc::new(RwLock::new(CurrentState::default()));
         let override_foreground = Arc::new(RwLock::new(None));
 
-        let balance_governor = Arc::new(RwLock::new(cfg.settings.cpu.default_governor.clone()));
+        let balance_governor = Arc::new(RwLock::new(std::mem::take(
+            &mut cfg.settings.cpu.default_governor,
+        )));
         let default_mode = cfg
             .settings
             .daemon
@@ -129,7 +131,7 @@ impl Daemon {
             .gamelist
             .game
             .iter()
-            .map(|g| g.package.clone())
+            .map(|g| g.package.as_str().into())
             .collect();
 
         let ceiling_config = {
@@ -229,6 +231,9 @@ impl Daemon {
     }
 
     pub(crate) fn set_pid(&mut self, pid: Option<i32>) {
+        if self.last.pid == pid && self.pid_tracker.is_some() {
+            return;
+        }
         self.last.pid = pid;
         self.pid_tracker =
             pid.map(|p| crate::core::pid::PidTracker::spawn(p, self.event_tx.clone()));
@@ -304,7 +309,7 @@ impl Daemon {
             .shared_gamelist
             .read()
             .ok()
-            .map(|gl| gl.game.iter().map(|g| g.package.clone()).collect());
+            .map(|gl| gl.game.iter().map(|g| g.package.as_str().into()).collect());
         if let Some(list) = whitelist {
             self.cached_whitelist = list;
             self.last.pkg = None;
