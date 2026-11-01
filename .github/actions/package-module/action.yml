@@ -11,6 +11,9 @@ outputs:
   zip_name:
     description: Name of the created zip file
     value: ${{ steps.package.outputs.zip_name }}
+  sha_name:
+    description: Name of the created sha256 checksum file
+    value: ${{ steps.package.outputs.sha_name }}
   version:
     description: Version from Cargo.toml
     value: ${{ steps.package.outputs.version }}
@@ -101,6 +104,7 @@ runs:
         # Filename
         BUILD_TYPE="${{ inputs.build_type }}"
         ZIP_NAME="auriya-${VERSION}-${VERSION_CODE}-${COMMIT_HASH}-${BUILD_TYPE}.zip"
+        SHA_NAME="${ZIP_NAME}.sha256"
 
         # Clean build.sh placeholders if any
         find "$BUILD_DIR/module" -name ".placeholder" -delete 2>/dev/null || true
@@ -109,8 +113,12 @@ runs:
         7z a -tzip -mm=Deflate -mx=9 -mfb=258 -mpass=15 "../$ZIP_NAME" .
         cd -
 
+        # Generate SHA256 checksum for release asset verification
+        (cd "$BUILD_DIR" && sha256sum "$ZIP_NAME" > "$SHA_NAME")
+
         echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
+        echo "sha_name=$SHA_NAME" >> $GITHUB_OUTPUT
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
 
-        ls -lh "$BUILD_DIR/$ZIP_NAME"
+        ls -lh "$BUILD_DIR/$ZIP_NAME" "$BUILD_DIR/$SHA_NAME"

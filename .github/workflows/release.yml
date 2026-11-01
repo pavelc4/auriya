@@ -110,6 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       zip_name: ${{ steps.package.outputs.zip_name }}
+      sha_name: ${{ steps.package.outputs.sha_name }}
       version: ${{ steps.package.outputs.version }}
       version_code: ${{ steps.package.outputs.version_code }}
     steps:
@@ -129,7 +130,9 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: auriya-aarch64
-          path: build/release/*.zip
+          path: |
+            build/release/*.zip
+            build/release/*.sha256
           compression-level: 0
 
   release:
@@ -145,24 +148,33 @@ jobs:
           name: auriya-aarch64
           path: build/release/
 
-      - name: Resolve Tag
-        id: tag
+      - name: Resolve Tag and Release Notes
+        id: release_meta
         run: |
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            TAG="${{ github.ref_name }}"
           else
             VERSION="${{ needs.package.outputs.version }}"
             if [ -z "$VERSION" ]; then
               echo "ERROR: version output is empty" && exit 1
             fi
-            echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+            TAG="v$VERSION"
           fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          # Extract latest version section from CHANGELOG.md for GitHub release body
+          awk '/^## /{if(p)exit;p=1;next} p' CHANGELOG.md > build/release/RELEASE_NOTES.md
+          echo "notes_path=build/release/RELEASE_NOTES.md" >> $GITHUB_OUTPUT
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          files: build/release/${{ needs.package.outputs.zip_name }}
+          tag_name: ${{ steps.release_meta.outputs.tag }}
+          body_path: ${{ steps.release_meta.outputs.notes_path }}
+          make_latest: true
+          files: |
+            build/release/${{ needs.package.outputs.zip_name }}
+            build/release/${{ needs.package.outputs.sha_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -171,18 +183,7 @@ jobs:
           VERSION="${{ needs.package.outputs.version }}"
           VERSION_CODE="${{ needs.package.outputs.version_code }}"
           ZIP_NAME="${{ needs.package.outputs.zip_name }}"
-          TAG="${{ steps.tag.outputs.tag }}"
-
-          CHANGELOG=$(awk '/^## v/{if(p)exit;p=1;next} p' CHANGELOG.md | \
-            sed 's/^### //' | \
-            sed 's/\*\*//g' | \
-            sed 's/^- /● /' | \
-            sed 's/^  - /  ● /' | \
-            sed 's/`//g' | \
-            sed 's/^---$//' | \
-            sed '/^$/d' | \
-            head -20 | \
-            jq -Rs .)
+          TAG="${{ steps.release_meta.outputs.tag }}"
 
           cat > update.json << EOF
           {
@@ -212,7 +213,7 @@ jobs:
           caption: |
             <b>Auriya v${{ needs.package.outputs.version }} Released!</b>
 
-            <a href="https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.tag }}">GitHub Release</a> • <a href="https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md">Changelog</a>
+            <a href="https://github.com/${{ github.repository }}/releases/tag/${{ steps.release_meta.outputs.tag }}">GitHub Release</a> • <a href="https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md">Changelog</a>
 
       - name: Notify Release Failure
         if: ${{ failure() && needs.setup.outputs.notify_message_id != '' }}

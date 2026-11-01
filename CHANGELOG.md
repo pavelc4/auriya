@@ -30,7 +30,7 @@
 - GPU boost execution bottleneck when transitioning out of calm scenes
 - Direct CPU and GPU thermal zone resolution across Snapdragon and MediaTek architectures
 
-## 2.1.0
+## v2.1.0
 
 ### Added
 - In-app language picker with seamless reactive switching and full Indonesian translations
