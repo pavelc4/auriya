@@ -63,14 +63,22 @@ impl DaemonContext {
         let bat = crate::core::telemetry::battery::snapshot();
         let uptime_secs = self.start_time.elapsed().as_secs();
 
+        let display_hz = crate::platform::binder::get_active_display_refresh_rate();
         let snap = {
             let st_guard = self.current_state.read().ok();
             let st = st_guard.as_deref();
             let fps = match (ebpf_fps, is_monitored) {
-                (Some(f), _) => Some(f),
+                (Some(mut f), _) => {
+                    if display_hz > 0.0 {
+                        f.avg = f.avg.min(display_hz);
+                        f.peak = f.peak.min(display_hz).max(f.avg);
+                        f.low_1pct = f.low_1pct.min(f.avg);
+                        f.low_01pct = f.low_01pct.min(f.low_1pct);
+                    }
+                    Some(f)
+                }
                 (None, true) => match st.and_then(|s| s.fps) {
                     Some(val) => {
-                        let display_hz = crate::platform::binder::get_active_display_refresh_rate();
                         let clamped = match display_hz {
                             hz if hz > 0.0 => val.min(hz),
                             _ => val,
@@ -114,12 +122,18 @@ impl DaemonContext {
 pub fn format_telemetry(st: &CurrentState) -> String {
     let mut out = String::new();
     if let Some(fps) = st.fps {
+        let display_hz = crate::platform::binder::get_active_display_refresh_rate();
+        let clamped = match display_hz {
+            hz if hz > 0.0 && (fps - hz).abs() <= 0.75 => hz,
+            hz if hz > 0.0 => fps.min(hz),
+            _ => fps,
+        };
         let source = match st.fps_source {
             Some(crate::core::fps::FpsSource::Ebpf) => "ebpf",
             Some(crate::core::fps::FpsSource::Sysfs) => "sysfs",
             None => "?",
         };
-        out.push_str(&format!("FPS={fps:.1} SOURCE={source}\n"));
+        out.push_str(&format!("FPS={clamped:.1} SOURCE={source}\n"));
     }
     if let Some(ref cpu) = st.cpu_telemetry {
         out.push_str(&format!(

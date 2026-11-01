@@ -242,7 +242,7 @@ impl Daemon {
 
         match effective_pids {
             [first, ..] => {
-                self.sync_ebpf_pids(effective_pids).await;
+                self.sync_ebpf_pids(std::slice::from_ref(first)).await;
                 let primary_pid = Some(*first);
                 self.set_pid(primary_pid);
                 if let Some(mut f) = self
@@ -251,8 +251,23 @@ impl Daemon {
                     .and_then(|fas| fas.try_lock().ok())
                 {
                     f.set_package(pkg, primary_pid);
+                    let active_hz =
+                        crate::platform::binder::get_active_display_refresh_rate() as u32;
                     let rates = crate::platform::binder::query_binder_supported_rates();
-                    f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(rates));
+                    let filtered_rates: Vec<u32> = rates
+                        .into_iter()
+                        .filter(|&r| active_hz == 0 || r <= active_hz)
+                        .collect();
+                    let effective_rates = match filtered_rates.as_slice() {
+                        [] => match active_hz {
+                            hz if hz > 0 => vec![hz],
+                            _ => vec![60],
+                        },
+                        _ => filtered_rates,
+                    };
+                    f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(
+                        effective_rates,
+                    ));
                 }
             }
             [] => {
@@ -389,9 +404,13 @@ impl Daemon {
             self.applied_refresh_rate = rr;
         }
 
-        match (pids.is_empty(), pid) {
-            (false, _) => self.sync_ebpf_pids(pids).await,
-            (true, p) => self.sync_ebpf_pids(std::slice::from_ref(&p)).await,
+        let primary_pid = match pid {
+            p if p > 0 && crate::platform::common::procfs::verify_pid_package(p, pkg) => Some(p),
+            _ => pids.first().copied(),
+        };
+        match primary_pid {
+            Some(p) => self.sync_ebpf_pids(std::slice::from_ref(&p)).await,
+            None => self.ebpf_detach_all().await,
         }
         self.sync_dnd(if enable_dnd {
             crate::platform::binder::DndMode::Priority

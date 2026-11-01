@@ -64,6 +64,9 @@ impl FrameBuffer {
     }
 
     pub fn push(&mut self, frametime: Duration) {
+        if frametime < Duration::from_millis(3) {
+            return;
+        }
         self.last_update = Instant::now();
 
         let max_frames = self.target_fps.unwrap_or(144) as usize * 5;
@@ -201,7 +204,7 @@ impl FrameBuffer {
 
         let current_fps = self.current_fps_long;
 
-        let min_fps = targets.first().unwrap_or(&30).saturating_sub(10).max(10);
+        let min_fps = (targets.first().unwrap_or(&30) / 2).max(25);
         if current_fps < min_fps as f64 {
             if self.target_fps.take().is_some() {
                 self.reset_governor();
@@ -209,11 +212,38 @@ impl FrameBuffer {
             return;
         }
 
-        let new_target = targets
-            .iter()
-            .find(|&&t| current_fps <= f64::from(t) + 3.0)
-            .or(targets.last())
-            .copied();
+        if let [single] = targets.as_slice() {
+            let max_ceiling = match crate::platform::binder::get_active_display_refresh_rate() {
+                hz if hz > 0.0 => hz as u32,
+                _ => 144,
+            };
+            let target = (*single).min(max_ceiling);
+            if self.target_fps == Some(target) {
+                return;
+            }
+            if self.target_fps.is_some() {
+                self.reset_governor();
+            }
+            self.target_fps = Some(target);
+            return;
+        }
+
+        let max_ceiling = match crate::platform::binder::get_active_display_refresh_rate() {
+            hz if hz > 0.0 => hz as u32,
+            _ => 144,
+        };
+
+        let mut chosen = targets.last().copied();
+        for window in targets.windows(2) {
+            let low = window[0] as f64;
+            let high = window[1] as f64;
+            let midpoint = (low + high) / 2.0;
+            if current_fps < midpoint {
+                chosen = Some(window[0]);
+                break;
+            }
+        }
+        let new_target = chosen.map(|t| t.min(max_ceiling));
 
         if new_target == self.target_fps {
             return;
@@ -222,9 +252,10 @@ impl FrameBuffer {
         if let Some(t) = new_target {
             tracing::debug!(
                 target: "auriya::fas",
-                "FAS    | Target FPS: {} (current: {:.1})",
+                "FAS    | Target FPS: {} (current: {:.1}, ceiling: {})",
                 t,
-                current_fps
+                current_fps,
+                max_ceiling
             );
         }
 

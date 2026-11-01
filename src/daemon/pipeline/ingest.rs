@@ -50,10 +50,11 @@ impl Daemon {
             {
                 match self.attached_ebpf_pids.as_slice() {
                     [first, ..]
-                        if self
-                            .attached_ebpf_pids
-                            .iter()
-                            .all(|&p| crate::platform::common::procfs::is_pid_valid(p)) =>
+                        if !pkg.is_empty()
+                            && self.attached_ebpf_pids.iter().all(|&p| {
+                                crate::platform::common::procfs::is_pid_valid(p)
+                                    && crate::platform::common::procfs::verify_pid_package(p, pkg)
+                            }) =>
                     {
                         package_pids.extend_from_slice(&self.attached_ebpf_pids);
                         focused_pid = Some(*first);

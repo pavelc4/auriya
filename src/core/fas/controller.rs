@@ -150,18 +150,9 @@ impl FasController {
         if count == 0 {
             return crate::core::stats::FpsStats::empty();
         }
-        let display_hz = {
-            #[cfg(target_os = "android")]
-            {
-                crate::platform::binder::get_user_preferred_display_mode()
-                    .ok()
-                    .flatten()
-                    .map(|hz| hz as f64)
-            }
-            #[cfg(not(target_os = "android"))]
-            {
-                None
-            }
+        let display_hz = match crate::platform::binder::get_active_display_refresh_rate() {
+            hz if hz > 0.0 => Some(hz),
+            _ => None,
         };
         crate::core::stats::fps_stats_compute_in_place(&mut buf[..count], target, display_hz)
     }

@@ -19,6 +19,8 @@ static DISPLAY_STATE: Mutex<DisplayStateSnapshot> = Mutex::new(DisplayStateSnaps
     snapshot_taken: false,
 });
 
+static DISPLAY_HZ_CACHE: Mutex<Option<(f64, std::time::Instant)>> = Mutex::new(None);
+
 /// Query display supported modes directly from `IDisplayManager.getDisplayInfo(display_id)`.
 /// Bypasses `dumpsys display` subshell execution completely.
 pub fn query_binder_display_modes(
@@ -140,18 +142,34 @@ pub fn get_user_preferred_display_mode() -> Result<Option<f32>> {
 pub fn get_active_display_refresh_rate() -> f64 {
     #[cfg(target_os = "android")]
     {
-        if let Ok(Some(hz)) = get_user_preferred_display_mode()
-            && hz > 0.0
-        {
-            return hz as f64;
+        if let Ok(guard) = DISPLAY_HZ_CACHE.lock() {
+            match *guard {
+                Some((hz, instant))
+                    if instant.elapsed() < std::time::Duration::from_millis(500) =>
+                {
+                    return hz;
+                }
+                _ => {}
+            }
         }
-        if let Ok(Some(modes)) = query_binder_display_modes(0)
-            && let Some(max_hz) = modes.iter().map(|m| m.fps).max_by(|a, b| a.total_cmp(b))
-            && max_hz > 0.0
-        {
-            return max_hz as f64;
+
+        let hz = match get_user_preferred_display_mode() {
+            Ok(Some(h)) if h > 0.0 => h as f64,
+            _ => match query_binder_display_modes(0) {
+                Ok(Some(modes)) => {
+                    match modes.iter().map(|m| m.fps).max_by(|a, b| a.total_cmp(b)) {
+                        Some(max_hz) if max_hz > 0.0 => max_hz as f64,
+                        _ => 60.0,
+                    }
+                }
+                _ => 60.0,
+            },
+        };
+
+        if let Ok(mut guard) = DISPLAY_HZ_CACHE.lock() {
+            *guard = Some((hz, std::time::Instant::now()));
         }
-        60.0
+        hz
     }
     #[cfg(not(target_os = "android"))]
     {
@@ -242,6 +260,13 @@ pub fn apply_refresh_rate(rate_hz: u32) -> Result<()> {
 
     #[cfg(target_os = "android")]
     {
+        if let Ok(mut guard) = DISPLAY_HZ_CACHE.lock() {
+            match rate_hz {
+                0 => *guard = None,
+                hz => *guard = Some((hz as f64, std::time::Instant::now())),
+            }
+        }
+
         // 1. Direct Native Binder RPC to DisplayManagerService (SurfaceFlinger)
         let _ = set_binder_display_mode(rate_hz as f32);
 

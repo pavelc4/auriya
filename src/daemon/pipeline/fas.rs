@@ -57,11 +57,28 @@ impl Daemon {
                 f.set_target_fps_config(fps_cfg.to_buffer_config());
                 self.last_fps_config = Some(fps_key);
             }
-        } else if self.last_fps_config.as_deref() != Some("auto_multi") {
-            let mut f = fas_arc.lock().await;
-            let rates = crate::platform::binder::query_binder_supported_rates();
-            f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(rates));
-            self.last_fps_config = Some("auto_multi".to_string());
+        } else {
+            let active_hz = crate::platform::binder::get_active_display_refresh_rate() as u32;
+            let auto_key = format!("auto_multi_{active_hz}");
+            if self.last_fps_config.as_deref() != Some(&auto_key) {
+                let mut f = fas_arc.lock().await;
+                let rates = crate::platform::binder::query_binder_supported_rates();
+                let filtered_rates: Vec<u32> = rates
+                    .into_iter()
+                    .filter(|&r| active_hz == 0 || r <= active_hz)
+                    .collect();
+                let effective_rates = match filtered_rates.as_slice() {
+                    [] => match active_hz {
+                        hz if hz > 0 => vec![hz],
+                        _ => vec![60],
+                    },
+                    _ => filtered_rates,
+                };
+                f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(
+                    effective_rates,
+                ));
+                self.last_fps_config = Some(auto_key);
+            }
         }
 
         let active_default = self.default_mode();
@@ -76,10 +93,13 @@ impl Daemon {
             f.set_tuning(tuning);
         }
 
-        match (pids.is_empty(), self.last.pid) {
-            (false, _) => self.sync_ebpf_pids(pids).await,
-            (true, Some(ref pid)) => self.sync_ebpf_pids(std::slice::from_ref(pid)).await,
-            (true, None) => {}
+        let primary_pid = match self.last.pid {
+            Some(p) if crate::platform::common::procfs::verify_pid_package(p, pkg) => Some(p),
+            _ => pids.first().copied(),
+        };
+        if let Some(ref pid) = primary_pid {
+            self.sync_ebpf_pids(std::slice::from_ref(pid)).await;
+            self.set_pid(Some(*pid));
         }
 
         match self

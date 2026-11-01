@@ -61,10 +61,21 @@ impl FpsMeter {
             (false, elapsed) if elapsed < self.ebpf_timeout => {
                 let total: Duration = self.frametimes.iter().sum();
                 let avg_secs = total.as_secs_f64() / self.frametimes.len() as f64;
-                match 1.0 / avg_secs {
-                    fps if (0.1..=500.0).contains(&fps) => Some(fps),
-                    _ => None,
-                }
+                let raw_fps = match avg_secs {
+                    secs if secs > 0.0 => 1.0 / secs,
+                    _ => return None,
+                };
+                let valid_fps = match raw_fps {
+                    fps if (0.1..=500.0).contains(&fps) => fps,
+                    _ => return None,
+                };
+                let max_hz = crate::platform::binder::get_active_display_refresh_rate();
+                let clamped_fps = match max_hz {
+                    hz if hz > 0.0 && (valid_fps - hz).abs() <= 0.75 => hz,
+                    hz if hz > 0.0 => valid_fps.min(hz),
+                    _ => valid_fps,
+                };
+                Some(clamped_fps)
             }
             _ => None,
         }
@@ -77,7 +88,10 @@ impl FpsMeter {
         loop {
             match rx.try_recv() {
                 Ok(dt) => {
-                    if dt < Duration::from_millis(500) {
+                    // Frame delta must be between 3ms (max ~333 FPS) and 500ms (min 2 FPS).
+                    // Sub-3ms deltas are discarded back-buffers or non-vsync bursts that
+                    // would artificially inflate FPS calculation beyond physical display scanout.
+                    if dt >= Duration::from_millis(3) && dt < Duration::from_millis(500) {
                         self.frametimes.push_front(dt);
                         new_frames = true;
                     }

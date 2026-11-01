@@ -46,7 +46,7 @@ impl FrameSource {
         loop {
             match self.rx.try_recv() {
                 Ok(dt) => {
-                    if dt < Duration::from_millis(500) {
+                    if dt >= Duration::from_millis(3) && dt < Duration::from_millis(500) {
                         buffer.push(dt);
                         count += 1;
                     }
@@ -76,7 +76,7 @@ impl FrameSource {
         let mut out = Vec::new();
         loop {
             match self.rx.try_recv() {
-                Ok(dt) if dt < Duration::from_millis(500) => {
+                Ok(dt) if dt >= Duration::from_millis(3) && dt < Duration::from_millis(500) => {
                     out.push(dt);
                 }
                 Ok(_) => {}
