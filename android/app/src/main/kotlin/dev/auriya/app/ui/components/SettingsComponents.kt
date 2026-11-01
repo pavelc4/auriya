@@ -466,16 +466,19 @@ fun SettingRow(
                 )
             }
 
-            if (control != null) {
-                Spacer(modifier = Modifier.width(AuriyaTokens.padding.small))
-                control()
-            } else if (onClick != null && showChevron) {
-                Spacer(modifier = Modifier.width(AuriyaTokens.padding.small))
-                Icon(
-                    imageVector = Icons.Filled.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                )
+            when {
+                control != null -> {
+                    Spacer(modifier = Modifier.width(AuriyaTokens.padding.small))
+                    control()
+                }
+                onClick != null && showChevron -> {
+                    Spacer(modifier = Modifier.width(AuriyaTokens.padding.small))
+                    Icon(
+                        imageVector = Icons.Filled.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    )
+                }
             }
         }
     }

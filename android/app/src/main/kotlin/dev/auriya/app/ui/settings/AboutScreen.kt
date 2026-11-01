@@ -260,53 +260,57 @@ fun AboutScreen(
                     )
                 }
 
-                if (isLoadingContributors) {
-                    item(key = "contributors_loading") {
-                        Surface(
-                            shape = RoundedCornerShape(24.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 20.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically,
+                when {
+                    isLoadingContributors -> {
+                        item(key = "contributors_loading") {
+                            Surface(
+                                shape = RoundedCornerShape(24.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
-                                AuriyaLoadingIndicator(size = 20.dp)
-                                Spacer(modifier = Modifier.width(10.dp))
+                                Row(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 20.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    AuriyaLoadingIndicator(size = 20.dp)
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "Fetching contributors...",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = GoogleSansRounded,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    filteredContributors.isEmpty() -> {
+                        item(key = "contributors_empty") {
+                            Surface(
+                                shape = RoundedCornerShape(24.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
                                 Text(
-                                    text = "Fetching contributors...",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = GoogleSansRounded,
+                                    text = "No other contributors found yet.",
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(16.dp),
                                 )
                             }
                         }
                     }
-                } else if (filteredContributors.isEmpty()) {
-                    item(key = "contributors_empty") {
-                        Surface(
-                            shape = RoundedCornerShape(24.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                text = "No other contributors found yet.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(16.dp),
+                    else -> {
+                        item(key = "contributors_list") {
+                            ContributorsBlock(
+                                contributors = filteredContributors,
+                                onContributorClick = { url -> openUrl(context, url) },
                             )
                         }
-                    }
-                } else {
-                    item(key = "contributors_list") {
-                        ContributorsBlock(
-                            contributors = filteredContributors,
-                            onContributorClick = { url -> openUrl(context, url) },
-                        )
                     }
                 }
             }

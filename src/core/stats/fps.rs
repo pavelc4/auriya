@@ -68,30 +68,19 @@ pub fn fps_stats_from_frametimes(frametimes: &[Duration], target_fps: u32) -> Fp
             .copied()
             .find(|&t| (raw_avg - t).abs() <= 0.55)
     };
-    let avg = if let Some(target) = candidate {
-        if (raw_avg - target).abs() <= 0.55 {
-            target
-        } else {
-            raw_avg
-        }
-    } else {
-        raw_avg
+    let avg = match candidate {
+        Some(target) if (raw_avg - target).abs() <= 0.55 => target,
+        _ => raw_avg,
     };
 
     let min_ft = ft.iter().copied().fold(f64::INFINITY, f64::min);
     let raw_peak = if min_ft > 0.0 { 1.0 / min_ft } else { 0.0 };
 
     // Clamp peak to physical scanout ceiling (target refresh rate) to prevent compositor arrival artifacts (e.g. 123 FPS on a 120Hz display)
-    let peak = if let Some(target) = candidate {
-        if raw_peak > target && (raw_avg - target).abs() <= 5.0 {
-            target
-        } else {
-            raw_peak
-        }
-    } else if target_fps > 0 {
-        raw_peak.min(f64::from(target_fps))
-    } else {
-        raw_peak
+    let peak = match candidate {
+        Some(target) if raw_peak > target && (raw_avg - target).abs() <= 5.0 => target,
+        _ if target_fps > 0 => raw_peak.min(f64::from(target_fps)),
+        _ => raw_peak,
     };
 
     // Sort frametimes descendingly (slowest frames first: ft[0] is slowest frame / lowest FPS)
@@ -129,12 +118,10 @@ pub fn fps_stats_from_frametimes(frametimes: &[Duration], target_fps: u32) -> Fp
         / frames as f64;
     let std_dev_ms = variance.sqrt() * 1000.0;
 
-    let target_interval = if target_fps > 0 {
-        1.0 / f64::from(target_fps)
-    } else if let Some(target) = candidate {
-        1.0 / target
-    } else {
-        1.0 / 60.0
+    let target_interval = match (target_fps, candidate) {
+        (fps, _) if fps > 0 => 1.0 / f64::from(fps),
+        (_, Some(target)) => 1.0 / target,
+        _ => 1.0 / 60.0,
     };
     let jank = ft
         .iter()

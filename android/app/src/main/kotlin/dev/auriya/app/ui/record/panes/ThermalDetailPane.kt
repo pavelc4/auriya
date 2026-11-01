@@ -98,12 +98,10 @@ fun ThermalDetailPane(
                             androidx.compose.ui.res
                                 .stringResource(dev.auriya.app.R.string.record_cooling_profile),
                         value =
-                            if (maxTemp >= 70f) {
-                                "Throttled"
-                            } else if (maxTemp >= 50f) {
-                                "Active Load"
-                            } else {
-                                "Nominal"
+                            when {
+                                maxTemp >= 70f -> "Throttled"
+                                maxTemp >= 50f -> "Active Load"
+                                else -> "Nominal"
                             },
                         desc =
                             androidx.compose.ui.res

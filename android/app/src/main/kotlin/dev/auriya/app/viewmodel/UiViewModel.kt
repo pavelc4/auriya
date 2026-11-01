@@ -318,11 +318,12 @@ class UiViewModel(
             if (content != null) {
                 for (line in content.lines()) {
                     val trimmed = line.trim()
-                    if (trimmed.startsWith("version=")) {
-                        version = trimmed.substringAfter("version=").trim()
-                    } else if (trimmed.startsWith("versionCode=")) {
-                        val vc = trimmed.substringAfter("versionCode=").trim()
-                        if (commit == null) commit = vc
+                    when {
+                        trimmed.startsWith("version=") -> version = trimmed.substringAfter("version=").trim()
+                        trimmed.startsWith("versionCode=") -> {
+                            val vc = trimmed.substringAfter("versionCode=").trim()
+                            if (commit == null) commit = vc
+                        }
                     }
                 }
                 if (modTime == null && modProp.exists()) {

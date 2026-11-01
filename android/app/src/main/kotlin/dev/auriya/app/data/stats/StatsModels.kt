@@ -173,10 +173,9 @@ object StatsParser {
                 while (currentCoroutineContext().isActive) {
                     val line = reader.readLine() ?: break
                     val trimmed = line.trim()
-                    if (trimmed.startsWith("{")) {
-                        parseStatsJson(trimmed)?.let { emit(it) }
-                    } else if (trimmed == "STREAM_STOPPED") {
-                        break
+                    when {
+                        trimmed.startsWith("{") -> parseStatsJson(trimmed)?.let { emit(it) }
+                        trimmed == "STREAM_STOPPED" -> break
                     }
                 }
             } catch (e: CancellationException) {

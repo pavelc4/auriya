@@ -615,14 +615,14 @@ fun RecordScreen(
                                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                                         ) {
                                             val displayFpsText =
-                                                if (isSessionActive && fps != null) {
-                                                    dev.auriya.app.data.AppPrefs
-                                                        .formatFps(fps.avg, roundFps)
-                                                } else if (lastSession != null) {
-                                                    dev.auriya.app.data.AppPrefs
-                                                        .formatFps(lastSession.avgFps, roundFps)
-                                                } else {
-                                                    "--"
+                                                when {
+                                                    isSessionActive && fps != null ->
+                                                        dev.auriya.app.data.AppPrefs
+                                                            .formatFps(fps.avg, roundFps)
+                                                    lastSession != null ->
+                                                        dev.auriya.app.data.AppPrefs
+                                                            .formatFps(lastSession.avgFps, roundFps)
+                                                    else -> "--"
                                                 }
 
                                             Text(
@@ -650,14 +650,15 @@ fun RecordScreen(
 
                                         Text(
                                             text =
-                                                if (isSessionActive && fps != null) {
-                                                    "1% Low: ${dev.auriya.app.data.AppPrefs.formatFps(fps.low_1pct, roundFps)} FPS • Peak: ${dev.auriya.app.data.AppPrefs.formatFps(fps.peak, roundFps)} FPS"
-                                                } else if (lastSession != null) {
-                                                    "1% Low: ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.minLow1Pct, roundFps)} FPS • Peak: ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.maxFps, roundFps)} FPS • ${formatDuration(
-                                                        lastSession.durationSeconds,
-                                                    )}"
-                                                } else {
-                                                    "Launch a configured game from Gamelist to track live rendering"
+                                                when {
+                                                    isSessionActive && fps != null ->
+                                                        "1% Low: ${dev.auriya.app.data.AppPrefs.formatFps(fps.low_1pct, roundFps)} FPS • Peak: ${dev.auriya.app.data.AppPrefs.formatFps(fps.peak, roundFps)} FPS"
+                                                    lastSession != null ->
+                                                        "1% Low: ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.minLow1Pct, roundFps)} FPS • Peak: ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.maxFps, roundFps)} FPS • ${formatDuration(
+                                                            lastSession.durationSeconds,
+                                                        )}"
+                                                    else ->
+                                                        "Launch a configured game from Gamelist to track live rendering"
                                                 },
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -87,30 +87,13 @@ fun AuriyaNavigation(
     val gameList by viewModel.gameList.collectAsStateWithLifecycle()
     val thermalAvailable by viewModel.thermalAvailable.collectAsStateWithLifecycle()
 
-    if (editingGameProfile != null) {
-        BackHandler {
-            editingGameProfile = null
-        }
-    } else if (selectedGameProfile != null) {
-        BackHandler {
-            selectedGameProfile = null
-        }
-    } else if (subScreen == SubScreen.Language) {
-        BackHandler {
-            subScreen = SubScreen.Appearance
-        }
-    } else if (subScreen in listOf(SubScreen.Appearance, SubScreen.About)) {
-        BackHandler {
-            subScreen = SubScreen.Settings
-        }
-    } else if (subScreen == SubScreen.Settings) {
-        BackHandler {
-            subScreen = SubScreen.None
-        }
-    } else if (activeTab != NavigationTab.HOME) {
-        BackHandler {
-            activeTab = NavigationTab.HOME
-        }
+    when {
+        editingGameProfile != null -> BackHandler { editingGameProfile = null }
+        selectedGameProfile != null -> BackHandler { selectedGameProfile = null }
+        subScreen == SubScreen.Language -> BackHandler { subScreen = SubScreen.Appearance }
+        subScreen in listOf(SubScreen.Appearance, SubScreen.About) -> BackHandler { subScreen = SubScreen.Settings }
+        subScreen == SubScreen.Settings -> BackHandler { subScreen = SubScreen.None }
+        activeTab != NavigationTab.HOME -> BackHandler { activeTab = NavigationTab.HOME }
     }
 
     val prefs = themePrefs

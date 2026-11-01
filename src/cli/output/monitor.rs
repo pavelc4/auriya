@@ -1,25 +1,19 @@
 use crate::core::stats::StatsSnapshot;
 
 pub fn print_monitor_frame(snap: &StatsSnapshot, oneline: bool) {
-    let fps_str = if let Some(ref f) = snap.fps {
-        if oneline {
-            format!("{:.1} FPS", f.avg)
-        } else {
-            format!(
-                "{:.1} FPS (1% low: {:.1}, 0.1% low: {:.1}, peak: {:.0}, σ: {:.2}ms)",
-                f.avg, f.low_1pct, f.low_01pct, f.peak, f.std_dev_ms
-            )
-        }
-    } else if snap.session.active {
-        "0.0 FPS".to_string()
-    } else {
-        "-- (Idle)".to_string()
+    let fps_str = match (&snap.fps, oneline, snap.session.active) {
+        (Some(f), true, _) => format!("{:.1} FPS", f.avg),
+        (Some(f), false, _) => format!(
+            "{:.1} FPS (1% low: {:.1}, 0.1% low: {:.1}, peak: {:.0}, σ: {:.2}ms)",
+            f.avg, f.low_1pct, f.low_01pct, f.peak, f.std_dev_ms
+        ),
+        (None, _, true) => "0.0 FPS".to_string(),
+        (None, _, false) => "-- (Idle)".to_string(),
     };
 
-    let cpu_str = if let Some(ref c) = snap.cpu {
-        format!("{:.0}%", c.load_pct)
-    } else {
-        "--".to_string()
+    let cpu_str = match snap.cpu {
+        Some(ref c) => format!("{:.0}%", c.load_pct),
+        None => "--".to_string(),
     };
 
     let gpu_info = snap.gpu.as_ref().and_then(|g| {
@@ -65,10 +59,9 @@ pub fn print_monitor_frame(snap: &StatsSnapshot, oneline: bool) {
         }
     };
 
-    let app_str = if let Some(ref pkg) = snap.session.pkg {
-        format!("{pkg} ({})", snap.session.profile)
-    } else {
-        "(Idle)".to_string()
+    let app_str = match snap.session.pkg {
+        Some(ref pkg) => format!("{pkg} ({})", snap.session.profile),
+        None => "(Idle)".to_string(),
     };
 
     if oneline {

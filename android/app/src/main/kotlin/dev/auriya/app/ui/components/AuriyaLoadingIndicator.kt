@@ -127,11 +127,14 @@ fun BoxScope.AuriyaPullToRefreshIndicator(
 
     // Trigger haptic tick exactly when crossing the 1.0f threshold to signal refresh readiness
     LaunchedEffect(rawProgress >= 1f) {
-        if (rawProgress >= 1f && !hasHapticFired && !isRefreshing) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            hasHapticFired = true
-        } else if (rawProgress < 1f) {
-            hasHapticFired = false
+        when {
+            rawProgress >= 1f && !hasHapticFired && !isRefreshing -> {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                hasHapticFired = true
+            }
+            rawProgress < 1f -> {
+                hasHapticFired = false
+            }
         }
     }
 

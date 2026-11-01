@@ -141,20 +141,21 @@ fun HomeLinkRow(
                 modifier = Modifier.size(44.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    if (iconPainter != null) {
-                        Icon(
-                            painter = iconPainter,
-                            contentDescription = null,
-                            tint = onContainerColor,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    } else if (iconVector != null) {
-                        Icon(
-                            imageVector = iconVector,
-                            contentDescription = null,
-                            tint = onContainerColor,
-                            modifier = Modifier.size(22.dp),
-                        )
+                    when {
+                        iconPainter != null ->
+                            Icon(
+                                painter = iconPainter,
+                                contentDescription = null,
+                                tint = onContainerColor,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        iconVector != null ->
+                            Icon(
+                                imageVector = iconVector,
+                                contentDescription = null,
+                                tint = onContainerColor,
+                                modifier = Modifier.size(22.dp),
+                            )
                     }
                 }
             }

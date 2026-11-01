@@ -96,12 +96,10 @@ fun FpsDetailPane(
                                     .stringResource(dev.auriya.app.R.string.record_standby)
                             Text(
                                 text =
-                                    if (isLive) {
-                                        (session.pkg?.substringAfterLast('.') ?: activeGameText)
-                                    } else if (lastSession != null) {
-                                        lastSession.appLabel
-                                    } else {
-                                        systemIdleText
+                                    when {
+                                        isLive -> session.pkg?.substringAfterLast('.') ?: activeGameText
+                                        lastSession != null -> lastSession.appLabel
+                                        else -> systemIdleText
                                     },
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
@@ -114,32 +112,26 @@ fun FpsDetailPane(
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color =
-                                    if (isLive) {
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    } else if (lastSession != null) {
-                                        MaterialTheme.colorScheme.secondaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.surfaceContainerHighest
+                                    when {
+                                        isLive -> MaterialTheme.colorScheme.primaryContainer
+                                        lastSession != null -> MaterialTheme.colorScheme.secondaryContainer
+                                        else -> MaterialTheme.colorScheme.surfaceContainerHighest
                                     },
                             ) {
                                 Text(
                                     text =
-                                        if (isLive) {
-                                            session.profile.uppercase()
-                                        } else if (lastSession != null) {
-                                            lastSession.profile.uppercase()
-                                        } else {
-                                            standbyText
+                                        when {
+                                            isLive -> session.profile.uppercase()
+                                            lastSession != null -> lastSession.profile.uppercase()
+                                            else -> standbyText
                                         },
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color =
-                                        if (isLive) {
-                                            MaterialTheme.colorScheme.onPrimaryContainer
-                                        } else if (lastSession != null) {
-                                            MaterialTheme.colorScheme.onSecondaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        when {
+                                            isLive -> MaterialTheme.colorScheme.onPrimaryContainer
+                                            lastSession != null -> MaterialTheme.colorScheme.onSecondaryContainer
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
                                         },
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 )
@@ -151,14 +143,14 @@ fun FpsDetailPane(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             val meanFpsText =
-                                if (isLive) {
-                                    dev.auriya.app.data.AppPrefs
-                                        .formatFps(fps.avg, roundFps)
-                                } else if (lastSession != null) {
-                                    dev.auriya.app.data.AppPrefs
-                                        .formatFps(lastSession.avgFps, roundFps)
-                                } else {
-                                    "--"
+                                when {
+                                    isLive ->
+                                        dev.auriya.app.data.AppPrefs
+                                            .formatFps(fps.avg, roundFps)
+                                    lastSession != null ->
+                                        dev.auriya.app.data.AppPrefs
+                                            .formatFps(lastSession.avgFps, roundFps)
+                                    else -> "--"
                                 }
 
                             Text(
@@ -188,14 +180,10 @@ fun FpsDetailPane(
 
                         Text(
                             text =
-                                if (isLive) {
-                                    "Computed from ${fps.frames} rolling frames (~5s buffer)"
-                                } else if (lastSession !=
-                                    null
-                                ) {
-                                    "Last match • ${formatDuration(lastSession.durationSeconds)} (${lastSession.samplesCount} samples)"
-                                } else {
-                                    "Launch a configured game from Gamelist to track live rendering."
+                                when {
+                                    isLive -> "Computed from ${fps.frames} rolling frames (~5s buffer)"
+                                    lastSession != null -> "Last match • ${formatDuration(lastSession.durationSeconds)} (${lastSession.samplesCount} samples)"
+                                    else -> "Launch a configured game from Gamelist to track live rendering."
                                 },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -207,25 +195,25 @@ fun FpsDetailPane(
             // 4 Grid Metric Cards (populated with live or latest session data)
             item {
                 val low1Pct =
-                    if (isLive) {
-                        dev.auriya.app.data.AppPrefs
-                            .formatFps(fps.low_1pct, roundFps)
-                    } else if (lastSession != null) {
-                        dev.auriya.app.data.AppPrefs
-                            .formatFps(lastSession.minLow1Pct, roundFps)
-                    } else {
-                        "--"
+                    when {
+                        isLive ->
+                            dev.auriya.app.data.AppPrefs
+                                .formatFps(fps.low_1pct, roundFps)
+                        lastSession != null ->
+                            dev.auriya.app.data.AppPrefs
+                                .formatFps(lastSession.minLow1Pct, roundFps)
+                        else -> "--"
                     }
 
                 val peakFps =
-                    if (isLive) {
-                        dev.auriya.app.data.AppPrefs
-                            .formatFps(fps.peak, roundFps)
-                    } else if (lastSession != null) {
-                        dev.auriya.app.data.AppPrefs
-                            .formatFps(lastSession.maxFps, roundFps)
-                    } else {
-                        "--"
+                    when {
+                        isLive ->
+                            dev.auriya.app.data.AppPrefs
+                                .formatFps(fps.peak, roundFps)
+                        lastSession != null ->
+                            dev.auriya.app.data.AppPrefs
+                                .formatFps(lastSession.maxFps, roundFps)
+                        else -> "--"
                     }
 
                 Row(
@@ -260,21 +248,19 @@ fun FpsDetailPane(
 
             item {
                 val low01Pct =
-                    if (isLive) {
-                        dev.auriya.app.data.AppPrefs.formatFps(fps.low_01pct, roundFps)
-                    } else if (lastSession != null && lastSession.low01Pct > 0.0) {
-                        dev.auriya.app.data.AppPrefs.formatFps(lastSession.low01Pct, roundFps)
-                    } else {
-                        "--"
+                    when {
+                        isLive -> dev.auriya.app.data.AppPrefs.formatFps(fps.low_01pct, roundFps)
+                        lastSession != null && lastSession.low01Pct > 0.0 ->
+                            dev.auriya.app.data.AppPrefs.formatFps(lastSession.low01Pct, roundFps)
+                        else -> "--"
                     }
 
                 val stdDev =
-                    if (isLive) {
-                        "%.2f ms".format(fps.std_dev_ms)
-                    } else if (lastSession != null && lastSession.stdDevMs > 0.0) {
-                        "%.2f ms".format(lastSession.stdDevMs)
-                    } else {
-                        "--"
+                    when {
+                        isLive -> "%.2f ms".format(fps.std_dev_ms)
+                        lastSession != null && lastSession.stdDevMs > 0.0 ->
+                            "%.2f ms".format(lastSession.stdDevMs)
+                        else -> "--"
                     }
 
                 Row(
@@ -309,21 +295,17 @@ fun FpsDetailPane(
 
             item {
                 val jank =
-                    if (isLive) {
-                        "${fps.jank}"
-                    } else if (lastSession != null) {
-                        "${lastSession.totalJank}"
-                    } else {
-                        "--"
+                    when {
+                        isLive -> "${fps.jank}"
+                        lastSession != null -> "${lastSession.totalJank}"
+                        else -> "--"
                     }
 
                 val samples =
-                    if (isLive) {
-                        "${fps.frames}"
-                    } else if (lastSession != null) {
-                        "${lastSession.samplesCount}"
-                    } else {
-                        "--"
+                    when {
+                        isLive -> "${fps.frames}"
+                        lastSession != null -> "${lastSession.samplesCount}"
+                        else -> "--"
                     }
 
                 Row(

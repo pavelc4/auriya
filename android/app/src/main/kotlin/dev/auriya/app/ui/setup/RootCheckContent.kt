@@ -220,39 +220,43 @@ fun RootCheckContent(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 AnimatedContent(targetState = hasRoot, label = "RootButtonAnim") { isGranted ->
-                    if (isGranted) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.Check, null)
-                            Spacer(modifier = Modifier.width(8.dp))
+                    when {
+                        isGranted -> {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.Check, null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.setup_root_granted),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
+                        isRequesting -> {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    "Requesting Root...",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                        else -> {
                             Text(
-                                androidx.compose.ui.res
-                                    .stringResource(dev.auriya.app.R.string.setup_root_granted),
+                                text =
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.setup_root_btn_grant),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )
                         }
-                    } else if (isRequesting) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                "Requesting Root...",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    } else {
-                        Text(
-                            text =
-                                androidx.compose.ui.res
-                                    .stringResource(dev.auriya.app.R.string.setup_root_btn_grant),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
                     }
                 }
             }
