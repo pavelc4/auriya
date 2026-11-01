@@ -17,16 +17,23 @@ impl Daemon {
             return Ok(());
         };
         let game_cfg = gamelist.find(pkg);
-        let default_gov = self
-            .balance_governor
-            .read()
-            .ok()
-            .map(|g| g.clone())
-            .unwrap_or_else(|| "schedutil".to_string());
-        let governor = game_cfg
+        let gov_from_cfg = game_cfg
             .filter(|c| !c.cpu_governor.is_empty())
-            .map(|c| c.cpu_governor.as_str())
-            .unwrap_or(&default_gov);
+            .map(|c| c.cpu_governor.as_str());
+        let default_gov;
+        let governor = match gov_from_cfg {
+            Some(g) => g,
+            None => {
+                default_gov = self
+                    .balance_governor
+                    .read()
+                    .ok()
+                    .as_deref()
+                    .cloned()
+                    .unwrap_or_else(|| "schedutil".to_string());
+                &default_gov
+            }
+        };
         let global_dnd = self
             ._shared_settings
             .read()
@@ -45,16 +52,18 @@ impl Daemon {
         } else if let Some(cfg) = game_cfg
             && let Some(ref fps_cfg) = cfg.target_fps
         {
-            let fps_key = fps_cfg
-                .to_buffer_config()
-                .values()
-                .iter()
-                .map(|v| v.to_string())
-                .collect::<Vec<_>>()
-                .join(",");
+            let buf_cfg = fps_cfg.to_buffer_config();
+            let mut fps_key = String::new();
+            for (i, v) in buf_cfg.as_slice().iter().enumerate() {
+                use std::fmt::Write;
+                if i > 0 {
+                    fps_key.push(',');
+                }
+                let _ = write!(fps_key, "{v}");
+            }
             if self.last_fps_config.as_deref() != Some(&fps_key) {
                 let mut f = fas_arc.lock().await;
-                f.set_target_fps_config(fps_cfg.to_buffer_config());
+                f.set_target_fps_config(buf_cfg);
                 self.last_fps_config = Some(fps_key);
             }
         } else {

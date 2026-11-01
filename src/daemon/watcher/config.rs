@@ -6,11 +6,10 @@ use tracing::{debug, error, warn};
 
 pub fn start_config_watcher(shared_gamelist: Arc<RwLock<Arc<GameList>>>) -> mpsc::Receiver<String> {
     let (watch_tx, watch_rx) = mpsc::channel::<String>(10);
-    let gamelist_path = Arc::new(gamelist_path());
+    let path = gamelist_path();
 
     std::thread::spawn(move || {
         let tx = watch_tx;
-        let path = gamelist_path.clone();
         let shared_for_watcher = shared_gamelist;
 
         let mut watcher =

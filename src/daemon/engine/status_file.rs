@@ -1,5 +1,4 @@
 use crate::core::profile::ProfileMode;
-use crate::daemon::model::config::DaemonConfig;
 use crate::daemon::model::state::LastState;
 use std::time::Duration;
 use tracing::{debug, error};
@@ -40,10 +39,10 @@ pub(crate) fn now_ms() -> u128 {
 }
 
 #[inline]
-pub(crate) fn should_log_change(last: &LastState, cfg: &DaemonConfig) -> bool {
+pub(crate) fn should_log_change(last: &LastState, debounce_ms: u128) -> bool {
     match last.last_log_ms {
         None => true,
-        Some(t) => now_ms().saturating_sub(t) >= cfg.log_debounce_ms,
+        Some(t) => now_ms().saturating_sub(t) >= debounce_ms,
     }
 }
 

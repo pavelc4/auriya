@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
     };
     auriya::platform::module_prop::set_module_status("active");
     let _binder = auriya::platform::binder::BinderClient::new();
-    let res = daemon::engine::run_with_config_and_logger(&cfg, filter_handle).await;
+    let res = daemon::engine::run_with_config_and_logger(cfg, filter_handle).await;
     auriya::platform::module_prop::set_module_status("sleep");
     res
 }

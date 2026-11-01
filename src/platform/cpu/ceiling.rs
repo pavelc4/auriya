@@ -323,9 +323,6 @@ impl CeilingController {
     }
 
     fn apply_low(&mut self, config: &CeilingConfig) -> Result<()> {
-        let prime_ids = &self.layout.prime_ids;
-        let big_ids = self.layout.big_ids.clone();
-        let little_ids = self.layout.little_ids.clone();
         let little_freq = config
             .low_freq_little_khz
             .or_else(|| self.layout.little_freqs_khz.first().copied());
@@ -333,7 +330,7 @@ impl CeilingController {
             .low_freq_big_khz
             .or_else(|| self.layout.big_freqs_khz.first().copied());
 
-        for &core in prime_ids {
+        for &core in &self.layout.prime_ids {
             let path = format!("/sys/devices/system/cpu/cpu{}/online", core);
             if Path::new(&path).exists() {
                 let _ = fs::write(&path, "0");
@@ -341,8 +338,8 @@ impl CeilingController {
             }
         }
 
-        let half = big_ids.len() / 2;
-        for &core in big_ids.iter().take(half) {
+        let half = self.layout.big_ids.len() / 2;
+        for &core in self.layout.big_ids.iter().take(half) {
             let path = format!("/sys/devices/system/cpu/cpu{}/online", core);
             if Path::new(&path).exists() {
                 let _ = fs::write(&path, "0");
@@ -350,24 +347,33 @@ impl CeilingController {
             }
         }
 
+        let mut freq_targets = Vec::new();
         if let Some(freq) = little_freq {
-            for core in little_ids {
-                let p = format!(
-                    "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_max_freq",
-                    core
-                );
-                self.freeze_freq(&p, freq);
+            for &core in &self.layout.little_ids {
+                freq_targets.push((
+                    format!(
+                        "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_max_freq",
+                        core
+                    ),
+                    freq,
+                ));
             }
         }
 
         if let Some(freq) = big_freq {
-            for &core in big_ids.iter().skip(half) {
-                let p = format!(
-                    "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_max_freq",
-                    core
-                );
-                self.freeze_freq(&p, freq);
+            for &core in self.layout.big_ids.iter().skip(half) {
+                freq_targets.push((
+                    format!(
+                        "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_max_freq",
+                        core
+                    ),
+                    freq,
+                ));
             }
+        }
+
+        for (p, freq) in &freq_targets {
+            self.freeze_freq(p, *freq);
         }
 
         self.current_level = Some(CeilingLevel::Low);

@@ -27,14 +27,14 @@ const GPU_PATHS: &[(&str, &str, &str, &str)] = &[
 
 #[derive(Debug, Clone)]
 pub struct GpuSnapshot {
-    pub vendor: Option<String>,
+    pub vendor: Option<&'static str>,
     pub cur_freq_mhz: Option<u64>,
     pub load_pct: Option<u32>,
 }
 
 #[derive(Default)]
 pub struct GpuCollector {
-    pub(crate) vendor: Option<String>,
+    pub(crate) vendor: Option<&'static str>,
     freq_path: Option<String>,
     load_path: Option<String>,
 }
@@ -54,8 +54,6 @@ impl GpuCollector {
         for (freq_p, load_p, _avail_p, vendor) in GPU_PATHS {
             let expanded = expand_glob(freq_p);
             if Path::new(&expanded).exists() {
-                self.freq_path = Some(expanded.clone());
-                self.vendor = Some(vendor.to_string());
                 let load_path = if load_p.is_empty() {
                     expanded
                         .replace("gpuclk", "gpu_busy_percentage")
@@ -64,9 +62,11 @@ impl GpuCollector {
                     expand_glob(load_p)
                 };
                 if Path::new(&load_path).exists() {
-                    self.load_path = Some(load_path.clone());
+                    self.load_path = Some(load_path);
                 }
-                debug!(target: "auriya::telemetry", "GPU vendor: {} freq={}, load={}", vendor, expanded, load_path);
+                debug!(target: "auriya::telemetry", "GPU vendor: {} freq={}, load={:?}", vendor, expanded, self.load_path);
+                self.freq_path = Some(expanded);
+                self.vendor = Some(vendor);
                 return;
             }
         }
@@ -103,7 +103,7 @@ impl GpuCollector {
             });
 
         GpuSnapshot {
-            vendor: self.vendor.clone(),
+            vendor: self.vendor,
             cur_freq_mhz,
             load_pct,
         }

@@ -14,11 +14,11 @@ use tracing::{debug, error, info};
 pub const INGAME_INTERVAL_MS: u64 = 500;
 pub const SCREEN_OFF_INTERVAL_MS: u64 = 2000;
 
-pub async fn run_with_config_and_logger(cfg: &DaemonConfig, reload: ReloadHandle) -> Result<()> {
+pub async fn run_with_config_and_logger(cfg: DaemonConfig, reload: ReloadHandle) -> Result<()> {
     run_with_config(cfg, reload).await
 }
 
-pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) -> Result<()> {
+pub async fn run_with_config(cfg: DaemonConfig, filter_handle: ReloadHandle) -> Result<()> {
     let supported_modes = match crate::platform::display::get_app_supported_modes().await {
         Ok(modes) => {
             debug!(target: "auriya::daemon", "Cached {} supported display modes", modes.len());
@@ -48,7 +48,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
 
     let (event_tx, mut event_rx) = event::channel();
 
-    let mut daemon = Daemon::new(cfg.clone(), supported_modes, status_cache, event_tx)?;
+    let mut daemon = Daemon::new(cfg, supported_modes, status_cache, event_tx)?;
 
     if detect::is_mediatek() {
         debug!(target: "auriya::daemon", "MTK device detected, applying PPM fix...");
@@ -63,7 +63,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     tokio::time::sleep(time::Duration::from_millis(200)).await;
     debug!(target: "auriya::daemon", "IPC socket ready at /dev/socket/auriya.sock");
 
-    let mut watch_rx = start_config_watcher(daemon.shared_gamelist.clone());
+    let mut watch_rx = start_config_watcher(Arc::clone(&daemon.shared_gamelist));
 
     start_module_update_watcher(daemon.event_tx.clone());
 

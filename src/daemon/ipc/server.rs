@@ -3,6 +3,7 @@ use super::types::IpcHandles;
 use anyhow::Result;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
+use std::sync::Arc;
 use tokio::net::UnixListener;
 
 pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
@@ -14,7 +15,7 @@ pub async fn start<P: AsRef<Path>>(path: P, h: IpcHandles) -> Result<()> {
 
     loop {
         let (stream, _) = listener.accept().await?;
-        let hc = h.clone();
+        let hc = Arc::clone(&h);
         tokio::spawn(async move {
             if let Err(e) = handle_client(stream, hc).await {
                 if let Some(io_err) = e.downcast_ref::<std::io::Error>() {

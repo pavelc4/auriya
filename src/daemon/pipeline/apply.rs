@@ -145,7 +145,7 @@ impl Daemon {
 
             self.vendor_lock.unlock_all();
 
-            if should_log_change(&self.last, &self.cfg) {
+            if should_log_change(&self.last, self.log_debounce_ms) {
                 debug!(target: "auriya::daemon", "No foreground app detected");
                 bump_log(&mut self.last);
             }
@@ -307,7 +307,7 @@ impl Daemon {
         gamelist: &GameList,
     ) -> Result<()> {
         let changed = self.last.pkg.as_deref() != Some(pkg) || self.last.pid != Some(pid);
-        if changed && should_log_change(&self.last, &self.cfg) {
+        if changed && should_log_change(&self.last, self.log_debounce_ms) {
             debug!(target: "auriya::daemon", "Foreground {} PID={}", pkg, pid);
             bump_log(&mut self.last);
         }

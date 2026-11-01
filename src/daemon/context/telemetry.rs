@@ -103,7 +103,7 @@ impl DaemonContext {
                 st.and_then(|s| s.cpu_telemetry.as_ref()),
                 st.and_then(|s| s.gpu_telemetry.as_ref()),
                 st.and_then(|s| s.thermal_telemetry.as_ref()),
-                &bat,
+                bat,
                 st.and_then(|s| s.pkg.as_deref()),
                 st.map(|s| s.profile).unwrap_or_default(),
                 is_monitored,

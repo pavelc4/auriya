@@ -136,7 +136,7 @@ fn stats_snapshot_serialization_envelope() {
         None,
         None,
         None,
-        &battery,
+        battery,
         Some("com.miHoYo.GenshinImpact"),
         ProfileMode::Performance,
         true,

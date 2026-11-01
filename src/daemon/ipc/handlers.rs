@@ -77,11 +77,11 @@ pub async fn handle_client(stream: UnixStream, ctx: Arc<DaemonContext>) -> Resul
             }
             Command::SetGovernor(gov) => {
                 crate::platform::cpu::governor::set_governor_cached(&gov);
+                let resp = format!("OK SET_GOVERNOR {gov}\n");
                 if let Ok(mut g) = ctx.balance_governor.write() {
-                    *g = gov.clone();
+                    *g = gov;
                 }
-                w.write_all(format!("OK SET_GOVERNOR {gov}\n").as_bytes())
-                    .await?;
+                w.write_all(resp.as_bytes()).await?;
             }
             Command::AddGame(pkg) => w.write_all(ctx.add_game(&pkg).as_bytes()).await?,
             Command::RemoveGame(pkg) => w.write_all(ctx.remove_game(&pkg).as_bytes()).await?,

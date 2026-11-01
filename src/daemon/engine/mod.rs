@@ -24,7 +24,7 @@ pub type ReloadHandle =
     tracing_subscriber::reload::Handle<tracing_subscriber::EnvFilter, tracing_subscriber::Registry>;
 
 pub struct Daemon {
-    pub(crate) cfg: DaemonConfig,
+    pub(crate) log_debounce_ms: u128,
     pub(crate) _shared_settings: Arc<RwLock<crate::core::config::Settings>>,
     pub(crate) shared_gamelist: Arc<RwLock<Arc<crate::core::config::GameList>>>,
     pub(crate) shared_current: Arc<RwLock<CurrentState>>,
@@ -65,8 +65,7 @@ impl Daemon {
         status_cache: SystemStatusCache,
         event_tx: EventSender,
     ) -> Result<Self> {
-        let shared_settings = Arc::new(RwLock::new(cfg.settings.clone()));
-        let shared_gamelist = Arc::new(RwLock::new(Arc::new(cfg.gamelist.clone())));
+        let log_debounce_ms = cfg.log_debounce_ms;
         let shared_current = Arc::new(RwLock::new(CurrentState::default()));
         let override_foreground = Arc::new(RwLock::new(None));
 
@@ -160,8 +159,11 @@ impl Daemon {
             stock
         };
 
+        let shared_settings = Arc::new(RwLock::new(cfg.settings));
+        let shared_gamelist = Arc::new(RwLock::new(Arc::new(cfg.gamelist)));
+
         Ok(Self {
-            cfg,
+            log_debounce_ms,
             _shared_settings: shared_settings,
             shared_gamelist,
             shared_current,
@@ -239,7 +241,7 @@ impl Daemon {
                 if let Ok(mut g) = self.balance_governor.write()
                     && *g != new_settings.cpu.default_governor
                 {
-                    *g = new_settings.cpu.default_governor.clone();
+                    g.clone_from(&new_settings.cpu.default_governor);
                     gov_changed = true;
                 }
 
@@ -315,16 +317,20 @@ impl Daemon {
         let current_log_level = Arc::new(RwLock::new(crate::daemon::ipc::LogLevelCmd::Info));
         let ctx = Arc::new(crate::daemon::context::DaemonContext {
             enabled: Arc::new(AtomicBool::new(true)),
-            shared_config: self.shared_gamelist.clone(),
-            override_foreground: self.override_foreground.clone(),
-            current_state: self.shared_current.clone(),
-            balance_governor: self.balance_governor.clone(),
-            active_mode: self.active_mode.clone(),
-            dnd_default: self.cfg.settings.dnd.default_enable,
+            shared_config: Arc::clone(&self.shared_gamelist),
+            override_foreground: Arc::clone(&self.override_foreground),
+            current_state: Arc::clone(&self.shared_current),
+            balance_governor: Arc::clone(&self.balance_governor),
+            active_mode: Arc::clone(&self.active_mode),
+            dnd_default: self
+                ._shared_settings
+                .read()
+                .map(|s| s.dnd.default_enable)
+                .unwrap_or(true),
             current_log_level,
-            supported_modes: self.supported_modes.clone(),
+            supported_modes: Arc::clone(&self.supported_modes),
             profile_lock: Arc::new(std::sync::Mutex::new(())),
-            fas_controller: self.fas_controller.clone(),
+            fas_controller: self.fas_controller.as_ref().map(Arc::clone),
             reload_handle: Some(filter_handle),
             start_time: std::time::Instant::now(),
         });
@@ -418,7 +424,9 @@ impl Daemon {
         self.last.battery_saver = Some(battery_saver);
 
         if let Ok(mut cur) = self.shared_current.write() {
-            cur.pkg = self.last.pkg.clone();
+            if cur.pkg != self.last.pkg {
+                cur.pkg.clone_from(&self.last.pkg);
+            }
             cur.pid = self.last.pid;
             cur.game_session = game_session;
             cur.screen_awake = screen_awake;

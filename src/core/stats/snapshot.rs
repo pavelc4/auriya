@@ -5,6 +5,7 @@ use crate::core::telemetry::cpu::{ClusterType, CpuSnapshot};
 use crate::core::telemetry::gpu::GpuSnapshot;
 use crate::core::telemetry::thermal::ThermalSnapshot;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ThermalCard {
@@ -63,7 +64,7 @@ pub struct GpuCard {
     #[serde(default)]
     pub load_pct: Option<u32>,
     #[serde(default)]
-    pub vendor: Option<String>,
+    pub vendor: Option<Cow<'static, str>>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -71,7 +72,7 @@ pub struct SessionCard {
     #[serde(default)]
     pub pkg: Option<String>,
     #[serde(default)]
-    pub profile: String,
+    pub profile: Cow<'static, str>,
     #[serde(default)]
     pub active: bool,
     #[serde(default)]
@@ -81,7 +82,7 @@ pub struct SessionCard {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DaemonCard {
     #[serde(default)]
-    pub version: String,
+    pub version: Cow<'static, str>,
     #[serde(default)]
     pub pid: u32,
     #[serde(default)]
@@ -89,13 +90,13 @@ pub struct DaemonCard {
     #[serde(default)]
     pub uptime_secs: u64,
     #[serde(default)]
-    pub active_profile: String,
+    pub active_profile: Cow<'static, str>,
     #[serde(default)]
-    pub version_code: String,
+    pub version_code: Cow<'static, str>,
     #[serde(default)]
-    pub commit: String,
+    pub commit: Cow<'static, str>,
     #[serde(default)]
-    pub arch: String,
+    pub arch: Cow<'static, str>,
     #[serde(default)]
     pub mod_updated_secs: Option<u64>,
 }
@@ -321,7 +322,7 @@ impl StatsSnapshot {
         cpu: Option<&CpuSnapshot>,
         gpu: Option<&GpuSnapshot>,
         thermal: Option<&ThermalSnapshot>,
-        battery: &BatterySnapshot,
+        battery: BatterySnapshot,
         pkg: Option<&str>,
         profile: ProfileMode,
         active: bool,
@@ -332,12 +333,11 @@ impl StatsSnapshot {
         let rss_mb = sample_self_rss_mb();
         let binder = sample_binder_card();
         let system = sample_system_card();
-        let active_profile = profile.to_string().to_lowercase();
         let mod_info = get_module_prop_info();
-        let daemon_version = if mod_info.version.is_empty() {
-            env!("CARGO_PKG_VERSION").to_string()
+        let daemon_version: Cow<'static, str> = if mod_info.version.is_empty() {
+            env!("CARGO_PKG_VERSION").into()
         } else {
-            mod_info.version.clone()
+            Cow::Borrowed(mod_info.version.as_str())
         };
 
         StatsSnapshot {
@@ -352,8 +352,8 @@ impl StatsSnapshot {
                 pct: battery.pct,
                 current_ma: battery.current_ma,
                 voltage_v: battery.voltage_v,
-                status: battery.status.clone(),
-                health: battery.health.clone(),
+                status: battery.status,
+                health: battery.health,
             },
             cpu: cpu.map(|c| CpuCard {
                 load_pct: c.load_pct,
@@ -373,11 +373,11 @@ impl StatsSnapshot {
             gpu: gpu.map(|g| GpuCard {
                 mhz: g.cur_freq_mhz,
                 load_pct: g.load_pct,
-                vendor: g.vendor.clone(),
+                vendor: g.vendor.map(Cow::Borrowed),
             }),
             session: SessionCard {
                 pkg: pkg.map(str::to_string),
-                profile: active_profile.clone(),
+                profile: Cow::Borrowed(profile.as_str()),
                 active,
                 is_game,
             },
@@ -386,10 +386,10 @@ impl StatsSnapshot {
                 pid,
                 rss_mb,
                 uptime_secs,
-                active_profile,
-                version_code: mod_info.version_code.clone(),
-                commit: mod_info.commit.clone(),
-                arch: get_target_arch().to_string(),
+                active_profile: Cow::Borrowed(profile.as_str()),
+                version_code: Cow::Borrowed(mod_info.version_code.as_str()),
+                commit: Cow::Borrowed(mod_info.commit.as_str()),
+                arch: Cow::Borrowed(get_target_arch()),
                 mod_updated_secs: mod_info.mod_updated_secs,
             },
             binder,

@@ -20,17 +20,15 @@ impl PidTracker {
         let stop = Arc::new(AtomicBool::new(false));
         let wakeup = Self::make_eventfd().map(Arc::new);
 
-        let handle = match wakeup.clone() {
-            Some(wfd) => {
-                let stop_t = stop.clone();
-                let pidfd_t = pidfd.clone();
-                std::thread::Builder::new()
-                    .name("auriya-pidtrack".into())
-                    .spawn(move || track_loop(pid, pidfd_t, wfd, stop_t, event_tx))
-                    .ok()
-            }
-            None => None,
-        };
+        let handle = wakeup.as_ref().and_then(|wfd| {
+            let stop_t = Arc::clone(&stop);
+            let pidfd_t = pidfd.as_ref().map(Arc::clone);
+            let wfd_t = Arc::clone(wfd);
+            std::thread::Builder::new()
+                .name("auriya-pidtrack".into())
+                .spawn(move || track_loop(pid, pidfd_t, wfd_t, stop_t, event_tx))
+                .ok()
+        });
 
         Self {
             pid,

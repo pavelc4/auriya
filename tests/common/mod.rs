@@ -85,14 +85,14 @@ pub fn verify_kernel_subsystem_write_access() -> Result<GovernorRestorer, String
     let paths = find_cpu_governor_paths()?;
     let mut original_governors = Vec::with_capacity(paths.len());
 
-    for path in &paths {
-        let current_gov = fs::read_to_string(path)
+    for path in paths {
+        let current_gov = fs::read_to_string(&path)
             .map_err(|e| format!("Failed reading governor from {}: {}", path.display(), e))?;
         let trimmed_gov = current_gov.trim().to_string();
 
         let mut file = OpenOptions::new()
             .write(true)
-            .open(path)
+            .open(&path)
             .map_err(|e| format!("Write permission denied for {}: {}", path.display(), e))?;
 
         let mut write_res = Ok(());
@@ -105,7 +105,7 @@ pub fn verify_kernel_subsystem_write_access() -> Result<GovernorRestorer, String
         }
         write_res.map_err(|e| format!("Failed writing to {}: {}", path.display(), e))?;
 
-        original_governors.push((path.clone(), trimmed_gov));
+        original_governors.push((path, trimmed_gov));
     }
 
     Ok(GovernorRestorer { original_governors })

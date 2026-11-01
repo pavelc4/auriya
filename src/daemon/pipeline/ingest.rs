@@ -24,6 +24,15 @@ impl Daemon {
         if pkg_opt.is_none() {
             #[cfg(target_os = "android")]
             if let Some(task) = crate::platform::common::procfs::query_current_foreground_task() {
+                package_pids =
+                    crate::platform::common::procfs::find_all_pids_by_package(&task.package);
+                if let Some(&first) = package_pids.first() {
+                    focused_pid = Some(first);
+                } else {
+                    focused_pid = task.pid;
+                }
+                is_floating = task.is_floating;
+
                 self.status_cache.store(crate::core::status::SystemStatus {
                     focused_app: Some(task.package.clone()),
                     focused_pid: task.pid,
@@ -33,14 +42,7 @@ impl Daemon {
                     zen_mode: None,
                     is_floating: Some(task.is_floating),
                 });
-                pkg_opt = Some(task.package.clone());
-                focused_pid = task.pid;
-                is_floating = task.is_floating;
-                package_pids =
-                    crate::platform::common::procfs::find_all_pids_by_package(&task.package);
-                if let Some(&first) = package_pids.first() {
-                    focused_pid = Some(first);
-                }
+                pkg_opt = Some(task.package);
             }
         } else {
             is_floating = self.status_cache.is_floating();

@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 #[tokio::test]
 async fn test_concurrency_and_tweak_application_stress() -> Result<(), String> {
     let _restorer = common::setup_verified_root_environment()?;
-    let governor_paths = common::find_cpu_governor_paths()?;
+    let governor_paths = Arc::new(common::find_cpu_governor_paths()?);
 
     let running = Arc::new(AtomicBool::new(true));
     let fps_read_count = Arc::new(AtomicUsize::new(0));
@@ -38,14 +38,14 @@ async fn test_concurrency_and_tweak_application_stress() -> Result<(), String> {
         let t_counter = Arc::clone(&tweak_apply_count);
         let t_errors = Arc::clone(&tweak_error_count);
         let t_lock = Arc::clone(&tweak_lock);
-        let paths = governor_paths.clone();
+        let paths = Arc::clone(&governor_paths);
 
         let handle = thread::spawn(move || {
             let mut gov_idx = thread_idx;
             while t_running.load(Ordering::Acquire) {
                 let target_gov = test_governors[gov_idx % test_governors.len()];
                 if let Ok(_guard) = t_lock.lock() {
-                    for path in &paths {
+                    for path in paths.iter() {
                         let mut success = false;
                         for _ in 0..5 {
                             if std::fs::write(path, target_gov.as_bytes()).is_ok() {

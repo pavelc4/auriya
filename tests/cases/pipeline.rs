@@ -7,10 +7,10 @@ use auriya::daemon::event;
 use auriya::daemon::pipeline::{PipelineDecision, PipelineInput, PowerSnapshot};
 use std::sync::Arc;
 
-fn create_test_daemon(gamelist: GameList) -> Daemon {
+fn create_test_daemon(gamelist: &GameList) -> Daemon {
     let cfg = DaemonConfig {
         settings: Settings::default(),
-        gamelist,
+        gamelist: gamelist.clone(),
         log_debounce_ms: 2000,
     };
     let (tx, _rx) = event::channel();
@@ -20,7 +20,7 @@ fn create_test_daemon(gamelist: GameList) -> Daemon {
 #[test]
 fn test_decide_powersave_when_screen_off() {
     let gamelist = GameList::default();
-    let daemon = create_test_daemon(gamelist.clone());
+    let daemon = create_test_daemon(&gamelist);
 
     let input = PipelineInput {
         power: PowerSnapshot {
@@ -43,7 +43,7 @@ fn test_decide_powersave_when_screen_off() {
 #[test]
 fn test_decide_powersave_when_battery_saver() {
     let gamelist = GameList::default();
-    let daemon = create_test_daemon(gamelist.clone());
+    let daemon = create_test_daemon(&gamelist);
 
     let input = PipelineInput {
         power: PowerSnapshot {
@@ -66,7 +66,7 @@ fn test_decide_powersave_when_battery_saver() {
 #[test]
 fn test_decide_no_foreground() {
     let gamelist = GameList::default();
-    let daemon = create_test_daemon(gamelist.clone());
+    let daemon = create_test_daemon(&gamelist);
 
     let input = PipelineInput {
         power: PowerSnapshot {
@@ -89,7 +89,7 @@ fn test_decide_no_foreground() {
 #[test]
 fn test_decide_non_whitelisted() {
     let gamelist = GameList::default();
-    let daemon = create_test_daemon(gamelist.clone());
+    let daemon = create_test_daemon(&gamelist);
 
     let input = PipelineInput {
         power: PowerSnapshot {
@@ -135,7 +135,7 @@ fn test_decide_enter_game() {
             freeze_rotation: false,
         }],
     };
-    let daemon = create_test_daemon(gamelist.clone());
+    let daemon = create_test_daemon(&gamelist);
 
     let input = PipelineInput {
         power: PowerSnapshot {
@@ -162,7 +162,7 @@ fn test_decide_enter_game() {
 #[tokio::test]
 async fn test_decide_same_app_unwhitelisted_monitored() {
     let gamelist = GameList::default();
-    let mut daemon = create_test_daemon(gamelist.clone());
+    let mut daemon = create_test_daemon(&gamelist);
 
     // First transition: entering an unwhitelisted app
     let enter_decision = PipelineDecision::NonWhitelisted {
@@ -199,7 +199,7 @@ async fn test_decide_same_app_unwhitelisted_monitor_when_fas_disabled() {
     let gamelist = GameList::default();
     let mut cfg = DaemonConfig {
         settings: Settings::default(),
-        gamelist: gamelist.clone(),
+        gamelist: GameList::default(),
         log_debounce_ms: 2000,
     };
     cfg.settings.fas.enabled = false;

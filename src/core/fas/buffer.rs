@@ -14,15 +14,15 @@ impl Default for TargetFps {
 }
 
 impl TargetFps {
-    pub fn values(&self) -> Vec<u32> {
+    pub fn as_slice(&self) -> &[u32] {
         match self {
-            Self::Single(v) => vec![*v],
-            Self::Array(arr) => {
-                let mut sorted = arr.clone();
-                sorted.sort();
-                sorted
-            }
+            Self::Single(v) => std::slice::from_ref(v),
+            Self::Array(arr) => arr.as_slice(),
         }
+    }
+
+    pub fn values(&self) -> Vec<u32> {
+        self.as_slice().to_vec()
     }
 }
 
@@ -151,7 +151,11 @@ impl FrameBuffer {
     }
 
     /// Update target FPS configuration without discarding real frame telemetry.
-    pub fn set_target_fps_config(&mut self, config: TargetFps) {
+    pub fn set_target_fps_config(&mut self, mut config: TargetFps) {
+        if let TargetFps::Array(ref mut arr) = config {
+            arr.sort_unstable();
+            arr.dedup();
+        }
         self.target_fps_config = config;
         self.detect_target_fps();
     }
@@ -197,7 +201,7 @@ impl FrameBuffer {
     }
 
     fn detect_target_fps(&mut self) {
-        let targets = self.target_fps_config.values();
+        let targets = self.target_fps_config.as_slice();
         if targets.is_empty() {
             return;
         }
@@ -212,7 +216,7 @@ impl FrameBuffer {
             return;
         }
 
-        if let [single] = targets.as_slice() {
+        if let [single] = targets {
             let max_ceiling = match crate::platform::binder::get_active_display_refresh_rate() {
                 hz if hz > 0.0 => hz as u32,
                 _ => 144,

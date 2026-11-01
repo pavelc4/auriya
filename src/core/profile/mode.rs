@@ -7,6 +7,17 @@ pub enum ProfileMode {
     Fast,
 }
 
+impl ProfileMode {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            ProfileMode::Performance => "performance",
+            ProfileMode::Balance => "balance",
+            ProfileMode::Powersave => "powersave",
+            ProfileMode::Fast => "fast",
+        }
+    }
+}
+
 impl std::fmt::Display for ProfileMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
