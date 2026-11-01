@@ -40,17 +40,18 @@ impl FpsMeter {
     }
 
     /// Read the current FPS from the best available source.
-    /// Primary: real-time presented eBPF frame stream.
-    /// Secondary: hardware sysfs reader fallback when eBPF is idle or unavailable.
+    /// If eBPF frame stream is available, strictly stay on eBPF without sysfs fallback.
+    /// Only fall back to hardware sysfs reader when eBPF is not configured/compiled.
     pub fn read(&mut self) -> Option<FpsReading> {
-        self.drain_ebpf();
-
-        match self.sample_ebpf_fps() {
-            Some(fps) => Some(FpsReading {
-                fps,
-                source: FpsSource::Ebpf,
-            }),
-            None => self.sysfs.read(),
+        match self.ebpf_rx.is_some() {
+            true => {
+                self.drain_ebpf();
+                self.sample_ebpf_fps().map(|fps| FpsReading {
+                    fps,
+                    source: FpsSource::Ebpf,
+                })
+            }
+            false => self.sysfs.read(),
         }
     }
 

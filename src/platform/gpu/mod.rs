@@ -51,6 +51,54 @@ pub fn set_performance_mode() -> Result<()> {
     Ok(())
 }
 
+pub fn set_powersave_mode() -> Result<()> {
+    match detect_vendor() {
+        GpuVendor::Adreno => set_adreno_powersave()?,
+        GpuVendor::Mali => set_mali_powersave()?,
+        GpuVendor::Unknown => {
+            set_devfreq_gpu_balanced();
+            debug!("GPU vendor unknown, skipping GPU powersave tweak");
+            return Ok(());
+        }
+    }
+
+    debug!("GPU powersave mode enabled");
+    Ok(())
+}
+
+fn set_adreno_powersave() -> Result<()> {
+    let base = "/sys/class/kgsl/kgsl-3d0";
+    let _ = fs::write(format!("{}/devfreq/governor", base), "msm-adreno-tz");
+
+    let num_pwr = fs::read_to_string(format!("{}/num_pwrlevels", base))
+        .ok()
+        .and_then(|n| n.trim().parse::<u32>().ok())
+        .unwrap_or(8);
+
+    // Limit max boost to mid-level (~324 MHz) to ensure smooth 60 FPS UI without wasteful high-clock wattage.
+    // In KGSL: 0 is highest clock, num_pwrlevels - 1 is lowest clock.
+    let cap_level = (num_pwr / 2).max(1);
+    let min_pwr = if num_pwr > 0 { num_pwr - 1 } else { 8 };
+
+    let _ = fs::write(format!("{}/max_pwrlevel", base), cap_level.to_string());
+    let _ = fs::write(format!("{}/min_pwrlevel", base), min_pwr.to_string());
+
+    let _ = fs::write(format!("{}/force_clk_on", base), "0");
+    let _ = fs::write(format!("{}/force_bus_on", base), "0");
+    let _ = fs::write(format!("{}/bus_split", base), "1");
+
+    Ok(())
+}
+
+fn set_mali_powersave() -> Result<()> {
+    if Path::new("/proc/gpufreqv2/fix_target_opp_index").exists() {
+        let _ = fs::write("/proc/gpufreqv2/fix_target_opp_index", "-1");
+    }
+    set_mali_power_policy("coarse_demand");
+    set_devfreq_gpu_balanced();
+    Ok(())
+}
+
 fn set_adreno_performance() -> Result<()> {
     let base = "/sys/class/kgsl/kgsl-3d0";
 

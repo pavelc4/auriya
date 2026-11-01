@@ -68,11 +68,13 @@ impl SystemStatusCache {
         {
             let client = crate::platform::binder::BinderClient::new();
             if let Ok(interactive) = client.is_screen_interactive() {
-                let guard = self.inner.read().ok();
-                let saver = match guard.as_deref().and_then(|opt| opt.as_ref()) {
-                    Some(s) => s.battery_saver.unwrap_or(false),
-                    None => false,
-                };
+                let saver = crate::platform::binder::is_power_save_mode().unwrap_or_else(|_| {
+                    let guard = self.inner.read().ok();
+                    match guard.as_deref().and_then(|opt| opt.as_ref()) {
+                        Some(s) => s.battery_saver.unwrap_or(false),
+                        None => false,
+                    }
+                });
                 return (interactive, saver);
             }
         }

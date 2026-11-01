@@ -58,6 +58,9 @@ impl Daemon {
         let _ = crate::platform::binder::set_statusbar_lock(false);
         let _ = crate::platform::binder::set_high_touch_polling_rate(false);
         let _ = crate::platform::binder::thaw_display_rotation(0);
+        if self.applied_refresh_rate != Some(60) && self.apply_refresh_rate(60) {
+            self.applied_refresh_rate = Some(60);
+        }
         let _ = crate::platform::binder::set_power_mode(
             crate::platform::binder::PowerMode::ExpensiveRendering,
             false,
@@ -113,6 +116,9 @@ impl Daemon {
         let _ = crate::platform::binder::set_statusbar_lock(false);
         let _ = crate::platform::binder::set_high_touch_polling_rate(false);
         let _ = crate::platform::binder::thaw_display_rotation(0);
+        if self.applied_refresh_rate.is_some() && self.apply_refresh_rate(0) {
+            self.applied_refresh_rate = None;
+        }
         let _ = crate::platform::binder::set_high_touch_polling_rate(false);
         let _ = crate::platform::binder::set_power_mode(
             crate::platform::binder::PowerMode::ExpensiveRendering,
@@ -289,6 +295,12 @@ impl Daemon {
         if changed && should_log_change(&self.last, &self.cfg) {
             debug!(target: "auriya::daemon", "Foreground {} PID={}", pkg, pid);
             bump_log(&mut self.last);
+        }
+        if self.applied_refresh_rate == Some(60) {
+            debug!(target: "auriya::display", "Releasing powersave 60Hz override before game entry");
+            if self.apply_refresh_rate(0) {
+                self.applied_refresh_rate = None;
+            }
         }
         if self.last.pkg.as_deref() != Some(pkg)
             && let Some(last_pkg) = self.last.pkg.as_deref()

@@ -161,7 +161,7 @@ pub fn apply_powersave_with_dnd(enable_dnd: bool) -> Result<()> {
         enable_dnd
     );
 
-    paths::set_governor_cached("powersave");
+    paths::set_governor_cached("schedutil");
     cpu::disable_boost()?;
 
     let soc_type = soc::detect_soc();
@@ -174,7 +174,7 @@ pub fn apply_powersave_with_dnd(enable_dnd: bool) -> Result<()> {
         }
         _ => {}
     }
-    gpu::set_balanced_mode()?;
+    gpu::set_powersave_mode()?;
     warn_on_err(
         touchpanel::disable_game_mode(),
         "disable touchpanel game mode",
