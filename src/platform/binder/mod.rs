@@ -12,13 +12,14 @@ pub mod observer;
 
 pub use actuators::{
     DndMode, PowerBoost, PowerMode, apply_dnd, apply_refresh_rate, broadcast_intent,
-    collapse_panels, freeze_display_rotation, get_animation_scales,
-    get_user_preferred_display_mode, get_vibrator_capabilities, is_display_rotation_frozen,
-    is_high_touch_polling_rate_supported, is_power_boost_supported, is_power_mode_supported,
-    is_power_save_mode, is_statusbar_locked, is_wifi_low_latency_active, pulse_vibrator,
-    query_binder_display_modes, set_animation_scales, set_high_touch_polling_rate, set_power_boost,
-    set_power_mode, set_power_save_mode_enabled, set_statusbar_lock, set_wifi_low_latency_lock,
-    show_toast, show_toast_with_duration, silence_vibrator, thaw_display_rotation,
+    collapse_panels, freeze_display_rotation, get_active_display_refresh_rate,
+    get_animation_scales, get_user_preferred_display_mode, get_vibrator_capabilities,
+    is_display_rotation_frozen, is_high_touch_polling_rate_supported, is_power_boost_supported,
+    is_power_mode_supported, is_power_save_mode, is_statusbar_locked, is_wifi_low_latency_active,
+    pulse_vibrator, query_binder_display_modes, query_binder_supported_rates, set_animation_scales,
+    set_high_touch_polling_rate, set_power_boost, set_power_mode, set_power_save_mode_enabled,
+    set_statusbar_lock, set_wifi_low_latency_lock, show_toast, show_toast_with_duration,
+    silence_vibrator, thaw_display_rotation,
 };
 pub use client::{BinderClient, ForegroundTask, is_window_floating};
 pub use observer::{ProcessEvent, ProcessEventType, ProcessObserver};

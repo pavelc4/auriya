@@ -19,6 +19,7 @@ impl Daemon {
         }
 
         let mut focused_pid = None;
+        let mut package_pids = Vec::new();
         let mut is_floating = false;
         if pkg_opt.is_none() {
             #[cfg(target_os = "android")]
@@ -32,23 +33,33 @@ impl Daemon {
                     zen_mode: None,
                     is_floating: Some(task.is_floating),
                 });
-                pkg_opt = Some(task.package);
+                pkg_opt = Some(task.package.clone());
                 focused_pid = task.pid;
                 is_floating = task.is_floating;
+                package_pids =
+                    crate::platform::common::procfs::find_all_pids_by_package(&task.package);
+                if let Some(&first) = package_pids.first() {
+                    focused_pid = Some(first);
+                }
             }
         } else {
             is_floating = self.status_cache.is_floating();
-            focused_pid = self.status_cache.focused_pid().filter(|&p| {
-                crate::platform::common::procfs::is_pid_valid(p)
-                    && crate::platform::common::procfs::verify_pid_package(
-                        p,
-                        pkg_opt.as_ref().unwrap(),
-                    )
-            });
+            let pkg = pkg_opt.as_deref().unwrap_or("");
+
+            #[cfg(target_os = "android")]
+            {
+                package_pids = crate::platform::common::procfs::find_all_pids_by_package(pkg);
+                focused_pid = package_pids.first().copied();
+            }
+
+            // Fall back to cached PID if still valid and alive.
             if focused_pid.is_none() {
-                #[cfg(target_os = "android")]
-                if let Some(ref pkg) = pkg_opt {
-                    focused_pid = crate::platform::common::procfs::find_pid_by_package(pkg);
+                focused_pid = self.status_cache.focused_pid().filter(|&p| {
+                    crate::platform::common::procfs::is_pid_valid(p)
+                        && crate::platform::common::procfs::verify_pid_package(p, pkg)
+                });
+                if let Some(p) = focused_pid {
+                    package_pids.push(p);
                 }
             }
         }
@@ -59,6 +70,7 @@ impl Daemon {
             power,
             foreground_pkg: pkg_opt,
             focused_pid,
+            package_pids,
             is_pid_valid,
             is_floating,
         }

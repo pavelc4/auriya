@@ -6,63 +6,89 @@ use crate::core::telemetry::gpu::GpuSnapshot;
 use crate::core::telemetry::thermal::ThermalSnapshot;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ThermalCard {
+    #[serde(default)]
     pub cpu_c: Option<f32>,
+    #[serde(default)]
     pub gpu_c: Option<f32>,
+    #[serde(default)]
     pub battery_c: Option<f32>,
     #[serde(default)]
     pub sconfig_supported: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct BatteryCard {
+    #[serde(default)]
     pub pct: Option<u8>,
+    #[serde(default)]
     pub current_ma: Option<i32>,
+    #[serde(default)]
     pub voltage_v: Option<f32>,
+    #[serde(default)]
     pub status: Option<String>,
+    #[serde(default)]
     pub health: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CoreDto {
+    #[serde(default)]
     pub id: usize,
+    #[serde(default)]
     pub khz: u64,
+    #[serde(default)]
     pub gov: String,
+    #[serde(default)]
     pub cluster: String,
+    #[serde(default)]
     pub online: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CpuCard {
+    #[serde(default)]
     pub load_pct: f32,
+    #[serde(default)]
     pub cores: Vec<CoreDto>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub available_governors: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GpuCard {
+    #[serde(default)]
     pub mhz: Option<u64>,
+    #[serde(default)]
     pub load_pct: Option<u32>,
+    #[serde(default)]
     pub vendor: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SessionCard {
+    #[serde(default)]
     pub pkg: Option<String>,
+    #[serde(default)]
     pub profile: String,
+    #[serde(default)]
     pub active: bool,
     #[serde(default)]
     pub is_game: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DaemonCard {
+    #[serde(default)]
     pub version: String,
+    #[serde(default)]
     pub pid: u32,
+    #[serde(default)]
     pub rss_mb: f32,
+    #[serde(default)]
     pub uptime_secs: u64,
+    #[serde(default)]
     pub active_profile: String,
     #[serde(default)]
     pub version_code: String,
@@ -74,34 +100,53 @@ pub struct DaemonCard {
     pub mod_updated_secs: Option<u64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct BinderCard {
+    #[serde(default)]
     pub operational: bool,
+    #[serde(default)]
     pub screen_interactive: bool,
+    #[serde(default)]
     pub is_floating: bool,
+    #[serde(default)]
     pub wifi_low_latency: bool,
+    #[serde(default)]
     pub statusbar_locked: bool,
+    #[serde(default)]
     pub dnd_mode: u32,
+    #[serde(default)]
     pub refresh_rate_hz: Option<f32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SystemCard {
+    #[serde(default)]
     pub uptime_secs: u64,
+    #[serde(default)]
     pub ram_total_mb: u64,
+    #[serde(default)]
     pub ram_avail_mb: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct StatsSnapshot {
+    #[serde(default)]
     pub fps: Option<FpsStats>,
+    #[serde(default)]
     pub thermal: ThermalCard,
+    #[serde(default)]
     pub battery: BatteryCard,
+    #[serde(default)]
     pub cpu: Option<CpuCard>,
+    #[serde(default)]
     pub gpu: Option<GpuCard>,
+    #[serde(default)]
     pub session: SessionCard,
+    #[serde(default)]
     pub daemon: DaemonCard,
+    #[serde(default)]
     pub binder: BinderCard,
+    #[serde(default)]
     pub system: Option<SystemCard>,
 }
 

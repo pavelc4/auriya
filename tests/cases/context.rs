@@ -13,6 +13,7 @@ fn create_test_context() -> DaemonContext {
         override_foreground: Arc::new(RwLock::new(None)),
         current_state: Arc::new(RwLock::new(CurrentState::default())),
         balance_governor: Arc::new(RwLock::new("schedutil".to_string())),
+        active_mode: Arc::new(RwLock::new(auriya::core::profile::ProfileMode::Balance)),
         dnd_default: false,
         current_log_level: Arc::new(RwLock::new(LogLevelCmd::Info)),
         supported_modes: Arc::new(vec![

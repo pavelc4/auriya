@@ -7,17 +7,26 @@ use tracing::{debug, error, warn};
 
 impl Daemon {
     /// Apply phase: execute the decided state changes and hardware configurations.
-    pub async fn apply(&mut self, decision: PipelineDecision, gamelist: &GameList) -> Result<()> {
+    pub async fn apply(
+        &mut self,
+        decision: PipelineDecision<'_>,
+        gamelist: &GameList,
+    ) -> Result<()> {
         match decision {
             PipelineDecision::Powersave => self.apply_powersave_state(),
             PipelineDecision::NoForeground => self.handle_no_foreground().await,
-            PipelineDecision::NonWhitelisted { pkg, pid, reason } => {
-                self.apply_balance_and_clear(&pkg, pid, reason).await
+            PipelineDecision::NonWhitelisted {
+                pkg,
+                pid,
+                pids,
+                reason,
+            } => self.apply_balance_and_clear(pkg, pid, pids, reason).await,
+            PipelineDecision::SameAppFas { pkg, pids } => {
+                self.run_fas_pipeline(pkg, pids, gamelist).await
             }
-            PipelineDecision::SameAppFas { pkg } => self.run_fas_pipeline(&pkg, gamelist).await,
-            PipelineDecision::SameAppMonitor { pkg } => self.monitor_app_frames(&pkg).await,
-            PipelineDecision::EnterGame { pkg, pid } => {
-                self.apply_enter_game(&pkg, pid, gamelist).await
+            PipelineDecision::SameAppMonitor { pkg } => self.monitor_app_frames(pkg).await,
+            PipelineDecision::EnterGame { pkg, pid, pids } => {
+                self.apply_enter_game(pkg, pid, pids, gamelist).await
             }
         }
     }
@@ -34,7 +43,7 @@ impl Daemon {
             }
         }
         self.apply_ceiling_for_state(Some(crate::platform::cpu::ceiling::CeilingLevel::Low), None);
-        self.ebpf_detach();
+        self.ebpf_detach_all();
         if let Some(mut f) = self
             .fas_controller
             .as_ref()
@@ -67,13 +76,14 @@ impl Daemon {
     }
 
     async fn handle_no_foreground(&mut self) -> Result<()> {
-        if self.last.profile_mode != Some(self.default_mode) {
+        let active_default = self.default_mode();
+        if self.last.profile_mode != Some(active_default) {
             let gov_guard = self.balance_governor.read();
             let default_gov = gov_guard
                 .as_deref()
                 .map(|s| s.as_str())
                 .unwrap_or("schedutil");
-            let res = match self.default_mode {
+            let res = match active_default {
                 ProfileMode::Performance => profile::apply_performance(),
                 ProfileMode::Fast => profile::apply_fast(),
                 ProfileMode::Balance => profile::apply_balance(default_gov),
@@ -81,15 +91,15 @@ impl Daemon {
             };
 
             if let Err(e) = res {
-                error!(target: "auriya::profile", ?e, "Failed to apply {:?}", self.default_mode);
+                error!(target: "auriya::profile", ?e, "Failed to apply {:?}", active_default);
             } else {
-                debug!(target: "auriya::daemon", "Applied {:?} (no foreground)", self.default_mode);
-                self.last.profile_mode = Some(self.default_mode);
+                debug!(target: "auriya::daemon", "Applied {:?} (no foreground)", active_default);
+                self.last.profile_mode = Some(active_default);
             }
         }
 
         self.apply_ceiling_for_state(None, None);
-        self.ebpf_detach();
+        self.ebpf_detach_all();
         if let Some(mut f) = self
             .fas_controller
             .as_ref()
@@ -123,8 +133,8 @@ impl Daemon {
                 .as_ref()
                 .is_some_and(|p| self.cached_whitelist.contains(p));
             if was_game {
-                let last_p = self.last.pkg.clone().unwrap_or_default();
-                broadcast_intent("dev.auriya.app.ACTION_GAME_EXIT", &[("pkg", &last_p)]);
+                let last_p = self.last.pkg.as_deref().unwrap_or("");
+                broadcast_intent("dev.auriya.app.ACTION_GAME_EXIT", &[("pkg", last_p)]);
             }
 
             self.vendor_lock.unlock_all();
@@ -150,6 +160,7 @@ impl Daemon {
         &mut self,
         pkg: &str,
         pid: Option<i32>,
+        pids: &[i32],
         reason: &str,
     ) -> Result<()> {
         if self.last.pkg.as_deref() != Some(pkg) {
@@ -186,20 +197,21 @@ impl Daemon {
                 .as_ref()
                 .is_some_and(|p| self.cached_whitelist.contains(p));
             if was_game {
-                let last_p = self.last.pkg.clone().unwrap_or_default();
-                broadcast_intent("dev.auriya.app.ACTION_GAME_EXIT", &[("pkg", &last_p)]);
+                let last_p = self.last.pkg.as_deref().unwrap_or("");
+                broadcast_intent("dev.auriya.app.ACTION_GAME_EXIT", &[("pkg", last_p)]);
             }
 
             debug!(target: "auriya::daemon", "Foreground: {} ({})", pkg, reason);
         }
 
-        if self.last.profile_mode != Some(self.default_mode) {
+        let active_default = self.default_mode();
+        if self.last.profile_mode != Some(active_default) {
             let gov_guard = self.balance_governor.read();
             let default_gov = gov_guard
                 .as_deref()
                 .map(|s| s.as_str())
                 .unwrap_or("schedutil");
-            let res = match self.default_mode {
+            let res = match active_default {
                 ProfileMode::Performance => profile::apply_performance(),
                 ProfileMode::Fast => profile::apply_fast(),
                 ProfileMode::Balance => profile::apply_balance(default_gov),
@@ -207,38 +219,48 @@ impl Daemon {
             };
 
             if let Err(e) = res {
-                error!(target: "auriya::profile", ?e, "Failed to apply {:?}", self.default_mode);
+                error!(target: "auriya::profile", ?e, "Failed to apply {:?}", active_default);
             } else {
-                debug!(target: "auriya::daemon", "Applied {:?} ({})", self.default_mode, reason);
-                self.last.profile_mode = Some(self.default_mode);
+                debug!(target: "auriya::daemon", "Applied {:?} ({})", active_default, reason);
+                self.last.profile_mode = Some(active_default);
             }
         }
 
         self.apply_ceiling_for_state(None, None);
-        if let Some(pid) = pid {
-            self.ebpf_attach(pid);
-            self.set_pid(Some(pid));
-            if let Some(mut f) = self
-                .fas_controller
-                .as_ref()
-                .and_then(|fas| fas.try_lock().ok())
-            {
-                f.set_package(pkg, Some(pid));
-                f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(vec![
-                    30, 45, 60, 90, 120, 144,
-                ]));
+        let fallback_pid = [pid.unwrap_or(0)];
+        let effective_pids: &[i32] = match (pids.is_empty(), pid) {
+            (false, _) => pids,
+            (true, Some(_)) => &fallback_pid[..],
+            (true, None) => &[],
+        };
+
+        match effective_pids {
+            [first, ..] => {
+                self.sync_ebpf_pids(effective_pids);
+                let primary_pid = Some(*first);
+                self.set_pid(primary_pid);
+                if let Some(mut f) = self
+                    .fas_controller
+                    .as_ref()
+                    .and_then(|fas| fas.try_lock().ok())
+                {
+                    f.set_package(pkg, primary_pid);
+                    let rates = crate::platform::binder::query_binder_supported_rates();
+                    f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(rates));
+                }
             }
-        } else {
-            self.ebpf_detach();
-            if let Some(mut f) = self
-                .fas_controller
-                .as_ref()
-                .and_then(|fas| fas.try_lock().ok())
-            {
-                f.reset();
+            [] => {
+                self.ebpf_detach_all();
+                if let Some(mut f) = self
+                    .fas_controller
+                    .as_ref()
+                    .and_then(|fas| fas.try_lock().ok())
+                {
+                    f.reset();
+                }
+                self.fps_meter.clear();
+                self.set_pid(None);
             }
-            self.fps_meter.clear();
-            self.set_pid(None);
         }
 
         self.last.pkg = Some(pkg.to_string());
@@ -256,7 +278,13 @@ impl Daemon {
         Ok(())
     }
 
-    async fn apply_enter_game(&mut self, pkg: &str, pid: i32, gamelist: &GameList) -> Result<()> {
+    async fn apply_enter_game(
+        &mut self,
+        pkg: &str,
+        pid: i32,
+        pids: &[i32],
+        gamelist: &GameList,
+    ) -> Result<()> {
         let changed = self.last.pkg.as_deref() != Some(pkg) || self.last.pid != Some(pid);
         if changed && should_log_change(&self.last, &self.cfg) {
             debug!(target: "auriya::daemon", "Foreground {} PID={}", pkg, pid);
@@ -278,16 +306,6 @@ impl Daemon {
             .map(|s| s.dnd.default_enable)
             .unwrap_or(true);
         let game_cfg = gamelist.find(pkg);
-        let default_gov = self
-            .balance_governor
-            .read()
-            .ok()
-            .map(|g| g.clone())
-            .unwrap_or_else(|| "schedutil".to_string());
-        let governor = game_cfg
-            .filter(|c| !c.cpu_governor.is_empty())
-            .map(|c| c.cpu_governor.as_str())
-            .unwrap_or(&default_gov);
         let enable_dnd = global_dnd && game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
         let target_mode = game_cfg
             .and_then(|c| c.mode.as_deref())
@@ -320,6 +338,15 @@ impl Daemon {
         }
 
         if self.last.profile_mode != Some(target_mode) {
+            let gov_guard = self.balance_governor.read().ok();
+            let default_gov = gov_guard
+                .as_deref()
+                .map(|s| s.as_str())
+                .unwrap_or("schedutil");
+            let governor = game_cfg
+                .filter(|c| !c.cpu_governor.is_empty())
+                .map(|c| c.cpu_governor.as_str())
+                .unwrap_or(default_gov);
             let res = match target_mode {
                 ProfileMode::Performance | ProfileMode::Fast => {
                     profile::apply_performance_with_config(governor, enable_dnd, Some(pid))
@@ -350,7 +377,10 @@ impl Daemon {
             self.applied_refresh_rate = rr;
         }
 
-        self.ebpf_attach(pid);
+        match (pids.is_empty(), pid) {
+            (false, _) => self.sync_ebpf_pids(pids),
+            (true, p) => self.sync_ebpf_pids(std::slice::from_ref(&p)),
+        }
         self.sync_dnd(if enable_dnd {
             crate::platform::binder::DndMode::Priority
         } else {
@@ -469,30 +499,45 @@ impl Daemon {
         }
     }
 
-    fn ebpf_attach(&mut self, pid: i32) {
+    pub(crate) fn sync_ebpf_pids(&mut self, target_pids: &[i32]) {
         let Some(listener) = self.ebpf.as_ref() else {
             return;
         };
-        if self.attached_ebpf_pid == Some(pid) {
-            return;
-        }
-        if let Some(prev) = self.attached_ebpf_pid {
-            let _ = listener.detach(prev);
-        }
-        match listener.attach(pid) {
-            Ok(_) => {
-                self.attached_ebpf_pid = Some(pid);
-                debug!(target: "auriya::ebpf", "Attached frame probe to {pid}");
+
+        // Detach PIDs no longer in target
+        let to_detach: Vec<i32> = self
+            .attached_ebpf_pids
+            .iter()
+            .copied()
+            .filter(|p| !target_pids.contains(p))
+            .collect();
+        for pid in to_detach {
+            match listener.detach(pid) {
+                Ok(_) => debug!(target: "auriya::ebpf", "Detached frame probe from {pid}"),
+                Err(e) => warn!(target: "auriya::ebpf", "detach({pid}): {e}"),
             }
-            Err(e) => warn!(target: "auriya::ebpf", "attach({pid}): {e}"),
+            self.attached_ebpf_pids.retain(|&p| p != pid);
+        }
+
+        // Attach new target PIDs
+        for &pid in target_pids {
+            if !self.attached_ebpf_pids.contains(&pid) {
+                match listener.attach(pid) {
+                    Ok(_) => {
+                        self.attached_ebpf_pids.push(pid);
+                        debug!(target: "auriya::ebpf", "Attached frame probe to {pid}");
+                    }
+                    Err(e) => warn!(target: "auriya::ebpf", "attach({pid}): {e}"),
+                }
+            }
         }
     }
 
-    pub(crate) fn ebpf_detach(&mut self) {
+    pub(crate) fn ebpf_detach_all(&mut self) {
         let Some(listener) = self.ebpf.as_ref() else {
             return;
         };
-        if let Some(pid) = self.attached_ebpf_pid.take() {
+        for pid in self.attached_ebpf_pids.drain(..) {
             match listener.detach(pid) {
                 Ok(_) => debug!(target: "auriya::ebpf", "Detached frame probe from {pid}"),
                 Err(e) => warn!(target: "auriya::ebpf", "detach({pid}): {e}"),

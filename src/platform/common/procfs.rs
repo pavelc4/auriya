@@ -75,8 +75,33 @@ pub fn parse_focused_package_from_dumpsys(dumpsys_output: &str) -> Option<String
     None
 }
 
-/// Find PID in Android's top-app cpuset cgroup matching `pkg`.
-pub fn find_top_app_pid_pub(pkg: &str) -> Option<i32> {
+/// Extract cumulative CPU ticks (utime + stime) from `/proc/<pid>/stat`.
+/// Used to isolate the active rendering engine thread/process from idle stubs.
+pub fn get_pid_cpu_ticks(pid: i32) -> u64 {
+    let Ok(stat) = fs::read_to_string(format!("/proc/{pid}/stat")) else {
+        return 0;
+    };
+    let Some(idx) = stat.rfind(')') else {
+        return 0;
+    };
+    let rest = &stat[idx + 1..];
+    let mut parts = rest.split_whitespace();
+    let utime: u64 = parts.nth(11).and_then(|s| s.parse().ok()).unwrap_or(0);
+    let stime: u64 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    utime + stime
+}
+
+/// Find all candidate PIDs for a package without spawning subshells.
+/// Inspects top-app cpuset and scans in-memory `/proc` to discover any spawned
+/// rendering sub-processes (e.g. `:UnityKillsMe`).
+/// Returns PIDs sorted by activity (CPU ticks descending).
+pub fn find_all_pids_by_package(pkg: &str) -> Vec<i32> {
+    if pkg.is_empty() {
+        return Vec::new();
+    }
+    let mut candidates = Vec::with_capacity(4);
+
+    // 1. Inspect Android top-app cpuset
     for cpuset_path in [
         "/dev/cpuset/top-app/cgroup.procs",
         "/sys/fs/cgroup/top-app/cgroup.procs",
@@ -85,36 +110,47 @@ pub fn find_top_app_pid_pub(pkg: &str) -> Option<i32> {
             for line in content.lines() {
                 if let Ok(pid) = line.trim().parse::<i32>()
                     && verify_pid_package(pid, pkg)
+                    && !candidates.contains(&pid)
                 {
-                    return Some(pid);
+                    candidates.push(pid);
                 }
+            }
+            if !candidates.is_empty() {
+                break;
             }
         }
     }
-    None
+
+    // 2. Discover any other sub-processes under /proc
+    if let Ok(entries) = fs::read_dir("/proc") {
+        for entry in entries.flatten() {
+            if let Ok(file_name) = entry.file_name().into_string()
+                && let Ok(pid) = file_name.parse::<i32>()
+                && !candidates.contains(&pid)
+                && verify_pid_package(pid, pkg)
+            {
+                candidates.push(pid);
+            }
+        }
+    }
+
+    // Sort by CPU activity descending so the primary render process is first
+    candidates.sort_unstable_by_key(|&a| std::cmp::Reverse(get_pid_cpu_ticks(a)));
+    candidates
+}
+
+/// Find PID in Android's top-app cpuset cgroup matching `pkg`.
+/// When multiple sub-processes match (e.g. wrapper stub vs `:UnityKillsMe`),
+/// selects the process with highest CPU usage.
+pub fn find_top_app_pid_pub(pkg: &str) -> Option<i32> {
+    find_all_pids_by_package(pkg).into_iter().next()
 }
 
 /// Find PID for package without spawning subshells or executing pidof.
-/// First inspects top-app cpuset, then scans in-memory `/proc` directly.
+/// First inspects top-app cpuset, then scans in-memory `/proc` directly,
+/// selecting the most active candidate to avoid idle launcher stubs.
 pub fn find_pid_by_package(pkg: &str) -> Option<i32> {
-    if let Some(pid) = find_top_app_pid_pub(pkg) {
-        return Some(pid);
-    }
-
-    let Ok(entries) = fs::read_dir("/proc") else {
-        return None;
-    };
-    for entry in entries.flatten() {
-        let Ok(file_name) = entry.file_name().into_string() else {
-            continue;
-        };
-        if let Ok(pid) = file_name.parse::<i32>()
-            && verify_pid_package(pid, pkg)
-        {
-            return Some(pid);
-        }
-    }
-    None
+    find_all_pids_by_package(pkg).into_iter().next()
 }
 
 /// Query the currently focused foreground package and its PID directly on Android.

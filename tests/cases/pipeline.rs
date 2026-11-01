@@ -29,6 +29,7 @@ fn test_decide_powersave_when_screen_off() {
         },
         foreground_pkg: Some("com.mobile.legends".to_string()),
         focused_pid: Some(1234),
+        package_pids: vec![1234],
         is_pid_valid: true,
         is_floating: false,
     };
@@ -51,6 +52,7 @@ fn test_decide_powersave_when_battery_saver() {
         },
         foreground_pkg: Some("com.mobile.legends".to_string()),
         focused_pid: Some(1234),
+        package_pids: vec![1234],
         is_pid_valid: true,
         is_floating: false,
     };
@@ -73,6 +75,7 @@ fn test_decide_no_foreground() {
         },
         foreground_pkg: None,
         focused_pid: None,
+        package_pids: Vec::new(),
         is_pid_valid: false,
         is_floating: false,
     };
@@ -95,6 +98,7 @@ fn test_decide_non_whitelisted() {
         },
         foreground_pkg: Some("com.android.chrome".to_string()),
         focused_pid: Some(999),
+        package_pids: vec![999],
         is_pid_valid: true,
         is_floating: false,
     };
@@ -102,8 +106,9 @@ fn test_decide_non_whitelisted() {
     assert_eq!(
         daemon.decide(&input, &gamelist),
         PipelineDecision::NonWhitelisted {
-            pkg: "com.android.chrome".to_string(),
+            pkg: "com.android.chrome",
             pid: Some(999),
+            pids: &[999],
             reason: "not whitelisted",
         }
     );
@@ -139,6 +144,7 @@ fn test_decide_enter_game() {
         },
         foreground_pkg: Some(pkg.to_string()),
         focused_pid: Some(5678),
+        package_pids: vec![5678],
         is_pid_valid: true,
         is_floating: false,
     };
@@ -146,8 +152,9 @@ fn test_decide_enter_game() {
     assert_eq!(
         daemon.decide(&input, &gamelist),
         PipelineDecision::EnterGame {
-            pkg: pkg.to_string(),
+            pkg,
             pid: 5678,
+            pids: &[5678],
         }
     );
 }
@@ -159,8 +166,9 @@ async fn test_decide_same_app_unwhitelisted_monitored() {
 
     // First transition: entering an unwhitelisted app
     let enter_decision = PipelineDecision::NonWhitelisted {
-        pkg: "com.android.chrome".to_string(),
+        pkg: "com.android.chrome",
         pid: Some(999),
+        pids: &[999],
         reason: "not whitelisted",
     };
     daemon.apply(enter_decision, &gamelist).await.unwrap();
@@ -172,6 +180,7 @@ async fn test_decide_same_app_unwhitelisted_monitored() {
         },
         foreground_pkg: Some("com.android.chrome".to_string()),
         focused_pid: Some(999),
+        package_pids: vec![999],
         is_pid_valid: true,
         is_floating: false,
     };
@@ -179,7 +188,8 @@ async fn test_decide_same_app_unwhitelisted_monitored() {
     assert_eq!(
         daemon.decide(&input, &gamelist),
         PipelineDecision::SameAppFas {
-            pkg: "com.android.chrome".to_string(),
+            pkg: "com.android.chrome",
+            pids: &[999],
         }
     );
 }
@@ -197,8 +207,9 @@ async fn test_decide_same_app_unwhitelisted_monitor_when_fas_disabled() {
     let mut daemon = Daemon::new(cfg, Arc::new(Vec::new()), SystemStatusCache::new(), tx).unwrap();
 
     let enter_decision = PipelineDecision::NonWhitelisted {
-        pkg: "com.android.chrome".to_string(),
+        pkg: "com.android.chrome",
         pid: Some(999),
+        pids: &[999],
         reason: "not whitelisted",
     };
     daemon.apply(enter_decision, &gamelist).await.unwrap();
@@ -210,6 +221,7 @@ async fn test_decide_same_app_unwhitelisted_monitor_when_fas_disabled() {
         },
         foreground_pkg: Some("com.android.chrome".to_string()),
         focused_pid: Some(999),
+        package_pids: vec![999],
         is_pid_valid: true,
         is_floating: false,
     };
@@ -217,7 +229,7 @@ async fn test_decide_same_app_unwhitelisted_monitor_when_fas_disabled() {
     assert_eq!(
         daemon.decide(&input, &gamelist),
         PipelineDecision::SameAppMonitor {
-            pkg: "com.android.chrome".to_string(),
+            pkg: "com.android.chrome",
         }
     );
 }

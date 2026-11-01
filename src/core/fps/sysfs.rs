@@ -52,31 +52,58 @@ impl SysfsFpsReader {
     pub fn read(&mut self) -> Option<FpsReading> {
         let now = Instant::now();
         if now.duration_since(self.last_poll) < SYSFS_POLL_INTERVAL {
-            return self.cached.clone();
+            return self.cached;
         }
         self.last_poll = now;
 
         let path = self.path.as_ref()?;
         let content = fs::read_to_string(path).ok()?;
-        let trimmed = content.trim();
-        if trimmed.is_empty() {
-            return None;
-        }
-
-        let fps: f64 = trimmed.parse::<f64>().ok()?;
-        if fps <= 0.0 || fps > 500.0 {
-            return None;
-        }
+        let fps = parse_sysfs_fps(&content)?;
 
         let reading = FpsReading {
             fps,
             source: FpsSource::Sysfs,
         };
-        self.cached = Some(reading.clone());
+        self.cached = Some(reading);
         Some(reading)
     }
 
     pub fn clear(&mut self) {
         self.cached = None;
     }
+}
+
+/// Zero-allocation sysfs FPS parser supporting raw floats ("60.0") and
+/// vendor key-value formats ("fps: 117.7 duration:1000000 frame_count:118").
+pub fn parse_sysfs_fps(content: &str) -> Option<f64> {
+    let trimmed = content.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if let Ok(v) = trimmed.parse::<f64>() {
+        return (v > 0.0 && v <= 500.0).then_some(v);
+    }
+    for part in trimmed.split(|c: char| c.is_whitespace() || c == ',' || c == ';') {
+        let part = part.trim();
+        if let Some(val_str) = part
+            .strip_prefix("fps:")
+            .or_else(|| part.strip_prefix("FPS:"))
+            .or_else(|| part.strip_prefix("fps="))
+            .or_else(|| part.strip_prefix("FPS="))
+            && let Ok(v) = val_str.trim().parse::<f64>()
+        {
+            return (v > 0.0 && v <= 500.0).then_some(v);
+        }
+    }
+    let mut words = trimmed.split_whitespace();
+    while let Some(word) = words.next() {
+        let lower = word.to_ascii_lowercase();
+        if (lower == "fps:" || lower == "fps")
+            && let Some(next) = words.next()
+            && let Ok(v) = next.parse::<f64>()
+        {
+            return (v > 0.0 && v <= 500.0).then_some(v);
+        }
+    }
+    None
 }

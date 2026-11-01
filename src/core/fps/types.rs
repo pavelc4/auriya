@@ -4,7 +4,7 @@ pub enum FpsSource {
     Sysfs,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FpsReading {
     pub fps: f64,
     pub source: FpsSource,

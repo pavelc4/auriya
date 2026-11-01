@@ -14,7 +14,8 @@ pub mod window;
 
 pub use broadcast::broadcast_intent;
 pub use display::{
-    apply_refresh_rate, get_user_preferred_display_mode, query_binder_display_modes,
+    apply_refresh_rate, get_active_display_refresh_rate, get_user_preferred_display_mode,
+    query_binder_display_modes, query_binder_supported_rates,
 };
 pub use dnd::{DndMode, apply_dnd};
 pub use power::{is_power_save_mode, set_power_save_mode_enabled};

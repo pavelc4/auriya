@@ -7,8 +7,13 @@ use std::sync::Arc;
 use tracing::{debug, error, warn};
 
 impl Daemon {
-    pub(crate) async fn run_fas_pipeline(&mut self, pkg: &str, gamelist: &GameList) -> Result<()> {
-        let Some(ref fas_arc) = self.fas_controller.clone() else {
+    pub(crate) async fn run_fas_pipeline(
+        &mut self,
+        pkg: &str,
+        pids: &[i32],
+        gamelist: &GameList,
+    ) -> Result<()> {
+        let Some(fas_arc) = self.fas_controller.as_ref().cloned() else {
             return Ok(());
         };
         let game_cfg = gamelist.find(pkg);
@@ -27,7 +32,8 @@ impl Daemon {
             .read()
             .map(|s| s.dnd.default_enable)
             .unwrap_or(true);
-        let enable_dnd = global_dnd && game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
+        let is_game = self.cached_whitelist.contains(pkg);
+        let enable_dnd = is_game && global_dnd && game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
 
         if self.status_cache.is_floating() {
             if self.last_fps_config.as_deref() != Some("floating_30") {
@@ -53,13 +59,13 @@ impl Daemon {
             }
         } else if self.last_fps_config.as_deref() != Some("auto_multi") {
             let mut f = fas_arc.lock().await;
-            f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(vec![
-                30, 45, 60, 90, 120, 144,
-            ]));
+            let rates = crate::platform::binder::query_binder_supported_rates();
+            f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(rates));
             self.last_fps_config = Some("auto_multi".to_string());
         }
 
-        let current_profile = self.last.profile_mode.unwrap_or(self.default_mode);
+        let active_default = self.default_mode();
+        let current_profile = self.last.profile_mode.unwrap_or(active_default);
         let tuning = self
             ._shared_settings
             .read()
@@ -70,8 +76,14 @@ impl Daemon {
             f.set_tuning(tuning);
         }
 
+        match (pids.is_empty(), self.last.pid) {
+            (false, _) => self.sync_ebpf_pids(pids),
+            (true, Some(ref pid)) => self.sync_ebpf_pids(std::slice::from_ref(pid)),
+            (true, None) => {}
+        }
+
         match self
-            .run_fas_tick(fas_arc, pkg, governor, self.last.pid, enable_dnd)
+            .run_fas_tick(&fas_arc, pkg, governor, self.last.pid, enable_dnd)
             .await
         {
             Ok(_) => debug!(target: "auriya::fas", "FAS tick completed"),
@@ -130,8 +142,9 @@ impl Daemon {
     }
 
     fn apply_reduce_to_default(&mut self, game_governor: &str, enable_dnd: bool) -> Result<bool> {
-        if self.last.profile_mode != Some(self.default_mode) {
-            let res = match self.default_mode {
+        let active_default = self.default_mode();
+        if self.last.profile_mode != Some(active_default) {
+            let res = match active_default {
                 ProfileMode::Performance | ProfileMode::Fast => {
                     profile::apply_performance_with_config(game_governor, enable_dnd, None)
                 }
@@ -140,13 +153,13 @@ impl Daemon {
             };
 
             if let Err(e) = res {
-                error!(target: "auriya::fas", ?e, "FAS decision: REDUCE → failed to apply {:?}", self.default_mode);
+                error!(target: "auriya::fas", ?e, "FAS decision: REDUCE → failed to apply {:?}", active_default);
             } else {
-                debug!(target: "auriya::fas", "FAS decision: REDUCE → applying {:?}", self.default_mode);
-                self.last.profile_mode = Some(self.default_mode);
+                debug!(target: "auriya::fas", "FAS decision: REDUCE → applying {:?}", active_default);
+                self.last.profile_mode = Some(active_default);
             }
         } else {
-            debug!(target: "auriya::fas", "FAS decision: REDUCE → already {:?}, skip", self.default_mode);
+            debug!(target: "auriya::fas", "FAS decision: REDUCE → already {:?}, skip", active_default);
         }
         Ok(true)
     }

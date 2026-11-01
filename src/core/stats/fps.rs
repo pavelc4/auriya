@@ -103,18 +103,9 @@ pub fn fps_stats_compute_in_place(
         },
     };
 
-    // VSync target cadence snapping:
-    // Snaps if within 0.55 FPS, or if within 1.25 FPS with low pacing variance (steady VSync lock
-    // hovering near target e.g. 119.3 FPS on 120Hz display due to window edge truncation).
-    let avg = match candidate_target {
-        Some(target) if (raw_avg - target).abs() <= 0.55 => target,
-        Some(target) if (raw_avg - target).abs() <= 1.25 && std_dev_ms <= 1.8 => target,
-        _ => raw_avg,
-    };
-
     // Physical scanout ceiling:
     // A display panel physically cannot scan out frames faster than its hardware refresh rate.
-    // Clamping peak prevents queue buffer arrival jitter (e.g. 123 FPS on 120Hz panel).
+    // Clamping peak and avg prevents queue buffer arrival jitter (e.g. 123 FPS on 120Hz panel).
     // Invariant: peak >= avg is strictly enforced.
     let physical_ceiling = match (candidate_target, display_hz) {
         (Some(target), _) if target >= raw_avg - 2.0 => target,
@@ -125,6 +116,16 @@ pub fn fps_stats_compute_in_place(
             .find(|&t| raw_avg <= t + 2.0)
             .unwrap_or(144.0),
     };
+
+    // VSync target cadence snapping:
+    // Snaps if within 0.55 FPS, or if within 1.25 FPS with low pacing variance (steady VSync lock
+    // hovering near target e.g. 119.3 FPS on 120Hz display due to window edge truncation).
+    let avg = match candidate_target {
+        Some(target) if (raw_avg - target).abs() <= 0.55 => target,
+        Some(target) if (raw_avg - target).abs() <= 1.25 && std_dev_ms <= 1.8 => target,
+        _ => raw_avg,
+    }
+    .min(physical_ceiling);
 
     let peak = raw_peak.min(physical_ceiling).max(avg);
 

@@ -23,6 +23,11 @@ impl DaemonContext {
             ProfileMode::Powersave => crate::core::profile::apply_powersave(),
             ProfileMode::Fast => crate::core::profile::apply_fast(),
         };
+        if r.is_ok()
+            && let Ok(mut m) = self.active_mode.write()
+        {
+            *m = mode;
+        }
         match r {
             Ok(_) => Ok(format!("OK SET_PROFILE {mode:?}\n")),
             Err(e) => Ok(format!("ERR SET_PROFILE {e:?}\n")),

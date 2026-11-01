@@ -40,34 +40,33 @@ impl FpsMeter {
     }
 
     /// Read the current FPS from the best available source.
-    /// Tries sysfs first, falls back to eBPF if unavailable.
+    /// Primary: real-time presented eBPF frame stream.
+    /// Secondary: hardware sysfs reader fallback when eBPF is idle or unavailable.
     pub fn read(&mut self) -> Option<FpsReading> {
-        if let Some(sysfs) = self.sysfs.read() {
-            return Some(sysfs);
-        }
-
         self.drain_ebpf();
 
-        if self.frametimes.is_empty() || self.last_ebpf_frame.elapsed() >= self.ebpf_timeout {
-            return None;
+        match self.sample_ebpf_fps() {
+            Some(fps) => Some(FpsReading {
+                fps,
+                source: FpsSource::Ebpf,
+            }),
+            None => self.sysfs.read(),
         }
+    }
 
-        let avg: Duration = self.frametimes.iter().sum();
-        let n = self.frametimes.len() as f64;
-        let avg_secs = avg.as_secs_f64() / n;
-        if avg_secs <= 0.0 {
-            return None;
+    #[inline]
+    fn sample_ebpf_fps(&self) -> Option<f64> {
+        match (self.frametimes.is_empty(), self.last_ebpf_frame.elapsed()) {
+            (false, elapsed) if elapsed < self.ebpf_timeout => {
+                let total: Duration = self.frametimes.iter().sum();
+                let avg_secs = total.as_secs_f64() / self.frametimes.len() as f64;
+                match 1.0 / avg_secs {
+                    fps if (0.1..=500.0).contains(&fps) => Some(fps),
+                    _ => None,
+                }
+            }
+            _ => None,
         }
-
-        let fps = 1.0 / avg_secs;
-        if fps <= 0.0 || fps > 500.0 {
-            return None;
-        }
-
-        Some(FpsReading {
-            fps,
-            source: FpsSource::Ebpf,
-        })
     }
 
     fn drain_ebpf(&mut self) {

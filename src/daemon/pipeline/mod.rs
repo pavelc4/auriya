@@ -20,29 +20,33 @@ pub struct PipelineInput {
     pub power: PowerSnapshot,
     pub foreground_pkg: Option<String>,
     pub focused_pid: Option<i32>,
+    pub package_pids: Vec<i32>,
     pub is_pid_valid: bool,
     pub is_floating: bool,
 }
 
-/// Decision determined during the Decide phase.
+/// Decision determined during the Decide phase. Zero heap allocation via borrowed slices.
 #[derive(Debug, PartialEq, Eq)]
-pub enum PipelineDecision {
+pub enum PipelineDecision<'a> {
     Powersave,
     NoForeground,
     NonWhitelisted {
-        pkg: String,
+        pkg: &'a str,
         pid: Option<i32>,
+        pids: &'a [i32],
         reason: &'static str,
     },
     SameAppFas {
-        pkg: String,
+        pkg: &'a str,
+        pids: &'a [i32],
     },
     SameAppMonitor {
-        pkg: String,
+        pkg: &'a str,
     },
     EnterGame {
-        pkg: String,
+        pkg: &'a str,
         pid: i32,
+        pids: &'a [i32],
     },
 }
 

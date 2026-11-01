@@ -52,7 +52,8 @@ pub struct Daemon {
     pub(crate) telemetry_hub: TelemetryHub,
     pub(crate) fps_meter: FpsMeter,
     pub(crate) ebpf: Option<crate::core::ebpf::EbpfFrameStream>,
-    pub(crate) attached_ebpf_pid: Option<i32>,
+    pub(crate) attached_ebpf_pids: Vec<i32>,
+    pub(crate) active_mode: Arc<RwLock<ProfileMode>>,
     pub(crate) last_dnd: Option<crate::platform::binder::DndMode>,
     pub(crate) event_tx: EventSender,
 }
@@ -102,12 +103,11 @@ impl Daemon {
                     let tuning = crate::core::fas::FasTuning::from_settings(&cfg.settings);
                     debug!(target: "auriya::daemon", "FAS enabled with eBPF (target_fps={}, mode={})", cfg.settings.fas.target_fps, cfg.settings.fas.default_mode);
                     let rx = listener.subscribe();
+                    let initial_rates = crate::platform::binder::query_binder_supported_rates();
                     Some(Arc::new(tokio::sync::Mutex::new(
                         crate::core::fas::FasController::new(
                             rx,
-                            crate::core::fas::buffer::TargetFps::Array(vec![
-                                30, 45, 60, 90, 120, 144,
-                            ]),
+                            crate::core::fas::buffer::TargetFps::Array(initial_rates),
                             tuning,
                         ),
                     )))
@@ -190,10 +190,20 @@ impl Daemon {
             telemetry_hub: TelemetryHub::new(&core_layout),
             fps_meter,
             ebpf,
-            attached_ebpf_pid: None,
+            attached_ebpf_pids: Vec::new(),
+            active_mode: Arc::new(RwLock::new(default_mode)),
             last_dnd: None,
             event_tx,
         })
+    }
+
+    #[inline]
+    pub fn default_mode(&self) -> ProfileMode {
+        self.active_mode
+            .read()
+            .ok()
+            .map(|m| *m)
+            .unwrap_or(self.default_mode)
     }
 
     #[inline]
@@ -309,6 +319,7 @@ impl Daemon {
             override_foreground: self.override_foreground.clone(),
             current_state: self.shared_current.clone(),
             balance_governor: self.balance_governor.clone(),
+            active_mode: self.active_mode.clone(),
             dnd_default: self.cfg.settings.dnd.default_enable,
             current_log_level,
             supported_modes: self.supported_modes.clone(),
@@ -412,7 +423,10 @@ impl Daemon {
             cur.game_session = game_session;
             cur.screen_awake = screen_awake;
             cur.battery_saver = battery_saver;
-            cur.profile = self.last.profile_mode.unwrap_or(self.default_mode);
+            cur.profile = self
+                .last
+                .profile_mode
+                .unwrap_or_else(|| self.default_mode());
             cur.companion_alive = crate::platform::binder::BinderClient::is_healthy();
             cur.cpu_telemetry = telemetry.cpu;
             cur.gpu_telemetry = telemetry.gpu;

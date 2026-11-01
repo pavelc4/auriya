@@ -134,9 +134,7 @@ impl FasController {
     /// computed from the most recent 1-second window of real presented frames.
     /// Uses stack-allocated buffer for strict zero-heap allocation hot-path execution.
     pub fn fps_stats(&self) -> crate::core::stats::FpsStats {
-        if self.package.is_empty()
-            || self.buffer.time_since_last_frame() >= Duration::from_millis(1500)
-        {
+        if self.buffer.time_since_last_frame() >= Duration::from_millis(1500) {
             return crate::core::stats::FpsStats::empty();
         }
         let target = self.buffer.target_fps.unwrap_or(0);
@@ -152,7 +150,20 @@ impl FasController {
         if count == 0 {
             return crate::core::stats::FpsStats::empty();
         }
-        crate::core::stats::fps_stats_compute_in_place(&mut buf[..count], target, None)
+        let display_hz = {
+            #[cfg(target_os = "android")]
+            {
+                crate::platform::binder::get_user_preferred_display_mode()
+                    .ok()
+                    .flatten()
+                    .map(|hz| hz as f64)
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                None
+            }
+        };
+        crate::core::stats::fps_stats_compute_in_place(&mut buf[..count], target, display_hz)
     }
 
     /// Drain per-frame timestamps from the frame stream into the buffer

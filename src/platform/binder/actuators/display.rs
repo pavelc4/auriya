@@ -134,6 +134,51 @@ pub fn get_user_preferred_display_mode() -> Result<Option<f32>> {
     }
 }
 
+/// Query the current active display refresh rate in Hz from Native Binder.
+/// Reads user preferred display mode (code 47).
+/// If dynamic/auto (returns None), falls back to the max refresh rate from `IDisplayManager.getDisplayInfo(0)`.
+pub fn get_active_display_refresh_rate() -> f64 {
+    #[cfg(target_os = "android")]
+    {
+        if let Ok(Some(hz)) = get_user_preferred_display_mode()
+            && hz > 0.0
+        {
+            return hz as f64;
+        }
+        if let Ok(Some(modes)) = query_binder_display_modes(0)
+            && let Some(max_hz) = modes.iter().map(|m| m.fps).max_by(|a, b| a.total_cmp(b))
+            && max_hz > 0.0
+        {
+            return max_hz as f64;
+        }
+        60.0
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        120.0
+    }
+}
+
+/// Query discrete supported refresh rates from Native Binder (e.g. [60, 120]).
+pub fn query_binder_supported_rates() -> Vec<u32> {
+    #[cfg(target_os = "android")]
+    {
+        if let Ok(Some(modes)) = query_binder_display_modes(0) {
+            let mut rates: Vec<u32> = modes.into_iter().map(|m| m.fps.round() as u32).collect();
+            rates.sort_unstable();
+            rates.dedup();
+            if !rates.is_empty() {
+                return rates;
+            }
+        }
+        vec![60, 120]
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        vec![60, 120]
+    }
+}
+
 /// Set or clear display mode via Native Binder IPC (code 45).
 /// Passing `hz <= 0.0` clears the mode (`null`), restoring Dynamic Refresh Rate.
 #[cfg(target_os = "android")]

@@ -56,17 +56,40 @@ impl DaemonContext {
             .ok()
             .map(|s| s.pkg.is_some())
             .unwrap_or(false);
-        let fps = if is_monitored {
-            self.get_fps_stats().await.filter(|f| f.frames > 0)
-        } else {
-            None
+        let ebpf_fps = match is_monitored {
+            true => self.get_fps_stats().await.filter(|f| f.frames > 0),
+            false => None,
         };
         let bat = crate::core::telemetry::battery::snapshot();
         let uptime_secs = self.start_time.elapsed().as_secs();
 
         let snap = {
-            let st = self.current_state.read().ok();
-            let st = st.as_deref();
+            let st_guard = self.current_state.read().ok();
+            let st = st_guard.as_deref();
+            let fps = match (ebpf_fps, is_monitored) {
+                (Some(f), _) => Some(f),
+                (None, true) => match st.and_then(|s| s.fps) {
+                    Some(val) => {
+                        let display_hz = crate::platform::binder::get_active_display_refresh_rate();
+                        let clamped = match display_hz {
+                            hz if hz > 0.0 => val.min(hz),
+                            _ => val,
+                        };
+                        Some(crate::core::stats::FpsStats {
+                            avg: clamped,
+                            low_1pct: clamped,
+                            low_01pct: clamped,
+                            peak: clamped,
+                            std_dev_ms: 0.0,
+                            jank: 0,
+                            frames: 1,
+                        })
+                    }
+                    None => None,
+                },
+                (None, false) => None,
+            };
+
             StatsSnapshot::build(
                 fps,
                 st.and_then(|s| s.cpu_telemetry.as_ref()),

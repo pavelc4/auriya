@@ -26,6 +26,7 @@ pub struct DaemonContext {
     pub override_foreground: Arc<RwLock<Option<String>>>,
     pub current_state: Arc<RwLock<CurrentState>>,
     pub balance_governor: Arc<RwLock<String>>,
+    pub active_mode: Arc<RwLock<crate::core::profile::ProfileMode>>,
     pub dnd_default: bool,
     pub current_log_level: Arc<RwLock<LogLevelCmd>>,
     pub supported_modes: Arc<Vec<DisplayMode>>,
