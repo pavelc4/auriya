@@ -40,9 +40,9 @@ pub struct CoreDto {
     #[serde(default)]
     pub khz: u64,
     #[serde(default)]
-    pub gov: String,
+    pub gov: Cow<'static, str>,
     #[serde(default)]
-    pub cluster: String,
+    pub cluster: Cow<'static, str>,
     #[serde(default)]
     pub online: bool,
 }
@@ -156,6 +156,18 @@ fn cluster_str(c: &ClusterType) -> &'static str {
         ClusterType::Little => "Little",
         ClusterType::Big => "Big",
         ClusterType::Prime => "Prime",
+    }
+}
+
+fn intern_governor(s: &str) -> Cow<'static, str> {
+    match s {
+        "schedutil" => Cow::Borrowed("schedutil"),
+        "performance" => Cow::Borrowed("performance"),
+        "powersave" => Cow::Borrowed("powersave"),
+        "walt" => Cow::Borrowed("walt"),
+        "ondemand" => Cow::Borrowed("ondemand"),
+        "conservative" => Cow::Borrowed("conservative"),
+        other => Cow::Owned(other.to_string()),
     }
 }
 
@@ -363,8 +375,8 @@ impl StatsSnapshot {
                     .map(|core| CoreDto {
                         id: core.core_id,
                         khz: core.cur_freq_khz,
-                        gov: core.governor.clone(),
-                        cluster: cluster_str(&core.cluster).to_string(),
+                        gov: intern_governor(core.governor.as_str()),
+                        cluster: Cow::Borrowed(cluster_str(&core.cluster)),
                         online: core.online,
                     })
                     .collect(),
