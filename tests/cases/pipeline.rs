@@ -7,10 +7,10 @@ use auriya::daemon::event;
 use auriya::daemon::pipeline::{PipelineDecision, PipelineInput, PowerSnapshot};
 use std::sync::Arc;
 
-fn create_test_daemon(gamelist: &GameList) -> Daemon {
+fn create_test_daemon(gamelist: GameList) -> Daemon {
     let cfg = DaemonConfig {
         settings: Settings::default(),
-        gamelist: gamelist.clone(),
+        gamelist,
         log_debounce_ms: 2000,
     };
     let (tx, _rx) = event::channel();
@@ -19,8 +19,8 @@ fn create_test_daemon(gamelist: &GameList) -> Daemon {
 
 #[test]
 fn test_decide_powersave_when_screen_off() {
+    let daemon = create_test_daemon(GameList::default());
     let gamelist = GameList::default();
-    let daemon = create_test_daemon(&gamelist);
 
     let input = PipelineInput {
         power: PowerSnapshot {
@@ -42,8 +42,8 @@ fn test_decide_powersave_when_screen_off() {
 
 #[test]
 fn test_decide_powersave_when_battery_saver() {
+    let daemon = create_test_daemon(GameList::default());
     let gamelist = GameList::default();
-    let daemon = create_test_daemon(&gamelist);
 
     let input = PipelineInput {
         power: PowerSnapshot {
@@ -65,8 +65,8 @@ fn test_decide_powersave_when_battery_saver() {
 
 #[test]
 fn test_decide_no_foreground() {
+    let daemon = create_test_daemon(GameList::default());
     let gamelist = GameList::default();
-    let daemon = create_test_daemon(&gamelist);
 
     let input = PipelineInput {
         power: PowerSnapshot {
@@ -88,8 +88,8 @@ fn test_decide_no_foreground() {
 
 #[test]
 fn test_decide_non_whitelisted() {
+    let daemon = create_test_daemon(GameList::default());
     let gamelist = GameList::default();
-    let daemon = create_test_daemon(&gamelist);
 
     let input = PipelineInput {
         power: PowerSnapshot {
@@ -114,10 +114,9 @@ fn test_decide_non_whitelisted() {
     );
 }
 
-#[test]
-fn test_decide_enter_game() {
+fn make_genshin_gamelist() -> GameList {
     let pkg = "com.miHoYo.GenshinImpact";
-    let gamelist = GameList {
+    GameList {
         game: vec![GameProfile {
             package: pkg.to_string(),
             cpu_governor: "performance".to_string(),
@@ -134,8 +133,14 @@ fn test_decide_enter_game() {
             silence_vibrator: false,
             freeze_rotation: false,
         }],
-    };
-    let daemon = create_test_daemon(&gamelist);
+    }
+}
+
+#[test]
+fn test_decide_enter_game() {
+    let pkg = "com.miHoYo.GenshinImpact";
+    let daemon = create_test_daemon(make_genshin_gamelist());
+    let gamelist = make_genshin_gamelist();
 
     let input = PipelineInput {
         power: PowerSnapshot {
@@ -161,8 +166,8 @@ fn test_decide_enter_game() {
 
 #[tokio::test]
 async fn test_decide_same_app_unwhitelisted_monitored() {
+    let mut daemon = create_test_daemon(GameList::default());
     let gamelist = GameList::default();
-    let mut daemon = create_test_daemon(&gamelist);
 
     // First transition: entering an unwhitelisted app
     let enter_decision = PipelineDecision::NonWhitelisted {

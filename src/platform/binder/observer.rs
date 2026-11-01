@@ -63,7 +63,7 @@ impl ProcessObserver {
     }
 
     /// Register observer with Android ActivityManager (`system_server`).
-    pub fn register(&self) -> Result<()> {
+    pub fn register(self) -> Result<()> {
         #[cfg(target_os = "android")]
         {
             if !super::ensure_initialized() {
@@ -75,7 +75,7 @@ impl ProcessObserver {
 
             tracing::info!(target: "auriya::binder", "ActivityManager service located for IProcessObserver registration");
 
-            let event_tx = self.event_tx.clone();
+            let event_tx = self.event_tx;
             tokio::spawn(async move {
                 let mut last_pkg: Option<String> = None;
                 let mut last_pid: Option<i32> = None;
