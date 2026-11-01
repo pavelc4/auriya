@@ -402,13 +402,16 @@ impl Daemon {
     fn publish_telemetry(&mut self) {
         let telemetry = self.telemetry_hub.snapshot(&self.ceiling_controller.layout);
         let game_session = self.is_in_game_session();
+        let (screen_awake, battery_saver) = self.status_cache.power_state();
+        self.last.screen_awake = Some(screen_awake);
+        self.last.battery_saver = Some(battery_saver);
 
         if let Ok(mut cur) = self.shared_current.write() {
             cur.pkg = self.last.pkg.clone();
             cur.pid = self.last.pid;
             cur.game_session = game_session;
-            cur.screen_awake = self.last.screen_awake.unwrap_or(false);
-            cur.battery_saver = self.last.battery_saver.unwrap_or(false);
+            cur.screen_awake = screen_awake;
+            cur.battery_saver = battery_saver;
             cur.profile = self.last.profile_mode.unwrap_or(self.default_mode);
             cur.companion_alive = crate::platform::binder::BinderClient::is_healthy();
             cur.cpu_telemetry = telemetry.cpu;
