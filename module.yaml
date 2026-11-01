@@ -22,4 +22,4 @@ compatibility:
   architectures:
     - arm64-v8a
 release:
-  assetPattern: "^auriya-.*-release\\.zip$"
+  assetPattern: "auriya-*-release.zip"
