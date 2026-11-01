@@ -105,7 +105,6 @@ jobs:
           name: android-apks
           path: |
             android/app/build/outputs/apk/release/*.apk
-            android/service/build/outputs/apk/release/*.apk
   package:
     needs: [rust-binary, android-apk]
     runs-on: ubuntu-latest

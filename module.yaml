@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/KernelSU-Modules/tools/main/schemas/module.schema.json
+schemaVersion: 1
+id: auriya
+name: Auriya
+summary: Yet Another Android Performance Optimizer
+description: README.md
+icon: doc/asset/icon.png
+license: GPL-3.0
+homepage: https://github.com/pavelc4/auriya
+support: https://github.com/pavelc4/auriya/issues
+authors:
+  - name: Pavelc4
+    url: https://github.com/pavelc4
+tags:
+  - performance
+  - gaming
+  - optimizer
+  - telemetry
+  - system
+compatibility:
+  androidMinApi: 26
+  architectures:
+    - arm64-v8a
