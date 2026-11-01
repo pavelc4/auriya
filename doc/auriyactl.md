@@ -59,7 +59,7 @@ The utility supports the following global options across all subcommands:
 
 ### Daemon Lifecycle
 
-Commands to inspect, enable, disable, or restart the background daemon and its Android companion service.
+Commands to inspect, enable, disable, or restart the background daemon.
 
 #### `status`
 Displays daemon status, active game, configured game count, and current profile.
@@ -92,7 +92,7 @@ auriyactl reload
 ```
 
 #### `restart`
-Gracefully stops and restarts both the native Rust daemon and the Android companion service (`AuriyaSysMon`).
+Gracefully stops and restarts the native Rust daemon.
 ```bash
 auriyactl restart
 ```
@@ -185,12 +185,12 @@ Hardware & Platform:
   Codename:       marble
   Android:        17 (API 37)
   SoC Board:      SM7475 (qcom)
-  CPU Topology:   7 cores (4 Little, 3 Big)
+  CPU Topology:   8 cores (4 Little, 3 Mid, 1 Prime)
   GPU:            Adreno 725
   GPU Driver:     v@0863.1 (kgsl)
   Vulkan:         Supported (v1.1)
   Active Render:  OpenGL ES (GLES)
-  Display:        120Hz (Supported: 60Hz, 90Hz, 120Hz)
+  Display:        120Hz (1080x2400) [Supported: 60Hz, 90Hz, 120Hz]
   Root Manager:   KernelSU
   SELinux:        Enforcing
   Kernel:         5.10.269-Chandelier-prjkt+ (aarch64)
@@ -200,15 +200,34 @@ Kernel eBPF Diagnostics:
   BPF Syscall:    Available (SYS_bpf)
   JIT Compiler:   Enabled (bpf_jit_enable = 1)
   Kala Probe:     Supported & Ready
-  Active Engine:  eBPF Frame Stream
+  Active Engine:  sysfs DRM Fallback
 
 Daemon Runtime:
-  PID:            18887 (Running)
+  PID:            11783 (Running)
   Memory (RSS):   5.4 MB
-  CPU Load:       <0.1%
-  Threads:        9
+  CPU Load:       19.0%
+  Workers:        7
+```
 
-[Execution time: 1609.58ms]
+#### `stats`
+Queries a point-in-time telemetry snapshot or continuous stream from the daemon.
+```bash
+auriyactl stats [OPTIONS]
+```
+Options:
+- `--json`: Outputs raw JSON API envelope (`ApiResponse<StatsSnapshot>`).
+- `--stream`: Streams telemetry snapshots continuously.
+- `--interval-ms <MS>`: Refresh rate in milliseconds (default: `1000`).
+
+Sample output:
+```text
+Auriya Live Telemetry (Ctrl+C to quit):
+  FPS:            59.8 FPS (1% low: 56.4, 0.1% low: 52.1, peak: 60, σ: 1.24ms)
+  CPU Load:       42%
+  GPU Load:       68% (540 MHz)
+  Temperature:    CPU: 42°C, Bat: 37°C
+  Battery:        78% (-612 mA)
+  Active App:     com.miHoYo.GenshinImpact (performance)
 ```
 
 #### `monitor`
@@ -273,9 +292,68 @@ auriyactl inject com.tencent.ig
 ```
 
 #### `clear-inject`
-Clears any active package injection and restores automatic detection via `/proc`.
+Clears any active package injection and restores automatic detection via Native Binder `ProcessObserver`.
 ```bash
 auriyactl clear-inject
+```
+
+#### `binder`
+Native Android Binder IPC diagnostics, connection probe, automated self-test, and direct hardware actuator commands.
+
+##### Connectivity & Diagnostics
+```bash
+# Audit servicemanager registration and 13 core framework services
+auriyactl binder probe
+
+# Run automated end-to-end self-test across all actuators
+auriyactl binder test
+```
+
+##### Actuators & Framework Controls
+```bash
+# Do Not Disturb (Priority or All notifications)
+auriyactl binder dnd priority
+auriyactl binder dnd all
+
+# Display refresh rate override (0 to restore dynamic system default)
+auriyactl binder rate 120
+auriyactl binder rate 0
+
+# Wi-Fi Low-Latency lock (WIFI_MODE_FULL_LOW_LATENCY)
+auriyactl binder wifi on
+auriyactl binder wifi off
+auriyactl binder wifi status
+
+# High Touch Polling Rate (sampling boost)
+auriyactl binder touch on
+auriyactl binder touch off
+
+# Status bar lock (lock notification panel & heads-up alerts)
+auriyactl binder statusbar lock
+auriyactl binder statusbar unlock
+
+# PowerHAL hardware modes (expensive-rendering, sustained, interaction boost)
+auriyactl binder power mode expensive on
+auriyactl binder power boost interaction 100
+
+# Hardware vibrator haptics
+auriyactl binder vibrator pulse 30
+auriyactl binder vibrator off
+
+# Display orientation and window animation scale
+auriyactl binder window rotation freeze
+auriyactl binder window rotation thaw
+auriyactl binder window anim 1.0
+
+# Android OS Battery Saver mode
+auriyactl binder powersave on
+auriyactl binder powersave off
+
+# Display native on-screen Toast
+auriyactl binder toast "Auriya: Performance Profile Applied"
+
+# Dispatch explicit broadcast Intent via ActivityManager
+auriyactl binder broadcast dev.auriya.action.PROFILE_CHANGED -e mode=performance
 ```
 
 ---

@@ -8,7 +8,7 @@
 ## About Auriya
 **Auriya** is a rooted Android performance optimization daemon written in Rust, paired with a modern Jetpack Compose manager application and native Binder IPC.
 
-Visit the [Official Documentation](https://auriya.pages.dev) (available in English and Bahasa Indonesia) for detailed guides and configuration references.
+Visit the [Official Documentation](https://auriya.pages.dev) for detailed guides and configuration references.
 
 > [!NOTE]
 > **Disclaimer**: This module is an experimental hobbyist project. Features and system tuning behaviors may evolve across releases.
@@ -41,7 +41,6 @@ Detailed guides, architectural references, and API documentation are available:
 - [Configuration and Profiles](https://auriya.pages.dev/getting-started/configuration/)
 - [Telemetry Protocol and FPS Benchmark API](https://auriya.pages.dev/reference/stats-api/)
 - [Architecture Overview](https://auriya.pages.dev/architecture/overview/)
-- [Dokumentasi Bahasa Indonesia](https://auriya.pages.dev/id/)
 
 ## Supported Root Managers
 - [Magisk](https://github.com/topjohnwu/Magisk)
