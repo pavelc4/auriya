@@ -4,7 +4,7 @@ use crate::daemon::engine::Daemon;
 
 impl Daemon {
     /// Decide phase: deterministic mapping from ingested input to policy decision.
-    pub fn decide(&self, input: &PipelineInput, gamelist: &GameList) -> PipelineDecision {
+    pub fn decide(&self, input: &PipelineInput, _gamelist: &GameList) -> PipelineDecision {
         if !input.power.screen_awake || input.power.battery_saver {
             return PipelineDecision::Powersave;
         }
@@ -20,13 +20,10 @@ impl Daemon {
                 .map(|s| s.fas.enabled)
                 .unwrap_or(true);
 
-            if fas_enabled
-                && self.fas_controller.is_some()
-                && gamelist.game.iter().any(|a| a.package == *pkg)
-            {
-                return PipelineDecision::SameGameFas { pkg: pkg.clone() };
+            if fas_enabled && self.fas_controller.is_some() {
+                return PipelineDecision::SameAppFas { pkg: pkg.clone() };
             }
-            return PipelineDecision::SameGameNoop;
+            return PipelineDecision::SameAppMonitor { pkg: pkg.clone() };
         }
 
         if !self.cached_whitelist.contains(pkg) {

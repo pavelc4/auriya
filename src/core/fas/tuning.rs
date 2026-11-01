@@ -38,6 +38,34 @@ impl Default for FasTuning {
 }
 
 impl FasTuning {
+    /// Resolve tuning for a specific ProfileMode from `settings.toml`.
+    pub fn for_mode(
+        settings: &crate::core::config::Settings,
+        mode: crate::core::profile::ProfileMode,
+    ) -> Self {
+        let mode_key = match mode {
+            crate::core::profile::ProfileMode::Powersave => "powersave",
+            crate::core::profile::ProfileMode::Balance => "balance",
+            crate::core::profile::ProfileMode::Performance => "performance",
+            crate::core::profile::ProfileMode::Fast => "fast",
+        };
+        let mode_cfg = settings.modes.get(mode_key);
+        Self {
+            margin_fps: mode_cfg.map(|m| m.margin).unwrap_or(match mode {
+                crate::core::profile::ProfileMode::Powersave => 5.0,
+                crate::core::profile::ProfileMode::Balance => 2.0,
+                crate::core::profile::ProfileMode::Performance => 1.0,
+                crate::core::profile::ProfileMode::Fast => 0.0,
+            }),
+            thermal_threshold: mode_cfg
+                .map(|m| m.thermal_threshold)
+                .unwrap_or(settings.fas.thermal_threshold) as f32,
+            cv_threshold: settings.dynamic_governor.cv_threshold,
+            debounce_frames: settings.dynamic_governor.debounce_frames,
+            dynamic_governor_enabled: settings.dynamic_governor.enabled,
+        }
+    }
+
     /// Resolve tuning from `settings.toml`.
     ///
     /// `fas.default_mode` names which `[modes.*]` entry is active; that entry

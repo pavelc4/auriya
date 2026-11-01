@@ -54,13 +54,13 @@ impl DaemonContext {
 
     /// Build full stats snapshot serialized as JSON.
     pub async fn build_stats_json(&self) -> String {
-        let is_gaming = self
+        let is_monitored = self
             .current_state
             .read()
             .ok()
-            .map(|s| s.game_session)
+            .map(|s| s.pkg.is_some() && s.pid.is_some() && s.screen_awake)
             .unwrap_or(false);
-        let fps = if is_gaming {
+        let fps = if is_monitored {
             self.get_fps_stats().await.filter(|f| f.frames > 0)
         } else {
             None
@@ -79,6 +79,7 @@ impl DaemonContext {
                 &bat,
                 st.and_then(|s| s.pkg.as_deref()),
                 st.map(|s| s.profile).unwrap_or_default(),
+                is_monitored,
                 st.map(|s| s.game_session).unwrap_or(false),
                 uptime_secs,
             )

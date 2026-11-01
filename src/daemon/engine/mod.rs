@@ -105,9 +105,9 @@ impl Daemon {
                     Some(Arc::new(tokio::sync::Mutex::new(
                         crate::core::fas::FasController::new(
                             rx,
-                            crate::core::fas::buffer::TargetFps::Single(
-                                cfg.settings.fas.target_fps,
-                            ),
+                            crate::core::fas::buffer::TargetFps::Array(vec![
+                                30, 45, 60, 90, 120, 144,
+                            ]),
                             tuning,
                         ),
                     )))
@@ -204,6 +204,11 @@ impl Daemon {
             .map(|pkg| self.cached_whitelist.contains(pkg))
             .unwrap_or(false)
             && self.last.pid.is_some()
+    }
+
+    #[inline]
+    pub fn has_active_monitored_app(&self) -> bool {
+        self.last.pkg.is_some() && self.last.pid.is_some() && !self.is_suspended()
     }
 
     #[inline]

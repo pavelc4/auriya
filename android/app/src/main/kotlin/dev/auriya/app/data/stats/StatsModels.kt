@@ -114,6 +114,7 @@ data class Session(
     val pkg: String? = null,
     val profile: String = "balance",
     val active: Boolean = false,
+    val is_game: Boolean = false,
 )
 
 object StatsParser {
@@ -346,6 +347,7 @@ object StatsParser {
                         pkg = if (sessionObj.has("pkg") && !sessionObj.isNull("pkg")) sessionObj.getString("pkg") else null,
                         profile = sessionObj.optString("profile", "balance"),
                         active = sessionObj.optBoolean("active", false),
+                        is_game = sessionObj.optBoolean("is_game", false),
                     )
                 } else {
                     Session()

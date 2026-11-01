@@ -53,6 +53,8 @@ pub struct SessionCard {
     pub pkg: Option<String>,
     pub profile: String,
     pub active: bool,
+    #[serde(default)]
+    pub is_game: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -278,6 +280,7 @@ impl StatsSnapshot {
         pkg: Option<&str>,
         profile: ProfileMode,
         active: bool,
+        is_game: bool,
         uptime_secs: u64,
     ) -> Self {
         let pid = std::process::id();
@@ -331,6 +334,7 @@ impl StatsSnapshot {
                 pkg: pkg.map(str::to_string),
                 profile: active_profile.clone(),
                 active,
+                is_game,
             },
             daemon: DaemonCard {
                 version: daemon_version,

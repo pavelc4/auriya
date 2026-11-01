@@ -119,6 +119,7 @@ fn stats_snapshot_serialization_envelope() {
         Some("com.miHoYo.GenshinImpact"),
         ProfileMode::Performance,
         true,
+        true,
         3600,
     );
 

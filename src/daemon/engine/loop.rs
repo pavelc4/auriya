@@ -74,7 +74,7 @@ pub async fn run_with_config(cfg: &DaemonConfig, filter_handle: ReloadHandle) ->
     loop {
         let sleep_ms = if daemon.is_suspended() {
             SCREEN_OFF_INTERVAL_MS
-        } else if daemon.is_in_game_session() {
+        } else if daemon.has_active_monitored_app() {
             INGAME_INTERVAL_MS
         } else {
             daemon.normal_interval_ms

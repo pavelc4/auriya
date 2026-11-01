@@ -34,10 +34,12 @@ pub enum PipelineDecision {
         pid: Option<i32>,
         reason: &'static str,
     },
-    SameGameFas {
+    SameAppFas {
         pkg: String,
     },
-    SameGameNoop,
+    SameAppMonitor {
+        pkg: String,
+    },
     EnterGame {
         pkg: String,
         pid: i32,

@@ -7,6 +7,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -137,27 +138,35 @@ fun SessionFpsChartCard(
                         .height(160.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.4f))
-                        .pointerInput(samples.size) {
-                            awaitEachGesture {
-                                val down = awaitFirstDown(requireUnconsumed = false)
-                                val w = size.width.toFloat()
-                                val stepX = w / (samples.size - 1).coerceAtLeast(1)
-                                val startX = down.position.x.coerceIn(0f, w)
-                                scrubPixelX = startX
-                                scrubIndex = (startX / stepX).roundToInt().coerceIn(0, samples.size - 1)
-
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    val change = event.changes.firstOrNull() ?: break
-                                    if (!change.pressed) break
+                        .pointerInput(samples) {
+                            detectDragGestures(
+                                onDragStart = { offset ->
+                                    val w = size.width.toFloat()
+                                    val stepX = w / (samples.size - 1).coerceAtLeast(1)
+                                    val startX = offset.x.coerceIn(0f, w)
+                                    scrubPixelX = startX
+                                    scrubIndex = (startX / stepX).roundToInt().coerceIn(0, samples.size - 1)
+                                },
+                                onDragEnd = {
+                                    scrubIndex = null
+                                    scrubPixelX = null
+                                },
+                                onDragCancel = {
+                                    scrubIndex = null
+                                    scrubPixelX = null
+                                },
+                                onDrag = { change, _ ->
+                                    change.consume()
+                                    val w = size.width.toFloat()
+                                    val stepX = w / (samples.size - 1).coerceAtLeast(1)
                                     val currentX = change.position.x.coerceIn(0f, w)
                                     scrubPixelX = currentX
-                                    scrubIndex = (currentX / stepX).roundToInt().coerceIn(0, samples.size - 1)
-                                    change.consume()
-                                }
-                                scrubIndex = null
-                                scrubPixelX = null
-                            }
+                                    val idx = (currentX / stepX).roundToInt().coerceIn(0, samples.size - 1)
+                                    if (scrubIndex != idx) {
+                                        scrubIndex = idx
+                                    }
+                                },
+                            )
                         },
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {

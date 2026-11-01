@@ -183,7 +183,7 @@ fun FpsDetailPane(
                                 when {
                                     isLive -> "Computed from ${fps.frames} rolling frames (~5s buffer)"
                                     lastSession != null -> "Last match • ${formatDuration(lastSession.durationSeconds)} (${lastSession.samplesCount} samples)"
-                                    else -> "Launch a configured game from Gamelist to track live rendering."
+                                    else -> "Open an application to track live rendering."
                                 },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

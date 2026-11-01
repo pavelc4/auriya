@@ -57,13 +57,13 @@ impl DaemonContext {
     /// Get current measured and target FPS formatted response.
     pub async fn get_fps_response(&self) -> String {
         let target = self.get_fps().await;
-        let is_gaming = self
+        let is_monitored = self
             .current_state
             .read()
             .ok()
-            .map(|s| s.game_session)
+            .map(|s| s.pkg.is_some() && s.pid.is_some() && s.screen_awake)
             .unwrap_or(false);
-        let measured = if is_gaming {
+        let measured = if is_monitored {
             self.current_state.read().ok().and_then(|s| s.fps)
         } else {
             None

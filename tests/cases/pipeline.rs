@@ -151,3 +151,73 @@ fn test_decide_enter_game() {
         }
     );
 }
+
+#[tokio::test]
+async fn test_decide_same_app_unwhitelisted_monitored() {
+    let gamelist = GameList::default();
+    let mut daemon = create_test_daemon(gamelist.clone());
+
+    // First transition: entering an unwhitelisted app
+    let enter_decision = PipelineDecision::NonWhitelisted {
+        pkg: "com.android.chrome".to_string(),
+        pid: Some(999),
+        reason: "not whitelisted",
+    };
+    daemon.apply(enter_decision, &gamelist).await.unwrap();
+
+    let input = PipelineInput {
+        power: PowerSnapshot {
+            screen_awake: true,
+            battery_saver: false,
+        },
+        foreground_pkg: Some("com.android.chrome".to_string()),
+        focused_pid: Some(999),
+        is_pid_valid: true,
+        is_floating: false,
+    };
+
+    assert_eq!(
+        daemon.decide(&input, &gamelist),
+        PipelineDecision::SameAppFas {
+            pkg: "com.android.chrome".to_string(),
+        }
+    );
+}
+
+#[tokio::test]
+async fn test_decide_same_app_unwhitelisted_monitor_when_fas_disabled() {
+    let gamelist = GameList::default();
+    let mut cfg = DaemonConfig {
+        settings: Settings::default(),
+        gamelist: gamelist.clone(),
+        log_debounce_ms: 2000,
+    };
+    cfg.settings.fas.enabled = false;
+    let (tx, _rx) = event::channel();
+    let mut daemon = Daemon::new(cfg, Arc::new(Vec::new()), SystemStatusCache::new(), tx).unwrap();
+
+    let enter_decision = PipelineDecision::NonWhitelisted {
+        pkg: "com.android.chrome".to_string(),
+        pid: Some(999),
+        reason: "not whitelisted",
+    };
+    daemon.apply(enter_decision, &gamelist).await.unwrap();
+
+    let input = PipelineInput {
+        power: PowerSnapshot {
+            screen_awake: true,
+            battery_saver: false,
+        },
+        foreground_pkg: Some("com.android.chrome".to_string()),
+        focused_pid: Some(999),
+        is_pid_valid: true,
+        is_floating: false,
+    };
+
+    assert_eq!(
+        daemon.decide(&input, &gamelist),
+        PipelineDecision::SameAppMonitor {
+            pkg: "com.android.chrome".to_string(),
+        }
+    );
+}

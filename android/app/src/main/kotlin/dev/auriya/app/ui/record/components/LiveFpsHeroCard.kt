@@ -91,7 +91,12 @@ fun LiveFpsHeroCard(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = if (session.active) Icons.Outlined.SportsEsports else Icons.Outlined.Speed,
+                                imageVector =
+                                    if (session.active) {
+                                        if (session.is_game) Icons.Outlined.SportsEsports else Icons.Outlined.Speed
+                                    } else {
+                                        Icons.Outlined.Speed
+                                    },
                                 contentDescription = null,
                                 tint =
                                     if (session.active) {
@@ -118,7 +123,7 @@ fun LiveFpsHeroCard(
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = if (session.active) "Profile: ${session.profile.uppercase()}" else "No active game running",
+                            text = if (session.active) "Profile: ${session.profile.uppercase()}" else "No active app running",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

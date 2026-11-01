@@ -151,6 +151,25 @@ impl FasController {
         )
     }
 
+    /// Drain per-frame timestamps from the frame stream into the buffer
+    /// and advance controller state. Used for continuous zero-overhead FPS metering.
+    pub fn drain_frames(&mut self) {
+        let frames = self.source.drain_frame_times();
+        if !frames.is_empty() {
+            for ft in frames {
+                self.buffer.push(ft);
+            }
+        } else if self.buffer.time_since_last_frame() >= FRAME_TIMEOUT {
+            self.buffer.additional_frametime();
+        }
+
+        if self.buffer.target_fps.is_some() && self.buffer.state == BufferState::Usable {
+            self.advance_state();
+        } else {
+            self.transition_not_working();
+        }
+    }
+
     pub async fn tick(&mut self) -> Result<ScalingAction> {
         if let Some(pid) = self.pid.filter(|_| !self.package.is_empty())
             && self.last_attached_pkg != self.package
@@ -177,20 +196,7 @@ impl FasController {
             }
         }
 
-        let frames = self.source.drain_frame_times();
-        if !frames.is_empty() {
-            for ft in frames {
-                self.buffer.push(ft);
-            }
-        } else if self.buffer.time_since_last_frame() >= FRAME_TIMEOUT {
-            self.buffer.additional_frametime();
-        }
-
-        if self.buffer.target_fps.is_some() && self.buffer.state == BufferState::Usable {
-            self.advance_state();
-        } else {
-            self.transition_not_working();
-        }
+        self.drain_frames();
 
         let temp = self.thermal.get_max_temp().unwrap_or(0.0);
         if temp > self.tuning.thermal_threshold {

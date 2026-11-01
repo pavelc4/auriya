@@ -51,6 +51,23 @@ impl Daemon {
                 f.set_target_fps_config(fps_cfg.to_buffer_config());
                 self.last_fps_config = Some(fps_key);
             }
+        } else if self.last_fps_config.as_deref() != Some("auto_multi") {
+            let mut f = fas_arc.lock().await;
+            f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(vec![
+                30, 45, 60, 90, 120, 144,
+            ]));
+            self.last_fps_config = Some("auto_multi".to_string());
+        }
+
+        let current_profile = self.last.profile_mode.unwrap_or(self.default_mode);
+        let tuning = self
+            ._shared_settings
+            .read()
+            .ok()
+            .map(|s| crate::core::fas::FasTuning::for_mode(&s, current_profile));
+        if let Some(tuning) = tuning {
+            let mut f = fas_arc.lock().await;
+            f.set_tuning(tuning);
         }
 
         match self

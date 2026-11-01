@@ -7,22 +7,15 @@ use tracing::{debug, error, warn};
 
 impl Daemon {
     /// Apply phase: execute the decided state changes and hardware configurations.
-    pub(crate) async fn apply(
-        &mut self,
-        decision: PipelineDecision,
-        gamelist: &GameList,
-    ) -> Result<()> {
+    pub async fn apply(&mut self, decision: PipelineDecision, gamelist: &GameList) -> Result<()> {
         match decision {
             PipelineDecision::Powersave => self.apply_powersave_state(),
             PipelineDecision::NoForeground => self.handle_no_foreground().await,
             PipelineDecision::NonWhitelisted { pkg, pid, reason } => {
                 self.apply_balance_and_clear(&pkg, pid, reason).await
             }
-            PipelineDecision::SameGameFas { pkg } => self.run_fas_pipeline(&pkg, gamelist).await,
-            PipelineDecision::SameGameNoop => {
-                debug!(target: "auriya::daemon", "Same app with known PID; skip profile reapply");
-                Ok(())
-            }
+            PipelineDecision::SameAppFas { pkg } => self.run_fas_pipeline(&pkg, gamelist).await,
+            PipelineDecision::SameAppMonitor { pkg } => self.monitor_app_frames(&pkg).await,
             PipelineDecision::EnterGame { pkg, pid } => {
                 self.apply_enter_game(&pkg, pid, gamelist).await
             }
@@ -42,6 +35,15 @@ impl Daemon {
         }
         self.apply_ceiling_for_state(Some(crate::platform::cpu::ceiling::CeilingLevel::Low), None);
         self.ebpf_detach();
+        if let Some(mut f) = self
+            .fas_controller
+            .as_ref()
+            .and_then(|fas| fas.try_lock().ok())
+        {
+            f.reset();
+        }
+        self.fps_meter.clear();
+        self.set_pid(None);
         self.sync_dnd(crate::platform::binder::DndMode::All);
         let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
         let _ = crate::platform::binder::set_statusbar_lock(false);
@@ -213,19 +215,44 @@ impl Daemon {
         }
 
         self.apply_ceiling_for_state(None, None);
-        self.ebpf_detach();
+        if let Some(pid) = pid {
+            self.ebpf_attach(pid);
+            self.set_pid(Some(pid));
+            if let Some(mut f) = self
+                .fas_controller
+                .as_ref()
+                .and_then(|fas| fas.try_lock().ok())
+            {
+                f.set_package(pkg.to_string(), Some(pid));
+                f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(vec![
+                    30, 45, 60, 90, 120, 144,
+                ]));
+            }
+        } else {
+            self.ebpf_detach();
+            if let Some(mut f) = self
+                .fas_controller
+                .as_ref()
+                .and_then(|fas| fas.try_lock().ok())
+            {
+                f.reset();
+            }
+            self.fps_meter.clear();
+            self.set_pid(None);
+        }
+
+        self.last.pkg = Some(pkg.to_string());
+        Ok(())
+    }
+
+    async fn monitor_app_frames(&mut self, _pkg: &str) -> Result<()> {
         if let Some(mut f) = self
             .fas_controller
             .as_ref()
             .and_then(|fas| fas.try_lock().ok())
         {
-            f.reset();
+            f.drain_frames();
         }
-        self.fps_meter.clear();
-
-        self.last.pkg = Some(pkg.to_string());
-        self.last.pid = pid;
-        self.pid_tracker = None;
         Ok(())
     }
 
