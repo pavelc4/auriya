@@ -91,7 +91,7 @@ nix = { version = "0.31.3", default-features = false, features = [
   "process",
   "fs",
 ] }
-sysinfo = { version = "0.39.6", default-features = false, features = [
+sysinfo = { version = "0.40.0", default-features = false, features = [
   "system",
 ] }
 tempfile = "3.27.0"
