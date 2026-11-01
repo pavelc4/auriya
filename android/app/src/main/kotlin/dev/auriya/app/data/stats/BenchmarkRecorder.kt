@@ -16,7 +16,7 @@ class BenchmarkRecorder private constructor(
     private val context: Context,
 ) {
     private val repository = BenchmarkRepository(context)
-    private val autoRecordPrefs = AutoRecordPrefs(context)
+    private val autoRecordPrefs = AutoRecordPrefs.getInstance(context)
     private val pm: PackageManager = context.packageManager
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var monitoringJob: Job? = null

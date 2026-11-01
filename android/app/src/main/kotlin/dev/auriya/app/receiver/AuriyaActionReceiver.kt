@@ -22,7 +22,7 @@ class AuriyaActionReceiver : BroadcastReceiver() {
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 
                 // 2. Check Auto Record
-                val autoRecordPrefs = AutoRecordPrefs(context)
+                val autoRecordPrefs = AutoRecordPrefs.getInstance(context)
                 if (autoRecordPrefs.isAutoRecordEnabled(pkg)) {
                     val recorder = BenchmarkRecorder.getInstance(context)
                     if (!recorder.isRecording.value) {

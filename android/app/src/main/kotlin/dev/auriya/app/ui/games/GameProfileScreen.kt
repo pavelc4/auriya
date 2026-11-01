@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.R
 import dev.auriya.app.data.stats.AutoRecordPrefs
 import dev.auriya.app.ui.components.ExpressiveList
@@ -30,10 +31,10 @@ fun GameProfileScreen(
 ) {
     val context = LocalContext.current
     val pm = context.packageManager
-    val autoRecordPrefs = remember { AutoRecordPrefs(context) }
-    var autoRecord by remember(game.packageName) {
-        mutableStateOf(autoRecordPrefs.isAutoRecordEnabled(game.packageName))
-    }
+    val autoRecordPrefs = remember { AutoRecordPrefs.getInstance(context) }
+    val autoRecord by autoRecordPrefs
+        .observeAutoRecord(game.packageName)
+        .collectAsStateWithLifecycle(initialValue = autoRecordPrefs.isAutoRecordEnabled(game.packageName))
     val appLabel =
         remember(game.packageName) {
             runCatching {
@@ -335,9 +336,8 @@ fun GameProfileScreen(
                                     title = stringResource(R.string.games_auto_record),
                                     subtitle = stringResource(R.string.games_auto_bench_sub),
                                     checked = autoRecord,
-                                    onCheck = {
-                                        autoRecord = it
-                                        autoRecordPrefs.setAutoRecordEnabled(game.packageName, it)
+                                    onCheck = { enabled ->
+                                        autoRecordPrefs.setAutoRecordEnabled(game.packageName, enabled)
                                     },
                                 )
                             }
