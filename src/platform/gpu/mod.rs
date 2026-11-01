@@ -86,6 +86,7 @@ fn set_adreno_powersave() -> Result<()> {
     let _ = fs::write(format!("{}/force_clk_on", base), "0");
     let _ = fs::write(format!("{}/force_bus_on", base), "0");
     let _ = fs::write(format!("{}/bus_split", base), "1");
+    let _ = fs::write(format!("{}/idle_timer", base), "40");
 
     Ok(())
 }
@@ -123,6 +124,7 @@ fn set_adreno_performance() -> Result<()> {
     let _ = fs::write(format!("{}/force_clk_on", base), "1");
     let _ = fs::write(format!("{}/force_bus_on", base), "1");
     let _ = fs::write(format!("{}/bus_split", base), "0");
+    let _ = fs::write(format!("{}/idle_timer", base), "2000");
 
     Ok(())
 }
@@ -208,6 +210,7 @@ pub fn set_balanced_mode() -> Result<()> {
             let _ = fs::write(format!("{}/force_clk_on", base), "0");
             let _ = fs::write(format!("{}/force_bus_on", base), "0");
             let _ = fs::write(format!("{}/bus_split", base), "1");
+            let _ = fs::write(format!("{}/idle_timer", base), "80");
         }
         GpuVendor::Mali => {
             if Path::new("/proc/gpufreqv2/fix_target_opp_index").exists() {
