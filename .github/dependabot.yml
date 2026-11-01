@@ -16,4 +16,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "github-actions"
+    directory: "/.github/actions/setup-tools"
+    schedule:
+      interval: "weekly"
     open-pull-requests-limit: 5
