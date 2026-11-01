@@ -39,18 +39,19 @@ pub fn print_info(report: &SystemReport) {
     println!();
 
     println!("Daemon Runtime:");
-    if let Some(pid) = report.daemon.pid {
-        println!("  PID:            {} (Running)", pid);
-        if let Some(ref rss) = report.daemon.memory_rss {
-            println!("  Memory (RSS):   {}", rss);
+    match report.daemon.pid {
+        Some(pid) => {
+            println!("  PID:            {} (Running)", pid);
+            if let Some(ref rss) = report.daemon.memory_rss {
+                println!("  Memory (RSS):   {}", rss);
+            }
+            if let Some(ref cpu) = report.daemon.cpu_load {
+                println!("  CPU Load:       {}", cpu);
+            }
+            if let Some(workers) = report.daemon.workers {
+                println!("  Workers:        {}", workers);
+            }
         }
-        if let Some(ref cpu) = report.daemon.cpu_load {
-            println!("  CPU Load:       {}", cpu);
-        }
-        if let Some(th) = report.daemon.threads {
-            println!("  Threads:        {}", th);
-        }
-    } else {
-        println!("  PID:            Not running");
+        None => println!("  PID:            Not running"),
     }
 }

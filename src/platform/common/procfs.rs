@@ -121,8 +121,10 @@ pub fn find_all_pids_by_package(pkg: &str) -> Vec<i32> {
         }
     }
 
-    // 2. Discover any other sub-processes under /proc
-    if let Ok(entries) = fs::read_dir("/proc") {
+    // 2. Discover any other sub-processes under /proc only if top-app cpuset yielded nothing
+    if candidates.is_empty()
+        && let Ok(entries) = fs::read_dir("/proc")
+    {
         for entry in entries.flatten() {
             if let Ok(file_name) = entry.file_name().into_string()
                 && let Ok(pid) = file_name.parse::<i32>()
@@ -135,7 +137,9 @@ pub fn find_all_pids_by_package(pkg: &str) -> Vec<i32> {
     }
 
     // Sort by CPU activity descending so the primary render process is first
-    candidates.sort_unstable_by_key(|&a| std::cmp::Reverse(get_pid_cpu_ticks(a)));
+    if candidates.len() > 1 {
+        candidates.sort_unstable_by_key(|&a| std::cmp::Reverse(get_pid_cpu_ticks(a)));
+    }
     candidates
 }
 
