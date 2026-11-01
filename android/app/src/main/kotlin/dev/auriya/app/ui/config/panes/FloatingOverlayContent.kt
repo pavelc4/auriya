@@ -3,14 +3,9 @@ package dev.auriya.app.ui.config.panes
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -19,28 +14,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.auriya.app.data.OverlayPrefs
-import dev.auriya.app.data.RootShell
 import dev.auriya.app.ui.components.*
-import dev.auriya.app.ui.theme.AuriyaTokens
+import dev.auriya.app.ui.overlay.components.OverlayHud
+import dev.auriya.app.ui.overlay.components.OverlayTelemetry
 import dev.auriya.app.ui.theme.GoogleSansRounded
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-data class ColorPreset(
-    val id: String,
-    val name: String,
-    val primary: Color,
-    val secondary: Color,
-    val tertiary: Color,
-    val neutral: Color,
-)
 
 @Composable
 fun FloatingOverlayContent(modifier: Modifier = Modifier) {
@@ -53,9 +37,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
     var showRam by remember { mutableStateOf(prefs.showRam) }
     var showTemp by remember { mutableStateOf(prefs.showTemp) }
     var showBattery by remember { mutableStateOf(prefs.showBattery) }
-    var monetEnabled by remember { mutableStateOf(prefs.monetEnabled) }
-
-    var overlayPreset by remember { mutableStateOf(prefs.overlayPreset) }
 
     var layoutStyle by remember { mutableStateOf(prefs.layoutStyle) }
     var overlayMode by remember { mutableStateOf(prefs.overlayMode) }
@@ -74,21 +55,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
             } else {
                 true
             }
-        }
-
-    val colorPresets =
-        remember {
-            listOf(
-                ColorPreset("gaming", "Cyber Neon", Color(0xFF00FF66), Color(0xFF00E5FF), Color(0xFFFFE600), Color(0xFF00FFA3)),
-                ColorPreset("green_default", "Auriya Green", Color(0xFFAAD2A4), Color(0xFF385E38), Color(0xFF8A9A5B), Color(0xFFC2D5C6)),
-                ColorPreset("ocean", "Ocean Blue", Color(0xFF0099FF), Color(0xFF00E5FF), Color(0xFF38B6FF), Color(0xFFB0E0E6)),
-                ColorPreset("violet", "Hyper Violet", Color(0xFFB026FF), Color(0xFFD946EF), Color(0xFFFF007F), Color(0xFFE9D5FF)),
-                ColorPreset("solar", "Solar Flare", Color(0xFFFF6600), Color(0xFFFF1A53), Color(0xFFFFB703), Color(0xFFFFD8A8)),
-                ColorPreset("volt", "Volt Amber", Color(0xFFFFE600), Color(0xFFFFB703), Color(0xFFFF6600), Color(0xFFFFF3BF)),
-                ColorPreset("monochrome", "Monochrome", Color(0xFFFFFFFF), Color(0xFFCCCCCC), Color(0xFF888888), Color(0xFF555555)),
-                ColorPreset("sage", "Sage Pastel", Color(0xFFC2D5C6), Color(0xFF4A5D4E), Color(0xFF8FA393), Color(0xFFDDE7DF)),
-                ColorPreset("rust", "Rust Flame", Color(0xFFFF6600), Color(0xFFFF1A53), Color(0xFF5C3A21), Color(0xFFE07A5F)),
-            )
         }
 
     LaunchedEffect(enableOverlay) {
@@ -131,6 +97,26 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
         }
     }
 
+    val previewTelemetry =
+        remember(cpuStyle) {
+            OverlayTelemetry(
+                fps = "120",
+                rawFps = 119.8f,
+                cpuText = "L1.1 M1.7 P0.8",
+                cpuClusters = listOf("1.1", "1.7", "0.8"),
+                cpuClusterLabels = listOf("L", "M", "P"),
+                cpuStyle = cpuStyle,
+                cpuLoadPct = 34f,
+                maxCpuFreqGHz = 2.4f,
+                gpuText = "591M (24%)",
+                ramText = "5.4G",
+                tempText = "42°C",
+                batText = "37°C",
+                rawCpuTemp = 42f,
+                rawBatTemp = 37f,
+            )
+        }
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -158,7 +144,85 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
             )
         }
 
-        // --- 2. TELEMETRY METRICS SUBSECTION ---
+        // --- 2. LIVE HUD PREVIEW ---
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Visibility,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    }
+                    Column {
+                        Text(
+                            text = "Live HUD Preview",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "Material 3 Expressive · Monet dynamic color",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = GoogleSansRounded,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .border(
+                                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
+                                RoundedCornerShape(16.dp),
+                            )
+                            .padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    OverlayHud(
+                        telemetry = previewTelemetry,
+                        showFps = showFps,
+                        showCpu = showCpu,
+                        showGpu = showGpu,
+                        showRam = showRam,
+                        showTemp = showTemp,
+                        showBattery = showBattery,
+                        textSizeSp = textSizeSp,
+                        bgOpacity = bgOpacity,
+                        paddingDp = paddingDp,
+                        cornerRadiusDp = cornerRadiusDp,
+                        layoutStyle = layoutStyle,
+                        overlayMode = overlayMode,
+                    )
+                }
+            }
+        }
+
+        // --- 3. TELEMETRY METRICS SUBSECTION ---
         SettingsSubsection(
             title =
                 androidx.compose.ui.res
@@ -286,14 +350,12 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
             )
         }
 
-        // --- 3. DISPLAY & LAYOUT FORMAT SUBSECTION ---
+        // --- 4. DISPLAY & LAYOUT FORMAT SUBSECTION ---
         SettingsSubsection(
             title =
                 androidx.compose.ui.res
                     .stringResource(dev.auriya.app.R.string.overlay_sec_display_layout),
         ) {
-            val totalLayoutItems = 3
-
             SegmentedSettingItem(
                 title =
                     androidx.compose.ui.res
@@ -307,170 +369,9 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                     prefs.overlayMode = overlayMode
                     restartOverlay(context)
                 },
-                shape = itemShapeFor(0, totalLayoutItems),
+                shape = itemShapeFor(0, 1),
                 enabled = enableOverlay,
             )
-
-            SegmentedSettingItem(
-                title =
-                    androidx.compose.ui.res
-                        .stringResource(dev.auriya.app.R.string.overlay_cpu_style),
-                subtitle =
-                    when (cpuStyle) {
-                        "tags" -> "Cluster tags (e.g. L1.5 B1.8 P0.8)"
-                        "load_peak" -> "Load % & Peak clock (e.g. 40% @ 1.8G)"
-                        "pipe" -> "Pipe separator (e.g. 1.5 | 1.8 | 0.8G)"
-                        else -> "Classic slash (e.g. 1.5/1.8/0.8 GHz)"
-                    },
-                icon = Icons.Rounded.Memory,
-                items = listOf("Tags", "Overview", "Pipe", "Slash"),
-                selectedIndex =
-                    when (cpuStyle) {
-                        "tags" -> 0
-                        "load_peak" -> 1
-                        "pipe" -> 2
-                        else -> 3
-                    },
-                onItemSelected = {
-                    cpuStyle =
-                        when (it) {
-                            0 -> "tags"
-                            1 -> "load_peak"
-                            2 -> "pipe"
-                            else -> "slash"
-                        }
-                    prefs.cpuStyle = cpuStyle
-                    restartOverlay(context)
-                },
-                shape = itemShapeFor(1, totalLayoutItems),
-                enabled = enableOverlay,
-            )
-
-            SegmentedSettingItem(
-                title =
-                    androidx.compose.ui.res
-                        .stringResource(dev.auriya.app.R.string.overlay_layout_orientation),
-                subtitle = if (layoutStyle == "Horizontal") "Horizontal wide floating bar" else "Vertical compact stack",
-                icon = Icons.Rounded.ViewAgenda,
-                items = listOf("Horizontal", "Vertical"),
-                selectedIndex = if (layoutStyle == "Horizontal") 0 else 1,
-                onItemSelected = {
-                    layoutStyle = if (it == 0) "Horizontal" else "Vertical"
-                    prefs.layoutStyle = layoutStyle
-                    restartOverlay(context)
-                },
-                shape = itemShapeFor(2, totalLayoutItems),
-                enabled = enableOverlay,
-            )
-        }
-
-        // --- 4. THEME & COLORS SUBSECTION ---
-        val themeItemCount = if (monetEnabled) 1 else 2
-        SettingsSubsection(
-            title =
-                androidx.compose.ui.res
-                    .stringResource(dev.auriya.app.R.string.overlay_sec_monet),
-        ) {
-            SwitchSettingItem(
-                title =
-                    androidx.compose.ui.res
-                        .stringResource(dev.auriya.app.R.string.overlay_monet_theme),
-                subtitle =
-                    androidx.compose.ui.res
-                        .stringResource(dev.auriya.app.R.string.overlay_monet_theme_desc),
-                checked = monetEnabled,
-                enabled = enableOverlay,
-                onCheckedChange = {
-                    monetEnabled = it
-                    prefs.monetEnabled = it
-                    restartOverlay(context)
-                },
-                icon = Icons.Rounded.ColorLens,
-                shape = itemShapeFor(0, themeItemCount),
-            )
-
-            if (!monetEnabled) {
-                val activePreset = colorPresets.find { it.id == overlayPreset } ?: colorPresets.first()
-
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shape = itemShapeFor(1, themeItemCount),
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .graphicsLayer { alpha = if (enableOverlay) 1f else 0.38f },
-                ) {
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 18.dp, vertical = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                modifier = Modifier.size(44.dp),
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Palette,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        modifier = Modifier.size(22.dp),
-                                    )
-                                }
-                            }
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
-                                Text(
-                                    text =
-                                        androidx.compose.ui.res
-                                            .stringResource(dev.auriya.app.R.string.overlay_color_presets),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontFamily = GoogleSansRounded,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                                Text(
-                                    text = "Selected: ${activePreset.name}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = GoogleSansRounded,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                        }
-
-                        // Presets Swatches matching Image 1
-                        LazyRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            items(colorPresets) { preset ->
-                                ColorPresetSwatch(
-                                    preset = preset,
-                                    isSelected = overlayPreset == preset.id,
-                                    onClick = {
-                                        if (enableOverlay) {
-                                            overlayPreset = preset.id
-                                            prefs.overlayPreset = preset.id
-                                            restartOverlay(context)
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
         }
 
         // --- 5. OVERLAY TUNING SUBSECTION ---
@@ -576,59 +477,6 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 shape = itemShapeFor(4, totalTuningItems),
                 enabled = enableOverlay,
             )
-        }
-    }
-}
-
-@Composable
-private fun ColorPresetSwatch(
-    preset: ColorPreset,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier =
-            Modifier
-                .size(50.dp)
-                .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (isSelected) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(46.dp)
-                        .border(BorderStroke(2.dp, MaterialTheme.colorScheme.primary), CircleShape),
-            )
-        }
-        Canvas(
-            modifier =
-                Modifier
-                    .size(36.dp)
-                    .clip(CircleShape),
-        ) {
-            drawArc(color = preset.primary, startAngle = 180f, sweepAngle = 90f, useCenter = true)
-            drawArc(color = preset.secondary, startAngle = 270f, sweepAngle = 90f, useCenter = true)
-            drawArc(color = preset.tertiary, startAngle = 0f, sweepAngle = 90f, useCenter = true)
-            drawArc(color = preset.neutral, startAngle = 90f, sweepAngle = 90f, useCenter = true)
-        }
-        if (isSelected) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(18.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(BorderStroke(1.dp, preset.primary), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = null,
-                    tint = preset.primary,
-                    modifier = Modifier.size(12.dp),
-                )
-            }
         }
     }
 }

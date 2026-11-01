@@ -134,7 +134,7 @@ class OverlayPrefs private constructor(
         }
 
     var bgOpacity: Float
-        get() = legacyPrefs.getFloat("bg_opacity", 0.7f)
+        get() = legacyPrefs.getFloat("bg_opacity", 1.0f)
         set(value) {
             legacyPrefs.edit().putFloat("bg_opacity", value).apply()
             scope.launch { dataStore.edit { it[floatPreferencesKey("bg_opacity")] = value } }

@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
 import android.view.WindowManager
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationCompat
@@ -47,6 +49,8 @@ import dev.auriya.app.data.OverlayPrefs
 import dev.auriya.app.data.RootShell
 import dev.auriya.app.data.stats.Stats
 import dev.auriya.app.data.stats.StatsParser
+import dev.auriya.app.ui.overlay.components.OverlayHud
+import dev.auriya.app.ui.overlay.components.OverlayTelemetry
 import dev.auriya.app.ui.theme.AuriyaTheme
 import dev.auriya.app.ui.theme.GoogleSansRounded
 import kotlinx.coroutines.CancellationException
@@ -173,12 +177,6 @@ class OverlayService :
                         val showTemp = prefs.showTemp
                         val showBattery = prefs.showBattery
                         val hasAnyMetric = showFps || showCpu || showGpu || showRam || showTemp || showBattery
-                        val monetEnabled = prefs.monetEnabled
-
-                        val overlayPreset = prefs.overlayPreset
-                        val customPrimary = prefs.customPrimary
-                        val customSecondary = prefs.customSecondary
-                        val customTertiary = prefs.customTertiary
 
                         val textSizeSp = prefs.textSizeSp
                         val bgOpacity = prefs.bgOpacity
@@ -189,43 +187,120 @@ class OverlayService :
                         val cpuStyle = prefs.cpuStyle
 
                         if (hasAnyMetric) {
-                            OverlayChip(
-                                data = telemetryState.value,
+                            val data = telemetryState.value
+                            val isMinimal = overlayMode == "Minimal"
+                            val cpuText =
+                                if (showCpu && (data.cpuClusters.isNotEmpty() || data.cpuLoadPct > 0f)) {
+                                    when (cpuStyle) {
+                                        "tags" -> {
+                                            if (data.cpuClusterLabels.isNotEmpty()) {
+                                                data.cpuClusterLabels.zip(data.cpuClusters).joinToString(" ") { (lbl, frq) -> "$lbl$frq" }
+                                            } else {
+                                                data.cpuClusters.joinToString(" ")
+                                            }
+                                        }
+
+                                        "load_peak" -> {
+                                            if (isMinimal) {
+                                                "%.0f%% @ %.1fG".format(data.cpuLoadPct, data.maxCpuFreqGHz)
+                                            } else {
+                                                "%.0f%% @ %.1f GHz".format(data.cpuLoadPct, data.maxCpuFreqGHz)
+                                            }
+                                        }
+
+                                        "pipe" -> {
+                                            data.cpuClusters.joinToString(" | ") + "G"
+                                        }
+
+                                        else -> {
+                                            if (isMinimal) {
+                                                data.cpuClusters.joinToString("/") + "G"
+                                            } else {
+                                                data.cpuClusters.joinToString("/") + " GHz"
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    ""
+                                }
+
+                            val gpuText =
+                                if (showGpu && data.hasGpu && data.gpuFreq != "--") {
+                                    "${data.gpuFreq} (${data.gpuLoad})"
+                                } else {
+                                    ""
+                                }
+
+                            val ramText = if (showRam && data.ram != "--") data.ram else ""
+
+                            val tempText =
+                                if (showTemp && data.cpuTemp != "--") {
+                                    if (isMinimal) data.cpuTemp.removeSuffix("C") else data.cpuTemp
+                                } else {
+                                    ""
+                                }
+
+                            val batText =
+                                if (showBattery && data.batTemp != "--") {
+                                    if (isMinimal) data.batTemp.removeSuffix("C") else data.batTemp
+                                } else {
+                                    ""
+                                }
+
+                            val telemetry =
+                                OverlayTelemetry(
+                                    fps = data.fps,
+                                    rawFps = data.rawFps,
+                                    cpuText = cpuText,
+                                    cpuClusters = data.cpuClusters,
+                                    cpuClusterLabels = data.cpuClusterLabels,
+                                    cpuStyle = cpuStyle,
+                                    cpuLoadPct = data.cpuLoadPct,
+                                    maxCpuFreqGHz = data.maxCpuFreqGHz,
+                                    gpuText = gpuText,
+                                    ramText = ramText,
+                                    tempText = tempText,
+                                    batText = batText,
+                                    rawCpuTemp = data.rawCpuTemp,
+                                    rawBatTemp = data.rawBatTemp,
+                                )
+
+                            OverlayHud(
+                                telemetry = telemetry,
                                 showFps = showFps,
                                 showCpu = showCpu,
                                 showGpu = showGpu,
                                 showRam = showRam,
                                 showTemp = showTemp,
                                 showBattery = showBattery,
-                                monetEnabled = monetEnabled,
-                                overlayPreset = overlayPreset,
-                                customPrimary = customPrimary,
-                                customSecondary = customSecondary,
-                                customTertiary = customTertiary,
                                 textSizeSp = textSizeSp,
                                 bgOpacity = bgOpacity,
                                 paddingDp = paddingDp,
                                 cornerRadiusDp = cornerRadiusDp,
                                 layoutStyle = layoutStyle,
                                 overlayMode = overlayMode,
-                                cpuStyle = cpuStyle,
-                                onDrag = { dx, dy ->
-                                    val displayMetrics = resources.displayMetrics
-                                    val screenWidth = displayMetrics.widthPixels
-                                    val screenHeight = displayMetrics.heightPixels
-                                    val viewWidth = overlayView?.width ?: 0
-                                    val viewHeight = overlayView?.height ?: 0
-                                    val maxX = (screenWidth - viewWidth).coerceAtLeast(0)
-                                    val maxY = (screenHeight - viewHeight).coerceAtLeast(0)
+                                modifier =
+                                    Modifier.pointerInput(Unit) {
+                                        detectDragGestures(
+                                            onDragEnd = {
+                                                prefs.overlayX = params.x
+                                                prefs.overlayY = params.y
+                                            },
+                                        ) { change, dragAmount ->
+                                            change.consume()
+                                            val displayMetrics = resources.displayMetrics
+                                            val screenWidth = displayMetrics.widthPixels
+                                            val screenHeight = displayMetrics.heightPixels
+                                            val viewWidth = overlayView?.width ?: 0
+                                            val viewHeight = overlayView?.height ?: 0
+                                            val maxX = (screenWidth - viewWidth).coerceAtLeast(0)
+                                            val maxY = (screenHeight - viewHeight).coerceAtLeast(0)
 
-                                    params.x = (params.x + dx.toInt()).coerceIn(0, maxX)
-                                    params.y = (params.y + dy.toInt()).coerceIn(0, maxY)
-                                    overlayView?.let { wm.updateViewLayout(it, params) }
-                                },
-                                onDragEnd = {
-                                    prefs.overlayX = params.x
-                                    prefs.overlayY = params.y
-                                },
+                                            params.x = (params.x + dragAmount.x.toInt()).coerceIn(0, maxX)
+                                            params.y = (params.y + dragAmount.y.toInt()).coerceIn(0, maxY)
+                                            overlayView?.let { wm.updateViewLayout(it, params) }
+                                        }
+                                    },
                             )
                         }
                     }
@@ -430,585 +505,6 @@ class OverlayService :
         fun stop(context: Context) {
             runCatching {
                 context.stopService(Intent(context, OverlayService::class.java))
-            }
-        }
-
-        @Composable
-        fun OverlayChip(
-            data: TelemetryData,
-            showFps: Boolean,
-            showCpu: Boolean,
-            showGpu: Boolean,
-            showRam: Boolean,
-            showTemp: Boolean,
-            showBattery: Boolean,
-            monetEnabled: Boolean,
-            overlayPreset: String,
-            customPrimary: String,
-            customSecondary: String,
-            customTertiary: String,
-            textSizeSp: Float,
-            bgOpacity: Float,
-            paddingDp: Float,
-            cornerRadiusDp: Float,
-            layoutStyle: String,
-            overlayMode: String,
-            cpuStyle: String = "tags",
-            onDrag: (Float, Float) -> Unit,
-            onDragEnd: () -> Unit,
-        ) {
-            val hasAnyMetric = showFps || showCpu || showGpu || showRam || showTemp || showBattery
-            if (!hasAnyMetric) {
-                return
-            }
-
-            val textSize = textSizeSp.sp
-            val subTextSize = (textSizeSp - 1f).coerceAtLeast(8f).sp
-            val padding = paddingDp.dp
-            val cornerRadius = cornerRadiusDp.dp
-
-            // Theme Preset color mapping
-            val (basePrimary, baseSecondary, baseTertiary) =
-                remember(monetEnabled, overlayPreset, customPrimary, customSecondary, customTertiary) {
-                    if (monetEnabled) {
-                        Triple(Color.Unspecified, Color.Unspecified, Color.Unspecified)
-                    } else {
-                        when (overlayPreset) {
-                            "gaming" -> {
-                                Triple(Color(0xFF00FF66), Color(0xFF00E5FF), Color(0xFFFFE600))
-                            }
-
-                            "ocean" -> {
-                                Triple(Color(0xFF0099FF), Color(0xFF00E5FF), Color(0xFF38B6FF))
-                            }
-
-                            "violet" -> {
-                                Triple(Color(0xFFB026FF), Color(0xFFD946EF), Color(0xFFFF007F))
-                            }
-
-                            "solar" -> {
-                                Triple(Color(0xFFFF6600), Color(0xFFFF1A53), Color(0xFFFFB703))
-                            }
-
-                            "volt" -> {
-                                Triple(Color(0xFFFFE600), Color(0xFFFFB703), Color(0xFFFF6600))
-                            }
-
-                            "monochrome" -> {
-                                Triple(Color(0xFFFFFFFF), Color(0xFFCCCCCC), Color(0xFF888888))
-                            }
-
-                            "sage" -> {
-                                Triple(Color(0xFFC2D5C6), Color(0xFF4A5D4E), Color(0xFF8FA393))
-                            }
-
-                            "rust" -> {
-                                Triple(Color(0xFFFF6600), Color(0xFFFF1A53), Color(0xFF5C3A21))
-                            }
-
-                            "custom" -> {
-                                val prim =
-                                    runCatching {
-                                        Color(
-                                            android.graphics.Color.parseColor(customPrimary),
-                                        )
-                                    }.getOrDefault(Color(0xFF00FF66))
-                                val sec =
-                                    runCatching {
-                                        Color(
-                                            android.graphics.Color.parseColor(customSecondary),
-                                        )
-                                    }.getOrDefault(Color(0xFF00E5FF))
-                                val tert =
-                                    runCatching {
-                                        Color(
-                                            android.graphics.Color.parseColor(customTertiary),
-                                        )
-                                    }.getOrDefault(Color(0xFFFFE600))
-                                Triple(prim, sec, tert)
-                            }
-
-                            else -> {
-                                Triple(Color(0xFFAAD2A4), Color(0xFF385E38), Color(0xFF8A9A5B))
-                            } // default green_default
-                        }
-                    }
-                }
-
-            // Dynamic warning status color or fallback to preset colors
-            val fpsDotColor =
-                when {
-                    data.rawFps >= 57f -> Color(0xFF00FF66)
-
-                    // Neon Green
-                    data.rawFps >= 45f -> Color(0xFFFFE600)
-
-                    // Cyber Yellow
-                    data.rawFps > 0f -> Color(0xFFFF1A53)
-
-                    // Neon Red
-                    else -> Color(0xFF888888)
-                }
-
-            val fpsColor =
-                if (monetEnabled) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    basePrimary
-                }
-
-            val cpuColor =
-                when {
-                    monetEnabled -> MaterialTheme.colorScheme.onSurface
-                    else -> baseSecondary
-                }
-
-            val gpuColor =
-                when {
-                    monetEnabled -> MaterialTheme.colorScheme.onSurfaceVariant
-                    else -> baseTertiary
-                }
-
-            val ramColor =
-                when {
-                    monetEnabled -> MaterialTheme.colorScheme.onSurfaceVariant
-                    else -> baseSecondary
-                }
-
-            val cpuTempDotColor =
-                when {
-                    data.rawCpuTemp >= 48f -> Color(0xFFFF1A53)
-
-                    // Hot Red
-                    data.rawCpuTemp >= 40f -> Color(0xFFFFE600)
-
-                    // Warm Yellow
-                    data.rawCpuTemp > 0f -> Color(0xFF00E5FF)
-
-                    // Cool Cyan
-                    else -> Color(0xFF888888)
-                }
-
-            val cpuTempColor =
-                when {
-                    monetEnabled -> MaterialTheme.colorScheme.secondary
-                    overlayPreset == "custom" -> baseTertiary
-                    else -> cpuTempDotColor
-                }
-
-            val batTempDotColor =
-                when {
-                    data.rawBatTemp >= 43f -> Color(0xFFFF1A53)
-
-                    // Hot Red
-                    data.rawBatTemp >= 38f -> Color(0xFFFFE600)
-
-                    // Warm Yellow
-                    data.rawBatTemp > 0f -> Color(0xFF00E5FF)
-
-                    // Cool Cyan
-                    else -> Color(0xFF888888)
-                }
-
-            val batTempColor =
-                when {
-                    monetEnabled -> MaterialTheme.colorScheme.tertiary
-                    overlayPreset == "custom" -> baseTertiary
-                    else -> batTempDotColor
-                }
-
-            val isMinimal = overlayMode == "Minimal"
-            val badgeBgColor =
-                if (monetEnabled) {
-                    MaterialTheme.colorScheme.surfaceContainerHighest.copy(
-                        alpha = 0.6f,
-                    )
-                } else {
-                    Color.White.copy(alpha = 0.10f)
-                }
-            val badgeTextColor = if (monetEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.75f)
-
-            Box(
-                modifier =
-                    Modifier
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDragEnd = onDragEnd,
-                            ) { change, dragAmount ->
-                                change.consume()
-                                onDrag(dragAmount.x, dragAmount.y)
-                            }
-                        }.clip(RoundedCornerShape(cornerRadius))
-                        .background(Color(0xFF0F1115).copy(alpha = bgOpacity))
-                        .padding(horizontal = padding, vertical = (padding * 0.65f).coerceAtLeast(6.dp)),
-            ) {
-                if (layoutStyle == "Horizontal") {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        var first = true
-
-                        if (showFps) {
-                            Text(
-                                text = if (isMinimal) data.fps else "${data.fps} FPS",
-                                fontSize = textSize,
-                                color = fpsColor,
-                                fontFamily = GoogleSansRounded,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                softWrap = false,
-                            )
-                            first = false
-                        }
-
-                        if (showCpu && (data.cpuClusters.isNotEmpty() || data.cpuLoadPct > 0f)) {
-                            if (!first) {
-                                Text("·", fontSize = subTextSize, color = Color.White.copy(alpha = 0.35f), maxLines = 1, softWrap = false)
-                            }
-                            val cpuText =
-                                when (cpuStyle) {
-                                    "tags" -> {
-                                        val tagged =
-                                            if (data.cpuClusterLabels.isNotEmpty()) {
-                                                data.cpuClusterLabels.zip(data.cpuClusters).joinToString(" ") { (lbl, frq) -> "$lbl$frq" }
-                                            } else {
-                                                data.cpuClusters.joinToString(" ")
-                                            }
-                                        if (isMinimal) tagged else "CPU $tagged"
-                                    }
-
-                                    "load_peak" -> {
-                                        if (isMinimal) {
-                                            "%.0f%% @ %.1fG".format(data.cpuLoadPct, data.maxCpuFreqGHz)
-                                        } else {
-                                            "CPU %.0f%% @ %.1f GHz".format(data.cpuLoadPct, data.maxCpuFreqGHz)
-                                        }
-                                    }
-
-                                    "pipe" -> {
-                                        val piped = data.cpuClusters.joinToString(" | ") + "G"
-                                        if (isMinimal) piped else "CPU $piped"
-                                    }
-
-                                    else -> {
-                                        if (isMinimal) {
-                                            data.cpuClusters.joinToString("/") + "G"
-                                        } else {
-                                            "CPU " + data.cpuClusters.joinToString("/") + " GHz"
-                                        }
-                                    }
-                                }
-                            Text(
-                                text = cpuText,
-                                fontSize = subTextSize,
-                                fontFamily = GoogleSansRounded,
-                                fontWeight = FontWeight.SemiBold,
-                                color = cpuColor,
-                                maxLines = 1,
-                                softWrap = false,
-                            )
-                            first = false
-                        }
-
-                        if (showGpu && data.hasGpu && data.gpuFreq != "--") {
-                            if (!first) {
-                                Text("·", fontSize = subTextSize, color = Color.White.copy(alpha = 0.35f), maxLines = 1, softWrap = false)
-                            }
-                            Text(
-                                text = if (isMinimal) "${data.gpuFreq} (${data.gpuLoad})" else "GPU ${data.gpuFreq} (${data.gpuLoad})",
-                                fontSize = subTextSize,
-                                fontFamily = GoogleSansRounded,
-                                fontWeight = FontWeight.SemiBold,
-                                color = gpuColor,
-                                maxLines = 1,
-                                softWrap = false,
-                            )
-                            first = false
-                        }
-
-                        if (showRam && data.ram != "--") {
-                            if (!first) {
-                                Text("·", fontSize = subTextSize, color = Color.White.copy(alpha = 0.35f), maxLines = 1, softWrap = false)
-                            }
-                            Text(
-                                text = if (isMinimal) data.ram else "RAM ${data.ram}",
-                                fontSize = subTextSize,
-                                fontFamily = GoogleSansRounded,
-                                fontWeight = FontWeight.SemiBold,
-                                color = ramColor,
-                                maxLines = 1,
-                                softWrap = false,
-                            )
-                            first = false
-                        }
-
-                        if (showTemp && data.cpuTemp != "--") {
-                            if (!first) {
-                                Text("·", fontSize = subTextSize, color = Color.White.copy(alpha = 0.35f), maxLines = 1, softWrap = false)
-                            }
-                            Text(
-                                text = if (isMinimal) data.cpuTemp.removeSuffix("C") else "CPU ${data.cpuTemp}",
-                                fontSize = subTextSize,
-                                fontFamily = GoogleSansRounded,
-                                fontWeight = FontWeight.SemiBold,
-                                color = cpuTempColor,
-                                maxLines = 1,
-                                softWrap = false,
-                            )
-                            first = false
-                        }
-
-                        if (showBattery && data.batTemp != "--") {
-                            if (!first) {
-                                Text("·", fontSize = subTextSize, color = Color.White.copy(alpha = 0.35f), maxLines = 1, softWrap = false)
-                            }
-                            Text(
-                                text = if (isMinimal) data.batTemp.removeSuffix("C") else "BAT ${data.batTemp}",
-                                fontSize = subTextSize,
-                                fontFamily = GoogleSansRounded,
-                                fontWeight = FontWeight.SemiBold,
-                                color = batTempColor,
-                                maxLines = 1,
-                                softWrap = false,
-                            )
-                        }
-                    }
-                } else {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        horizontalAlignment = Alignment.Start,
-                    ) {
-                        if (showFps) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                if (!isMinimal) {
-                                    Surface(
-                                        shape = RoundedCornerShape(5.dp),
-                                        color = badgeBgColor,
-                                    ) {
-                                        Text(
-                                            text = "FPS",
-                                            fontFamily = GoogleSansRounded,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = (subTextSize.value * 0.85f).sp,
-                                            color = badgeTextColor,
-                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp),
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = if (isMinimal) data.fps else "${data.fps} FPS",
-                                    fontSize = textSize,
-                                    color = fpsColor,
-                                    fontFamily = GoogleSansRounded,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                )
-                            }
-                        }
-
-                        if (showCpu && data.cpuClusters.isNotEmpty()) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                if (!isMinimal) {
-                                    Surface(
-                                        shape = RoundedCornerShape(5.dp),
-                                        color = badgeBgColor,
-                                    ) {
-                                        Text(
-                                            text = "CPU",
-                                            fontFamily = GoogleSansRounded,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = (subTextSize.value * 0.85f).sp,
-                                            color = badgeTextColor,
-                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp),
-                                        )
-                                    }
-                                }
-                                val cpuText =
-                                    when (cpuStyle) {
-                                        "tags" -> {
-                                            if (isMinimal) {
-                                                data.cpuClusterLabels.zip(data.cpuClusters).joinToString(" ") { (lbl, frq) -> "$lbl$frq" }
-                                            } else {
-                                                data.cpuClusterLabels
-                                                    .zip(
-                                                        data.cpuClusters,
-                                                    ).joinToString("   ") { (lbl, frq) -> "$lbl: ${frq}G" }
-                                            }
-                                        }
-
-                                        "load_peak" -> {
-                                            if (isMinimal) {
-                                                "%.0f%% @ %.1fG".format(data.cpuLoadPct, data.maxCpuFreqGHz)
-                                            } else {
-                                                "%.0f%%  (Peak %.1f GHz)".format(data.cpuLoadPct, data.maxCpuFreqGHz)
-                                            }
-                                        }
-
-                                        "pipe" -> {
-                                            if (isMinimal) {
-                                                data.cpuClusters.joinToString(" | ") + "G"
-                                            } else {
-                                                data.cpuClusters.joinToString("  |  ") + " GHz"
-                                            }
-                                        }
-
-                                        else -> {
-                                            if (isMinimal) {
-                                                data.cpuClusters.joinToString("/") + "G"
-                                            } else {
-                                                data.cpuClusters.joinToString(" / ") + " GHz"
-                                            }
-                                        }
-                                    }
-                                Text(
-                                    text = cpuText,
-                                    fontSize = subTextSize,
-                                    fontFamily = GoogleSansRounded,
-                                    fontWeight = FontWeight.Medium,
-                                    color = cpuColor,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                )
-                            }
-                        }
-
-                        if (showGpu && data.hasGpu && data.gpuFreq != "--") {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                if (!isMinimal) {
-                                    Surface(
-                                        shape = RoundedCornerShape(5.dp),
-                                        color = badgeBgColor,
-                                    ) {
-                                        Text(
-                                            text = "GPU",
-                                            fontFamily = GoogleSansRounded,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = (subTextSize.value * 0.85f).sp,
-                                            color = badgeTextColor,
-                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp),
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = if (isMinimal) "${data.gpuFreq} (${data.gpuLoad})" else "${data.gpuFreq} (${data.gpuLoad})",
-                                    fontSize = subTextSize,
-                                    fontFamily = GoogleSansRounded,
-                                    fontWeight = FontWeight.Medium,
-                                    color = gpuColor,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                )
-                            }
-                        }
-
-                        if (showRam && data.ram != "--") {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                if (!isMinimal) {
-                                    Surface(
-                                        shape = RoundedCornerShape(5.dp),
-                                        color = badgeBgColor,
-                                    ) {
-                                        Text(
-                                            text = "RAM",
-                                            fontFamily = GoogleSansRounded,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = (subTextSize.value * 0.85f).sp,
-                                            color = badgeTextColor,
-                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp),
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = if (isMinimal) data.ram else data.ram,
-                                    fontSize = subTextSize,
-                                    fontFamily = GoogleSansRounded,
-                                    fontWeight = FontWeight.Medium,
-                                    color = ramColor,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                )
-                            }
-                        }
-
-                        if (showTemp && data.cpuTemp != "--") {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                if (!isMinimal) {
-                                    Surface(
-                                        shape = RoundedCornerShape(5.dp),
-                                        color = badgeBgColor,
-                                    ) {
-                                        Text(
-                                            text = "TEMP",
-                                            fontFamily = GoogleSansRounded,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = (subTextSize.value * 0.85f).sp,
-                                            color = badgeTextColor,
-                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp),
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = if (isMinimal) data.cpuTemp.removeSuffix("C") else data.cpuTemp,
-                                    fontSize = subTextSize,
-                                    fontFamily = GoogleSansRounded,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = cpuTempColor,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                )
-                            }
-                        }
-
-                        if (showBattery && data.batTemp != "--") {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                if (!isMinimal) {
-                                    Surface(
-                                        shape = RoundedCornerShape(5.dp),
-                                        color = badgeBgColor,
-                                    ) {
-                                        Text(
-                                            text = "BAT",
-                                            fontFamily = GoogleSansRounded,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = (subTextSize.value * 0.85f).sp,
-                                            color = badgeTextColor,
-                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp),
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = if (isMinimal) data.batTemp.removeSuffix("C") else data.batTemp,
-                                    fontSize = subTextSize,
-                                    fontFamily = GoogleSansRounded,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = batTempColor,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                )
-                            }
-                        }
-                    }
-                }
             }
         }
     }
