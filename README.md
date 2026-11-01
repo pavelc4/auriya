@@ -1,22 +1,25 @@
 <p align="center">
-<img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
-<a href="https://auriya.pages.dev"><img src="https://img.shields.io/badge/Docs-auriya.pages.dev-FFB2B9?style=for-the-badge&logo=cloudflarepages&logoColor=black&labelColor=222" alt="Documentation"></a>
-<a href="https://github.com/pavelc4/auriya/releases"><img src="https://img.shields.io/github/v/release/pavelc4/auriya?label=Release&style=for-the-badge&logo=github&logoColor=white&labelColor=222" alt="Latest Release"></a>
-<a href="LICENSE"><img src="https://img.shields.io/badge/GPLv3-white?style=for-the-badge&logo=gnu&logoColor=white&label=License&labelColor=222" alt="License"></a>
+  <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
+  <a href="https://auriya.pages.dev"><img src="https://img.shields.io/badge/Docs-auriya.pages.dev-FFB2B9?style=for-the-badge&logo=cloudflarepages&logoColor=black&labelColor=222" alt="Documentation"></a>
+  <a href="https://github.com/pavelc4/auriya/releases"><img src="https://img.shields.io/github/v/release/pavelc4/auriya?label=Release&style=for-the-badge&logo=github&logoColor=white&labelColor=222" alt="Latest Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/GPLv3-white?style=for-the-badge&logo=gnu&logoColor=white&label=License&labelColor=222" alt="License"></a>
 </p>
 
 ## About Auriya
-**Auriya** is a rooted Android performance optimization daemon written in Rust, paired with a modern Jetpack Compose manager application and companion service.
+**Auriya** is a rooted Android performance optimization daemon written in Rust, paired with a modern Jetpack Compose manager application and native Binder IPC.
 
-Visit the [Official Documentation & Wiki](https://auriya.pages.dev) *(available in English and Bahasa Indonesia)* for detailed guides and configuration references.
+Visit the [Official Documentation](https://auriya.pages.dev) (available in English and Bahasa Indonesia) for detailed guides and configuration references.
+
+> [!NOTE]
+> **Disclaimer**: This module is an experimental hobbyist project. Features and system tuning behaviors may evolve across releases.
 
 ## Features
-- **Rust Native Daemon** — Runs in the background to handle system tweaks, performance tuning, and profile switching.
-- **Dynamic Frame-Aware Scheduling** — Automatically boosts CPU performance when frames drop and saves battery when gameplay is smooth.
-- **Per-Game Custom Profiles** — Set custom target FPS, screen refresh rate, CPU modes, and auto Do Not Disturb for each game.
-- **Live Benchmark & FPS Recording** — Monitor real-time FPS, temperature, and battery drain, with session recording to review gaming stability.
-- **Manager App & Floating Overlay** — Easy-to-use Android app to customize settings, plus a floating on-screen HUD to view live FPS while playing.
-- **Command-Line Tools (`auriyactl`)** — Quick terminal commands to check status and switch profiles on the fly.
+- **Rust Native Daemon**: Background service handling system tweaks, performance tuning, and profile switching.
+- **Dynamic Frame-Aware Scheduling**: Dynamically adjusts CPU frequencies based on real-time frametimes.
+- **Per-Game Profiles**: Custom target FPS, refresh rates, CPU modes, and automated Do Not Disturb per application.
+- **Live Benchmark and Telemetry**: Real-time FPS, temperature, and battery monitoring with session recording.
+- **Manager App and Floating HUD**: Jetpack Compose manager interface and real-time on-screen telemetry overlay.
+- **Command-Line Interface (`auriyactl`)**: Terminal utility for status monitoring and profile management.
 
 ## Screenshots
 | Home | Games | Tuning |
@@ -32,12 +35,12 @@ Visit the [Official Documentation & Wiki](https://auriya.pages.dev) *(available 
 | ![Domain Config](doc/asset/config.png) | ![Customization](doc/asset/cusztomi.png) | ![Settings](doc/asset/settings.png) |
 
 ## Documentation
-Comprehensive architectural deep-dives, configuration guides, and references are available in the repository and on the documentation website:
+Detailed guides, architectural references, and API documentation are available:
 - [auriyactl CLI Reference](doc/auriyactl.md)
-- [Getting Started & Installation](https://auriya.pages.dev/getting-started/installation/)
-- [Configuration & Profiles](https://auriya.pages.dev/getting-started/configuration/)
-- [Telemetry Protocol & FPS Benchmark API](https://auriya.pages.dev/reference/stats-api/)
-- [Architecture & Data Flow](https://auriya.pages.dev/architecture/overview/)
+- [Installation Guide](https://auriya.pages.dev/getting-started/installation/)
+- [Configuration and Profiles](https://auriya.pages.dev/getting-started/configuration/)
+- [Telemetry Protocol and FPS Benchmark API](https://auriya.pages.dev/reference/stats-api/)
+- [Architecture Overview](https://auriya.pages.dev/architecture/overview/)
 - [Dokumentasi Bahasa Indonesia](https://auriya.pages.dev/id/)
 
 ## Supported Root Managers
@@ -47,12 +50,12 @@ Comprehensive architectural deep-dives, configuration guides, and references are
 
 ## Resources
 - [Documentation Website](https://auriya.pages.dev)
-- [Releases](https://github.com/pavelc4/auriya/releases) - Download latest flashable ZIP
-- [Changelog](CHANGELOG.md) - Version history
-- [Issues](https://github.com/pavelc4/auriya/issues) - Report bugs
+- [Releases](https://github.com/pavelc4/auriya/releases) (flashable module ZIP packages)
+- [Changelog](CHANGELOG.md) (version history)
+- [Issues](https://github.com/pavelc4/auriya/issues) (bug reports and tracking)
 
-## Support 🌸
-If you find Auriya useful for your device, please consider giving the repository a star ⭐ on GitHub to support the project.
+## Support
+If you find Auriya useful, consider starring the repository on GitHub.
 
 ## License
 Auriya is open-sourced software licensed under the [GNU General Public License v3.0](LICENSE).

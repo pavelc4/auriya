@@ -1,5 +1,35 @@
 # Changelog
 
+## v2.2.0
+
+### Added
+- Native Binder IPC migration: migrated system interactions directly to Android system services via rsbinder:
+  - Foreground lifecycle sensor migrated to IActivityManager (registerProcessObserver)
+  - Do Not Disturb actuator migrated to INotificationManager (setInterruptionFilter)
+  - Display refresh rate control and mode queries migrated to IDisplayManager
+  - Screen interactive power detection migrated to IPowerManager (isInteractive)
+  - Wi-Fi Low-Latency lock acquired via IWifiManager (acquireWifiLock)
+  - Floating and freeform window 30 FPS cap detection via IActivityTaskManager
+  - Hybrid thermal queries via IThermalService with dynamic sysfs fallback
+- Standardized JSON API envelope: introduced ApiResponse<T> schema over Unix domain socket (GET_STATS) for structured daemon, binder, system, and hardware telemetry
+- KernelSU Modules repository specification: added module.yaml, catalog assets, and release immutability support
+- Real-time CPU metric style bottom sheet: Material 3 switcher for Tags, Clusters, Cores, and Overview modes
+- Statistical telemetry engine: added 0.1% low calculations, presentation-time weighted frame drops, and interactive chart scrubbing
+
+### Changed
+- Companion service decommission: removed Java companion service (dev.auriya.service), companion APK packaging, and background watchdog process
+- Floating overlay auto-adaptive HUD: dynamically switches between single-row island (<= 3 metrics) and vertical stacked column (> 3 metrics)
+- Overlay default state: all telemetry switches now default to disabled on fresh installs and sync strictly with user preferences
+- Streamlined settings panes: unified config hierarchy and eliminated redundant layout orientation switches
+- APK size optimization: reduced manager APK release size to ~4.1 MB via R8 optimization passes and removed unused font resources
+
+### Fixed
+- Sub-pixel drag gesture stutter: accumulated float touch deltas and throttled redundant WindowManager layout IPC
+- Compose recomposition performance: annotated all telemetry and stats models with @Immutable for compiler recomposition skipping
+- Stale 0 FPS freeze during app switching and sub-process lifecycle transitions
+- GPU boost execution bottleneck when transitioning out of calm scenes
+- Direct CPU and GPU thermal zone resolution across Snapdragon and MediaTek architectures
+
 ## 2.1.0
 
 ### Added
