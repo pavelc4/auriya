@@ -134,8 +134,7 @@
     <string name="guide_battery_title">Panduan Baterai</string>
     <string name="guide_sessions_title">Panduan Riwayat Benchmark</string>
 
-    <!-- Settings -->
-    <string name="settings_kernel_interface">Antarmuka Kernel</string>
+
     <string name="settings_display_metrics">TAMPILAN &amp; METRIK</string>
     <string name="settings_round_fps">Bulatkan Nilai FPS</string>
     <string name="settings_round_fps_desc">Format FPS ke angka bulat di UI &amp; overlay</string>
@@ -380,7 +379,6 @@
     <string name="overlay_layout_orientation">Orientasi Tata Letak</string>
     <string name="settings_app_title">Aplikasi</string>
     <string name="settings_app_sub">Pengaturan umum aplikasi dan opsi pengembang</string>
-    <string name="settings_sec_root_env">LINGKUNGAN ROOT</string>
     <string name="games_priority_notif_sub">Notifikasi prioritas saat diluncurkan</string>
     <string name="games_auto_bench_sub">Rekam sesi benchmark otomatis saat game dimulai</string>
     <string name="games_dialog_remove_title">Hapus profil?</string>

@@ -149,8 +149,7 @@
     <string name="guide_battery_title">Battery Guide</string>
     <string name="guide_sessions_title">Benchmark History Guide</string>
 
-    <!-- Settings -->
-    <string name="settings_kernel_interface">Kernel Interface</string>
+
     <string name="settings_display_metrics">DISPLAY &amp; METRICS</string>
     <string name="settings_round_fps">Round FPS Values</string>
     <string name="settings_round_fps_desc">Format FPS to whole numbers in UI &amp; overlay</string>
@@ -401,7 +400,6 @@
     <string name="overlay_layout_orientation">Layout Orientation</string>
     <string name="settings_app_title">App</string>
     <string name="settings_app_sub">General application settings and developer tools</string>
-    <string name="settings_sec_root_env">ROOT ENVIRONMENT</string>
     <string name="games_priority_notif_sub">Priority notifications on launch</string>
     <string name="games_auto_bench_sub">Record benchmark session automatically on game launch</string>
     <string name="games_dialog_remove_title">Remove profile?</string>
