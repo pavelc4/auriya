@@ -559,15 +559,6 @@ impl Daemon {
     }
 
     pub(crate) async fn sync_ebpf_pids(&mut self, target_pids: &[i32]) {
-        if self
-            .last
-            .pkg
-            .as_deref()
-            .is_some_and(crate::core::config::is_tamper_sensitive)
-        {
-            self.ebpf_detach_all().await;
-            return;
-        }
         let Some(listener) = self.ebpf.as_ref() else {
             return;
         };
