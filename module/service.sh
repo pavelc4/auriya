@@ -28,6 +28,13 @@ fi
 mkdir -p "$MODULE_CONFIG" "$LOGDIR"
 chmod 0755 "$MODULE_CONFIG" "$LOGDIR"
 
+# Apply sepolicy rules (ensures runtime policy even if early-mount loader skipped)
+if [ -x /data/adb/ksud ]; then
+  /data/adb/ksud sepolicy apply "$MODDIR/sepolicy.rule" >/dev/null 2>&1 || true
+elif command -v magiskpolicy >/dev/null 2>&1; then
+  magiskpolicy --live --apply "$MODDIR/sepolicy.rule" >/dev/null 2>&1 || true
+fi
+
 if [ ! -f "$AURIYA_BIN" ]; then
   log -t auriya "ERROR: Required daemon binary not found: $AURIYA_BIN"
   exit 1
