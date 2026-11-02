@@ -6,6 +6,7 @@ extend-ignore-re = [
 [default.extend-words]
 mis = "mis"
 UE = "UE"
+livin = "livin"
 
 [files]
 extend-exclude = ["android/app/src/main/res/values/font_certs.xml"]

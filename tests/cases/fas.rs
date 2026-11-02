@@ -47,6 +47,7 @@ fn settings_with(
         },
         ceiling: CeilingConfig::default(),
         thermal: ThermalConfig::default(),
+        window: Default::default(),
         modes: m,
     }
 }

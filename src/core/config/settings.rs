@@ -16,6 +16,8 @@ pub struct Settings {
     pub ceiling: CeilingConfig,
     #[serde(default)]
     pub thermal: ThermalConfig,
+    #[serde(default)]
+    pub window: WindowConfig,
     pub modes: HashMap<String, FasMode>,
 }
 
@@ -113,6 +115,24 @@ impl Default for ThermalConfig {
             default: None,
         }
     }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct WindowConfig {
+    #[serde(default = "default_auto_rotation")]
+    pub auto_rotation: bool,
+}
+
+impl Default for WindowConfig {
+    fn default() -> Self {
+        Self {
+            auto_rotation: default_auto_rotation(),
+        }
+    }
+}
+
+fn default_auto_rotation() -> bool {
+    false
 }
 
 impl Default for CpuConfig {

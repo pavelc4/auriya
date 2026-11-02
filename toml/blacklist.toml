@@ -1,0 +1,28 @@
+# Auriya Tamper-Sensitive / eBPF Blacklist
+# Packages listed here will have eBPF uprobes detached on foreground.
+# Auto hot-reloaded by daemon on file save.
+
+packages = [
+  "com.bcadigital.blu",
+  "com.bca",
+  "id.co.bankmandiri.livin",
+  "id.co.bri.brimo",
+  "id.co.bni.newmobile",
+  "com.smbc.id.wondr",
+  "id.co.cimbniaga.octomobile",
+  "com.bankbtngn.mobilebanking",
+  "com.btpn.dc",
+  "id.dana",
+  "com.ovo.consumer",
+  "com.linkaja",
+  "com.seabank.mobile",
+  "id.jago.app",
+  "com.bankneo.neobank",
+  "com.nobubank.nobuepay",
+  "id.co.maybank.m2u",
+  "com.danamon.danamononline",
+  "com.google.android.gms",
+  "com.android.vending",
+  "com.google.android.gsf",
+  "com.android.systemui",
+]

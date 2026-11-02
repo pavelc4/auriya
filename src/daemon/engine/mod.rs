@@ -380,7 +380,7 @@ impl Daemon {
             crate::platform::binder::PowerMode::DeviceIdle,
             false,
         );
-        let _ = crate::platform::binder::thaw_display_rotation(0);
+        self.sync_rotation(false);
     }
 
     pub async fn tick(&mut self) {

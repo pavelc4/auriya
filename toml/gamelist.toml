@@ -1,0 +1,13 @@
+[[game]]
+package = "com.mobile.legends"
+cpu_governor = "performance"
+enable_dnd = true
+target_fps = 120
+refresh_rate = 120
+mode = "performance"
+wifi_lock = true
+statusbar_lock = true
+touch_boost = true
+power_hal = true
+silence_vibrator = false
+freeze_rotation = false

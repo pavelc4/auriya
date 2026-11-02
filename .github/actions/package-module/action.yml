@@ -37,8 +37,8 @@ runs:
 
         # 1. Base files
         cp -r "$MODULE_DIR"/* "$BUILD_DIR/module/"
-        cp settings.toml "$BUILD_DIR/module/" 2>/dev/null || true
-        cp gamelist.toml "$BUILD_DIR/module/" 2>/dev/null || true
+        mkdir -p "$BUILD_DIR/module/config"
+        cp toml/*.toml "$BUILD_DIR/module/config/" 2>/dev/null || cp *.toml "$BUILD_DIR/module/config/" 2>/dev/null || true
         cp -r module/system "$BUILD_DIR/module/" 2>/dev/null || true
 
         # 2. User Manager App APK

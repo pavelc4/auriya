@@ -110,9 +110,20 @@ rm -rf "$MODPATH/libs"
 mkdir -p "$MODULE_CONFIG" "$LOG_DIR"
 chmod 0755 "$MODULE_CONFIG" "$LOG_DIR"
 
-[ ! -f "$MODULE_CONFIG/settings.toml" ] && mv "$MODPATH/settings.toml" "$MODULE_CONFIG/settings.toml"
-[ ! -f "$MODULE_CONFIG/gamelist.toml" ] && mv "$MODPATH/gamelist.toml" "$MODULE_CONFIG/gamelist.toml"
-rm -f "$MODPATH/settings.toml" "$MODPATH/gamelist.toml"
+CONFIG_SRC=""
+if [ -d "$MODPATH/config" ]; then
+  CONFIG_SRC="$MODPATH/config"
+elif [ -d "$MODPATH/toml" ]; then
+  CONFIG_SRC="$MODPATH/toml"
+else
+  CONFIG_SRC="$MODPATH"
+fi
+
+for cfg in settings.toml gamelist.toml blacklist.toml; do
+  [ ! -f "$MODULE_CONFIG/$cfg" ] && [ -f "$CONFIG_SRC/$cfg" ] && mv "$CONFIG_SRC/$cfg" "$MODULE_CONFIG/$cfg"
+done
+rm -rf "$MODPATH/config" "$MODPATH/toml"
+rm -f "$MODPATH/settings.toml" "$MODPATH/gamelist.toml" "$MODPATH/blacklist.toml"
 
 # 6. KernelSU / APatch PATH Integration
 for bin_dir in /data/adb/ksu/bin /data/adb/ap/bin; do

@@ -106,10 +106,15 @@ impl Daemon {
             Some(p) if crate::platform::common::procfs::verify_pid_package(p, pkg) => Some(p),
             _ => pids.first().copied(),
         };
-        if !pids.is_empty() {
-            self.sync_ebpf_pids(pids).await;
-        } else if let Some(ref pid) = primary_pid {
-            self.sync_ebpf_pids(std::slice::from_ref(pid)).await;
+        match (
+            crate::core::config::is_tamper_sensitive(pkg),
+            pids.is_empty(),
+            primary_pid,
+        ) {
+            (true, _, _) => self.ebpf_detach_all().await,
+            (false, false, _) => self.sync_ebpf_pids(pids).await,
+            (false, true, Some(ref pid)) => self.sync_ebpf_pids(std::slice::from_ref(pid)).await,
+            (false, true, None) => {}
         }
         if let Some(ref pid) = primary_pid {
             self.set_pid(Some(*pid));

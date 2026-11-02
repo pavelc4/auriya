@@ -28,6 +28,14 @@ pub fn start_config_watcher(shared_gamelist: Arc<RwLock<Arc<GameList>>>) -> mpsc
                         return;
                     }
 
+                    if path_str.contains("blacklist") {
+                        crate::core::config::load_custom_blacklist(
+                            crate::core::config::blacklist_path(),
+                        );
+                        let _ = tx.blocking_send("blacklist".to_string());
+                        return;
+                    }
+
                     if !path_str.contains("gamelist") || is_ignorable_file(&path_str) {
                         return;
                     }

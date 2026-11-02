@@ -58,7 +58,7 @@ impl Daemon {
         let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
         let _ = crate::platform::binder::set_statusbar_lock(false);
         let _ = crate::platform::binder::set_high_touch_polling_rate(false);
-        let _ = crate::platform::binder::thaw_display_rotation(0);
+        self.sync_rotation(false);
         if self.applied_refresh_rate != Some(60) && self.apply_refresh_rate(60) {
             self.applied_refresh_rate = Some(60);
         }
@@ -117,7 +117,7 @@ impl Daemon {
         let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
         let _ = crate::platform::binder::set_statusbar_lock(false);
         let _ = crate::platform::binder::set_high_touch_polling_rate(false);
-        let _ = crate::platform::binder::thaw_display_rotation(0);
+        self.sync_rotation(false);
         if self.applied_refresh_rate.is_some() && self.apply_refresh_rate(0) {
             self.applied_refresh_rate = None;
         }
@@ -185,7 +185,7 @@ impl Daemon {
             let _ = crate::platform::binder::set_wifi_low_latency_lock(false);
             let _ = crate::platform::binder::set_statusbar_lock(false);
             let _ = crate::platform::binder::set_high_touch_polling_rate(false);
-            let _ = crate::platform::binder::thaw_display_rotation(0);
+            self.sync_rotation(false);
             let _ = crate::platform::binder::set_power_mode(
                 crate::platform::binder::PowerMode::ExpensiveRendering,
                 false,
@@ -244,7 +244,10 @@ impl Daemon {
 
         match effective_pids {
             [first, ..] => {
-                self.sync_ebpf_pids(effective_pids).await;
+                match crate::core::config::is_tamper_sensitive(pkg) {
+                    true => self.ebpf_detach_all().await,
+                    false => self.sync_ebpf_pids(effective_pids).await,
+                }
                 let primary_pid = Some(*first);
                 self.set_pid(primary_pid);
                 if let Some(mut f) = self
@@ -430,12 +433,14 @@ impl Daemon {
             self.applied_refresh_rate = rr;
         }
 
-        if !pids.is_empty() {
-            self.sync_ebpf_pids(pids).await;
-        } else if let Some(p) = primary_pid {
-            self.sync_ebpf_pids(std::slice::from_ref(&p)).await;
-        } else {
-            self.ebpf_detach_all().await;
+        match (
+            crate::core::config::is_tamper_sensitive(pkg),
+            pids.is_empty(),
+            primary_pid,
+        ) {
+            (true, _, _) | (false, true, None) => self.ebpf_detach_all().await,
+            (false, false, _) => self.sync_ebpf_pids(pids).await,
+            (false, true, Some(p)) => self.sync_ebpf_pids(std::slice::from_ref(&p)).await,
         }
         self.sync_dnd(if enable_dnd {
             crate::platform::binder::DndMode::Priority
@@ -470,9 +475,7 @@ impl Daemon {
         if silence_vibrator {
             let _ = crate::platform::binder::silence_vibrator();
         }
-        if freeze_rotation {
-            let _ = crate::platform::binder::freeze_display_rotation(0, -1);
-        }
+        self.sync_rotation(freeze_rotation);
 
         self.last.pkg = Some(pkg.to_string());
         self.set_pid(primary_pid);
@@ -556,6 +559,15 @@ impl Daemon {
     }
 
     pub(crate) async fn sync_ebpf_pids(&mut self, target_pids: &[i32]) {
+        if self
+            .last
+            .pkg
+            .as_deref()
+            .is_some_and(crate::core::config::is_tamper_sensitive)
+        {
+            self.ebpf_detach_all().await;
+            return;
+        }
         let Some(listener) = self.ebpf.as_ref() else {
             return;
         };
@@ -610,6 +622,26 @@ impl Daemon {
         }
         self.last_dnd = Some(desired);
         debug!(target: "auriya::daemon", "DnD → {:?}", desired);
+    }
+
+    pub(crate) fn sync_rotation(&mut self, freeze_in_game: bool) {
+        let auto_rotation = self
+            ._shared_settings
+            .read()
+            .map(|s| s.window.auto_rotation)
+            .unwrap_or(false);
+
+        match (freeze_in_game, auto_rotation) {
+            (true, _) => {
+                let _ = crate::platform::binder::freeze_display_rotation(0, -1);
+            }
+            (false, false) => {
+                let _ = crate::platform::binder::freeze_display_rotation(0, 0);
+            }
+            (false, true) => {
+                let _ = crate::platform::binder::thaw_display_rotation(0);
+            }
+        }
     }
 }
 
