@@ -295,6 +295,28 @@ impl Daemon {
     }
 
     async fn monitor_app_frames(&mut self, _pkg: &str) -> Result<()> {
+        let active_default = self.default_mode();
+        if self.last.profile_mode != Some(active_default) {
+            let gov_guard = self.balance_governor.read();
+            let default_gov = gov_guard
+                .as_deref()
+                .map(|s| s.as_str())
+                .unwrap_or("schedutil");
+            let res = match active_default {
+                ProfileMode::Performance => profile::apply_performance(),
+                ProfileMode::Fast => profile::apply_fast(),
+                ProfileMode::Balance => profile::apply_balance(default_gov),
+                ProfileMode::Powersave => profile::apply_powersave(),
+            };
+
+            if let Err(e) = res {
+                error!(target: "auriya::profile", ?e, "Failed to apply {:?}", active_default);
+            } else {
+                debug!(target: "auriya::daemon", "Restored {:?} for monitored app", active_default);
+                self.last.profile_mode = Some(active_default);
+            }
+        }
+
         let fallback_fps = self.fps_meter.read().map(|r| r.fps);
         if let Some(mut f) = self
             .fas_controller

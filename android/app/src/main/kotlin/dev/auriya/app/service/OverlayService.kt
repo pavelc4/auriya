@@ -22,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,6 +64,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 private object CpuStatReader {
     private var prevTotal = 0L
@@ -77,7 +77,10 @@ private object CpuStatReader {
         val coreLoads: Map<Int, Float>,
     )
 
-    private fun parseNumbers(line: String, startOffset: Int): LongArray {
+    private fun parseNumbers(
+        line: String,
+        startOffset: Int,
+    ): LongArray {
         val result = LongArray(10)
         var count = 0
         var current = 0L
@@ -103,7 +106,7 @@ private object CpuStatReader {
 
         try {
             val file = java.io.File("/proc/stat")
-            if (!file.exists()) return CpuLoadResult(0f, emptyMap())
+            if (!file.canRead()) return CpuLoadResult(0f, emptyMap())
 
             file.useLines { lines ->
                 for (line in lines) {
@@ -513,7 +516,9 @@ class OverlayService :
         var rawFpsNum = 0f
         val roundFps = OverlayPrefs.getInstance(this).roundFps
         if (stats?.fps != null && stats.fps.avg > 0) {
-            fpsVal = dev.auriya.app.data.AppPrefs.formatFps(stats.fps.avg, roundFps)
+            fpsVal =
+                dev.auriya.app.data.AppPrefs
+                    .formatFps(stats.fps.avg, roundFps)
             rawFpsNum = stats.fps.avg.toFloat()
         }
 

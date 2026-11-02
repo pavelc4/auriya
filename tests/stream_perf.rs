@@ -77,14 +77,14 @@ async fn test_frame_stream_throughput_and_memory_stability() -> Result<(), Strin
     let peak_rss_tracker = Arc::clone(&peak_rss_bytes);
     let my_pid = Pid::from_u32(std::process::id());
 
-    let mut sys_initial = System::new();
+    let mut sys_initial = System::new().expect("failed to initialize sysinfo");
     sys_initial.refresh_processes(ProcessesToUpdate::Some(&[my_pid]), true);
     if let Some(proc) = sys_initial.process(my_pid) {
         peak_rss_bytes.fetch_max(proc.memory(), Ordering::Release);
     }
 
     let monitor_handle = tokio::spawn(async move {
-        let mut sys = System::new();
+        let mut sys = System::new().expect("failed to initialize sysinfo");
         while monitor_running.load(Ordering::Acquire) {
             sys.refresh_processes(ProcessesToUpdate::Some(&[my_pid]), true);
             if let Some(process) = sys.process(my_pid) {
@@ -130,7 +130,7 @@ async fn test_frame_stream_throughput_and_memory_stability() -> Result<(), Strin
     let bench_duration = bench_start.elapsed();
     running.store(false, Ordering::Release);
 
-    let mut sys_final = System::new();
+    let mut sys_final = System::new().expect("failed to initialize sysinfo");
     sys_final.refresh_processes(ProcessesToUpdate::Some(&[my_pid]), true);
     if let Some(proc) = sys_final.process(my_pid) {
         peak_rss_bytes.fetch_max(proc.memory(), Ordering::Release);

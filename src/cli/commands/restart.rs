@@ -39,7 +39,7 @@ fn clear_runtime_state() {
 
 fn launch_service() -> Result<()> {
     use std::process::{Command, Stdio};
-    Command::new("sh")
+    let mut child = Command::new("sh")
         .args([
             "-c",
             &format!("sh {SERVICE_SCRIPT} >> {LOG_DIR}/restart.log 2>&1 &"),
@@ -49,5 +49,6 @@ fn launch_service() -> Result<()> {
         .stderr(Stdio::null())
         .spawn()
         .context("failed to spawn service.sh")?;
+    let _ = child.wait();
     Ok(())
 }

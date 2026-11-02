@@ -33,6 +33,10 @@ if [ -x /data/adb/ksud ]; then
   /data/adb/ksud sepolicy apply "$MODDIR/sepolicy.rule" >/dev/null 2>&1 || true
 elif command -v magiskpolicy >/dev/null 2>&1; then
   magiskpolicy --live --apply "$MODDIR/sepolicy.rule" >/dev/null 2>&1 || true
+elif [ -x /data/adb/ap/bin/magiskpolicy ]; then
+  /data/adb/ap/bin/magiskpolicy --live --apply "$MODDIR/sepolicy.rule" >/dev/null 2>&1 || true
+elif [ -x /data/adb/magisk/magiskpolicy ]; then
+  /data/adb/magisk/magiskpolicy --live --apply "$MODDIR/sepolicy.rule" >/dev/null 2>&1 || true
 fi
 
 if [ ! -f "$AURIYA_BIN" ]; then

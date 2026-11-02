@@ -192,10 +192,40 @@ async fn test_decide_same_app_unwhitelisted_monitored() {
 
     assert_eq!(
         daemon.decide(&input, &gamelist),
-        PipelineDecision::SameAppFas {
+        PipelineDecision::SameAppMonitor {
             pkg: "com.android.chrome",
-            pids: &[999],
         }
+    );
+}
+
+#[tokio::test]
+async fn test_decide_same_app_whitelisted_fas() {
+    let mut daemon = create_test_daemon(make_genshin_gamelist());
+    let gamelist = make_genshin_gamelist();
+    let pkg = "com.miHoYo.GenshinImpact";
+
+    let enter_decision = PipelineDecision::EnterGame {
+        pkg,
+        pid: 5678,
+        pids: &[5678],
+    };
+    daemon.apply(enter_decision, &gamelist).await.unwrap();
+
+    let input = PipelineInput {
+        power: PowerSnapshot {
+            screen_awake: true,
+            battery_saver: false,
+        },
+        foreground_pkg: Some(pkg.to_string()),
+        focused_pid: Some(5678),
+        package_pids: vec![5678],
+        is_pid_valid: true,
+        is_floating: false,
+    };
+
+    assert_eq!(
+        daemon.decide(&input, &gamelist),
+        PipelineDecision::SameAppFas { pkg, pids: &[5678] }
     );
 }
 

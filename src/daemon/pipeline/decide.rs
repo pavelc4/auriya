@@ -21,7 +21,7 @@ impl Daemon {
         let is_whitelisted = self.cached_whitelist.contains(pkg);
 
         match (is_same_pkg, input.is_pid_valid, is_whitelisted) {
-            (true, true, _) => {
+            (true, true, true) => {
                 let fas_enabled = self
                     ._shared_settings
                     .read()
@@ -36,6 +36,7 @@ impl Daemon {
                     false => PipelineDecision::SameAppMonitor { pkg: pkg.as_str() },
                 }
             }
+            (true, true, false) => PipelineDecision::SameAppMonitor { pkg: pkg.as_str() },
             (false, _, false) => PipelineDecision::NonWhitelisted {
                 pkg: pkg.as_str(),
                 pid: input.focused_pid,

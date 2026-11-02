@@ -9,10 +9,24 @@ pub use app::{BinderCommands, Cli, CliDndMode, Commands, LogLevel, ProfileMode};
 
 pub async fn run() -> Result<()> {
     setup_cli_panic_hook();
+    setup_signal_handler();
     use clap::Parser;
 
     let cli = Cli::parse();
     executor::execute(cli).await
+}
+
+fn setup_signal_handler() {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{SignalKind, signal};
+        if let Ok(mut sighup) = signal(SignalKind::hangup()) {
+            tokio::spawn(async move {
+                let _ = sighup.recv().await;
+                std::process::exit(0);
+            });
+        }
+    }
 }
 
 fn setup_cli_panic_hook() {

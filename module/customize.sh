@@ -141,4 +141,16 @@ set_perm "$MODPATH/system/bin/auriya" 0 0 0755
 [ -f "$MODPATH/action.sh" ] && set_perm "$MODPATH/action.sh" 0 0 0755
 [ -f "$MODPATH/uninstall.sh" ] && set_perm "$MODPATH/uninstall.sh" 0 0 0755
 
+if [ -f "$MODPATH/sepolicy.rule" ]; then
+  if [ -x /data/adb/ksud ]; then
+    /data/adb/ksud sepolicy apply "$MODPATH/sepolicy.rule" >/dev/null 2>&1 || true
+  elif command -v magiskpolicy >/dev/null 2>&1; then
+    magiskpolicy --live --apply "$MODPATH/sepolicy.rule" >/dev/null 2>&1 || true
+  elif [ -x /data/adb/ap/bin/magiskpolicy ]; then
+    /data/adb/ap/bin/magiskpolicy --live --apply "$MODPATH/sepolicy.rule" >/dev/null 2>&1 || true
+  elif [ -x /data/adb/magisk/magiskpolicy ]; then
+    /data/adb/magisk/magiskpolicy --live --apply "$MODPATH/sepolicy.rule" >/dev/null 2>&1 || true
+  fi
+fi
+
 ui_print "- Installation complete"
