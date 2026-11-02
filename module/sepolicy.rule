@@ -17,3 +17,9 @@ allow untrusted_app su unix_stream_socket connectto
 allow untrusted_app_all ksu unix_stream_socket connectto
 allow untrusted_app_all magisk unix_stream_socket connectto
 allow untrusted_app_all su unix_stream_socket connectto
+
+# Silence benign Android framework Incremental FS probes
+dontaudit untrusted_app proc_filesystems file { read open getattr }
+dontaudit untrusted_app_all proc_filesystems file { read open getattr }
+dontaudit untrusted_app incremental_prop file { read open getattr }
+dontaudit untrusted_app_all incremental_prop file { read open getattr }
