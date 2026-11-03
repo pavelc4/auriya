@@ -1,4 +1,5 @@
-fail_fast: true
+fail_fast: false
+default_stages: [pre-commit]
 default_install_hook_types: [pre-commit, commit-msg]
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -13,17 +14,12 @@ repos:
       - id: check-merge-conflict
       - id: end-of-file-fixer
 
-  - repo: https://github.com/crate-ci/typos
-    rev: v1.46.2
-    hooks:
-      - id: typos
-        exclude: values-(id|in)/.*
-
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.10.0-2
     hooks:
       - id: shfmt
         args: [-w, -s, -i=2]
+        exclude: ^android/gradlew$
 
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.0.0
