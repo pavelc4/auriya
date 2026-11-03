@@ -22,7 +22,7 @@ env:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       notify_message_id: ${{ steps.notify_start.outputs.message_id }}
     steps:
@@ -45,7 +45,7 @@ jobs:
 
   rust-binary:
     needs: setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-tools
@@ -84,7 +84,7 @@ jobs:
 
   android-apk:
     needs: setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-tools
@@ -114,7 +114,7 @@ jobs:
 
   package:
     needs: [rust-binary, android-apk]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       zip_name: ${{ steps.package.outputs.zip_name }}
       sha_name: ${{ steps.package.outputs.sha_name }}
@@ -147,7 +147,7 @@ jobs:
   notify:
     if: ${{ !cancelled() }}
     needs: [setup, package]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
@@ -164,9 +164,13 @@ jobs:
           zip_file: build/release/${{ needs.package.outputs.zip_name }}
           delete_message_id: ${{ needs.setup.outputs.notify_message_id }}
           caption: |
-            <b>Auriya Build Finished!</b>
+            <b>Auriya Build Finished</b>
 
-            Zip: <code>${{ needs.package.outputs.zip_size }}</code> | Daemon: <code>${{ needs.package.outputs.daemon_size }}</code> | App: <code>${{ needs.package.outputs.app_size }}</code>
+            <blockquote expandable><b>Package:</b> <code>${{ needs.package.outputs.zip_name }}</code>
+            Daemon: <code>${{ needs.package.outputs.daemon_size }}</code> | App: <code>${{ needs.package.outputs.app_size }}</code> | Total: <code>${{ needs.package.outputs.zip_size }}</code></blockquote>
+
+            <b>Type:</b> <code>Debug Module</code>
+            <b>Source:</b> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">Workflow Run</a>
       - uses: ./.github/actions/telegram-notify
         if: ${{ needs.package.result != 'success' && needs.setup.outputs.notify_message_id != '' }}
         with:

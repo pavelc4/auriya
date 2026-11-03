@@ -21,7 +21,7 @@ env:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       notify_message_id: ${{ steps.notify_start.outputs.message_id }}
       release_tag: ${{ steps.resolve_version.outputs.release_tag }}
@@ -76,7 +76,7 @@ jobs:
 
   rust-binary:
     needs: setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -117,7 +117,7 @@ jobs:
 
   android-apk:
     needs: setup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -148,7 +148,7 @@ jobs:
             android/app/build/outputs/apk/release/*.apk
   package:
     needs: [setup, rust-binary, android-apk]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       zip_name: ${{ steps.package.outputs.zip_name }}
       sha_name: ${{ steps.package.outputs.sha_name }}
@@ -186,7 +186,7 @@ jobs:
   release:
     if: ${{ !cancelled() && needs.package.result == 'success' }}
     needs: [setup, package]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -245,11 +245,14 @@ jobs:
           zip_file: build/release/${{ needs.package.outputs.zip_name }}
           delete_message_id: ${{ needs.setup.outputs.notify_message_id }}
           caption: |
-            <b>Auriya v${{ needs.package.outputs.version }} Released!</b>
+            <b>Auriya v${{ needs.package.outputs.version }} Released</b>
 
-            Zip: <code>${{ needs.package.outputs.zip_size }}</code> | Daemon: <code>${{ needs.package.outputs.daemon_size }}</code> | App: <code>${{ needs.package.outputs.app_size }}</code>
+            <blockquote expandable><b>Package:</b> <code>${{ needs.package.outputs.zip_name }}</code>
+            Daemon: <code>${{ needs.package.outputs.daemon_size }}</code> | App: <code>${{ needs.package.outputs.app_size }}</code> | Total: <code>${{ needs.package.outputs.zip_size }}</code></blockquote>
 
-            <a href="https://github.com/${{ github.repository }}/releases/tag/${{ needs.setup.outputs.release_tag }}">GitHub Release</a>
+            <b>Type:</b> <code>Release</code>
+            <b>Version:</b> <code>v${{ needs.package.outputs.version }}</code> (<code>${{ needs.package.outputs.version_code }}</code>)
+            <b>Source:</b> <a href="https://github.com/${{ github.repository }}/releases/tag/${{ needs.setup.outputs.release_tag }}">GitHub Release</a>
 
       - name: Notify Release Failure
         if: ${{ failure() && needs.setup.outputs.notify_message_id != '' }}
