@@ -245,14 +245,14 @@ jobs:
           zip_file: build/release/${{ needs.package.outputs.zip_name }}
           delete_message_id: ${{ needs.setup.outputs.notify_message_id }}
           caption: |
-            <b>Auriya v${{ needs.package.outputs.version }} Released</b>
+            <blockquote expandable><b>Auriya v${{ needs.package.outputs.version }} Released</b>
+            Performance optimizer daemon and native manager app for Android.</blockquote>
 
-            <blockquote expandable><b>Package:</b> <code>${{ needs.package.outputs.zip_name }}</code>
-            Daemon: <code>${{ needs.package.outputs.daemon_size }}</code> | App: <code>${{ needs.package.outputs.app_size }}</code> | Total: <code>${{ needs.package.outputs.zip_size }}</code></blockquote>
-
+            <b>Source:</b> <a href="https://github.com/${{ github.repository }}/releases/tag/${{ needs.setup.outputs.release_tag }}">GitHub Release</a>
             <b>Type:</b> <code>Release</code>
             <b>Version:</b> <code>v${{ needs.package.outputs.version }}</code> (<code>${{ needs.package.outputs.version_code }}</code>)
-            <b>Source:</b> <a href="https://github.com/${{ github.repository }}/releases/tag/${{ needs.setup.outputs.release_tag }}">GitHub Release</a>
+            <b>Size:</b> <code>${{ needs.package.outputs.zip_size }}</code>
+            <b>Commit:</b> <a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}">${{ needs.setup.outputs.release_tag }}</a>
 
       - name: Notify Release Failure
         if: ${{ failure() && needs.setup.outputs.notify_message_id != '' }}

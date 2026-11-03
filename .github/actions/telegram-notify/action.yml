@@ -52,7 +52,7 @@ runs:
         SAFE_COMMIT_MSG=$(echo "$COMMIT_MSG" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
 
         if [ "$NOTIFY_TYPE" = "start" ]; then
-          MESSAGE=$(printf "<b>Auriya #ci_%s</b>\n\n<blockquote expandable><b>Commit:</b> <code>%s</code>\n%s</blockquote>\n\n<b>Type:</b> <code>Build</code>\n<b>Source:</b> <a href=\"%s\">Commit</a> • <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_HASH" "$SAFE_COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+          MESSAGE=$(printf "<blockquote expandable>%s</blockquote>\n\n<b>Source:</b> <a href=\"%s\">Workflow #%s</a>\n<b>Type:</b> <code>CI Build</code>\n<b>Commit:</b> <a href=\"%s\">%s</a>" "$SAFE_COMMIT_MSG" "$WORKFLOW_URL" "$RUN_NUMBER" "$COMMIT_URL" "$COMMIT_HASH")
           RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
             -d chat_id="$CHAT_ID" \
             --data-urlencode "text=$MESSAGE" \
@@ -72,7 +72,7 @@ runs:
           if [ -n "$CUSTOM_CAPTION" ]; then
             CAPTION="$CUSTOM_CAPTION"
           else
-            CAPTION=$(printf "<b>Auriya #ci_%s</b>\n\n<blockquote expandable><b>Commit:</b> <code>%s</code>\n%s</blockquote>\n\n<b>Type:</b> <code>Build</code>\n<b>Source:</b> <a href=\"%s\">Commit</a> • <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_HASH" "$SAFE_COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+            CAPTION=$(printf "<blockquote expandable>%s</blockquote>\n\n<b>Source:</b> <a href=\"%s\">Workflow #%s</a>\n<b>Type:</b> <code>CI Build</code>\n<b>Commit:</b> <a href=\"%s\">%s</a>" "$SAFE_COMMIT_MSG" "$WORKFLOW_URL" "$RUN_NUMBER" "$COMMIT_URL" "$COMMIT_HASH")
           fi
           RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendDocument" \
             -F chat_id="$CHAT_ID" \
@@ -82,7 +82,7 @@ runs:
           echo "Telegram Response: $RESPONSE"
 
         elif [ "$NOTIFY_TYPE" = "failure" ]; then
-          MESSAGE=$(printf "<b>Auriya #ci_%s</b>\n\n<b>FAILED</b>\n\n<blockquote expandable><b>Commit:</b> <code>%s</code>\n%s</blockquote>\n\n<b>Source:</b> <a href=\"%s\">Commit</a> • <a href=\"%s\">Workflow</a>" "$RUN_NUMBER" "$COMMIT_HASH" "$SAFE_COMMIT_MSG" "$COMMIT_URL" "$WORKFLOW_URL")
+          MESSAGE=$(printf "<blockquote expandable>%s</blockquote>\n\n<b>Source:</b> <a href=\"%s\">Workflow #%s</a>\n<b>Type:</b> <code>CI Build</code>\n<b>Status:</b> <b>FAILED</b>\n<b>Commit:</b> <a href=\"%s\">%s</a>" "$SAFE_COMMIT_MSG" "$WORKFLOW_URL" "$RUN_NUMBER" "$COMMIT_URL" "$COMMIT_HASH")
           RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
             -d chat_id="$CHAT_ID" \
             --data-urlencode "text=$MESSAGE" \
