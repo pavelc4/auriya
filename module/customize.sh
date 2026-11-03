@@ -125,11 +125,11 @@ done
 rm -rf "$MODPATH/config" "$MODPATH/toml"
 rm -f "$MODPATH/settings.toml" "$MODPATH/gamelist.toml" "$MODPATH/blacklist.toml"
 
-# 6. KernelSU / APatch PATH Integration
+PERM_MODPATH="/data/adb/modules/auriya"
 for bin_dir in /data/adb/ksu/bin /data/adb/ap/bin; do
   if [ -d "$bin_dir" ]; then
-    ln -sf "$MODPATH/system/bin/auriya" "$bin_dir/auriya"
-    [ "$HAS_CLI" = true ] && ln -sf "$MODPATH/system/bin/auriyactl" "$bin_dir/auriyactl"
+    ln -sf "$PERM_MODPATH/system/bin/auriya" "$bin_dir/auriya"
+    [ "$HAS_CLI" = true ] && ln -sf "$PERM_MODPATH/system/bin/auriyactl" "$bin_dir/auriyactl"
   fi
 done
 

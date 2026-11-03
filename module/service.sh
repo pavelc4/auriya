@@ -45,6 +45,17 @@ if [ ! -f "$AURIYA_BIN" ]; then
 fi
 chmod 0755 "$AURIYA_BIN"
 
+# Ensure PATH symlinks for KernelSU and APatch
+for bin_dir in /data/adb/ksu/bin /data/adb/ap/bin; do
+  if [ -d "$bin_dir" ]; then
+    ln -sf "$MODDIR/system/bin/auriya" "$bin_dir/auriya"
+    if [ -f "$MODDIR/system/bin/auriyactl" ]; then
+      chmod 0755 "$MODDIR/system/bin/auriyactl"
+      ln -sf "$MODDIR/system/bin/auriyactl" "$bin_dir/auriyactl"
+    fi
+  fi
+done
+
 # 4. Stop Existing Instances
 stop_proc() {
   local proc_name="$1"
