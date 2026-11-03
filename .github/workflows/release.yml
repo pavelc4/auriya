@@ -5,6 +5,11 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version or tag (e.g. 2.2.1 or v2.2.1)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -19,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       notify_message_id: ${{ steps.notify_start.outputs.message_id }}
+      release_tag: ${{ steps.resolve_version.outputs.release_tag }}
+      release_version: ${{ steps.resolve_version.outputs.release_version }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -37,11 +44,43 @@ jobs:
           echo "https://pavelc4:${{ secrets.GH_PAT }}@github.com" > ~/.git-credentials
       - uses: ./.github/actions/setup-tools
 
+      - name: Prepare Release Version
+        id: resolve_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            INPUT_VER="${{ github.event.inputs.version }}"
+            VERSION="${INPUT_VER#v}"
+            if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+              VERSION="${VERSION}.0"
+            fi
+            TAG="v$VERSION"
+
+            sed -i "0,/^version = .*/s//version = \"$VERSION\"/" Cargo.toml
+            sed -i "/name = \"auriya\"/{n;s/version = \".*\"/version = \"$VERSION\"/}" Cargo.lock
+
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add Cargo.toml Cargo.lock
+            git commit -m "chore(release): bump version to $TAG"
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin HEAD:main --tags
+
+            echo "release_tag=$TAG" >> $GITHUB_OUTPUT
+            echo "release_version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            TAG="${{ github.ref_name }}"
+            VERSION="${TAG#v}"
+            echo "release_tag=$TAG" >> $GITHUB_OUTPUT
+            echo "release_version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
   rust-binary:
     needs: setup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.setup.outputs.release_tag }}
       - uses: ./.github/actions/setup-tools
       - name: Cache Cargo Registry
         uses: actions/cache@v6
@@ -81,6 +120,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.setup.outputs.release_tag }}
       - uses: ./.github/actions/setup-tools
       - uses: actions/checkout@v7
         with:
@@ -106,7 +147,7 @@ jobs:
           path: |
             android/app/build/outputs/apk/release/*.apk
   package:
-    needs: [rust-binary, android-apk]
+    needs: [setup, rust-binary, android-apk]
     runs-on: ubuntu-latest
     outputs:
       zip_name: ${{ steps.package.outputs.zip_name }}
@@ -115,6 +156,9 @@ jobs:
       version_code: ${{ steps.package.outputs.version_code }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.setup.outputs.release_tag }}
+          fetch-depth: 0
       - uses: actions/download-artifact@v8
         with:
           name: rust-binary
@@ -136,41 +180,25 @@ jobs:
           compression-level: 0
 
   release:
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.package.result == 'success' }}
     needs: [setup, package]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ needs.setup.outputs.release_tag }}
           fetch-depth: 0
       - uses: actions/download-artifact@v8
         with:
           name: auriya-aarch64
           path: build/release/
 
-      - name: Resolve Tag and Release Notes
-        id: release_meta
-        run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            TAG="${{ github.ref_name }}"
-          else
-            VERSION="${{ needs.package.outputs.version }}"
-            if [ -z "$VERSION" ]; then
-              echo "ERROR: version output is empty" && exit 1
-            fi
-            TAG="v$VERSION"
-          fi
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
-          # Extract latest version section from CHANGELOG.md for GitHub release body
-          awk '/^## /{if(p)exit;p=1;next} p' CHANGELOG.md > build/release/RELEASE_NOTES.md
-          echo "notes_path=build/release/RELEASE_NOTES.md" >> $GITHUB_OUTPUT
-
       - name: Upload to Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.release_meta.outputs.tag }}
-          body_path: ${{ steps.release_meta.outputs.notes_path }}
+          tag_name: ${{ needs.setup.outputs.release_tag }}
+          name: Auriya ${{ needs.setup.outputs.release_tag }}
+          generate_release_notes: true
           make_latest: true
           files: |
             build/release/${{ needs.package.outputs.zip_name }}
@@ -183,7 +211,10 @@ jobs:
           VERSION="${{ needs.package.outputs.version }}"
           VERSION_CODE="${{ needs.package.outputs.version_code }}"
           ZIP_NAME="${{ needs.package.outputs.zip_name }}"
-          TAG="${{ steps.release_meta.outputs.tag }}"
+          TAG="${{ needs.setup.outputs.release_tag }}"
+
+          # Checkout main branch to update update.json
+          git checkout -B main origin/main
 
           cat > update.json << EOF
           {
@@ -197,9 +228,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add update.json
-          git commit -m "chore: update update.json to v$VERSION" || echo "No changes"
-          git pull --rebase origin main
-          git push origin HEAD:main
+          git commit -m "chore: update update.json to $TAG" || echo "No changes"
+          git push origin main
 
       - name: Notify Release Complete
         if: ${{ needs.setup.outputs.notify_message_id != '' }}
@@ -213,7 +243,7 @@ jobs:
           caption: |
             <b>Auriya v${{ needs.package.outputs.version }} Released!</b>
 
-            <a href="https://github.com/${{ github.repository }}/releases/tag/${{ steps.release_meta.outputs.tag }}">GitHub Release</a> • <a href="https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md">Changelog</a>
+            <a href="https://github.com/${{ github.repository }}/releases/tag/${{ needs.setup.outputs.release_tag }}">GitHub Release</a>
 
       - name: Notify Release Failure
         if: ${{ failure() && needs.setup.outputs.notify_message_id != '' }}

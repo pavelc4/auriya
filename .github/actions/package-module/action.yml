@@ -97,14 +97,14 @@ runs:
         COMMIT_HASH=$(git rev-parse --short HEAD)
         VERSION_CODE=$(git rev-list --count HEAD)
 
-        # Update module.prop
-        sed -i "s/^version=.*/version=${VERSION} (${VERSION_CODE}-${COMMIT_HASH}-release)/" "$BUILD_DIR/module/module.prop"
-        sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$BUILD_DIR/module/module.prop"
-
         # Filename
         BUILD_TYPE="${{ inputs.build_type }}"
         ZIP_NAME="auriya-${VERSION}-${VERSION_CODE}-${COMMIT_HASH}-${BUILD_TYPE}.zip"
         SHA_NAME="${ZIP_NAME}.sha256"
+
+        # Update module.prop
+        sed -i "s/^version=.*/version=${VERSION} (${VERSION_CODE}-${COMMIT_HASH}-${BUILD_TYPE})/" "$BUILD_DIR/module/module.prop"
+        sed -i "s/^versionCode=.*/versionCode=${VERSION_CODE}/" "$BUILD_DIR/module/module.prop"
 
         # Clean build.sh placeholders if any
         find "$BUILD_DIR/module" -name ".placeholder" -delete 2>/dev/null || true
