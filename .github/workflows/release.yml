@@ -221,7 +221,7 @@ jobs:
               "version": "$VERSION",
               "versionCode": $VERSION_CODE,
               "zipUrl": "https://github.com/${{ github.repository }}/releases/download/$TAG/$ZIP_NAME",
-              "changelog": "https://raw.githubusercontent.com/${{ github.repository }}/main/CHANGELOG.md"
+              "changelog": "https://github.com/${{ github.repository }}/releases/latest"
           }
           EOF
 

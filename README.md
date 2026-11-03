@@ -49,8 +49,7 @@ Detailed guides, architectural references, and API documentation are available:
 
 ## Resources
 - [Documentation Website](https://auriya.pages.dev)
-- [Releases](https://github.com/pavelc4/auriya/releases) (flashable module ZIP packages)
-- [Changelog](CHANGELOG.md) (version history)
+- [Releases](https://github.com/pavelc4/auriya/releases) (flashable module ZIP packages and release notes)
 - [Issues](https://github.com/pavelc4/auriya/issues) (bug reports and tracking)
 
 ## Support
