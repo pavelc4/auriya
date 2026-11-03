@@ -154,6 +154,10 @@ jobs:
       sha_name: ${{ steps.package.outputs.sha_name }}
       version: ${{ steps.package.outputs.version }}
       version_code: ${{ steps.package.outputs.version_code }}
+      daemon_size: ${{ steps.package.outputs.daemon_size }}
+      cli_size: ${{ steps.package.outputs.cli_size }}
+      app_size: ${{ steps.package.outputs.app_size }}
+      zip_size: ${{ steps.package.outputs.zip_size }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -242,6 +246,8 @@ jobs:
           delete_message_id: ${{ needs.setup.outputs.notify_message_id }}
           caption: |
             <b>Auriya v${{ needs.package.outputs.version }} Released!</b>
+
+            Zip: <code>${{ needs.package.outputs.zip_size }}</code> | Daemon: <code>${{ needs.package.outputs.daemon_size }}</code> | App: <code>${{ needs.package.outputs.app_size }}</code>
 
             <a href="https://github.com/${{ github.repository }}/releases/tag/${{ needs.setup.outputs.release_tag }}">GitHub Release</a>
 

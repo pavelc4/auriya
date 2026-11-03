@@ -118,6 +118,10 @@ jobs:
     outputs:
       zip_name: ${{ steps.package.outputs.zip_name }}
       sha_name: ${{ steps.package.outputs.sha_name }}
+      daemon_size: ${{ steps.package.outputs.daemon_size }}
+      cli_size: ${{ steps.package.outputs.cli_size }}
+      app_size: ${{ steps.package.outputs.app_size }}
+      zip_size: ${{ steps.package.outputs.zip_size }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
@@ -159,6 +163,10 @@ jobs:
           type: complete
           zip_file: build/release/${{ needs.package.outputs.zip_name }}
           delete_message_id: ${{ needs.setup.outputs.notify_message_id }}
+          caption: |
+            <b>Auriya Build Finished!</b>
+
+            Zip: <code>${{ needs.package.outputs.zip_size }}</code> | Daemon: <code>${{ needs.package.outputs.daemon_size }}</code> | App: <code>${{ needs.package.outputs.app_size }}</code>
       - uses: ./.github/actions/telegram-notify
         if: ${{ needs.package.result != 'success' && needs.setup.outputs.notify_message_id != '' }}
         with:

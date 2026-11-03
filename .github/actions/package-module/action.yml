@@ -20,6 +20,18 @@ outputs:
   version_code:
     description: Version code (total commits)
     value: ${{ steps.package.outputs.version_code }}
+  daemon_size:
+    description: Stripped daemon binary size
+    value: ${{ steps.package.outputs.daemon_size }}
+  cli_size:
+    description: Stripped CLI binary size
+    value: ${{ steps.package.outputs.cli_size }}
+  app_size:
+    description: Manager app APK size
+    value: ${{ steps.package.outputs.app_size }}
+  zip_size:
+    description: Packaged module zip size
+    value: ${{ steps.package.outputs.zip_size }}
 
 runs:
   using: composite
@@ -116,9 +128,43 @@ runs:
         # Generate SHA256 checksum for release asset verification
         (cd "$BUILD_DIR" && sha256sum "$ZIP_NAME" > "$SHA_NAME")
 
+        DAEMON_FILE="$BUILD_DIR/module/libs/aarch64/auriya"
+        CLI_FILE="$BUILD_DIR/module/libs/aarch64/auriyactl"
+        APP_FILE="$BUILD_DIR/module/libs/app/auriya-app.apk"
+        ZIP_FILE="$BUILD_DIR/$ZIP_NAME"
+
+        DAEMON_SIZE=$(du -h "$DAEMON_FILE" 2>/dev/null | cut -f1 || echo "-")
+        CLI_SIZE=$(du -h "$CLI_FILE" 2>/dev/null | cut -f1 || echo "-")
+        APP_SIZE=$(du -h "$APP_FILE" 2>/dev/null | cut -f1 || echo "-")
+        ZIP_SIZE=$(du -h "$ZIP_FILE" 2>/dev/null | cut -f1 || echo "-")
+
+        DAEMON_SHA=$(sha256sum "$DAEMON_FILE" 2>/dev/null | awk '{print substr($1, 1, 16)}' || echo "-")
+        CLI_SHA=$(sha256sum "$CLI_FILE" 2>/dev/null | awk '{print substr($1, 1, 16)}' || echo "-")
+        APP_SHA=$(sha256sum "$APP_FILE" 2>/dev/null | awk '{print substr($1, 1, 16)}' || echo "-")
+        ZIP_SHA=$(sha256sum "$ZIP_FILE" 2>/dev/null | awk '{print substr($1, 1, 16)}' || echo "-")
+
         echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
         echo "sha_name=$SHA_NAME" >> $GITHUB_OUTPUT
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+        echo "daemon_size=$DAEMON_SIZE" >> $GITHUB_OUTPUT
+        echo "cli_size=$CLI_SIZE" >> $GITHUB_OUTPUT
+        echo "app_size=$APP_SIZE" >> $GITHUB_OUTPUT
+        echo "zip_size=$ZIP_SIZE" >> $GITHUB_OUTPUT
+
+        if [ -n "$GITHUB_STEP_SUMMARY" ]; then
+          {
+            echo "### Artifact and Size Summary"
+            echo ""
+            echo "| Component | Target Arch | Size | SHA-256 (Prefix) |"
+            echo "| :--- | :--- | :--- | :--- |"
+            echo "| **Daemon (\`auriya\`)** | \`aarch64\` | \`$DAEMON_SIZE\` | \`$DAEMON_SHA...\` |"
+            echo "| **CLI (\`auriyactl\`)** | \`aarch64\` | \`$CLI_SIZE\` | \`$CLI_SHA...\` |"
+            echo "| **Manager App (\`auriya-app.apk\`)** | \`arm64-v8a\` | \`$APP_SIZE\` | \`$APP_SHA...\` |"
+            echo "| **Module Package (\`$ZIP_NAME\`)** | \`universal\` | \`$ZIP_SIZE\` | \`$ZIP_SHA...\` |"
+            echo ""
+            echo "> Build Type: \`$BUILD_TYPE\` | Version: \`$VERSION ($VERSION_CODE)\` | Commit: \`$COMMIT_HASH\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
 
         ls -lh "$BUILD_DIR/$ZIP_NAME" "$BUILD_DIR/$SHA_NAME"
