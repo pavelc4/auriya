@@ -4,6 +4,7 @@ pub mod fas;
 pub mod fps;
 pub mod logger;
 pub mod pid;
+pub mod policy;
 pub mod profile;
 pub mod scaling;
 pub mod stats;

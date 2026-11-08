@@ -7,10 +7,22 @@ use anyhow::Result;
 
 pub const POWER_SERVICE: &str = "power";
 
-// Transaction codes extracted from framework.jar IPowerManager$Stub
-pub const TRANSACTION_IS_POWER_SAVE_MODE: u32 = 24;
-pub const TRANSACTION_SET_POWER_SAVE_MODE_ENABLED: u32 = 26;
-pub const TRANSACTION_IS_BATTERY_SAVER_SUPPORTED: u32 = 27;
+// Transaction codes for IPowerManager$Stub across Android versions
+pub const TRANSACTION_IS_POWER_SAVE_MODE: u32 = 15;
+pub const TRANSACTION_SET_POWER_SAVE_MODE_ENABLED: u32 = 17;
+pub const TRANSACTION_IS_BATTERY_SAVER_SUPPORTED: u32 = 18;
+
+#[cfg(target_os = "android")]
+fn get_is_power_save_mode_code() -> u32 {
+    let api = crate::platform::common::info::props::get_system_property("ro.build.version.sdk")
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(34);
+    match api {
+        0..=30 => 13,
+        31..=33 => 14,
+        _ => 15,
+    }
+}
 
 /// Query whether Android OS Battery Saver is currently active via Native Binder.
 pub fn is_power_save_mode() -> Result<bool> {
@@ -28,9 +40,9 @@ pub fn is_power_save_mode() -> Result<bool> {
             None => anyhow::bail!("power service is not a proxy"),
         };
 
-        // TRANSACTION_isPowerSaveMode = 24
+        let tx_code = get_is_power_save_mode_code();
         let data = proxy.prepare_transact(true)?;
-        let reply_opt = proxy.submit_transact(TRANSACTION_IS_POWER_SAVE_MODE, &data, 0)?;
+        let reply_opt = proxy.submit_transact(tx_code, &data, 0)?;
         if let Some(mut rep) = reply_opt {
             let ex = rep.read_i32()?;
             if ex != 0 {

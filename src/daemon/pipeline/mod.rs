@@ -7,12 +7,7 @@ use crate::core::config::gamelist::GameList;
 use crate::daemon::engine::Daemon;
 use anyhow::Result;
 
-/// Subset of power state consumed by the daemon tick.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PowerSnapshot {
-    pub screen_awake: bool,
-    pub battery_saver: bool,
-}
+pub use crate::core::policy::{PolicyDecision as PipelineDecision, PowerSnapshot};
 
 /// Pipeline input collected during the Ingest phase.
 #[derive(Debug, Clone)]
@@ -23,31 +18,6 @@ pub struct PipelineInput {
     pub package_pids: Vec<i32>,
     pub is_pid_valid: bool,
     pub is_floating: bool,
-}
-
-/// Decision determined during the Decide phase. Zero heap allocation via borrowed slices.
-#[derive(Debug, PartialEq, Eq)]
-pub enum PipelineDecision<'a> {
-    Powersave,
-    NoForeground,
-    NonWhitelisted {
-        pkg: &'a str,
-        pid: Option<i32>,
-        pids: &'a [i32],
-        reason: &'static str,
-    },
-    SameAppFas {
-        pkg: &'a str,
-        pids: &'a [i32],
-    },
-    SameAppMonitor {
-        pkg: &'a str,
-    },
-    EnterGame {
-        pkg: &'a str,
-        pid: i32,
-        pids: &'a [i32],
-    },
 }
 
 impl Daemon {
