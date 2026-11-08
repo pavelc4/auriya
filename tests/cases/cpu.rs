@@ -75,3 +75,20 @@ fn classifies_1_3_4_topology() {
     assert_eq!(ids(big), vec![4, 5, 6]);
     assert_eq!(ids(prime), vec![7]);
 }
+
+#[test]
+fn test_resolve_governor_valid_and_fallback() {
+    use auriya::platform::cpu::governor::{available_governors, resolve_governor};
+
+    let available = available_governors();
+    assert!(!available.is_empty());
+
+    for gov in available {
+        assert_eq!(resolve_governor(gov, "schedutil"), gov);
+    }
+
+    let bogus = "nonexistent_governor_xyz_123";
+    let fallback = "schedutil";
+    let resolved = resolve_governor(bogus, fallback);
+    assert!(available.iter().any(|g| g == resolved));
+}

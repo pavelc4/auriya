@@ -27,9 +27,9 @@ pub fn apply_performance_with_config(
         pid
     );
 
+    paths::online_all_cores_cached();
     paths::set_governor_cached(governor);
     cpu::enable_boost()?;
-    paths::online_all_cores_cached();
     let soc_type = soc::detect_soc();
     debug!(target: "auriya::profile", "Detected SoC: {}", soc_type);
 
@@ -85,6 +85,7 @@ pub fn apply_balance_with_dnd(governor: &str, enable_dnd: bool) -> Result<()> {
         enable_dnd
     );
 
+    paths::online_all_cores_cached();
     paths::set_governor_cached(governor);
     cpu::disable_boost()?;
 
@@ -126,9 +127,9 @@ pub fn apply_cpu_boost(governor: &str, pid: Option<i32>) -> Result<()> {
         pid
     );
 
+    paths::online_all_cores_cached();
     paths::set_governor_cached(governor);
     cpu::enable_boost()?;
-    paths::online_all_cores_cached();
     warn_on_err(sched::apply_performance_sched(), "apply scheduler tweaks");
     gpu::set_balanced_mode()?;
 
@@ -161,7 +162,14 @@ pub fn apply_powersave_with_dnd(enable_dnd: bool) -> Result<()> {
         enable_dnd
     );
 
-    paths::set_governor_cached("schedutil");
+    let gov = match paths::available_governors()
+        .iter()
+        .find(|&g| g == "powersave")
+    {
+        Some(gov) => gov.as_str(),
+        None => "schedutil",
+    };
+    paths::set_governor_cached(gov);
     cpu::disable_boost()?;
 
     let soc_type = soc::detect_soc();

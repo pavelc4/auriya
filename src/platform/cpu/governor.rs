@@ -90,15 +90,32 @@ pub fn available_governors() -> &'static [String] {
     })
 }
 
+#[inline]
+pub fn resolve_governor<'a>(requested: &'a str, fallback: &'a str) -> &'a str {
+    let available = available_governors();
+    let candidate = [requested, fallback]
+        .into_iter()
+        .find(|&c| available.iter().any(|g| g == c));
+
+    match candidate {
+        Some(gov) => gov,
+        None => match available.first() {
+            Some(first) => first.as_str(),
+            None => fallback,
+        },
+    }
+}
+
 pub fn set_governor_cached(governor: &str) {
+    let target = resolve_governor(governor, "schedutil");
     let paths = cpu_paths();
 
     for path in &paths.governors_cpu {
-        let _ = std::fs::write(path, governor);
+        let _ = std::fs::write(path, target);
     }
 
     for path in &paths.governors_policy {
-        let _ = std::fs::write(path, governor);
+        let _ = std::fs::write(path, target);
     }
 }
 

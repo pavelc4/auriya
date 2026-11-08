@@ -363,6 +363,17 @@ impl Daemon {
         self.vendor_lock.unlock_all();
         self.ceiling_controller.restore();
         self.ceiling_controller.online_all();
+        crate::platform::cpu::governor::online_all_cores_cached();
+
+        let default_gov = self
+            .balance_governor
+            .read()
+            .map(|g| g.clone())
+            .unwrap_or_else(|_| "schedutil".to_string());
+        crate::platform::cpu::governor::set_governor_cached(&default_gov);
+        let _ = crate::platform::cpu::topology::disable_boost();
+        let _ = crate::platform::gpu::set_balanced_mode();
+
         let _ = crate::platform::binder::apply_refresh_rate(0);
         let _ = crate::platform::binder::apply_dnd(crate::platform::binder::DndMode::All);
         let _ = crate::platform::binder::set_wifi_low_latency_lock(false);

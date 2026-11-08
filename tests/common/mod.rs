@@ -17,6 +17,7 @@ impl Drop for GovernorRestorer {
 }
 
 /// Verify process is running with root privileges (UID == 0).
+#[allow(dead_code)]
 pub fn verify_root_privileges() -> Result<(), String> {
     let uid = getuid();
     if !uid.is_root() {
@@ -112,6 +113,7 @@ pub fn verify_kernel_subsystem_write_access() -> Result<GovernorRestorer, String
 }
 
 /// Primary entry point for tests requiring validated root and hardware control.
+#[allow(dead_code)]
 pub fn setup_verified_root_environment() -> Result<GovernorRestorer, String> {
     verify_root_privileges()?;
     verify_kernel_subsystem_write_access()
