@@ -121,7 +121,7 @@
 
     <!-- Record & Benchmark -->
     <string name="record_fps_details">Frame Time</string>
-    <string name="record_fps_details_sub">Real-time frame rates and stability</string>
+    <string name="record_fps_details_sub">Benchmark frame rate &amp; stability</string>
     <string name="record_thermals">Thermals</string>
     <string name="record_thermals_sub">CPU and Battery temperature sensors</string>
     <string name="record_battery">Battery</string>
@@ -347,6 +347,25 @@
     <string name="record_copy_markdown_sub">Clipboard Export</string>
     <string name="record_delete_session">Delete Benchmark Session</string>
     <string name="record_delete_session_sub">Permanent Removal</string>
+    <string name="record_sec_performance_metrics">PERFORMANCE &amp; METRICS</string>
+    <string name="record_sec_benchmark_sessions">BENCHMARK SESSIONS</string>
+    <string name="record_no_benchmark_yet">No benchmark recorded yet</string>
+    <string name="record_no_session_recorded">No Recorded Session</string>
+    <string name="record_fps_last_summary">Last: Avg %1$s FPS • 1%% Low %2$s FPS</string>
+    <string name="record_fps_hero_summary">1%% Low: %1$s FPS • Peak: %2$s FPS • %3$s</string>
+    <string name="record_fps_last_match_summary">Last match • %1$s (%2$d samples)</string>
+    <string name="record_fps_low_01" formatted="false">0.1% Low</string>
+    <string name="record_fps_low_desc">Mean of slowest 1% frames (stutter)</string>
+    <string name="record_fps_peak_desc">Fastest single frame render</string>
+    <string name="record_fps_low_01_desc">Threshold of worst 0.1% lag spikes</string>
+    <string name="record_frame_pacing">Frame Pacing (σ)</string>
+    <string name="record_frame_pacing_desc">Std dev variance (≤ 2.0ms is stable)</string>
+    <string name="record_jank_desc">Frames slower than target × 1.5</string>
+    <string name="record_sample_window_desc">Frame sample data points</string>
+    <string name="record_no_benchmark_title">No Benchmark Session</string>
+    <string name="record_no_benchmark_desc">Record a gameplay session to generate frame pacing, stability curves, and thermal timelines.</string>
+    <string name="record_sessions_count_summary">%1$d sessions recorded • Tap to inspect &amp; export reports</string>
+    <string name="record_no_sessions_recorded_yet">No sessions recorded yet</string>
 
     <!-- Benchmark Session Visualizations -->
     <string name="record_chart_fps_title">Frame Rate (FPS)</string>

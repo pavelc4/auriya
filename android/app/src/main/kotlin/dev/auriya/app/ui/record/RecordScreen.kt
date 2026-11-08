@@ -67,13 +67,6 @@ fun RecordScreen(
     val recordedSamplesCount by viewModel.currentSamplesCount.collectAsStateWithLifecycle()
     val benchmarkSessions by viewModel.benchmarkSessions.collectAsStateWithLifecycle()
 
-    DisposableEffect(Unit) {
-        viewModel.startUiObserving()
-        onDispose {
-            viewModel.stopUiObserving()
-        }
-    }
-
     var activeSubScreen by remember { mutableStateOf(RecordSubScreen.NONE) }
     var selectedSession by remember { mutableStateOf<BenchmarkSession?>(null) }
 
@@ -83,24 +76,27 @@ fun RecordScreen(
     var showSessionActionsPopup by remember { mutableStateOf(false) }
     val sessionActionsPopupState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    LaunchedEffect(Unit) {
+        viewModel.refreshBenchmarkSessions()
+    }
+
+    DisposableEffect(activeSubScreen) {
+        if (activeSubScreen == RecordSubScreen.THERMALS || activeSubScreen == RecordSubScreen.BATTERY) {
+            viewModel.startUiObserving()
+        }
+        onDispose {
+            if (activeSubScreen == RecordSubScreen.THERMALS || activeSubScreen == RecordSubScreen.BATTERY) {
+                viewModel.stopUiObserving()
+            }
+        }
+    }
+
     BackHandler(enabled = activeSubScreen != RecordSubScreen.NONE) {
         if (activeSubScreen == RecordSubScreen.SESSION_DETAIL) {
             activeSubScreen = RecordSubScreen.SESSIONS
             selectedSession = null
         } else {
             activeSubScreen = RecordSubScreen.NONE
-        }
-    }
-
-    // Keep an in-memory rolling window of recent FPS points for live graphs
-    val fpsHistory = remember { mutableStateListOf<Float>() }
-    LaunchedEffect(liveStats?.fps?.avg) {
-        val currentAvg = liveStats?.fps?.avg?.toFloat()
-        if (currentAvg != null && currentAvg > 0f) {
-            fpsHistory.add(currentAvg)
-            if (fpsHistory.size > 40) {
-                fpsHistory.removeAt(0)
-            }
         }
     }
 
@@ -444,11 +440,6 @@ fun RecordScreen(
             when (currentSubScreen) {
                 RecordSubScreen.FPS_DETAILS -> {
                     FpsDetailPane(
-                        fps = liveStats?.fps,
-                        session =
-                            liveStats?.session ?: dev.auriya.app.data.stats
-                                .Session(),
-                        fpsHistory = fpsHistory,
                         lastSession = benchmarkSessions.firstOrNull(),
                     )
                 }
@@ -507,12 +498,8 @@ fun RecordScreen(
                             contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            // Sleek Live / Latest FPS Hero Card
+                            // Latest Benchmark FPS Hero Card
                             item {
-                                val session = liveStats?.session
-                                val fps = liveStats?.fps
-                                val isSessionActive = session?.active == true || (fps != null && fps.avg > 0.0)
-
                                 Surface(
                                     shape = RoundedCornerShape(24.dp),
                                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -530,9 +517,7 @@ fun RecordScreen(
                                             Surface(
                                                 shape = RoundedCornerShape(6.dp),
                                                 color =
-                                                    if (isSessionActive) {
-                                                        MaterialTheme.colorScheme.primaryContainer
-                                                    } else if (lastSession != null) {
+                                                    if (lastSession != null) {
                                                         MaterialTheme.colorScheme.secondaryContainer
                                                     } else {
                                                         MaterialTheme.colorScheme.surfaceContainerHighest
@@ -540,19 +525,12 @@ fun RecordScreen(
                                             ) {
                                                 Text(
                                                     text =
-                                                        if (isSessionActive) {
-                                                            "LIVE TELEMETRY"
-                                                        } else if (lastSession != null) {
-                                                            lastSession.profile.uppercase()
-                                                        } else {
-                                                            "STANDBY"
-                                                        },
+                                                        lastSession?.profile?.uppercase() ?: androidx.compose.ui.res
+                                                            .stringResource(dev.auriya.app.R.string.record_standby),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     fontWeight = FontWeight.Bold,
                                                     color =
-                                                        if (isSessionActive) {
-                                                            MaterialTheme.colorScheme.onPrimaryContainer
-                                                        } else if (lastSession != null) {
+                                                        if (lastSession != null) {
                                                             MaterialTheme.colorScheme.onSecondaryContainer
                                                         } else {
                                                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -562,19 +540,10 @@ fun RecordScreen(
                                                 )
                                             }
 
-                                            val activePkgName = session?.pkg
-                                            val rightHeaderLabel =
-                                                when {
-                                                    isSessionActive && !activePkgName.isNullOrEmpty() ->
-                                                        activePkgName.substringAfterLast('.')
-                                                    lastSession != null ->
-                                                        lastSession.appLabel
-                                                    else ->
-                                                        "System Monitor"
-                                                }
-
                                             Text(
-                                                text = rightHeaderLabel,
+                                                text =
+                                                    lastSession?.appLabel ?: androidx.compose.ui.res
+                                                        .stringResource(dev.auriya.app.R.string.record_title),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onSurface,
                                                 fontWeight = FontWeight.ExtraBold,
@@ -589,14 +558,11 @@ fun RecordScreen(
                                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                                         ) {
                                             val displayFpsText =
-                                                when {
-                                                    isSessionActive && fps != null ->
-                                                        dev.auriya.app.data.AppPrefs
-                                                            .formatFps(fps.avg, roundFps)
-                                                    lastSession != null ->
-                                                        dev.auriya.app.data.AppPrefs
-                                                            .formatFps(lastSession.avgFps, roundFps)
-                                                    else -> "--"
+                                                if (lastSession != null) {
+                                                    dev.auriya.app.data.AppPrefs
+                                                        .formatFps(lastSession.avgFps, roundFps)
+                                                } else {
+                                                    "--"
                                                 }
 
                                             Text(
@@ -606,7 +572,7 @@ fun RecordScreen(
                                                         fontSize = 42.sp,
                                                         fontWeight = FontWeight.Black,
                                                         color =
-                                                            if (isSessionActive || lastSession != null) {
+                                                            if (lastSession != null) {
                                                                 MaterialTheme.colorScheme.primary
                                                             } else {
                                                                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -624,15 +590,18 @@ fun RecordScreen(
 
                                         Text(
                                             text =
-                                                when {
-                                                    isSessionActive && fps != null ->
-                                                        "1% Low: ${dev.auriya.app.data.AppPrefs.formatFps(fps.low_1pct, roundFps)} FPS • Peak: ${dev.auriya.app.data.AppPrefs.formatFps(fps.peak, roundFps)} FPS"
-                                                    lastSession != null ->
-                                                        "1% Low: ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.minLow1Pct, roundFps)} FPS • Peak: ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.maxFps, roundFps)} FPS • ${formatDuration(
-                                                            lastSession.durationSeconds,
-                                                        )}"
-                                                    else ->
-                                                        "Launch a configured game from Gamelist to track live rendering"
+                                                if (lastSession != null) {
+                                                    androidx.compose.ui.res.stringResource(
+                                                        dev.auriya.app.R.string.record_fps_hero_summary,
+                                                        dev.auriya.app.data.AppPrefs
+                                                            .formatFps(lastSession.minLow1Pct, roundFps),
+                                                        dev.auriya.app.data.AppPrefs
+                                                            .formatFps(lastSession.maxFps, roundFps),
+                                                        formatDuration(lastSession.durationSeconds),
+                                                    )
+                                                } else {
+                                                    androidx.compose.ui.res
+                                                        .stringResource(dev.auriya.app.R.string.record_no_benchmark_yet)
                                                 },
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -641,10 +610,12 @@ fun RecordScreen(
                                 }
                             }
 
-                            // --- Section 1: Live Telemetry ---
+                            // --- Section 1: Benchmark & Hardware ---
                             item {
-                                SettingsSubsection("LIVE TELEMETRY") {
-                                    val fps = liveStats?.fps
+                                SettingsSubsection(
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.record_sec_performance_metrics),
+                                ) {
                                     val thermal = liveStats?.thermal
                                     val battery = liveStats?.battery
 
@@ -655,12 +626,17 @@ fun RecordScreen(
                                             androidx.compose.ui.res
                                                 .stringResource(dev.auriya.app.R.string.record_fps_frametimes),
                                         subtitle =
-                                            if (fps != null && fps.frames > 0) {
-                                                "Avg ${dev.auriya.app.data.AppPrefs.formatFps(fps.avg, roundFps)} FPS • 1% Low ${dev.auriya.app.data.AppPrefs.formatFps(fps.low_1pct, roundFps)} FPS • ${fps.jank} Jank"
-                                            } else if (lastSession != null) {
-                                                "Last: Avg ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.avgFps, roundFps)} FPS • 1% Low ${dev.auriya.app.data.AppPrefs.formatFps(lastSession.minLow1Pct, roundFps)} FPS"
+                                            if (lastSession != null) {
+                                                androidx.compose.ui.res.stringResource(
+                                                    dev.auriya.app.R.string.record_fps_last_summary,
+                                                    dev.auriya.app.data.AppPrefs
+                                                        .formatFps(lastSession.avgFps, roundFps),
+                                                    dev.auriya.app.data.AppPrefs
+                                                        .formatFps(lastSession.minLow1Pct, roundFps),
+                                                )
                                             } else {
-                                                "Real-time frame pacing and latency"
+                                                androidx.compose.ui.res
+                                                    .stringResource(dev.auriya.app.R.string.record_no_benchmark_yet)
                                             },
                                         onClick = { activeSubScreen = RecordSubScreen.FPS_DETAILS },
                                         shape = itemShapeFor(0, 3),
@@ -704,7 +680,10 @@ fun RecordScreen(
 
                             // --- Section 2: Benchmark History ---
                             item {
-                                SettingsSubsection("BENCHMARK SESSIONS") {
+                                SettingsSubsection(
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.record_sec_benchmark_sessions),
+                                ) {
                                     SettingsMenuItem(
                                         icon = Icons.Outlined.Analytics,
                                         title =
@@ -712,9 +691,13 @@ fun RecordScreen(
                                                 .stringResource(dev.auriya.app.R.string.record_recorded_sessions),
                                         subtitle =
                                             if (benchmarkSessions.isNotEmpty()) {
-                                                "${benchmarkSessions.size} sessions recorded • Tap to inspect & export reports"
+                                                androidx.compose.ui.res.stringResource(
+                                                    dev.auriya.app.R.string.record_sessions_count_summary,
+                                                    benchmarkSessions.size,
+                                                )
                                             } else {
-                                                "No sessions recorded yet"
+                                                androidx.compose.ui.res
+                                                    .stringResource(dev.auriya.app.R.string.record_no_sessions_recorded_yet)
                                             },
                                         onClick = { activeSubScreen = RecordSubScreen.SESSIONS },
                                         shape = itemShapeFor(0, 1),

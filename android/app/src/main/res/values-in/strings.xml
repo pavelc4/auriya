@@ -119,7 +119,7 @@
 
     <!-- Record & Benchmark -->
     <string name="record_fps_details">Frame Time</string>
-    <string name="record_fps_details_sub">Frame rate &amp; stabilitas real-time</string>
+    <string name="record_fps_details_sub">Frame rate benchmark &amp; stabilitas</string>
     <string name="record_thermals">Suhu &amp; Termal</string>
     <string name="record_thermals_sub">Sensor suhu CPU &amp; baterai</string>
     <string name="record_battery">Baterai</string>
@@ -339,6 +339,25 @@
     <string name="record_copy_markdown_sub">Ekspor ke Papan Klip</string>
     <string name="record_delete_session">Hapus Sesi Benchmark</string>
     <string name="record_delete_session_sub">Penghapusan Permanen</string>
+    <string name="record_sec_performance_metrics">PERFORMA &amp; METRIK</string>
+    <string name="record_sec_benchmark_sessions">SESI BENCHMARK</string>
+    <string name="record_no_benchmark_yet">Belum ada rekaman benchmark</string>
+    <string name="record_no_session_recorded">Tidak Ada Sesi Rekaman</string>
+    <string name="record_fps_last_summary">Terakhir: Rata-rata %1$s FPS • 1%% Low %2$s FPS</string>
+    <string name="record_fps_hero_summary">1%% Low: %1$s FPS • Puncak: %2$s FPS • %3$s</string>
+    <string name="record_fps_last_match_summary">Sesi terakhir • %1$s (%2$d sampel)</string>
+    <string name="record_fps_low_01" formatted="false">0.1% Low</string>
+    <string name="record_fps_low_desc">Rata-rata 1% frame terlambat (stutter)</string>
+    <string name="record_fps_peak_desc">Render frame tunggal tercepat</string>
+    <string name="record_fps_low_01_desc">Ambang batas 0,1% lonjakan lag terburuk</string>
+    <string name="record_frame_pacing">Frame Pacing (σ)</string>
+    <string name="record_frame_pacing_desc">Variansi standar deviasi (≤ 2,0 ms stabil)</string>
+    <string name="record_jank_desc">Frame lebih lambat dari target × 1,5</string>
+    <string name="record_sample_window_desc">Titik data sampel frame</string>
+    <string name="record_no_benchmark_title">Tidak Ada Sesi Benchmark</string>
+    <string name="record_no_benchmark_desc">Rekam sesi bermain game untuk menghasilkan grafik frame pacing, stabilitas, dan suhu perangkat.</string>
+    <string name="record_sessions_count_summary">%1$d sesi tersimpan • Ketuk untuk memeriksa &amp; ekspor laporan</string>
+    <string name="record_no_sessions_recorded_yet">Belum ada sesi rekaman tersimpan</string>
 
     <!-- Visualisasi Sesi Benchmark -->
     <string name="record_chart_fps_title">Frame Rate (FPS)</string>

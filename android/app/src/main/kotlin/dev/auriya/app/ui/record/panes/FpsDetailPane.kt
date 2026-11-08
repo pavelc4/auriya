@@ -16,15 +16,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.auriya.app.R
 import dev.auriya.app.data.stats.BenchmarkSession
-import dev.auriya.app.data.stats.Fps
-import dev.auriya.app.data.stats.Session
-import dev.auriya.app.ui.record.components.FpsSparkline
 import dev.auriya.app.ui.record.components.SessionCpuLoadChartCard
 import dev.auriya.app.ui.record.components.SessionFpsChartCard
 import dev.auriya.app.ui.record.components.SessionFpsDistributionCard
@@ -35,9 +33,6 @@ import dev.auriya.app.ui.theme.ExpTitleTypography
 
 @Composable
 fun FpsDetailPane(
-    fps: Fps?,
-    session: Session,
-    fpsHistory: List<Float>,
     lastSession: BenchmarkSession? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -46,15 +41,6 @@ fun FpsDetailPane(
         .getInstance(context)
         .roundFps
         .collectAsStateWithLifecycle()
-    val isLive = session.active && fps != null
-    val displayHistory =
-        if (isLive && fpsHistory.isNotEmpty()) {
-            fpsHistory
-        } else if (lastSession != null && lastSession.samples.isNotEmpty()) {
-            lastSession.samples.map { it.fps.toFloat() }
-        } else {
-            emptyList()
-        }
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -94,13 +80,11 @@ fun FpsDetailPane(
                             val standbyText =
                                 androidx.compose.ui.res
                                     .stringResource(dev.auriya.app.R.string.record_standby)
+                            val noSessionRecordedText =
+                                androidx.compose.ui.res
+                                    .stringResource(dev.auriya.app.R.string.record_no_session_recorded)
                             Text(
-                                text =
-                                    when {
-                                        isLive -> session.pkg?.substringAfterLast('.') ?: activeGameText
-                                        lastSession != null -> lastSession.appLabel
-                                        else -> systemIdleText
-                                    },
+                                text = lastSession?.appLabel ?: noSessionRecordedText,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -112,26 +96,21 @@ fun FpsDetailPane(
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color =
-                                    when {
-                                        isLive -> MaterialTheme.colorScheme.primaryContainer
-                                        lastSession != null -> MaterialTheme.colorScheme.secondaryContainer
-                                        else -> MaterialTheme.colorScheme.surfaceContainerHighest
+                                    if (lastSession != null) {
+                                        MaterialTheme.colorScheme.secondaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHighest
                                     },
                             ) {
                                 Text(
-                                    text =
-                                        when {
-                                            isLive -> session.profile.uppercase()
-                                            lastSession != null -> lastSession.profile.uppercase()
-                                            else -> standbyText
-                                        },
+                                    text = lastSession?.profile?.uppercase() ?: standbyText,
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color =
-                                        when {
-                                            isLive -> MaterialTheme.colorScheme.onPrimaryContainer
-                                            lastSession != null -> MaterialTheme.colorScheme.onSecondaryContainer
-                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        if (lastSession != null) {
+                                            MaterialTheme.colorScheme.onSecondaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
                                         },
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 )
@@ -143,14 +122,11 @@ fun FpsDetailPane(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             val meanFpsText =
-                                when {
-                                    isLive ->
-                                        dev.auriya.app.data.AppPrefs
-                                            .formatFps(fps.avg, roundFps)
-                                    lastSession != null ->
-                                        dev.auriya.app.data.AppPrefs
-                                            .formatFps(lastSession.avgFps, roundFps)
-                                    else -> "--"
+                                if (lastSession != null) {
+                                    dev.auriya.app.data.AppPrefs
+                                        .formatFps(lastSession.avgFps, roundFps)
+                                } else {
+                                    "--"
                                 }
 
                             Text(
@@ -160,7 +136,7 @@ fun FpsDetailPane(
                                         fontSize = 44.sp,
                                         fontWeight = FontWeight.Black,
                                         color =
-                                            if (isLive || lastSession != null) {
+                                            if (lastSession != null) {
                                                 MaterialTheme.colorScheme.primary
                                             } else {
                                                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -180,10 +156,15 @@ fun FpsDetailPane(
 
                         Text(
                             text =
-                                when {
-                                    isLive -> "Computed from ${fps.frames} rolling frames (~5s buffer)"
-                                    lastSession != null -> "Last match • ${formatDuration(lastSession.durationSeconds)} (${lastSession.samplesCount} samples)"
-                                    else -> "Open an application to track live rendering."
+                                if (lastSession != null) {
+                                    androidx.compose.ui.res.stringResource(
+                                        dev.auriya.app.R.string.record_fps_last_match_summary,
+                                        formatDuration(lastSession.durationSeconds),
+                                        lastSession.samplesCount,
+                                    )
+                                } else {
+                                    androidx.compose.ui.res
+                                        .stringResource(dev.auriya.app.R.string.record_no_benchmark_yet)
                                 },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -192,28 +173,22 @@ fun FpsDetailPane(
                 }
             }
 
-            // 4 Grid Metric Cards (populated with live or latest session data)
+            // 4 Grid Metric Cards (populated with latest session data)
             item {
                 val low1Pct =
-                    when {
-                        isLive ->
-                            dev.auriya.app.data.AppPrefs
-                                .formatFps(fps.low_1pct, roundFps)
-                        lastSession != null ->
-                            dev.auriya.app.data.AppPrefs
-                                .formatFps(lastSession.minLow1Pct, roundFps)
-                        else -> "--"
+                    if (lastSession != null) {
+                        dev.auriya.app.data.AppPrefs
+                            .formatFps(lastSession.minLow1Pct, roundFps)
+                    } else {
+                        "--"
                     }
 
                 val peakFps =
-                    when {
-                        isLive ->
-                            dev.auriya.app.data.AppPrefs
-                                .formatFps(fps.peak, roundFps)
-                        lastSession != null ->
-                            dev.auriya.app.data.AppPrefs
-                                .formatFps(lastSession.maxFps, roundFps)
-                        else -> "--"
+                    if (lastSession != null) {
+                        dev.auriya.app.data.AppPrefs
+                            .formatFps(lastSession.maxFps, roundFps)
+                    } else {
+                        "--"
                     }
 
                 Row(
@@ -226,7 +201,7 @@ fun FpsDetailPane(
                     DetailCard(
                         title = stringResource(R.string.record_fps_low),
                         value = if (low1Pct != "--") "$low1Pct FPS" else "--",
-                        desc = "Mean of slowest 1% frames (stutter)",
+                        desc = stringResource(R.string.record_fps_low_desc),
                         icon = Icons.AutoMirrored.Filled.TrendingDown,
                         modifier =
                             Modifier
@@ -236,7 +211,7 @@ fun FpsDetailPane(
                     DetailCard(
                         title = stringResource(R.string.record_fps_peak),
                         value = if (peakFps != "--") "$peakFps FPS" else "--",
-                        desc = "Fastest single frame render",
+                        desc = stringResource(R.string.record_fps_peak_desc),
                         icon = Icons.Outlined.Speed,
                         modifier =
                             Modifier
@@ -248,19 +223,18 @@ fun FpsDetailPane(
 
             item {
                 val low01Pct =
-                    when {
-                        isLive -> dev.auriya.app.data.AppPrefs.formatFps(fps.low_01pct, roundFps)
-                        lastSession != null && lastSession.low01Pct > 0.0 ->
-                            dev.auriya.app.data.AppPrefs.formatFps(lastSession.low01Pct, roundFps)
-                        else -> "--"
+                    if (lastSession != null && lastSession.low01Pct > 0.0) {
+                        dev.auriya.app.data.AppPrefs
+                            .formatFps(lastSession.low01Pct, roundFps)
+                    } else {
+                        "--"
                     }
 
                 val stdDev =
-                    when {
-                        isLive -> "%.2f ms".format(fps.std_dev_ms)
-                        lastSession != null && lastSession.stdDevMs > 0.0 ->
-                            "%.2f ms".format(lastSession.stdDevMs)
-                        else -> "--"
+                    if (lastSession != null && lastSession.stdDevMs > 0.0) {
+                        "%.2f ms".format(lastSession.stdDevMs)
+                    } else {
+                        "--"
                     }
 
                 Row(
@@ -271,9 +245,9 @@ fun FpsDetailPane(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     DetailCard(
-                        title = "0.1% Low",
+                        title = stringResource(R.string.record_fps_low_01),
                         value = if (low01Pct != "--") "$low01Pct FPS" else "--",
-                        desc = "Threshold of worst 0.1% lag spikes",
+                        desc = stringResource(R.string.record_fps_low_01_desc),
                         icon = Icons.AutoMirrored.Filled.TrendingDown,
                         modifier =
                             Modifier
@@ -281,9 +255,9 @@ fun FpsDetailPane(
                                 .fillMaxHeight(),
                     )
                     DetailCard(
-                        title = "Frame Pacing (σ)",
+                        title = stringResource(R.string.record_frame_pacing),
                         value = stdDev,
-                        desc = "Std dev variance (≤ 2.0ms is stable)",
+                        desc = stringResource(R.string.record_frame_pacing_desc),
                         icon = Icons.Outlined.Timeline,
                         modifier =
                             Modifier
@@ -294,19 +268,8 @@ fun FpsDetailPane(
             }
 
             item {
-                val jank =
-                    when {
-                        isLive -> "${fps.jank}"
-                        lastSession != null -> "${lastSession.totalJank}"
-                        else -> "--"
-                    }
-
-                val samples =
-                    when {
-                        isLive -> "${fps.frames}"
-                        lastSession != null -> "${lastSession.samplesCount}"
-                        else -> "--"
-                    }
+                val jank = if (lastSession != null) "${lastSession.totalJank}" else "--"
+                val samples = if (lastSession != null) "${lastSession.samplesCount}" else "--"
 
                 Row(
                     modifier =
@@ -318,7 +281,7 @@ fun FpsDetailPane(
                     DetailCard(
                         title = stringResource(R.string.record_jank_stutter),
                         value = if (jank != "--") "$jank frames" else "--",
-                        desc = "Frames slower than target × 1.5",
+                        desc = stringResource(R.string.record_jank_desc),
                         icon = Icons.Outlined.WarningAmber,
                         modifier =
                             Modifier
@@ -328,7 +291,7 @@ fun FpsDetailPane(
                     DetailCard(
                         title = stringResource(R.string.record_sample_window),
                         value = samples,
-                        desc = "Frame sample data points",
+                        desc = stringResource(R.string.record_sample_window_desc),
                         icon = Icons.Outlined.Analytics,
                         modifier =
                             Modifier
@@ -396,64 +359,46 @@ fun FpsDetailPane(
                 item {
                     SessionThermalHardwareRow(session = lastSession)
                 }
-            } else if (isLive || displayHistory.isNotEmpty()) {
-                // Real-time Live Stream Sparkline when playing
+            } else {
                 item {
                     Surface(
                         shape = RoundedCornerShape(24.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 36.dp, horizontal = 24.dp),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Text(
-                                text = if (isLive) "Real-time FPS Stream" else "FPS History",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-
-                            if (displayHistory.isNotEmpty()) {
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .height(120.dp),
-                                ) {
-                                    FpsSparkline(
-                                        values = displayHistory,
-                                        lineColor = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                }
-                            } else {
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .height(90.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.SportsEsports,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                            modifier = Modifier.size(26.dp),
-                                        )
-                                        Text(
-                                            text = "FPS sparkline will stream when a game is running",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontSize = 11.sp,
-                                        )
-                                    }
-                                }
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Analytics,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(36.dp),
+                                )
+                                Text(
+                                    text =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.record_no_benchmark_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text =
+                                        androidx.compose.ui.res
+                                            .stringResource(dev.auriya.app.R.string.record_no_benchmark_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                )
                             }
                         }
                     }
