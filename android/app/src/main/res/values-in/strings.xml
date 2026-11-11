@@ -192,6 +192,8 @@
     <string name="language_en_desc">Bahasa Inggris (Amerika Serikat)</string>
     <string name="language_id_name">Indonesia</string>
     <string name="language_id_desc">Bahasa Indonesia</string>
+    <string name="language_zh_name">简体中文</string>
+    <string name="language_zh_desc">中文（简体）</string>
     <string name="language_applied">Bahasa berhasil diterapkan</string>
     <string name="language_active_badge">Aktif</string>
 

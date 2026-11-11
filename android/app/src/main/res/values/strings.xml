@@ -200,6 +200,8 @@
     <string name="language_en_desc">English (United States)</string>
     <string name="language_id_name">Indonesia</string>
     <string name="language_id_desc">Bahasa Indonesia</string>
+    <string name="language_zh_name">简体中文</string>
+    <string name="language_zh_desc">中文（简体）</string>
     <string name="language_applied">Language applied successfully</string>
     <string name="language_active_badge">Active</string>
 

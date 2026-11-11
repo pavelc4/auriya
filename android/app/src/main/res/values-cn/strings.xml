@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Auriya</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">首页</string>
+    <string name="nav_games">游戏</string>
+    <string name="nav_config">配置</string>
+    <string name="nav_record">性能遥测</string>
+
+    <!-- Headers (Short & Clean) -->
+    <string name="games_title">游戏面板</string>
+    <string name="games_subtitle">独立游戏调校</string>
+    <string name="config_title">系统配置</string>
+    <string name="config_subtitle">Daemon 与内核调校</string>
+    <string name="record_title">性能遥测</string>
+    <string name="record_subtitle">实时遥测与帧时间分析</string>
+    <string name="settings_title">设置</string>
+    <string name="settings_subtitle">应用与 Daemon 首选项</string>
+
+    <!-- Setup Wizard -->
+    <string name="setup_welcome_title">欢迎使用 Auriya</string>
+    <string name="setup_welcome_subtitle">专为已 Root 的 Android 设备打造的高级性能管理与帧率调度系统。</string>
+    <string name="setup_root_title">需要 Root 权限</string>
+    <string name="setup_root_subtitle">Auriya 需要超级用户权限以调节内核频率、配置帧调度器及应用系统级性能优化。</string>
+    <string name="setup_root_btn_grant">授予 Root 权限</string>
+    <string name="setup_root_granted">已获得 Root 权限</string>
+    <string name="setup_overlay_title">悬浮窗权限</string>
+    <string name="setup_overlay_subtitle">游戏时在屏幕上方实时显示 FPS、温度与性能遥测信息。</string>
+    <string name="setup_overlay_btn_grant">授予悬浮窗权限</string>
+    <string name="setup_overlay_granted">已获得悬浮窗权限</string>
+    <string name="setup_done_title">准备就绪！</string>
+    <string name="setup_done_subtitle">Auriya 已配置完成，随时准备优化您的设备性能。</string>
+    <string name="setup_btn_back">返回</string>
+
+    <!-- Home -->
+    <string name="home_status_active">运行中</string>
+    <string name="home_status_inactive">休眠</string>
+    <string name="home_stopped">已停止</string>
+    <string name="home_active_profile">当前性能模式</string>
+    <string name="home_system_metrics">系统指标</string>
+    <string name="home_performance_profile">性能模式</string>
+    <string name="home_profile_powersave">省电模式</string>
+    <string name="home_profile_powersave_sub">模式 3 • 续航优先</string>
+    <string name="home_profile_powersave_desc">限制 CPU 频率与后台任务，最大程度延长电池续航。</string>
+    <string name="home_profile_balance">均衡模式</string>
+    <string name="home_profile_balance_sub">模式 2 • 日常流畅</string>
+    <string name="home_profile_balance_desc">标准日常模式。兼顾帧率稳定与最佳发热控制，适合常规使用。</string>
+    <string name="home_profile_performance">性能模式</string>
+    <string name="home_profile_performance_sub">模式 1 • 竞技游戏</string>
+    <string name="home_profile_performance_desc">提升 CPU 频率上限并加快调度响应，应对高负载场景。</string>
+    <string name="home_profile_fast">极速模式</string>
+    <string name="home_profile_fast_sub">模式 0 • 满功耗运行</string>
+    <string name="home_profile_fast_desc">解除温控限制并锁定 CPU 最大频率，不进行任何降频。</string>
+    <string name="home_documentation">使用文档</string>
+    <string name="home_doc_desc">了解更多关于 Auriya 的技术细节。</string>
+    <string name="home_github_star">在 GitHub 上点赞</string>
+    <string name="home_github_star_desc">为项目点亮 Star 以支持后续开发。</string>
+    <string name="home_telegram_channel">Telegram 频道</string>
+    <string name="home_telegram_channel_desc">官方公告与更新动态</string>
+    <string name="home_open_issues">查看现有 Issue</string>
+    <string name="home_report_issue">反馈问题或崩溃日志</string>
+
+    <!-- Games & Profile Tuning -->
+    <string name="games_not_found">未找到应用</string>
+    <string name="games_not_found_desc">请尝试更换搜索关键字。</string>
+    <string name="games_target_fps">目标 FPS</string>
+    <string name="games_profile_mode">性能模式</string>
+    <string name="games_profile_mode_desc">为此游戏选择优化与功耗预设</string>
+    <string name="games_dnd">自动勿扰</string>
+    <string name="games_auto_record">自动记录基准测试</string>
+    <string name="games_actuators_section">硬件与系统执行器</string>
+    <string name="games_wifi_lock">Wi-Fi 低延迟模式</string>
+    <string name="games_wifi_lock_desc">降低 Wi-Fi 网络延迟</string>
+    <string name="games_statusbar_lock">锁定状态栏</string>
+    <string name="games_statusbar_lock_desc">防止游戏中误触下拉通知栏</string>
+    <string name="games_touch_boost">触控加速 (Touch Boost)</string>
+    <string name="games_touch_boost_desc">提高触控采样率与响应速度</string>
+    <string name="games_power_hal">Power HAL 提示</string>
+    <string name="games_power_hal_desc">开启持续性能输出模式 (Sustained Performance)</string>
+    <string name="games_silence_vibrator">静音系统震动</string>
+    <string name="games_silence_vibrator_desc">游戏过程中屏蔽系统震动反馈</string>
+    <string name="games_freeze_rotation">锁定屏幕旋转</string>
+    <string name="games_freeze_rotation_desc">锁定当前屏幕显示方向</string>
+    <string name="games_refresh_rate">目标刷新率</string>
+    <string name="games_profile_tuning">配置文件调校</string>
+    <string name="games_profile_tuning_desc">针对单款游戏的独立优化设置</string>
+    <string name="games_profile_actions">配置操作</string>
+    <string name="games_reset_defaults">恢复默认设置</string>
+    <string name="games_reset_defaults_desc">恢复默认 Governor、60 FPS 限制及系统默认值。</string>
+    <string name="games_remove_profile">删除配置</string>
+    <string name="games_remove_profile_desc">删除保存的独立调校配置，恢复使用全局策略。</string>
+    <string name="games_cpu_governor">CPU Governor</string>
+    <string name="games_cpu_governor_desc">为此应用选择 CPU 调频策略</string>
+    <string name="games_cpu_ceiling">CPU 频率上限</string>
+    <string name="games_cpu_ceiling_desc">设置最大功耗上限与温控降频门槛</string>
+    <string name="games_thermal_preset">温控预设</string>
+    <string name="games_thermal_preset_desc">为此游戏运行时应用的厂商温控配置文件</string>
+    <string name="games_tuner_title">游戏调校器</string>
+    <string name="games_tuner_subtitle">独立调节每款游戏的 CPU Governor、目标 FPS、刷新率与勿扰模式。</string>
+
+    <!-- Config Sub-screens -->
+    <string name="config_performance_engine">FAS 与性能引擎</string>
+    <string name="config_performance_engine_sub">FAS 帧感知调度、卡顿缓解与模式调校</string>
+    <string name="config_system_services">系统服务与 Daemon</string>
+    <string name="config_system_services_sub">Daemon 生命周期、CPU Governor 与游戏自动化</string>
+    <string name="config_floating_overlay">悬浮窗</string>
+    <string name="config_floating_overlay_sub">实时游戏 HUD、透明度与数据面板</string>
+    <string name="config_daemon">Daemon 服务</string>
+    <string name="config_daemon_sub">Daemon 状态、日志记录与休眠模式</string>
+    <string name="config_cpu">CPU Governor</string>
+    <string name="config_cpu_sub">Linux 内核 CPU 调频策略</string>
+    <string name="config_fas">FAS 帧率调节器</string>
+    <string name="config_fas_sub">帧感知调度与温控管理</string>
+    <string name="config_dynamic_gov">动态 Governor</string>
+    <string name="config_dynamic_gov_sub">出现卡顿 (Jitter) 时自适应切换 Governor</string>
+    <string name="config_dnd">勿扰模式 (DND)</string>
+    <string name="config_dnd_sub">针对游戏自动开启勿扰</string>
+    <string name="config_profiles">预设调校</string>
+    <string name="config_profiles_sub">微调性能余量与温控门槛</string>
+
+    <!-- Record & Benchmark -->
+    <string name="record_fps_details">帧时间分析</string>
+    <string name="record_fps_details_sub">基准测试帧率与稳定性</string>
+    <string name="record_thermals">温度与发热</string>
+    <string name="record_thermals_sub">CPU 与电池温度传感器监测</string>
+    <string name="record_battery">电池电量</string>
+    <string name="record_battery_sub">电池放电速率与健康状态</string>
+    <string name="record_sessions">基准测试历史</string>
+    <string name="record_sessions_sub">已保存的游戏测试记录</string>
+
+    <!-- Guides & Documentation Popups (?) -->
+    <string name="guide_overview">此页面的数据指标与运行机制说明</string>
+    <string name="guide_telemetry_title">遥测与记录指南</string>
+    <string name="guide_telemetry_1_title">实时硬件遥测</string>
+    <string name="guide_telemetry_1_desc">Auriya 以 1 Hz 的频率从 Root Daemon 读取硬件数据，零后台开销。</string>
+    <string name="guide_telemetry_2_title">会话基准测试</string>
+    <string name="guide_telemetry_2_desc">记录游戏过程中的帧率、1% Low 及温度波动，以评估性能表现。</string>
+    <string name="guide_telemetry_3_title">自动记录触发器</string>
+    <string name="guide_telemetry_3_desc">在游戏配置中开启“自动记录”，即可在启动游戏时自动开启测试。</string>
+    <string name="guide_fps_title">FPS 指标指南</string>
+    <string name="guide_fps_avg_title">平均 FPS</string>
+    <string name="guide_fps_avg_desc">在测试时间内计算出的平均渲染帧率。</string>
+    <string name="guide_fps_low_title">1% Low FPS</string>
+    <string name="guide_fps_low_desc" formatted="false">最慢 1% 帧的平均渲染速度。1% Low 数值越高代表画面越流畅无卡顿。</string>
+    <string name="guide_fps_peak_title">峰值帧率</string>
+    <string name="guide_fps_peak_desc">测试会话期间达到的最高瞬间渲染速度。</string>
+    <string name="guide_fps_jank_title">卡顿 (Jank) 与掉帧</string>
+    <string name="guide_fps_jank_desc">渲染耗时超过屏幕刷新周期 1.5 倍的异常帧。</string>
+    <string name="guide_thermals_title">温度与发热指南</string>
+    <string name="guide_thermals_cpu_title">CPU 核心温度</string>
+    <string name="guide_thermals_cpu_desc">从内核 Thermal Zone 直接读取的 ARM 核心簇温度。</string>
+    <string name="guide_thermals_battery_title">电池温度</string>
+    <string name="guide_thermals_battery_desc">电池包温度，用于监测电池安全并防止电池衰减。</string>
+    <string name="guide_battery_title">电池指南</string>
+    <string name="guide_sessions_title">基准测试历史指南</string>
+
+    <string name="settings_display_metrics">显示与指标</string>
+    <string name="settings_round_fps">取整 FPS 数值</string>
+    <string name="settings_round_fps_desc">在界面与悬浮窗中将 FPS 格式化为整数</string>
+    <string name="settings_sec_thermal">温控管理</string>
+    <string name="settings_perapp_thermal">单应用温控</string>
+    <string name="settings_perapp_thermal_desc">为每个游戏应用独立的厂商温控预设</string>
+    <string name="settings_thermal_default">默认温控</string>
+    <string name="settings_thermal_default_desc">退出游戏后恢复的厂商默认温控</string>
+    <string name="settings_thermal_default_auto">首次启动时自动检测厂商默认温控值</string>
+    <string name="settings_general_tools">通用与工具</string>
+    <string name="settings_app_language">应用语言</string>
+    <string name="settings_dev_options">开发者选项</string>
+    <string name="settings_dev_options_desc">高级日志、内部 IPC 调试与诊断工具</string>
+    <string name="settings_appearance">外观与主题</string>
+    <string name="settings_appearance_desc">动态色彩、深色模式与导航栏样式</string>
+    <string name="settings_floating_overlay">悬浮窗</string>
+    <string name="settings_floating_overlay_desc">自定义悬浮窗位置、透明度与显示的指标</string>
+    <string name="settings_about">关于 Auriya</string>
+    <string name="settings_about_desc">版本信息、开发者、开源许可与代码仓库</string>
+
+    <!-- Appearance -->
+    <string name="appearance_title">外观设置</string>
+    <string name="appearance_subtitle">主题模式、配色与导航布局</string>
+    <string name="appearance_global_theme">全局主题</string>
+    <string name="appearance_theme_mode">主题模式</string>
+    <string name="appearance_dark_theme">深色模式</string>
+    <string name="appearance_light_theme">浅色模式</string>
+    <string name="appearance_follow_system">跟随系统</string>
+    <string name="appearance_amoled">纯黑 AMOLED 模式</string>
+    <string name="appearance_amoled_desc">在 OLED 屏幕上使用纯黑背景以节省电量</string>
+    <string name="appearance_dynamic_color">动态色彩 (Material You)</string>
+    <string name="appearance_dynamic_color_desc">将主题强调色与系统壁纸颜色同步</string>
+    <string name="appearance_corner_radius">圆角大小</string>
+    <string name="appearance_nav_layout">导航栏布局</string>
+
+    <!-- Language -->
+    <string name="language_title">应用语言</string>
+    <string name="language_subtitle">选择应用的显示语言</string>
+    <string name="language_system">跟随系统</string>
+    <string name="language_system_desc">自动匹配设备当前系统语言</string>
+    <string name="language_en_name">English</string>
+    <string name="language_en_desc">英语 (美国)</string>
+    <string name="language_id_name">Bahasa Indonesia</string>
+    <string name="language_id_desc">印尼语</string>
+    <string name="language_zh_name">简体中文</string>
+    <string name="language_zh_desc">中文（简体）</string>
+    <string name="language_applied">语言已成功切换</string>
+    <string name="language_active_badge">使用中</string>
+
+    <!-- Overlay HUD -->
+    <string name="overlay_text_size">字体大小</string>
+    <string name="overlay_opacity">背景不透明度</string>
+    <string name="overlay_padding">内边距与外边距</string>
+    <string name="overlay_corner_radius">圆角半径</string>
+
+    <!-- Developer Options -->
+    <string name="dev_daemon_ops">DAEMON 与运行</string>
+    <string name="dev_restart_daemon">重启 Daemon</string>
+    <string name="dev_restart_daemon_desc">强制重启后台 eBPF Daemon 服务</string>
+    <string name="dev_debug_logs">调试日志模式</string>
+    <string name="dev_debug_logs_desc">详细记录日志以便排查问题</string>
+    <string name="dev_export_logs">导出系统日志</string>
+    <string name="dev_export_logs_desc">将日志保存至 Downloads/AuriyaLogs.tar.gz</string>
+    <string name="dev_root_diagnostics">ROOT 与诊断</string>
+    <string name="dev_reset_oobe">重置引导向导</string>
+    <string name="dev_reset_oobe_desc">下次启动应用时重新运行初始化向导</string>
+
+    <!-- About -->
+    <string name="about_title">关于 Auriya</string>
+
+    <!-- Common / Dialogs / Printilan -->
+    <string name="common_cancel">取消</string>
+    <string name="common_delete">删除</string>
+    <string name="common_restart">重启</string>
+    <string name="common_reset">重置</string>
+    <string name="common_active">已启用</string>
+    <string name="common_disabled">已禁用</string>
+
+    <!-- Config Sub-Panes -->
+    <string name="config_sec_daemon_controls">DAEMON 控制</string>
+    <string name="config_daemon_info_title">Auriya Daemon</string>
+    <string name="config_daemon_info_desc">Auriya 后台 Daemon 监测前台运行的游戏，通过 Unix Socket 调节 CPU 频率，并执行调度策略。</string>
+    <string name="config_default_profile">默认性能模式</string>
+    <string name="config_log_verbosity">日志详细程度</string>
+    <string name="config_check_interval">检查间隔</string>
+    <string name="config_check_interval_desc">Daemon 健康状态轮询频率</string>
+
+    <string name="config_sec_scaling">调频设置</string>
+    <string name="config_cpu_info_title">CPU 调频策略 (Governor)</string>
+    <string name="config_cpu_info_desc">Governor 决定 Linux 内核如何在空闲与负载之间动态调节 CPU 频率。点击下方可选择生效的 Governor。</string>
+
+    <string name="config_sec_dnd_auto">勿扰模式自动化</string>
+    <string name="config_dnd_info_title">勿扰模式 (DND)</string>
+    <string name="config_dnd_info_desc">列表中的游戏在前台运行时，自动静音通知、弹窗横幅与来电铃声，并在退出时恢复。</string>
+    <string name="config_dnd_auto_game">游戏自动勿扰</string>
+    <string name="config_dnd_auto_game_desc">启动游戏时自动开启勿扰静音</string>
+
+    <string name="config_sec_dynamic_gov">动态 GOVERNOR 控制</string>
+    <string name="config_dynamic_gov_info_title">动态 Governor 切换</string>
+    <string name="config_dynamic_gov_info_desc">检测微卡顿与帧时间波动。当 Jitter 连续超越设定门槛时，Auriya 将临时切换至激进的 Governor 以消除掉帧。</string>
+    <string name="config_adaptive_gov">自适应 Governor</string>
+    <string name="config_adaptive_gov_desc">检测到帧卡顿 (Jitter) 时动态切换 Governor</string>
+    <string name="config_cv_jitter">CV Jitter 触发门槛</string>
+    <string name="config_cv_jitter_desc">变异系数 (CV) 触发灵敏度</string>
+    <string name="config_debounce_frames">防抖帧数</string>
+    <string name="config_debounce_frames_desc">触发切换所需的连续卡顿帧数量</string>
+
+    <string name="config_sec_fas">FAS 参数配置</string>
+    <string name="config_fas_info_title">帧感知调度 (FAS)</string>
+    <string name="config_fas_info_desc">FAS 从 SurfaceFlinger 或 eBPF 实时计算帧时间。在掉帧时提升 CPU 频率，在画面平静时降低频率以防止过热降频。</string>
+    <string name="config_fas_enable">开启 FAS 引擎</string>
+    <string name="config_fas_enable_desc">自适应帧调节器，维持帧率平稳</string>
+    <string name="config_fallback_fps">保底目标 FPS</string>
+    <string name="config_fallback_fps_desc">默认帧率目标上限</string>
+    <string name="config_poll_interval">计算轮询间隔</string>
+    <string name="config_poll_interval_desc">FAS 重新计算帧统计数据的频率</string>
+    <string name="config_thermal_limit">全局温控限制</string>
+    <string name="config_thermal_limit_desc">降频前设备的安全温度限制</string>
+
+    <string name="config_sec_preset_tuning">预设选择与调优</string>
+    <string name="config_preset_info_title">模式预设调优</string>
+    <string name="config_preset_info_desc">每种性能模式均通过 FPS 容差与温控限制平衡功耗与流畅度。</string>
+    <string name="config_profile_to_tune">待调优的模式</string>
+    <string name="config_fps_margin">FPS 容许差值</string>
+    <string name="config_fps_margin_desc">提频前允许的 FPS 下滑容忍度</string>
+
+    <!-- Overlay HUD Extra -->
+    <string name="overlay_sec_monet">MONET 与主题色彩</string>
+    <string name="overlay_monet_theme">动态 Monet 配色</string>
+    <string name="overlay_monet_theme_desc">使悬浮窗配色与系统壁纸主题保持一致</string>
+    <string name="overlay_color_presets">预设配色</string>
+    <string name="overlay_sec_tuning">悬浮窗微调</string>
+    <string name="overlay_update_interval">刷新间隔</string>
+    <string name="overlay_update_interval_desc">遥测数据查询频率</string>
+
+    <!-- Record Panes Extra -->
+    <string name="record_system_idle">系统空闲</string>
+    <string name="record_active_game">当前游戏</string>
+    <string name="record_fps_mean">FPS</string>
+    <string name="record_standby">待机</string>
+
+    <!-- Config Actions Popup -->
+    <string name="config_actions_title">配置操作</string>
+    <string name="config_actions_subtitle">备份、导入或重置 settings.toml</string>
+    <string name="config_export">导出配置文件</string>
+    <string name="config_export_sub">分享与备份 TOML</string>
+    <string name="config_export_desc">导出并分享当前的 settings.toml 到设备存储或其他应用。</string>
+    <string name="config_import">导入配置文件</string>
+    <string name="config_import_sub">从文件加载</string>
+    <string name="config_import_desc">选择有效的 settings.toml 文件以立即应用配置。</string>
+    <string name="config_reset_factory">恢复默认设置</string>
+    <string name="config_reset_factory_sub">还原出厂预设</string>
+    <string name="config_reset_factory_desc">将所有 Daemon 健康间隔、CPU Scaling Governor、FAS 门槛及模式余量恢复为出厂默认值。</string>
+
+    <!-- Record Panes & Metrics Full Localization -->
+    <string name="record_sec_electrical">电气与电池规格</string>
+    <string name="record_battery_power_state">电池供电状态</string>
+    <string name="record_voltage">电压</string>
+    <string name="record_health">健康度</string>
+    <string name="record_chemistry">电池材质</string>
+    <string name="record_charge_rate">充电速率</string>
+    <string name="record_discharge">放电速率</string>
+    <string name="record_input_current">输入电流</string>
+    <string name="record_power_drain">功耗</string>
+    <string name="record_terminal_potential">端电压</string>
+    <string name="record_pack_integrity">电池状态</string>
+    <string name="record_fps_frametimes">帧时间</string>
+    <string name="record_recorded_sessions">已记录的测试</string>
+    <string name="record_fps_low" formatted="false">1% Low FPS</string>
+    <string name="record_fps_peak">峰值 FPS</string>
+    <string name="record_jank_stutter">卡顿 (Jank/Stutter)</string>
+    <string name="record_sample_window">采样窗口</string>
+    <string name="record_avg_cpu_load">平均 CPU 负载</string>
+    <string name="record_peak_cpu_temp">CPU 峰值温度</string>
+    <string name="record_peak_battery_temp">电池峰值温度</string>
+    <string name="record_thermal_headroom">发热余量</string>
+    <string name="record_thermal_headroom_desc">安全临界余量</string>
+    <string name="record_cooling_profile">散热策略</string>
+    <string name="record_governor_state">Governor 状态</string>
+    <string name="record_sec_thermal_characteristics">发热特性</string>
+    <string name="record_sec_sensor_zones">传感器区域</string>
+    <string name="record_cpu_processor">CPU 处理器</string>
+    <string name="record_battery_cell">电池电芯</string>
+    <string name="record_session_actions">测试记录操作</string>
+    <string name="record_session_actions_sub">导出数据集、分享文件或管理记录</string>
+    <string name="record_save_csv">保存 CSV 文件</string>
+    <string name="record_save_csv_sub">已保存至 Download/auriya/</string>
+    <string name="record_share_csv">分享 CSV 文件</string>
+    <string name="record_share_csv_sub">使用表格 / Excel / 社交应用打开</string>
+    <string name="record_copy_markdown">复制 Markdown 摘要</string>
+    <string name="record_copy_markdown_sub">复制至剪贴板</string>
+    <string name="record_delete_session">删除测试记录</string>
+    <string name="record_delete_session_sub">永久删除</string>
+    <string name="record_sec_performance_metrics">性能与指标</string>
+    <string name="record_sec_benchmark_sessions">基准测试记录</string>
+    <string name="record_no_benchmark_yet">暂无基准测试记录</string>
+    <string name="record_no_session_recorded">未记录任何测试</string>
+    <string name="record_fps_last_summary">上次：平均 %1$s FPS • 1%% Low %2$s FPS</string>
+    <string name="record_fps_hero_summary">1%% Low: %1$s FPS • 峰值: %2$s FPS • %3$s</string>
+    <string name="record_fps_last_match_summary">上次记录 • %1$s (%2$d 个采样点)</string>
+    <string name="record_fps_low_01" formatted="false">0.1% Low</string>
+    <string name="record_fps_low_desc">最慢 1% 帧的平均渲染速度（反映卡顿）</string>
+    <string name="record_fps_peak_desc">最快单帧渲染速度</string>
+    <string name="record_fps_low_01_desc">最严重 0.1% 掉帧波动的临界门槛</string>
+    <string name="record_frame_pacing">帧生成时间方差 (σ)</string>
+    <string name="record_frame_pacing_desc">标准差波动 (≤ 2.0 ms 属于平稳)</string>
+    <string name="record_jank_desc">耗时超过目标周期 1.5 倍的卡顿帧</string>
+    <string name="record_sample_window_desc">帧采样数据点总数</string>
+    <string name="record_no_benchmark_title">暂无测试记录</string>
+    <string name="record_no_benchmark_desc">在游戏中记录一次测试，以生成帧流畅度、稳定性曲线及温度变化图表。</string>
+    <string name="record_sessions_count_summary">已保存 %1$d 次测试 • 点击查看与导出报告</string>
+    <string name="record_no_sessions_recorded_yet">暂无已保存的测试记录</string>
+
+    <!-- Visualisasi Sesi Benchmark -->
+    <string name="record_chart_fps_title">帧率曲线 (FPS)</string>
+    <string name="record_chart_stability_title">稳定性分布</string>
+    <string name="record_chart_thermal_title">温度曲线 (°C)</string>
+    <string name="record_chart_cpu_title">CPU 负载率 (%)</string>
+    <string name="record_tier_smooth">极流畅</string>
+    <string name="record_tier_stable">稳定</string>
+    <string name="record_tier_drops">微抖</string>
+    <string name="record_tier_stutter">严重卡顿</string>
+    <string name="record_total_samples">采样总数: %1$d</string>
+    <string name="record_jank_events">卡顿次数: %1$d</string>
+    <string name="record_legend_fps">FPS</string>
+    <string name="record_legend_1pct_low">1% Low</string>
+    <string name="record_legend_cpu_temp">CPU 温度</string>
+    <string name="record_legend_battery_temp">电池温度</string>
+    <string name="record_stat_avg_peak_cpu">平均: %1$.1f%% • 峰值: %2$.1f%%</string>
+    <string name="record_timeline_perf">性能时间轴</string>
+    <string name="record_timeline_hardware">硬件与温度时间轴</string>
+    <string name="record_sec_thermal_peaks">发热与硬件峰值</string>
+
+    <!-- Settings, About & Floating Overlay Full Localization -->
+    <string name="about_sec_license">开源协议</string>
+    <string name="about_license_sub">开源许可证与相关条款</string>
+    <string name="about_documentation">文档</string>
+    <string name="about_doc_sub">了解关于 Auriya 的更多信息</string>
+    <string name="about_maintainer">维护者</string>
+    <string name="about_maintainer_sub">Auriya 的核心开发者</string>
+    <string name="about_support">赞助与支持</string>
+    <string name="about_support_sub">支持项目的后续开发与更新</string>
+    <string name="about_sec_contributors">贡献者</string>
+    <string name="about_contributors_sub">感谢为项目做出贡献的开发者们</string>
+    <string name="appearance_floating_island">灵动岛悬浮布局</string>
+    <string name="appearance_navbar_radius_sub">调节底部导航栏圆角角度</string>
+    <string name="dev_root_verified">Root 验证状态</string>
+    <string name="dev_daemon_status">Daemon 状态</string>
+    <string name="dev_daemon_status_sub">当前 Daemon 运行状态</string>
+    <string name="dev_sec_app_state">应用状态</string>
+    <string name="overlay_sec_activation">悬浮窗开关</string>
+    <string name="overlay_show">显示悬浮窗</string>
+    <string name="overlay_sec_telemetry">遥测数据</string>
+    <string name="overlay_fps_counter">FPS 计数器</string>
+    <string name="overlay_fps_counter_sub">显示实时帧率监测</string>
+    <string name="overlay_round_fps">取整 FPS 数值</string>
+    <string name="overlay_round_fps_sub">将帧率四舍五入显示为整数</string>
+    <string name="overlay_cpu_clusters">CPU 核心簇</string>
+    <string name="overlay_cpu_clusters_sub">监测小核、中核、大核实时频率</string>
+    <string name="overlay_gpu_metrics">GPU 数据</string>
+    <string name="overlay_gpu_metrics_sub">显示 GPU 频率与使用率</string>
+    <string name="overlay_ram_usage">内存 (RAM) 占用</string>
+    <string name="overlay_ram_usage_sub">显示内存使用统计</string>
+    <string name="overlay_cpu_temp">CPU 温度</string>
+    <string name="overlay_cpu_temp_sub">实时监测 CPU 核心温度</string>
+    <string name="overlay_battery_temp">电池温度</string>
+    <string name="overlay_battery_temp_sub">显示当前电池温度</string>
+    <string name="overlay_sec_display_layout">显示与布局</string>
+    <string name="overlay_hud_mode">HUD 显示格式</string>
+    <string name="overlay_cpu_style">CPU 数据样式</string>
+    <string name="settings_app_title">应用</string>
+    <string name="settings_app_sub">通用应用设置与开发者选项</string>
+    <string name="games_priority_notif_sub">启动游戏时显示高优先级通知</string>
+    <string name="games_auto_bench_sub">启动游戏时自动开启基准测试</string>
+    <string name="games_dialog_remove_title">删除配置？</string>
+    <string name="games_dialog_remove_desc">%1$s 将从已保存的配置列表中移除。您可以随时在游戏列表中重新添加。</string>
+</resources>
