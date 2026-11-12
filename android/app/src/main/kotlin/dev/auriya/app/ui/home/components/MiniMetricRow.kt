@@ -35,10 +35,10 @@ fun MiniMetricRow(
 ) {
     val profileShort =
         when (profile.lowercase()) {
-            "performance", "1" -> "Perf"
-            "balance", "2" -> "Balance"
-            "powersave", "3" -> "Saver"
-            "fast", "fas", "4" -> "FAS"
+            "performance", "1" -> stringResource(R.string.home_profile_performance)
+            "balance", "2" -> stringResource(R.string.home_profile_balance)
+            "powersave", "3" -> stringResource(R.string.home_profile_powersave)
+            "fast", "fas", "4" -> stringResource(R.string.home_profile_fast)
             else -> profile
         }
     Row(

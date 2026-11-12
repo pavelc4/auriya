@@ -400,7 +400,7 @@
     <string name="about_support_sub">支持持续开发与更新。</string>
     <string name="about_sec_contributors">贡献者</string>
     <string name="about_contributors_sub">项目的协作者与贡献者。</string>
-    <string name="appearance_floating_island">浮岛布局</string>
+    <string name="appearance_floating_island">悬浮底栏</string>
     <string name="appearance_navbar_radius_sub">调整导航栏的圆角大小。</string>
     <string name="dev_root_verified">Root 验证通过</string>
     <string name="dev_daemon_status">守护进程状态</string>
