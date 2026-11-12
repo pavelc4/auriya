@@ -46,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -181,17 +182,17 @@ fun AppearanceScreen(
                                     Triple(
                                         DarkThemeMode.FOLLOW_SYSTEM,
                                         dev.auriya.app.R.string.appearance_follow_system,
-                                        "Automatically matches Android system settings",
+                                        dev.auriya.app.R.string.appearance_follow_system_desc,
                                     ),
                                     Triple(
                                         DarkThemeMode.LIGHT,
                                         dev.auriya.app.R.string.appearance_light_theme,
-                                        "Bright surfaces with warm terracotta accents",
+                                        dev.auriya.app.R.string.appearance_light_theme_desc,
                                     ),
                                     Triple(
                                         DarkThemeMode.DARK,
                                         dev.auriya.app.R.string.appearance_dark_theme,
-                                        "Deep dark surfaces gentle on eyes in low light",
+                                        dev.auriya.app.R.string.appearance_dark_theme_desc,
                                     ),
                                 )
                             }
@@ -200,7 +201,7 @@ fun AppearanceScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            themeModeOptions.forEachIndexed { index, (mode, titleRes, subtitle) ->
+                            themeModeOptions.forEachIndexed { index, (mode, titleRes, subtitleRes) ->
                                 val isSelected = currentPrefs.darkThemeMode == mode
                                 val itemShape = animatedItemShapeFor(index, themeModeOptions.size, isSelected = isSelected)
                                 val icon =
@@ -213,10 +214,8 @@ fun AppearanceScreen(
                                 ExpressiveSelectableCard(
                                     selected = isSelected,
                                     onClick = { themeViewModel.setDarkThemeMode(mode) },
-                                    title =
-                                        androidx.compose.ui.res
-                                            .stringResource(titleRes),
-                                    subtitle = subtitle,
+                                    title = stringResource(titleRes),
+                                    subtitle = stringResource(subtitleRes),
                                     leadingIcon = icon,
                                     shape = itemShape,
                                 )
@@ -266,9 +265,9 @@ fun AppearanceScreen(
                                     .stringResource(dev.auriya.app.R.string.appearance_floating_island),
                             subtitle =
                                 if (isFloating) {
-                                    "Floating pill capsule with rounded edges"
+                                    stringResource(R.string.appearance_floating_island_doce_true)
                                 } else {
-                                    "Docked full-width standard navigation bar"
+                                    stringResource(R.string.appearance_floating_island_desc)
                                 },
                             checked = isFloating,
                             onCheckedChange = { floating ->
