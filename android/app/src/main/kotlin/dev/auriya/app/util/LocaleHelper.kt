@@ -215,7 +215,7 @@ object LocaleHelper {
     private fun parseLocale(tag: String): Locale =
         when (tag.lowercase()) {
             "id", "in" -> Locale.forLanguageTag("in-ID")
-            "zh", "cn", "zh-cn" -> Locale.SIMPLIFIED_CHINESE
+            "zh", "cn", "zh-cn" -> Locale.forLanguageTag("cn-ID")
             else -> Locale.forLanguageTag(tag)
         }
 
@@ -227,7 +227,7 @@ object LocaleHelper {
                 }
 
                 "zh", "cn", "zh-cn" -> {
-                    LocaleList(Locale.SIMPLIFIED_CHINESE, Locale.CHINA, Locale.CHINESE)
+                    LocaleList(Locale.forLanguageTag("cn-ID"), Locale.forLanguageTag("cn-ID"))
                 }
 
                 else -> {
