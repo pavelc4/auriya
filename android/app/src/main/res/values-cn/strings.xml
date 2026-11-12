@@ -435,6 +435,11 @@
     <string name="appearance_follow_system_desc">跟随系统设置</string>
     <string name="appearance_light_theme_desc">始终保持浅色主题</string>
     <string name="appearance_dark_theme_desc">始终保持深色主题</string>
-    <string name="appearance_floating_island_doce_true">带圆角的胶囊底栏</string>
+    <string name="appearance_floating_island_desc_true">带圆角的胶囊底栏</string>
     <string name="appearance_floating_island_desc">固定宽度的标准底栏</string>
+    <string name="appearance_floating_island_settings">调整圆角半径</string>
+    <string name="appearance_floating_island_settings_desc">将导航栏的边角与设备的物理边角对齐，以获得无缝的视觉效果。</string>
+    <string name="appearance_floating_island_settings_test">圆角半径</string>
+    <string name="appearance_floating_island_settings_reset">重置</string>
+    <string name="appearance_floating_island_settings_done">完成</string>
 </resources>

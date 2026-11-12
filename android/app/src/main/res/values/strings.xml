@@ -435,7 +435,13 @@
     <string name="appearance_follow_system_desc">Automatically matches Android system settings</string>
     <string name="appearance_light_theme_desc">Bright surfaces with warm terracotta accents</string>
     <string name="appearance_dark_theme_desc">Deep dark surfaces gentle on eyes in low light</string>
-    <string name="appearance_floating_island_doce_true">Floating pill capsule with rounded edges</string>
+    <string name="appearance_floating_island_desc_true">Floating pill capsule with rounded edges</string>
     <string name="appearance_floating_island_desc">Docked full-width standard navigation bar</string>
+    <string name="appearance_floating_island_settings">Adjust Corner Radius</string>
+    <string name="appearance_floating_island_settings_desc">Match the navbar shape\'s corners with your device\'s physical corners for a seamless look.</string>
+    <string name="appearance_floating_island_settings_test">Corner Radius</string>
+    <string name="appearance_floating_island_settings_reset">Reset</string>
+    <string name="appearance_floating_island_settings_done">Done</string>
+
 
 </resources>

@@ -1,41 +1,21 @@
 package dev.auriya.app.ui.settings
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.rounded.BrightnessAuto
-import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Dock
 import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.RoundedCorner
 import androidx.compose.material3.*
@@ -43,8 +23,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -60,8 +38,6 @@ import dev.auriya.app.ui.components.SettingsSubsection
 import dev.auriya.app.ui.components.SwitchSettingItem
 import dev.auriya.app.ui.components.animatedItemShapeFor
 import dev.auriya.app.ui.components.itemShapeFor
-import dev.auriya.app.ui.components.rememberGroupedItemShape
-import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.ui.theme.GoogleSansRounded
 import dev.auriya.app.util.LocaleHelper
 import dev.auriya.app.viewmodel.ThemeViewModel
@@ -265,7 +241,7 @@ fun AppearanceScreen(
                                     .stringResource(dev.auriya.app.R.string.appearance_floating_island),
                             subtitle =
                                 if (isFloating) {
-                                    stringResource(R.string.appearance_floating_island_doce_true)
+                                    stringResource(R.string.appearance_floating_island_desc_true)
                                 } else {
                                     stringResource(R.string.appearance_floating_island_desc)
                                 },
@@ -396,7 +372,7 @@ private fun AdjustCornerRadiusScreen(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = "Done",
+                        text = stringResource(R.string.appearance_floating_island_settings_done),
                         style = MaterialTheme.typography.labelLarge,
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold,
@@ -414,7 +390,7 @@ private fun AdjustCornerRadiusScreen(
                     .padding(horizontal = 20.dp, vertical = 4.dp),
         ) {
             Text(
-                text = "Adjust Corner Radius",
+                text = stringResource(R.string.appearance_floating_island_settings),
                 fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Bold,
                 fontSize = 28.sp,
@@ -422,7 +398,7 @@ private fun AdjustCornerRadiusScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Match the navbar shape's corners with your device's physical corners for a seamless look.",
+                text = stringResource(R.string.appearance_floating_island_settings_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -452,7 +428,7 @@ private fun AdjustCornerRadiusScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Corner Radius",
+                        text = stringResource(R.string.appearance_floating_island_settings_test),
                         style = MaterialTheme.typography.titleMedium,
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Bold,
@@ -477,7 +453,7 @@ private fun AdjustCornerRadiusScreen(
                                 modifier = Modifier.size(16.dp),
                             )
                             Text(
-                                text = "Reset",
+                                text = stringResource(R.string.appearance_floating_island_settings_reset),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontFamily = GoogleSansRounded,
                                 fontWeight = FontWeight.Bold,
