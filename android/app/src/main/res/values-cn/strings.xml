@@ -2,23 +2,23 @@
 <resources>
     <string name="app_name">Auriya</string>
 
-    <!-- Navigation -->
+    <!-- Navigation 导航栏-->
     <string name="nav_home">首页</string>
     <string name="nav_games">游戏</string>
     <string name="nav_config">配置</string>
-    <string name="nav_record">监视</string>
+    <string name="nav_record">性能</string>
 
-    <!-- Headers (Short & Clean) -->
+    <!-- Headers (Short & Clean) 标题 -->
     <string name="games_title">游戏</string>
     <string name="games_subtitle">单独配置游戏性能</string>
     <string name="config_title">配置</string>
     <string name="config_subtitle">守护进程与内核调节</string>
-    <string name="record_title">监视</string>
-    <string name="record_subtitle">性能监视与帧间隔</string>
+    <string name="record_title">性能</string>
+    <string name="record_subtitle">性能检测与帧间隔</string>
     <string name="settings_title">设置</string>
     <string name="settings_subtitle">应用与守护进程设置</string>
 
-    <!-- Setup Wizard -->
+    <!-- Setup Wizard 设置向导 -->
     <string name="setup_welcome_title">欢迎使用 Auriya</string>
     <string name="setup_welcome_subtitle">适用于已获取 Root 权限的 Android 设备的性能管理与帧调度系统。</string>
     <string name="setup_root_title">需要 Root 权限</string>
@@ -105,7 +105,7 @@
     <string name="config_system_services">系统与守护进程服务</string>
     <string name="config_system_services_sub">守护进程管理、CPU 调频与游戏自动化</string>
     <string name="config_floating_overlay">悬浮窗</string>
-    <string name="config_floating_overlay_sub">实时游戏监视、透明度与指标标签</string>
+    <string name="config_floating_overlay_sub">实时游戏检测、透明度与指标标签</string>
     <string name="config_daemon">守护进程</string>
     <string name="config_daemon_sub">守护进程状态检查、日志与休眠模式</string>
     <string name="config_cpu">CPU 调频</string>
@@ -131,8 +131,8 @@
 
     <!-- Guides & Documentation Popups (?) -->
     <string name="guide_overview">了解此页面的指标与功能</string>
-    <string name="guide_telemetry_title">性能监视与记录指南</string>
-    <string name="guide_telemetry_1_title">实时硬件监视</string>
+    <string name="guide_telemetry_title">性能检测与记录指南</string>
+    <string name="guide_telemetry_1_title">实时硬件检测</string>
     <string name="guide_telemetry_1_desc">Auriya 通过 Root 守护进程以 1 Hz 的频率读取硬件指标，无额外后台开销。</string>
     <string name="guide_telemetry_2_title">性能测试</string>
     <string name="guide_telemetry_2_desc">记录游戏对局中的帧率、1% Low 帧率与温度峰值，对比不同配置的性能表现。</string>
@@ -289,7 +289,7 @@
     <string name="overlay_color_presets">配色预设</string>
     <string name="overlay_sec_tuning">悬浮窗调节</string>
     <string name="overlay_update_interval">更新间隔</string>
-    <string name="overlay_update_interval_desc">性能监视数据的读取频率</string>
+    <string name="overlay_update_interval_desc">性能检测数据的读取频率</string>
 
     <!-- Record Panes Extra -->
     <string name="record_system_idle">系统空闲</string>
@@ -408,7 +408,7 @@
     <string name="dev_sec_app_state">应用状态</string>
     <string name="overlay_sec_activation">悬浮窗开关</string>
     <string name="overlay_show">显示悬浮窗</string>
-    <string name="overlay_sec_telemetry">监视指标</string>
+    <string name="overlay_sec_telemetry">监测指标</string>
     <string name="overlay_fps_counter">帧率计</string>
     <string name="overlay_fps_counter_sub">显示实时帧率</string>
     <string name="overlay_round_fps">帧率取整</string>
@@ -432,4 +432,9 @@
     <string name="games_auto_bench_sub">游戏启动时自动记录性能测试</string>
     <string name="games_dialog_remove_title">移除配置？</string>
     <string name="games_dialog_remove_desc">将从当前配置列表中移除 %1$s。你可以在“游戏”页面重新添加。</string>
+    <string name="appearance_follow_system_desc">跟随系统设置</string>
+    <string name="appearance_light_theme_desc">始终保持浅色主题</string>
+    <string name="appearance_dark_theme_desc">始终保持深色主题</string>
+    <string name="appearance_floating_island_doce_true">带圆角的胶囊底栏</string>
+    <string name="appearance_floating_island_desc">固定宽度的标准底栏</string>
 </resources>

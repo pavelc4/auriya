@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Auriya</string>
 
-    <!-- Navigation -->
+    <!-- daohan -->
     <string name="nav_home">Home</string>
     <string name="nav_games">Games</string>
     <string name="nav_config">Config</string>
@@ -432,4 +432,10 @@
     <string name="games_auto_bench_sub">Record benchmark session automatically on game launch</string>
     <string name="games_dialog_remove_title">Remove profile?</string>
     <string name="games_dialog_remove_desc">%1$s will be removed from the active profile list. You can re-add it from the Games tab.</string>
+    <string name="appearance_follow_system_desc">Automatically matches Android system settings</string>
+    <string name="appearance_light_theme_desc">Bright surfaces with warm terracotta accents</string>
+    <string name="appearance_dark_theme_desc">Deep dark surfaces gentle on eyes in low light</string>
+    <string name="appearance_floating_island_doce_true">Floating pill capsule with rounded edges</string>
+    <string name="appearance_floating_island_desc">Docked full-width standard navigation bar</string>
+
 </resources>
