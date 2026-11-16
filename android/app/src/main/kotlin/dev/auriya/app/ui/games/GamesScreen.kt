@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -259,7 +260,7 @@ fun GamesScreen(
                         onValueChange = { searchQuery = it },
                         placeholder = {
                             Text(
-                                "Search apps or package…",
+                                stringResource(dev.auriya.app.R.string.games_searchquery),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
@@ -430,7 +431,7 @@ fun GamesScreen(
                         if (filteredActive.isNotEmpty()) {
                             item {
                                 SectionLabel(
-                                    label = "Active profiles",
+                                    label = stringResource(dev.auriya.app.R.string.games_activeprofiles),
                                     count = filteredActive.size,
                                     modifier = Modifier.padding(top = 12.dp, bottom = 6.dp),
                                 )
@@ -448,7 +449,7 @@ fun GamesScreen(
                         if (filteredInactive.isNotEmpty()) {
                             item {
                                 SectionLabel(
-                                    label = "Installed applications",
+                                    label = stringResource(dev.auriya.app.R.string.games_installedapplications),
                                     count = filteredInactive.size,
                                     modifier = Modifier.padding(top = 16.dp, bottom = 6.dp),
                                 )
