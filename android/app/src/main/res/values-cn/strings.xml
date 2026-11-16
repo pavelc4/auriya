@@ -35,8 +35,8 @@
 
     <!-- Home -->
     <string name="home_status_active">运行中</string>
-    <string name="home_status_inactive">休眠</string>
-    <string name="home_stopped">休眠</string>
+    <string name="home_status_inactive">未运行</string>
+    <string name="home_stopped">未运行</string>
     <string name="home_active_profile">当前配置</string>
     <string name="home_system_metrics">系统状态</string>
     <string name="home_performance_profile">性能模式</string>
@@ -61,9 +61,12 @@
     <string name="home_open_issues">查看已有问题</string>
     <string name="home_report_issue">反馈问题或崩溃</string>
 
-    <!-- Games & Profile Tuning -->
+    <!-- Games & Profile Tuning 游戏与配置调优-->
+    <string name="games_searchquery">搜索应用或包名</string>
     <string name="games_not_found">未找到应用</string>
     <string name="games_not_found_desc">请尝试使用其他关键词搜索。</string>
+    <string name="games_activeprofiles">活跃的个人设置</string>
+    <string name="games_installedapplications">已安装的应用</string>
     <string name="games_target_fps">目标帧率</string>
     <string name="games_profile_mode">性能模式</string>
     <string name="games_profile_mode_desc">为此游戏选择性能与功耗预设</string>
@@ -99,7 +102,7 @@
     <string name="games_tuner_title">游戏调节</string>
     <string name="games_tuner_subtitle">为每款游戏单独设置 CPU 频率、目标帧率、刷新率与勿扰模式。</string>
 
-    <!-- Config Sub-screens -->
+    <!-- Config Sub-screens 配置子屏幕-->
     <string name="config_performance_engine">FAS 与性能调节</string>
     <string name="config_performance_engine_sub">帧感知调度、自适应调速器与模式调节</string>
     <string name="config_system_services">系统与守护进程服务</string>
@@ -107,7 +110,7 @@
     <string name="config_floating_overlay">悬浮窗</string>
     <string name="config_floating_overlay_sub">实时游戏检测、透明度与指标标签</string>
     <string name="config_daemon">守护进程</string>
-    <string name="config_daemon_sub">守护进程状态检查、日志与休眠模式</string>
+    <string name="config_daemon_sub">守护进程状态检查、日志与模式</string>
     <string name="config_cpu">CPU 调频</string>
     <string name="config_cpu_sub">内核 CPU 调频策略</string>
     <string name="config_fas">FAS 调节</string>
@@ -119,7 +122,7 @@
     <string name="config_profiles">预设调节</string>
     <string name="config_profiles_sub">微调帧率容差与温控阈值</string>
 
-    <!-- Record & Benchmark -->
+    <!-- Record & Benchmark 记录与校准-->
     <string name="record_fps_details">帧间隔</string>
     <string name="record_fps_details_sub">测试帧率与稳定性</string>
     <string name="record_thermals">温度</string>
@@ -129,7 +132,7 @@
     <string name="record_sessions">性能测试记录</string>
     <string name="record_sessions_sub">已保存的游戏性能测试记录</string>
 
-    <!-- Guides & Documentation Popups (?) -->
+    <!-- Guides & Documentation Popups (指南与文档) -->
     <string name="guide_overview">了解此页面的指标与功能</string>
     <string name="guide_telemetry_title">性能检测与记录指南</string>
     <string name="guide_telemetry_1_title">实时硬件检测</string>
@@ -176,7 +179,7 @@
     <string name="settings_about">关于 Auriya</string>
     <string name="settings_about_desc">版本、作者、许可证与代码仓库</string>
 
-    <!-- Appearance -->
+    <!-- Appearance 外观-->
     <string name="appearance_title">外观</string>
     <string name="appearance_subtitle">主题模式、颜色与导航布局</string>
     <string name="appearance_global_theme">全局主题</string>
@@ -190,8 +193,19 @@
     <string name="appearance_dynamic_color_desc">根据系统壁纸颜色调整主题配色</string>
     <string name="appearance_corner_radius">圆角大小</string>
     <string name="appearance_nav_layout">导航布局</string>
+    <string name="appearance_follow_system_desc">跟随系统设置</string>
+    <string name="appearance_light_theme_desc">始终保持浅色主题</string>
+    <string name="appearance_dark_theme_desc">始终保持深色主题</string>
+    <string name="appearance_floating_island_desc_true">带圆角的胶囊底栏</string>
+    <string name="appearance_floating_island_desc">固定宽度的标准底栏</string>
 
-    <!-- Language -->
+    <string name="appearance_floating_island_settings">调整圆角半径</string>
+    <string name="appearance_floating_island_settings_desc">将导航栏的边角与设备的物理边角对齐，以获得无缝的视觉效果。</string>
+    <string name="appearance_floating_island_settings_test">圆角半径</string>
+    <string name="appearance_floating_island_settings_reset">重置</string>
+    <string name="appearance_floating_island_settings_done">完成</string>
+
+    <!-- Language 语言-->
     <string name="language_title">应用语言</string>
     <string name="language_subtitle">选择应用显示语言</string>
     <string name="language_system">跟随系统</string>
@@ -211,7 +225,7 @@
     <string name="overlay_padding">内边距与外边距</string>
     <string name="overlay_corner_radius">圆角大小</string>
 
-    <!-- Developer Options -->
+    <!-- Developer Options 开发者选项-->
     <string name="dev_daemon_ops">守护进程与操作</string>
     <string name="dev_restart_daemon">重启守护进程</string>
     <string name="dev_restart_daemon_desc">强制重启后台 eBPF 守护进程</string>
@@ -432,14 +446,21 @@
     <string name="games_auto_bench_sub">游戏启动时自动记录性能测试</string>
     <string name="games_dialog_remove_title">移除配置？</string>
     <string name="games_dialog_remove_desc">将从当前配置列表中移除 %1$s。你可以在“游戏”页面重新添加。</string>
-    <string name="appearance_follow_system_desc">跟随系统设置</string>
-    <string name="appearance_light_theme_desc">始终保持浅色主题</string>
-    <string name="appearance_dark_theme_desc">始终保持深色主题</string>
-    <string name="appearance_floating_island_desc_true">带圆角的胶囊底栏</string>
-    <string name="appearance_floating_island_desc">固定宽度的标准底栏</string>
-    <string name="appearance_floating_island_settings">调整圆角半径</string>
-    <string name="appearance_floating_island_settings_desc">将导航栏的边角与设备的物理边角对齐，以获得无缝的视觉效果。</string>
-    <string name="appearance_floating_island_settings_test">圆角半径</string>
-    <string name="appearance_floating_island_settings_reset">重置</string>
-    <string name="appearance_floating_island_settings_done">完成</string>
+
+    <!--  Performance Profile 性能配置弹窗  -->
+    <string name="Performance_Powerasve">省电模式</string>
+    <string name="Performance_Powerasve_sub">最长续航</string>
+    <string name="Performance_Powerasve_des">限制时钟频率，并对后台任务进行激进的限制，以最大化电池续航时间。</string>
+    <string name="Performance_Balance">均衡模式</string>
+    <string name="Performance_Balance_sub">日常平衡性能与续航</string>
+    <string name="Performance_Balance_des">均衡耗电与性能，以流畅使用软件</string>
+    <string name="Performance_Performance">性能模式</string>
+    <string name="Performance_Performance_sub">高性能</string>
+    <string name="Performance_Performance_des">释放 CPU 与 GPU 功耗限制，轻松应对高强度游戏与复杂任务。</string>
+    <string name="Performance_FAS">FAS</string>
+    <string name="Performance_FAS_sub">动态 FAS / 加速</string>
+    <string name="Performance_FAS_des">零延迟帧交付，时钟频率动态快速拉升，带来电竞级响应速度。</string>
+    <string name="config_performance_profile">性能配置</string>
+    <string name="config_performance_profile_sub">为 CPU、GPU 与帧调度选择优化配置</string>
+
 </resources>

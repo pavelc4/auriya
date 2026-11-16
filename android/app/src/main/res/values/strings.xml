@@ -62,8 +62,11 @@
     <string name="home_report_issue">Report issue or crash</string>
 
     <!-- Games & Profile Tuning -->
+    <string name="games_searchquery">Search apps or package…</string>
     <string name="games_not_found">No applications found</string>
     <string name="games_not_found_desc">Try searching with a different term.</string>
+    <string name="games_activeprofiles">Active profiles</string>
+    <string name="games_installedapplications">Installed applications</string>
     <string name="games_target_fps">Target FPS</string>
     <string name="games_profile_mode">Profile Mode</string>
     <string name="games_profile_mode_desc">Select optimization &amp; power preset for this game</string>
@@ -190,6 +193,17 @@
     <string name="appearance_dynamic_color_desc">Sync theme accents with system wallpaper colors</string>
     <string name="appearance_corner_radius">Corner Radius</string>
     <string name="appearance_nav_layout">NAVIGATION LAYOUT</string>
+    <string name="appearance_follow_system_desc">Automatically matches Android system settings</string>
+    <string name="appearance_light_theme_desc">Bright surfaces with warm terracotta accents</string>
+    <string name="appearance_dark_theme_desc">Deep dark surfaces gentle on eyes in low light</string>
+    <string name="appearance_floating_island_desc_true">Floating pill capsule with rounded edges</string>
+    <string name="appearance_floating_island_desc">Docked full-width standard navigation bar</string>
+
+    <string name="appearance_floating_island_settings">Adjust Corner Radius</string>
+    <string name="appearance_floating_island_settings_desc">Match the navbar shape\'s corners with your device\'s physical corners for a seamless look.</string>
+    <string name="appearance_floating_island_settings_test">Corner Radius</string>
+    <string name="appearance_floating_island_settings_reset">Reset</string>
+    <string name="appearance_floating_island_settings_done">Done</string>
 
     <!-- Language -->
     <string name="language_title">App Language</string>
@@ -432,16 +446,21 @@
     <string name="games_auto_bench_sub">Record benchmark session automatically on game launch</string>
     <string name="games_dialog_remove_title">Remove profile?</string>
     <string name="games_dialog_remove_desc">%1$s will be removed from the active profile list. You can re-add it from the Games tab.</string>
-    <string name="appearance_follow_system_desc">Automatically matches Android system settings</string>
-    <string name="appearance_light_theme_desc">Bright surfaces with warm terracotta accents</string>
-    <string name="appearance_dark_theme_desc">Deep dark surfaces gentle on eyes in low light</string>
-    <string name="appearance_floating_island_desc_true">Floating pill capsule with rounded edges</string>
-    <string name="appearance_floating_island_desc">Docked full-width standard navigation bar</string>
-    <string name="appearance_floating_island_settings">Adjust Corner Radius</string>
-    <string name="appearance_floating_island_settings_desc">Match the navbar shape\'s corners with your device\'s physical corners for a seamless look.</string>
-    <string name="appearance_floating_island_settings_test">Corner Radius</string>
-    <string name="appearance_floating_island_settings_reset">Reset</string>
-    <string name="appearance_floating_island_settings_done">Done</string>
 
+    <!--  Performance Profile 性能配置弹窗  -->
+    <string name="Performance_Powerasve">Powerasve</string>
+    <string name="Performance_Powerasve_sub">Battery Preservation</string>
+    <string name="Performance_Powerasve_des">Limits clock frequencies and aggressively throttles background tasks to maximize battery life.</string>
+    <string name="Performance_Balance">Balance</string>
+    <string name="Performance_Balance_sub">Balanced Daily</string>
+    <string name="Performance_Balance_des">Intelligently balances power efficiency with smooth responsiveness for day-to-day apps.</string>
+    <string name="Performance_Performance">Performance</string>
+    <string name="Performance_Performance_sub">High Performance</string>
+    <string name="Performance_Performance_des">Unleashes CPU &amp; GPU power limits for intense gaming sessions and complex tasks.</string>
+    <string name="Performance_FAS">FAS</string>
+    <string name="Performance_FAS_sub">Dynamic FAS / Turbo</string>
+    <string name="Performance_FAS_des">Zero-margin frame delivery with rapid dynamic clock ramp-up for competitive response.</string>
+    <string name="config_performance_profile">Performance Profile</string>
+    <string name="config_performance_profile_sub">Choose an optimization profile for CPU, GPU, and frame pacing</string>
 
 </resources>

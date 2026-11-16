@@ -1,5 +1,6 @@
 package dev.auriya.app.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -9,12 +10,33 @@ import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.auriya.app.R
 import dev.auriya.app.ui.config.components.BottomSheetHeader
 import dev.auriya.app.ui.config.components.RichSelectionCard
 
+/**
+ * A raw, context-free declaration of a profile preset.
+ *
+ * Text is kept as string resources (or plain literals) instead of resolved strings, because
+ * `stringResource(...)` is a @Composable call and therefore cannot be evaluated at top level.
+ */
+data class ProfilePresetSpec(
+    val id: String,
+    @StringRes val titleRes: Int = 0,
+    val title: String = "",
+    @StringRes val subtitleRes: Int = 0,
+    val subtitle: String = "",
+    @StringRes val descriptionRes: Int = 0,
+    val description: String = "",
+    val icon: ImageVector,
+)
+
+/** A fully resolved preset, safe to pass around as plain data. */
 data class ProfilePreset(
     val id: String,
     val title: String,
@@ -23,37 +45,57 @@ data class ProfilePreset(
     val icon: ImageVector,
 )
 
-val DEFAULT_PROFILE_PRESETS =
+val DEFAULT_PROFILE_PRESET_SPECS =
     listOf(
-        ProfilePreset(
+        ProfilePresetSpec(
             id = "powersave",
-            title = "Powersave",
-            subtitle = "Battery Preservation",
-            description = "Limits clock frequencies and aggressively throttles background tasks to maximize battery life.",
+            titleRes = R.string.Performance_Powerasve,
+            subtitleRes = R.string.Performance_Powerasve_sub,
+            descriptionRes = R.string.Performance_Powerasve_des,
             icon = Icons.Outlined.Eco,
         ),
-        ProfilePreset(
+        ProfilePresetSpec(
             id = "balance",
-            title = "Balance",
-            subtitle = "Balanced Daily",
-            description = "Intelligently balances power efficiency with smooth responsiveness for day-to-day apps.",
+            titleRes = R.string.Performance_Balance,
+            subtitleRes = R.string.Performance_Balance_sub,
+            descriptionRes = R.string.Performance_Balance_des,
             icon = Icons.Outlined.Speed,
         ),
-        ProfilePreset(
+        ProfilePresetSpec(
             id = "performance",
-            title = "Performance",
-            subtitle = "High Performance",
-            description = "Unleashes CPU & GPU power limits for intense gaming sessions and complex tasks.",
+            titleRes = R.string.Performance_Performance,
+            subtitleRes = R.string.Performance_Performance_sub,
+            descriptionRes = R.string.Performance_Performance_des,
             icon = Icons.Outlined.Bolt,
         ),
-        ProfilePreset(
+        ProfilePresetSpec(
             id = "fas",
-            title = "FAS",
-            subtitle = "Dynamic FAS / Turbo",
-            description = "Zero-margin frame delivery with rapid dynamic clock ramp-up for competitive response.",
+            titleRes = R.string.Performance_FAS,
+            subtitleRes = R.string.Performance_FAS_sub,
+            descriptionRes = R.string.Performance_FAS_des,
             icon = Icons.Outlined.RocketLaunch,
         ),
     )
+
+/** Resolves a spec into a [ProfilePreset]. Must be called from a @Composable scope. */
+@Composable
+fun ProfilePresetSpec.resolve(): ProfilePreset =
+    ProfilePreset(
+        id = id,
+        title = if (titleRes != 0) stringResource(titleRes) else title,
+        subtitle = if (subtitleRes != 0) stringResource(subtitleRes) else subtitle,
+        description = if (descriptionRes != 0) stringResource(descriptionRes) else description,
+        icon = icon,
+    )
+
+/** Resolves the built-in presets. Must be called from a @Composable scope. */
+@Composable
+fun rememberDefaultProfilePresets(): List<ProfilePreset> {
+    val specs = DEFAULT_PROFILE_PRESET_SPECS
+    return remember(specs) { specs.map { it.id } }.let { ids ->
+        ids.zip(specs).map { (_, spec) -> spec.resolve() }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,11 +103,12 @@ fun ProfilePickerBottomSheet(
     selectedProfile: String,
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
-    title: String = "Performance Profile",
-    subtitle: String = "Choose an optimization profile for CPU, GPU, and frame pacing",
-    presets: List<ProfilePreset> = DEFAULT_PROFILE_PRESETS,
+    title: String = stringResource(R.string.config_performance_profile),
+    subtitle: String = stringResource(R.string.config_performance_profile_sub),
+    presets: List<ProfilePreset>? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
+    val resolvedPresets = presets ?: rememberDefaultProfilePresets()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -90,8 +133,8 @@ fun ProfilePickerBottomSheet(
                         .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(presets.size) { i ->
-                    val p = presets[i]
+                items(resolvedPresets.size) { i ->
+                    val p = resolvedPresets[i]
                     val isSelected =
                         selectedProfile.equals(p.id, ignoreCase = true) ||
                             (
