@@ -79,18 +79,18 @@ class AuriyaTileService : TileService() {
             StatsParser.fetchStats()?.session?.profile?.lowercase()
                 ?: RootShell.readText(ConfigPaths.CURRENT_PROFILE_FILE)?.trim()?.lowercase()
                 ?: "balance"
-        val (profileName, iconRes) =
+        val profileName = getString(profileTitleRes(current))
+        val iconRes =
             when (current) {
-                "1", "performance" -> Pair(R.string.profile_preset_performance_title, R.drawable.ic_gamepad)
-                "2", "balance" -> Pair(R.string.profile_preset_balance_title, R.drawable.ic_settings)
-                "3", "powersave" -> Pair(R.string.profile_preset_powersave_title, R.drawable.ic_battery)
-                "4", "fast", "fas" -> Pair(R.string.profile_preset_fas_title, R.drawable.ic_gamepad)
-                else -> Pair("Balance", R.drawable.ic_settings)
+                "1", "performance" -> R.drawable.ic_gamepad
+                "3", "powersave" -> R.drawable.ic_battery
+                "4", "fast", "fas" -> R.drawable.ic_gamepad
+                else -> R.drawable.ic_settings
             }
 
         tile.label = getString(R.string.tile_label)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle = profileName as CharSequence?
+            tile.subtitle = profileName
         } else {
             tile.label = getString(R.string.tile_label_with_profile, profileName)
         }
@@ -105,6 +105,7 @@ class AuriyaTileService : TileService() {
     private fun profileTitleRes(profile: String): Int =
         when (profile) {
             "1", "performance" -> R.string.profile_preset_performance_title
+            "2", "balance" -> R.string.profile_preset_balance_title
             "3", "powersave" -> R.string.profile_preset_powersave_title
             "4", "fast", "fas" -> R.string.profile_preset_fas_title
             else -> R.string.profile_preset_balance_title

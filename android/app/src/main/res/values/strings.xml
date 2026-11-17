@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Auriya</string>
 
-    <!-- daohaNavigationn -->
+    <!-- Navigation -->
     <string name="nav_home">Home</string>
     <string name="nav_games">Games</string>
     <string name="nav_config">Config</string>

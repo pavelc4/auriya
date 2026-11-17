@@ -227,7 +227,7 @@ object LocaleHelper {
                 }
 
                 "zh", "zh-cn" -> {
-                    LocaleList(Locale.forLanguageTag("zh-CN"), Locale.forLanguageTag("zh-CN"))
+                    LocaleList(Locale.forLanguageTag("zh-CN"))
                 }
 
                 else -> {
