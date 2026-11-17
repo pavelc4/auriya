@@ -99,8 +99,6 @@ android {
                 "da",
                 "fi",
                 "no",
-                "he",
-                "iw",
                 "ca",
                 "af",
                 "sr",

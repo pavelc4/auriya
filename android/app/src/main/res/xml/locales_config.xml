@@ -27,7 +27,6 @@
     <locale android:name="da"/>
     <locale android:name="fi"/>
     <locale android:name="no"/>
-    <locale android:name="he"/>
     <locale android:name="ca"/>
     <locale android:name="af"/>
     <locale android:name="sr"/>

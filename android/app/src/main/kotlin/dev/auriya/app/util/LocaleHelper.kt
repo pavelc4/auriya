@@ -56,7 +56,6 @@ object LocaleHelper {
             "da",
             "fi",
             "no",
-            "he",
             "ca",
             "af",
             "sr",
@@ -243,7 +242,6 @@ object LocaleHelper {
             "id", "in" -> Locale.forLanguageTag("in-ID")
             "zh", "cn", "zh-cn" -> Locale.forLanguageTag("zh-CN")
             "zh-tw", "tw" -> Locale.forLanguageTag("zh-TW")
-            "he", "iw" -> Locale.forLanguageTag("he-IL")
             "pt-br" -> Locale.forLanguageTag("pt-BR")
             "pt-pt" -> Locale.forLanguageTag("pt-PT")
             "es-es" -> Locale.forLanguageTag("es-ES")
