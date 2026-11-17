@@ -16,6 +16,7 @@ import dev.auriya.app.ui.components.SwitchSettingItem
 import dev.auriya.app.ui.components.itemShapeFor
 import dev.auriya.app.ui.config.components.PopupInfoCard
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
 
 fun LazyListScope.systemServicesConfigPane(
     // Daemon Controls
@@ -37,15 +38,15 @@ fun LazyListScope.systemServicesConfigPane(
     item {
         PopupInfoCard(
             icon = Icons.Outlined.Dns,
-            title = androidx.compose.ui.res.stringResource(R.string.config_daemon_info_title),
-            description = androidx.compose.ui.res.stringResource(R.string.config_daemon_info_desc),
+            title = stringResource(R.string.config_daemon_info_title),
+            description = stringResource(R.string.config_daemon_info_desc),
         )
     }
 
     // 2. Daemon Controls Subsection
     item {
         SettingsSubsection(
-            title = androidx.compose.ui.res.stringResource(R.string.config_sec_daemon_controls),
+            title = stringResource(R.string.config_sec_daemon_controls),
         ) {
             val total = 3
             val displayDefaultMode =
@@ -55,22 +56,26 @@ fun LazyListScope.systemServicesConfigPane(
                     defaultMode.replaceFirstChar { it.uppercase() }
                 }
             ClickableSettingItem(
-                title = androidx.compose.ui.res.stringResource(R.string.config_default_profile),
-                subtitle = "${androidx.compose.ui.res.stringResource(R.string.home_active_profile)}: $displayDefaultMode",
+                title = stringResource(R.string.config_default_profile),
+                subtitle = "${stringResource(R.string.home_active_profile)}: $displayDefaultMode",
                 onClick = onOpenPresetPicker,
                 icon = Icons.Outlined.Tune,
                 shape = itemShapeFor(0, total),
             )
             ClickableSettingItem(
-                title = androidx.compose.ui.res.stringResource(R.string.config_log_verbosity),
-                subtitle = "Level: ${logLevel.uppercase()}",
+                title = stringResource(R.string.config_log_verbosity),
+                subtitle =
+                    androidx.compose.ui.res.stringResource(
+                        R.string.config_log_level_subtitle,
+                        logLevel.uppercase(),
+                    ),
                 onClick = onOpenLogLevelPicker,
                 icon = Icons.AutoMirrored.Outlined.Article,
                 shape = itemShapeFor(1, total),
             )
             SliderSettingItem(
-                title = androidx.compose.ui.res.stringResource(R.string.config_check_interval),
-                description = androidx.compose.ui.res.stringResource(R.string.config_check_interval_desc),
+                title = stringResource(R.string.config_check_interval),
+                description = stringResource(R.string.config_check_interval_desc),
                 icon = Icons.Outlined.Timer,
                 value = checkIntervalMs,
                 onValueChange = onCheckIntervalChange,
@@ -86,12 +91,16 @@ fun LazyListScope.systemServicesConfigPane(
     // 3. Scaling Settings Subsection
     item {
         SettingsSubsection(
-            title = androidx.compose.ui.res.stringResource(R.string.config_sec_scaling),
+            title = stringResource(R.string.config_sec_scaling),
         ) {
             val total = 1
             ClickableSettingItem(
-                title = androidx.compose.ui.res.stringResource(R.string.games_cpu_governor),
-                subtitle = "Governor: $defaultGov",
+                title = stringResource(R.string.games_cpu_governor),
+                subtitle =
+                    stringResource(
+                        R.string.config_governor_subtitle,
+                        defaultGov,
+                    ),
                 onClick = onOpenGovPicker,
                 icon = Icons.Outlined.Speed,
                 shape = itemShapeFor(0, total),
@@ -102,12 +111,12 @@ fun LazyListScope.systemServicesConfigPane(
     // 4. DND Automation Subsection
     item {
         SettingsSubsection(
-            title = androidx.compose.ui.res.stringResource(R.string.config_sec_dnd_auto),
+            title = stringResource(R.string.config_sec_dnd_auto),
         ) {
             val total = 1
             SwitchSettingItem(
-                title = androidx.compose.ui.res.stringResource(R.string.config_dnd_auto_game),
-                subtitle = androidx.compose.ui.res.stringResource(R.string.config_dnd_auto_game_desc),
+                title = stringResource(R.string.config_dnd_auto_game),
+                subtitle = stringResource(R.string.config_dnd_auto_game_desc),
                 checked = dndEnabled,
                 onCheckedChange = onDndEnabledChange,
                 icon = Icons.Outlined.DoNotDisturbOn,

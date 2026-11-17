@@ -116,7 +116,11 @@ fun SessionFpsChartCard(
                     color = MaterialTheme.colorScheme.primaryContainer,
                 ) {
                     Text(
-                        text = "Avg ${AppPrefs.formatFps(session.avgFps, roundFps)} FPS",
+                        text =
+                    stringResource(
+                        R.string.record_chart_avg_fps,
+                        AppPrefs.formatFps(session.avgFps, roundFps),
+                    ),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -321,13 +325,21 @@ fun SessionFpsChartCard(
                                 color = MaterialTheme.colorScheme.primary,
                             )
                             Text(
-                                text = "FPS: ${AppPrefs.formatFps(scrubSample.fps, roundFps)}",
+                                text =
+                    stringResource(
+                        R.string.record_chart_fps_value,
+                        AppPrefs.formatFps(scrubSample.fps, roundFps),
+                    ),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                             Text(
-                                text = "1% Low: ${AppPrefs.formatFps(scrubSample.low1Pct, roundFps)}",
+                                text =
+                    stringResource(
+                        R.string.record_chart_low1pct_value,
+                        AppPrefs.formatFps(scrubSample.low1Pct, roundFps),
+                    ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

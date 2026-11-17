@@ -13,9 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.R
 import dev.auriya.app.data.stats.Battery
 import dev.auriya.app.data.stats.Cpu
 import dev.auriya.app.data.stats.Gpu
@@ -65,7 +67,7 @@ fun CpuTelemetryCard(
                     }
                     Column {
                         Text(
-                            text = "CPU Processor",
+                            text = stringResource(R.string.record_cpu_processor),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -84,7 +86,7 @@ fun CpuTelemetryCard(
                         color = MaterialTheme.colorScheme.surfaceContainerLowest,
                     ) {
                         Text(
-                            text = "${cpu.load_pct.roundToInt()}% LOAD",
+                            text = stringResource(R.string.record_load_percent, cpu.load_pct.roundToInt()),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary,
@@ -149,7 +151,12 @@ fun CpuTelemetryCard(
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
                                 Text(
-                                    text = "${cores.size} cores • ${cores.firstOrNull()?.gov ?: "sched"}",
+                                    text =
+                    stringResource(
+                        R.string.record_cores_summary,
+                        cores.size,
+                        cores.firstOrNull()?.gov ?: "sched",
+                    ),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 9.sp,
@@ -205,7 +212,7 @@ fun GpuTelemetryCard(
                     }
                     Column {
                         Text(
-                            text = "GPU Graphics",
+                            text = stringResource(R.string.record_gpu_graphics),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -224,7 +231,7 @@ fun GpuTelemetryCard(
                         color = MaterialTheme.colorScheme.surfaceContainerLowest,
                     ) {
                         Text(
-                            text = "${gpu.load_pct}% LOAD",
+                            text = stringResource(R.string.record_load_percent, gpu.load_pct),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.secondary,
@@ -292,13 +299,13 @@ fun ThermalTelemetryCard(
                 }
                 Column {
                     Text(
-                        text = "Thermals",
+                        text = stringResource(R.string.record_thermals),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "Hardware temperature monitoring",
+                        text = stringResource(R.string.record_thermals_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -377,7 +384,7 @@ fun BatteryTelemetryCard(
                     }
                     Column {
                         Text(
-                            text = "Battery Power",
+                            text = stringResource(R.string.record_battery_power),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,

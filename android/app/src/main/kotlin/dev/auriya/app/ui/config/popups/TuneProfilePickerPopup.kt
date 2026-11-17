@@ -15,7 +15,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.auriya.app.R
 import dev.auriya.app.ui.components.AuriyaDragHandle
 import dev.auriya.app.ui.config.components.BottomSheetHeader
 import dev.auriya.app.ui.config.components.RichSelectionCard
@@ -91,7 +93,7 @@ fun TuneProfilePickerPopup(
                     description = desc,
                     icon = icon,
                     selected = isSelected,
-                    badgeText = "TUNING",
+                    badgeText = stringResource(R.string.common_badge_tuning),
                     onClick = { onSelect(key) },
                 )
             }

@@ -220,14 +220,19 @@ fun AuriyaInfoBottomSheet(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Auriya Daemon $cleanVersion",
+                                text = stringResource(R.string.home_daemon_build_title, cleanVersion),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "Running daemon build (${systemInfo.commit}) optimized for $cleanArch architecture. eBPF kernel tracing engine active.",
+                                text =
+                                    stringResource(
+                                        R.string.home_daemon_build_desc,
+                                        systemInfo.commit,
+                                        cleanArch,
+                                    ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

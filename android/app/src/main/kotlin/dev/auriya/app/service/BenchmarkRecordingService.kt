@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import dev.auriya.app.MainActivity
+import dev.auriya.app.R
 
 class BenchmarkRecordingService : Service() {
     companion object {
@@ -81,10 +82,10 @@ class BenchmarkRecordingService : Service() {
             val channel =
                 NotificationChannel(
                     CHANNEL_ID,
-                    "Auriya Benchmark Service",
+                    getString(R.string.channel_benchmark_name),
                     NotificationManager.IMPORTANCE_LOW,
                 ).apply {
-                    description = "Keeps benchmark telemetry recorder active during gameplay"
+                    description = getString(R.string.channel_benchmark_desc)
                 }
             val manager = getSystemService(NotificationManager::class.java)
             manager?.createNotificationChannel(channel)

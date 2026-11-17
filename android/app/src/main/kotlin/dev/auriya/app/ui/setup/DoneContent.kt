@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -141,7 +142,7 @@ fun DoneContent(
                     .padding(bottom = 12.dp),
         ) {
             Text(
-                text = "Let's explore Auriya",
+                text = stringResource(R.string.setup_lets_explore),
                 style =
                     MaterialTheme.typography.titleMedium.copy(
                         fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
@@ -153,7 +154,7 @@ fun DoneContent(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Tap the checkmark button below to get started.",
+                text = stringResource(R.string.setup_lets_explore_sub),
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

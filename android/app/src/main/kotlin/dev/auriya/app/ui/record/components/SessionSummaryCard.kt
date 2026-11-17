@@ -112,7 +112,12 @@ fun SessionHeaderCard(
                         )
                     }
                     Text(
-                        text = "• ${formatDuration(session.durationSeconds)} • ${session.samplesCount} samples",
+                        text =
+                            stringResource(
+                                R.string.record_summary_samples,
+                                formatDuration(session.durationSeconds),
+                                session.samplesCount,
+                            ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
@@ -154,7 +159,7 @@ fun SessionPerformanceMetricsCard(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "PERFORMANCE METRICS",
+                text = stringResource(R.string.record_metrics_header),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -176,7 +181,7 @@ fun SessionPerformanceMetricsCard(
                             ),
                     )
                     Text(
-                        text = "Average Frame Rate",
+                        text = stringResource(R.string.record_avg_frame_rate),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
@@ -202,7 +207,7 @@ fun SessionPerformanceMetricsCard(
                         )
                     }
                     Text(
-                        text = "1% Low Stability",
+                        text = stringResource(R.string.record_low1pct_stability),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 10.sp,
@@ -222,12 +227,12 @@ fun SessionPerformanceMetricsCard(
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
                 )
                 DetailStatItem(
-                    title = "0.1% Low",
+                    title = stringResource(R.string.record_stat_low01),
                     value = if (session.low01Pct > 0.0) "${AppPrefs.formatFps(session.low01Pct, roundFps)} FPS" else "--",
                     icon = Icons.AutoMirrored.Filled.TrendingDown,
                 )
                 DetailStatItem(
-                    title = "Pacing (σ)",
+                    title = stringResource(R.string.record_stat_pacing),
                     value = if (session.stdDevMs > 0.0) "%.2f ms".format(session.stdDevMs) else "< 1.0 ms",
                     icon = Icons.Outlined.Timeline,
                 )
@@ -248,7 +253,7 @@ fun SessionPerformanceMetricsCard(
                     icon = Icons.Outlined.Memory,
                 )
                 DetailStatItem(
-                    title = "Duration",
+                    title = stringResource(R.string.record_stat_duration),
                     value = formatDuration(session.durationSeconds),
                     icon = Icons.Outlined.Timer,
                 )

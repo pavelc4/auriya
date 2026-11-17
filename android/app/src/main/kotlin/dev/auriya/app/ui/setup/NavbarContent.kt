@@ -16,10 +16,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.R
 import dev.auriya.app.data.NavMode
 import dev.auriya.app.data.NavType
 import dev.auriya.app.ui.theme.AuriyaFontFamily
@@ -49,7 +51,7 @@ fun NavbarContent(
             modifier = Modifier.padding(top = 8.dp),
         ) {
             Text(
-                text = "Navigation Bar Style",
+                text = stringResource(R.string.setup_navbar_title),
                 style =
                     MaterialTheme.typography.displayMedium.copy(
                         fontFamily = dev.auriya.app.ui.theme.GoogleSansRounded,
@@ -60,7 +62,7 @@ fun NavbarContent(
             )
             Spacer(modifier = Modifier.height(14.dp))
             Text(
-                text = "Customize bottom navigation geometry and floating behavior.",
+                text = stringResource(R.string.setup_navbar_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -117,12 +119,19 @@ fun NavbarContent(
                         Spacer(modifier = Modifier.width(14.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Floating Island Layout",
+                                text = stringResource(R.string.appearance_floating_island),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
-                                text = if (isFloating) "Floating pill capsule with rounded edges" else "Docked full-width standard navigation bar",
+                                text =
+                                    stringResource(
+                                        if (isFloating) {
+                                            R.string.appearance_floating_island_desc_true
+                                        } else {
+                                            R.string.appearance_floating_island_desc
+                                        },
+                                    ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

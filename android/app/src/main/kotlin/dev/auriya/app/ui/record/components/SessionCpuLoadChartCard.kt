@@ -227,7 +227,7 @@ fun SessionCpuLoadChartCard(
                                 color = MaterialTheme.colorScheme.primary,
                             )
                             Text(
-                                text = "CPU Load: %.1f%%".format(scrubSample.cpuLoad),
+                                text = stringResource(R.string.record_chart_cpu_load, scrubSample.cpuLoad),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = loadColor,

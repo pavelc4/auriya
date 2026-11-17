@@ -69,7 +69,7 @@ object LocaleHelper {
         // 2. Dynamic generation for each supported language tag
         for (tag in SUPPORTED_TAGS) {
             when (tag.lowercase()) {
-                "zh", "cn", "zh-cn" -> {
+                "zh", "zh-cn" -> {
                     list.add(
                         SupportedLanguage(
                             tag = "zh",
@@ -215,7 +215,7 @@ object LocaleHelper {
     private fun parseLocale(tag: String): Locale =
         when (tag.lowercase()) {
             "id", "in" -> Locale.forLanguageTag("in-ID")
-            "zh", "cn", "zh-cn" -> Locale.forLanguageTag("cn-ID")
+            "zh", "cn", "zh-cn" -> Locale.forLanguageTag("zh-CN")
             else -> Locale.forLanguageTag(tag)
         }
 
@@ -226,8 +226,8 @@ object LocaleHelper {
                     LocaleList(Locale.forLanguageTag("in-ID"), Locale.forLanguageTag("id-ID"))
                 }
 
-                "zh", "cn", "zh-cn" -> {
-                    LocaleList(Locale.forLanguageTag("cn-ID"), Locale.forLanguageTag("cn-ID"))
+                "zh", "zh-cn" -> {
+                    LocaleList(Locale.forLanguageTag("zh-CN"), Locale.forLanguageTag("zh-CN"))
                 }
 
                 else -> {

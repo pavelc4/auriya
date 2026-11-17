@@ -68,7 +68,7 @@ fun ProfileActionsBottomSheet(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Manage configurations for $appLabel",
+                        text = stringResource(R.string.games_manage_configs_for, appLabel),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -310,7 +310,7 @@ fun GovernorSelectionBottomSheet(
                                         color = MaterialTheme.colorScheme.primary,
                                     ) {
                                         Text(
-                                            text = "ACTIVE",
+                                            text = stringResource(R.string.common_active),
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onPrimary,
@@ -472,7 +472,7 @@ fun CeilingSelectionBottomSheet(
                                         color = MaterialTheme.colorScheme.tertiary,
                                     ) {
                                         Text(
-                                            text = "ACTIVE",
+                                            text = stringResource(R.string.common_active),
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onTertiary,
@@ -563,7 +563,8 @@ fun ThermalSelectionBottomSheet(
 
             items(options, key = { it }) { opt ->
                 val isSelected = opt.equals(selectedThermal, ignoreCase = true)
-                val (icon, subtitle) = getThermalInfo(opt)
+                val (icon, subtitleRes) = getThermalInfo(opt)
+                val subtitle = stringResource(subtitleRes)
 
                 Surface(
                     onClick = {

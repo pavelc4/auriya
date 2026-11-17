@@ -1,6 +1,7 @@
 package dev.auriya.app.service
 
 import android.graphics.drawable.Icon
+import androidx.annotation.StringRes
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
@@ -63,8 +64,11 @@ class AuriyaTileService : TileService() {
         }
 
         // Show Toast Notification
-        val profileName = nextMode.replaceFirstChar { it.uppercase() }
-        Toast.makeText(this, "Auriya: Profile set to $profileName", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+                this,
+                getString(R.string.tile_toast_profile_set, getString(profileTitleRes(nextMode))),
+                Toast.LENGTH_SHORT,
+            ).show()
 
         updateTileState()
     }
@@ -77,22 +81,32 @@ class AuriyaTileService : TileService() {
                 ?: "balance"
         val (profileName, iconRes) =
             when (current) {
-                "1", "performance" -> Pair("Performance", R.drawable.ic_gamepad)
-                "2", "balance" -> Pair("Balance", R.drawable.ic_settings)
-                "3", "powersave" -> Pair("Powersave", R.drawable.ic_battery)
-                "4", "fast", "fas" -> Pair("FAS", R.drawable.ic_gamepad)
+                "1", "performance" -> Pair(R.string.profile_preset_performance_title, R.drawable.ic_gamepad)
+                "2", "balance" -> Pair(R.string.profile_preset_balance_title, R.drawable.ic_settings)
+                "3", "powersave" -> Pair(R.string.profile_preset_powersave_title, R.drawable.ic_battery)
+                "4", "fast", "fas" -> Pair(R.string.profile_preset_fas_title, R.drawable.ic_gamepad)
                 else -> Pair("Balance", R.drawable.ic_settings)
             }
 
-        tile.label = "Auriya Profile"
+        tile.label = getString(R.string.tile_label)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            tile.subtitle = profileName
+            tile.subtitle = profileName as CharSequence?
         } else {
-            tile.label = "Auriya: $profileName"
+            tile.label = getString(R.string.tile_label_with_profile, profileName)
         }
 
         tile.icon = Icon.createWithResource(this, iconRes)
         tile.state = Tile.STATE_ACTIVE
         tile.updateTile()
     }
+
+    /** Maps a raw profile key to its localized display-name string resource. */
+    @StringRes
+    private fun profileTitleRes(profile: String): Int =
+        when (profile) {
+            "1", "performance" -> R.string.profile_preset_performance_title
+            "3", "powersave" -> R.string.profile_preset_powersave_title
+            "4", "fast", "fas" -> R.string.profile_preset_fas_title
+            else -> R.string.profile_preset_balance_title
+        }
 }

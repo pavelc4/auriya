@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -279,7 +280,7 @@ fun AboutScreen(
                                     AuriyaLoadingIndicator(size = 20.dp)
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                        text = "Fetching contributors...",
+                                        text = stringResource(R.string.about_fetching_contributors),
                                         style = MaterialTheme.typography.bodySmall,
                                         fontFamily = GoogleSansRounded,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -296,7 +297,7 @@ fun AboutScreen(
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(
-                                    text = "No other contributors found yet.",
+                                    text = stringResource(R.string.about_no_contributors),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(16.dp),
@@ -552,7 +553,7 @@ private fun MaintainerCard(
                 color = MaterialTheme.colorScheme.primaryContainer,
             ) {
                 Text(
-                    text = "Maintainer",
+                    text = stringResource(R.string.about_maintainer),
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
@@ -603,14 +604,14 @@ private fun SupportCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = "Buy a Coffee ?",
+                    text = stringResource(R.string.about_buy_coffee),
                     style = MaterialTheme.typography.titleMedium,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Support development and show your appreciation",
+                    text = stringResource(R.string.about_buy_coffee_sub),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -731,7 +732,7 @@ private fun ContributorCard(
                 color = MaterialTheme.colorScheme.secondaryContainer,
             ) {
                 Text(
-                    text = "${contributor.contributions} contrib.",
+                    text = stringResource(R.string.about_contributions_count, contributor.contributions),
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
@@ -779,7 +780,7 @@ private fun LicenseAndSpecsCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "GPL-3.0 License",
+                    text = stringResource(R.string.about_gpl_license),
                     style = MaterialTheme.typography.titleMedium,
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
@@ -838,7 +839,7 @@ private fun DocumentationCard(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Technical documentation for Auriya and personal optimization experiments.",
+                    text = stringResource(R.string.about_wiki_sub),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
