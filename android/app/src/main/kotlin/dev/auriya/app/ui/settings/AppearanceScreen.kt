@@ -278,16 +278,7 @@ fun AppearanceScreen(
                 item {
                     val context = LocalContext.current
                     val currentLangCode = LocaleHelper.getCurrentLanguage(context)
-                    val currentLangLabel =
-                        if (currentLangCode == LocaleHelper.SYSTEM) {
-                            androidx.compose.ui.res
-                                .stringResource(R.string.language_system)
-                        } else {
-                            val loc = java.util.Locale.forLanguageTag(currentLangCode)
-                            loc.getDisplayName(loc).replaceFirstChar {
-                                if (it.isLowerCase()) it.titlecase(loc) else it.toString()
-                            }
-                        }
+                    val currentLangLabel = LocaleHelper.getLanguageDisplayName(context, currentLangCode)
 
                     SettingsSubsection(
                         title =

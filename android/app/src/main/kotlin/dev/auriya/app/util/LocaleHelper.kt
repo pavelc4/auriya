@@ -25,15 +25,41 @@ object LocaleHelper {
     val currentLanguage: kotlinx.coroutines.flow.StateFlow<String> = _currentLanguage
 
     /**
-     * Supported language BCP-47 tags in Auriya.
-     * When new translations are contributed (e.g. values-es, values-ru),
-     * simply add their tag here.
+     * Supported language BCP-47 tags in Auriya, synchronized with Crowdin target languages.
      */
     val SUPPORTED_TAGS =
         listOf(
-            "zh",
             "en",
             "id",
+            "zh-CN",
+            "zh-TW",
+            "ja",
+            "ko",
+            "ru",
+            "de",
+            "fr",
+            "es-ES",
+            "pt-BR",
+            "pt-PT",
+            "it",
+            "tr",
+            "uk",
+            "vi",
+            "pl",
+            "ar",
+            "cs",
+            "el",
+            "hu",
+            "nl",
+            "ro",
+            "sv-SE",
+            "da",
+            "fi",
+            "no",
+            "he",
+            "ca",
+            "af",
+            "sr",
         )
 
     fun getSystemLocale(): Locale =
@@ -66,57 +92,54 @@ object LocaleHelper {
             ),
         )
 
-        // 2. Dynamic generation for each supported language tag
+        // 2. Dynamic generation for all supported language tags
         for (tag in SUPPORTED_TAGS) {
-            when (tag.lowercase()) {
-                "zh", "zh-cn" -> {
-                    list.add(
-                        SupportedLanguage(
-                            tag = "zh",
-                            nativeName = context.getString(R.string.language_zh_name),
-                            localizedName = context.getString(R.string.language_zh_desc),
-                        ),
-                    )
-                }
-
-                "en" -> {
-                    list.add(
-                        SupportedLanguage(
-                            tag = "en",
-                            nativeName = context.getString(R.string.language_en_name),
-                            localizedName = context.getString(R.string.language_en_desc),
-                        ),
-                    )
-                }
-
-                "id", "in" -> {
-                    list.add(
-                        SupportedLanguage(
-                            tag = "id",
-                            nativeName = context.getString(R.string.language_id_name),
-                            localizedName = context.getString(R.string.language_id_desc),
-                        ),
-                    )
-                }
-
-                else -> {
-                    val locale = parseLocale(tag)
-                    val nativeName =
-                        locale.getDisplayName(locale).substringBefore(" (").replaceFirstChar {
-                            if (it.isLowerCase()) it.titlecase(locale) else it.toString()
-                        }
-                    val localizedDesc = locale.getDisplayName(Locale.getDefault())
-                    list.add(
-                        SupportedLanguage(
-                            tag = tag,
-                            nativeName = nativeName,
-                            localizedName = localizedDesc,
-                        ),
-                    )
-                }
-            }
+            list.add(
+                SupportedLanguage(
+                    tag = tag,
+                    nativeName = getLanguageNativeName(context, tag),
+                    localizedName = getLanguageLocalizedName(context, tag),
+                ),
+            )
         }
         return list
+    }
+
+    fun getLanguageNativeName(context: Context, tag: String): String {
+        val clean = tag.trim().lowercase().replace('_', '-')
+        return when (clean) {
+            "zh", "zh-cn" -> context.getString(R.string.language_zh_name)
+            "zh-tw" -> "繁體中文"
+            "en" -> context.getString(R.string.language_en_name)
+            "id", "in" -> context.getString(R.string.language_id_name)
+            else -> {
+                val locale = parseLocale(tag)
+                val raw = locale.getDisplayName(locale)
+                raw.replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
+            }
+        }
+    }
+
+    fun getLanguageLocalizedName(context: Context, tag: String): String {
+        val clean = tag.trim().lowercase().replace('_', '-')
+        return when (clean) {
+            "zh", "zh-cn" -> context.getString(R.string.language_zh_desc)
+            "zh-tw" -> "Traditional Chinese"
+            "en" -> context.getString(R.string.language_en_desc)
+            "id", "in" -> context.getString(R.string.language_id_desc)
+            else -> {
+                val locale = parseLocale(tag)
+                val raw = locale.getDisplayName(Locale.getDefault())
+                raw.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+            }
+        }
+    }
+
+    fun getLanguageDisplayName(context: Context, tag: String): String {
+        if (tag == SYSTEM || tag.isEmpty()) {
+            return context.getString(R.string.language_system)
+        }
+        return getLanguageNativeName(context, tag)
     }
 
     fun setLocale(
@@ -160,14 +183,16 @@ object LocaleHelper {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val saved = prefs.getString(KEY_SELECTED_LANGUAGE, null)
         if (!saved.isNullOrEmpty()) {
-            return saved
+            return normalizeTag(saved)
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val locales = context.getSystemService(LocaleManager::class.java)?.applicationLocales
             if (locales != null && !locales.isEmpty) {
-                return SUPPORTED_TAGS.firstOrNull { locales.getFirstMatch(arrayOf(it)) != null }
-                    ?: SYSTEM
+                return SUPPORTED_TAGS.firstOrNull { tag ->
+                    val target = parseLocale(tag)
+                    locales.getFirstMatch(arrayOf(target.toLanguageTag(), target.language, tag)) != null
+                } ?: SYSTEM
             }
         }
         return SYSTEM
@@ -212,29 +237,43 @@ object LocaleHelper {
         resources.updateConfiguration(config, resources.displayMetrics)
     }
 
-    private fun parseLocale(tag: String): Locale =
-        when (tag.lowercase()) {
+    fun parseLocale(tag: String): Locale {
+        val clean = tag.trim().replace('_', '-')
+        return when (clean.lowercase()) {
             "id", "in" -> Locale.forLanguageTag("in-ID")
             "zh", "cn", "zh-cn" -> Locale.forLanguageTag("zh-CN")
-            else -> Locale.forLanguageTag(tag)
+            "zh-tw", "tw" -> Locale.forLanguageTag("zh-TW")
+            "he", "iw" -> Locale.forLanguageTag("he-IL")
+            "pt-br" -> Locale.forLanguageTag("pt-BR")
+            "pt-pt" -> Locale.forLanguageTag("pt-PT")
+            "es-es" -> Locale.forLanguageTag("es-ES")
+            "sv-se" -> Locale.forLanguageTag("sv-SE")
+            else -> Locale.forLanguageTag(clean)
         }
+    }
 
-    private fun createLocaleList(tag: String): LocaleList =
+    fun createLocaleList(tag: String): LocaleList =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            when (tag.lowercase()) {
-                "id", "in" -> {
-                    LocaleList(Locale.forLanguageTag("in-ID"), Locale.forLanguageTag("id-ID"))
+            val primary = parseLocale(tag)
+            val clean = tag.trim().lowercase().replace('_', '-')
+            val locales =
+                when (clean) {
+                    "id", "in" -> arrayOf(primary, Locale.forLanguageTag("id-ID"))
+                    "zh", "zh-cn" -> arrayOf(primary, Locale.forLanguageTag("zh-Hans"))
+                    "zh-tw" -> arrayOf(primary, Locale.forLanguageTag("zh-Hant"))
+                    else -> arrayOf(primary)
                 }
-
-                "zh", "zh-cn" -> {
-                    LocaleList(Locale.forLanguageTag("zh-CN"))
-                }
-
-                else -> {
-                    LocaleList(Locale.forLanguageTag(tag))
-                }
-            }
+            LocaleList(*locales)
         } else {
             LocaleList.getDefault()
         }
+
+    private fun normalizeTag(tag: String): String {
+        val clean = tag.trim().replace('_', '-')
+        return when (clean.lowercase()) {
+            "zh", "cn" -> "zh-CN"
+            "in" -> "id"
+            else -> tag
+        }
+    }
 }

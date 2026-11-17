@@ -65,7 +65,46 @@ android {
     }
 
     androidResources {
-        localeFilters += listOf("en", "id", "in", "zh", "zh-rCN")
+        localeFilters +=
+            listOf(
+                "en",
+                "id",
+                "in",
+                "zh",
+                "zh-rCN",
+                "zh-rTW",
+                "ja",
+                "ko",
+                "ru",
+                "de",
+                "fr",
+                "es",
+                "es-rES",
+                "pt",
+                "pt-rBR",
+                "pt-rPT",
+                "it",
+                "tr",
+                "uk",
+                "vi",
+                "pl",
+                "ar",
+                "cs",
+                "el",
+                "hu",
+                "nl",
+                "ro",
+                "sv",
+                "sv-rSE",
+                "da",
+                "fi",
+                "no",
+                "he",
+                "iw",
+                "ca",
+                "af",
+                "sr",
+            )
     }
 
     signingConfigs {
