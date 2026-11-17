@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Auriya</string>
-
-    <!-- Navigation 导航栏-->
+    <!-- Navigation -->
     <string name="nav_home">首页</string>
     <string name="nav_games">游戏</string>
     <string name="nav_config">配置</string>
     <string name="nav_record">性能</string>
-
-    <!-- Headers (Short & Clean) 标题 -->
+    <!-- Headers (Short & Clean) -->
     <string name="games_title">游戏</string>
     <string name="games_subtitle">单独配置游戏性能</string>
     <string name="config_title">配置</string>
@@ -17,8 +15,7 @@
     <string name="record_subtitle">性能检测与帧间隔</string>
     <string name="settings_title">设置</string>
     <string name="settings_subtitle">应用与守护进程设置</string>
-
-    <!-- Setup Wizard 设置向导 -->
+    <!-- Setup Wizard -->
     <string name="setup_welcome_title">欢迎使用 Auriya</string>
     <string name="setup_welcome_subtitle">适用于已获取 Root 权限的 Android 设备的性能管理与帧调度系统。</string>
     <string name="setup_root_title">需要 Root 权限</string>
@@ -32,7 +29,6 @@
     <string name="setup_done_title">设置完成！</string>
     <string name="setup_done_subtitle">Auriya 已完成配置，可以开始优化设备性能。</string>
     <string name="setup_btn_back">返回</string>
-
     <!-- Home -->
     <string name="home_status_active">运行中</string>
     <string name="home_status_inactive">未运行</string>
@@ -60,8 +56,7 @@
     <string name="home_telegram_channel_desc">官方公告与更新</string>
     <string name="home_open_issues">查看已有问题</string>
     <string name="home_report_issue">反馈问题或崩溃</string>
-
-    <!-- Games & Profile Tuning 游戏与配置调优-->
+    <!-- Games & Profile Tuning -->
     <string name="games_searchquery">搜索应用或包名</string>
     <string name="games_not_found">未找到应用</string>
     <string name="games_not_found_desc">请尝试使用其他关键词搜索。</string>
@@ -101,8 +96,7 @@
     <string name="games_thermal_preset_desc">游戏运行时应用的厂商温控配置</string>
     <string name="games_tuner_title">游戏调节</string>
     <string name="games_tuner_subtitle">为每款游戏单独设置 CPU 频率、目标帧率、刷新率与勿扰模式。</string>
-
-    <!-- Config Sub-screens 配置子屏幕-->
+    <!-- Config Sub-screens -->
     <string name="config_performance_engine">FAS 与性能调节</string>
     <string name="config_performance_engine_sub">帧感知调度、自适应调速器与模式调节</string>
     <string name="config_system_services">系统与守护进程服务</string>
@@ -121,8 +115,7 @@
     <string name="config_dnd_sub">游戏自动勿扰</string>
     <string name="config_profiles">预设调节</string>
     <string name="config_profiles_sub">微调帧率容差与温控阈值</string>
-
-    <!-- Record & Benchmark 记录与校准-->
+    <!-- Record & Benchmark -->
     <string name="record_fps_details">帧间隔</string>
     <string name="record_fps_details_sub">测试帧率与稳定性</string>
     <string name="record_thermals">温度</string>
@@ -134,8 +127,7 @@
     <string name="record_battery_sub">电池放电速率与健康状态</string>
     <string name="record_sessions">性能测试记录</string>
     <string name="record_sessions_sub">已保存的游戏性能测试记录</string>
-
-    <!-- Guides & Documentation Popups (指南与文档) -->
+    <!-- Guides & Documentation Popups (?) -->
     <string name="guide_overview">了解此页面的指标与功能</string>
     <string name="guide_telemetry_title">性能检测与记录指南</string>
     <string name="guide_telemetry_1_title">实时硬件检测</string>
@@ -160,8 +152,6 @@
     <string name="guide_thermals_battery_desc">监测电池组温度，了解电池状态。</string>
     <string name="guide_battery_title">电池指标指南</string>
     <string name="guide_sessions_title">性能测试记录指南</string>
-
-
     <string name="settings_display_metrics">显示与指标</string>
     <string name="settings_round_fps">帧率取整</string>
     <string name="settings_round_fps_desc">在界面与悬浮窗中将帧率显示为整数</string>
@@ -181,8 +171,7 @@
     <string name="settings_floating_overlay_desc">自定义悬浮窗位置、透明度与显示指标</string>
     <string name="settings_about">关于 Auriya</string>
     <string name="settings_about_desc">版本、作者、许可证与代码仓库</string>
-
-    <!-- Appearance 外观-->
+    <!-- Appearance -->
     <string name="appearance_title">外观</string>
     <string name="appearance_subtitle">主题模式、颜色与导航布局</string>
     <string name="appearance_global_theme">全局主题</string>
@@ -201,7 +190,6 @@
     <string name="theme_mode_follow_system_sub">动态跟随设备系统设置</string>
     <string name="theme_mode_light_sub">明亮干净的日间亮度</string>
     <string name="theme_mode_dark_sub">省电、高对比度的深色主题</string>
-
     <!--  Setup: Coloring / theme chooser  -->
     <string name="setup_coloring_title">选择你的主题</string>
     <string name="setup_coloring_subtitle">选择你偏好的视觉风格与个性化模式。</string>
@@ -209,28 +197,23 @@
     <string name="setup_theme_light_desc">明亮干净的日间亮度</string>
     <string name="setup_theme_system_desc">动态跟随 Android 设备设置</string>
     <string name="setup_recommended">推荐</string>
-
     <!--  Quick Settings tile  -->
     <string name="tile_label">Auriya 配置</string>
     <string name="tile_label_with_profile">Auriya：%1$s</string>
     <string name="tile_toast_profile_set">Auriya：已切换到%1$s</string>
-
     <!--  Notification channels  -->
     <string name="channel_benchmark_name">Auriya 性能测试服务</string>
     <string name="channel_benchmark_desc">在游戏过程中保持性能测试记录器运行</string>
     <string name="channel_overlay_name">Auriya 悬浮窗</string>
     <string name="channel_overlay_desc">显示实时系统遥测悬浮窗</string>
-
     <!--  Setup: navigation bar style  -->
     <string name="setup_navbar_title">导航栏样式</string>
     <string name="setup_navbar_subtitle">自定义底部导航的几何形状与悬浮行为。</string>
-
     <!--  Setup: done / bottom bar  -->
     <string name="setup_lets_explore">开始探索 Auriya</string>
     <string name="setup_lets_explore_sub">点击下方的对勾按钮开始使用。</string>
     <string name="setup_lets_go">开始</string>
     <string name="setup_step_counter">第 %1$d 步，共 %2$d 步</string>
-
     <!--  Config: floating overlay pane  -->
     <string name="overlay_preview_title">悬浮窗实时预览</string>
     <string name="overlay_preview_subtitle">悬浮窗布局的实时视觉预览</string>
@@ -238,32 +221,26 @@
     <string name="overlay_opacity_desc">调整背景块的不透明度</string>
     <string name="overlay_padding_desc">调整内部边距的厚度</string>
     <string name="overlay_corner_radius_desc">调整悬浮窗胶囊的圆角程度</string>
-
     <!--  Config: system services pane  -->
     <string name="config_log_level_subtitle">级别：%1$s</string>
     <string name="config_governor_subtitle">调度器：%1$s</string>
     <string name="common_badge_tuning">调优中</string>
-
     <!--  Games: profile detail  -->
     <string name="games_manage_configs_for">管理 %1$s 的配置</string>
     <string name="games_badge_low_latency">低延迟</string>
     <string name="games_badge_touch_boost">触控加速</string>
-
     <!--  Record: sessions history / empty states  -->
     <string name="record_no_sessions_title">暂无性能测试记录</string>
     <string name="record_no_sessions_desc">通过手动录制或游戏自动录制生成的记录将显示在这里。</string>
     <string name="record_selection_count">已选择 %1$d / %2$d</string>
-
     <!--  Record: session actions  -->
     <string name="record_save_csv_desc">直接将完整的逐秒 CSV 数据集生成并保存到 Download/auriya 目录，无需打开分享对话框。</string>
     <string name="record_share_csv_desc">打开 Android 分享面板，将 CSV 文件直接发送至 Google 表格、Microsoft Excel、云端硬盘或聊天应用。</string>
     <string name="record_copy_markdown_desc">将性能测试数据格式化整洁的 Markdown 文本并复制到剪贴板，方便在聊天和论坛中分享。</string>
     <string name="record_delete_session_desc">从设备本地存储中永久删除此录制文件。</string>
-
     <!--  Record: detail panes  -->
     <string name="record_thermal_insight">温控洞察</string>
     <string name="record_peak_sensor">峰值传感器</string>
-
     <!--  Record: summary card  -->
     <string name="record_summary_samples">\u2022 %1$s \u2022 %2$d 个采样</string>
     <string name="record_metrics_header">性能指标</string>
@@ -272,11 +249,9 @@
     <string name="record_stat_low01">0.1%% Low</string>
     <string name="record_stat_pacing">帧节奏 (σ)</string>
     <string name="record_stat_duration">时长</string>
-
     <!--  Record: telemetry cards (extra)  -->
     <string name="record_load_percent">%1$d%% 负载</string>
     <string name="record_cores_summary">%1$d 个核心 \u2022 %2$s</string>
-
     <!--  Record: chart labels / formatted values  -->
     <string name="record_chart_avg_fps">平均 %1$s FPS</string>
     <string name="record_chart_fps_value">FPS：%1$s</string>
@@ -291,14 +266,12 @@
     <string name="appearance_dark_theme_desc">始终保持深色主题</string>
     <string name="appearance_floating_island_desc_true">带圆角的胶囊底栏</string>
     <string name="appearance_floating_island_desc">固定宽度的标准底栏</string>
-
     <string name="appearance_floating_island_settings">调整圆角半径</string>
     <string name="appearance_floating_island_settings_desc">将导航栏的边角与设备的物理边角对齐，以获得无缝的视觉效果。</string>
     <string name="appearance_floating_island_settings_test">圆角半径</string>
     <string name="appearance_floating_island_settings_reset">重置</string>
     <string name="appearance_floating_island_settings_done">完成</string>
-
-    <!-- Language 语言-->
+    <!-- Language -->
     <string name="language_title">应用语言</string>
     <string name="language_subtitle">选择应用显示语言</string>
     <string name="language_system">跟随系统</string>
@@ -311,14 +284,12 @@
     <string name="language_zh_desc">简体中文</string>
     <string name="language_applied">语言已应用</string>
     <string name="language_active_badge">当前使用</string>
-
     <!-- Overlay HUD -->
     <string name="overlay_text_size">文字大小</string>
     <string name="overlay_opacity">背景不透明度</string>
     <string name="overlay_padding">内边距与外边距</string>
     <string name="overlay_corner_radius">圆角大小</string>
-
-    <!-- Developer Options 开发者选项-->
+    <!-- Developer Options -->
     <string name="dev_daemon_ops">守护进程与操作</string>
     <string name="dev_restart_daemon">重启守护进程</string>
     <string name="dev_restart_daemon_desc">强制重启后台 eBPF 守护进程</string>
@@ -329,10 +300,8 @@
     <string name="dev_root_diagnostics">Root 与诊断</string>
     <string name="dev_reset_oobe">重置设置向导</string>
     <string name="dev_reset_oobe_desc">下次启动时重新运行初始设置向导</string>
-
     <!-- About -->
     <string name="about_title">关于 Auriya</string>
-
     <!-- Common / Dialogs / Printilan -->
     <string name="common_cancel">取消</string>
     <string name="common_delete">删除</string>
@@ -340,7 +309,6 @@
     <string name="common_reset">重置</string>
     <string name="common_active">已启用</string>
     <string name="common_disabled">已停用</string>
-
     <!-- Config Sub-Panes -->
     <string name="config_sec_daemon_controls">守护进程控制</string>
     <string name="config_daemon_info_title">Auriya 守护进程</string>
@@ -349,17 +317,14 @@
     <string name="config_log_verbosity">日志详细程度</string>
     <string name="config_check_interval">检查间隔</string>
     <string name="config_check_interval_desc">守护进程状态检查频率</string>
-
     <string name="config_sec_scaling">调频设置</string>
     <string name="config_cpu_info_title">CPU 频率调速器</string>
     <string name="config_cpu_info_desc">调速器决定 Linux 内核如何根据空闲与负载情况调整 CPU 频率。点击下方选择或查看当前使用的调速器。</string>
-
     <string name="config_sec_dnd_auto">自动勿扰</string>
     <string name="config_dnd_info_title">勿扰模式（DND）</string>
     <string name="config_dnd_info_desc">列表中的游戏进入前台时，自动关闭通知提示音、横幅通知与来电铃声；游戏退出后恢复原有状态。</string>
     <string name="config_dnd_auto_game">游戏自动勿扰</string>
     <string name="config_dnd_auto_game_desc">游戏启动时自动静音通知</string>
-
     <string name="config_sec_dynamic_gov">动态调速器控制</string>
     <string name="config_dynamic_gov_info_title">动态切换调速器</string>
     <string name="config_dynamic_gov_info_desc">检测轻微卡顿与帧间隔波动。当抖动连续达到设定的帧数，且超过变异系数阈值时，Auriya 会临时切换至更激进的调速器，以缓解帧间隔突增。</string>
@@ -369,7 +334,6 @@
     <string name="config_cv_jitter_desc">触发切换的变异系数阈值</string>
     <string name="config_debounce_frames">防抖帧数</string>
     <string name="config_debounce_frames_desc">触发切换所需的连续抖动帧数</string>
-
     <string name="config_sec_fas">FAS 配置</string>
     <string name="config_fas_info_title">帧感知调度</string>
     <string name="config_fas_info_desc">FAS 通过 SurfaceFlinger 或 eBPF 实时计算帧间隔。掉帧时提高频率，低负载场景下降低频率，避免触发温控降频。</string>
@@ -381,14 +345,12 @@
     <string name="config_poll_interval_desc">FAS 重新计算帧率统计数据的间隔</string>
     <string name="config_thermal_limit">全局温度上限</string>
     <string name="config_thermal_limit_desc">触发降频前允许的设备温度上限</string>
-
     <string name="config_sec_preset_tuning">预设选择与调节</string>
     <string name="config_preset_info_title">性能模式预设调节</string>
     <string name="config_preset_info_desc">各性能模式通过帧率容差与温度上限，在功耗与流畅度之间取得平衡。</string>
     <string name="config_profile_to_tune">选择要调节的配置</string>
     <string name="config_fps_margin">帧率容差</string>
     <string name="config_fps_margin_desc">触发升频前允许的帧率下降幅度</string>
-
     <!-- Overlay HUD Extra -->
     <string name="overlay_sec_monet">Monet 与配色</string>
     <string name="overlay_monet_theme">Monet 动态主题</string>
@@ -397,13 +359,11 @@
     <string name="overlay_sec_tuning">悬浮窗调节</string>
     <string name="overlay_update_interval">更新间隔</string>
     <string name="overlay_update_interval_desc">性能检测数据的读取频率</string>
-
     <!-- Record Panes Extra -->
     <string name="record_system_idle">系统空闲</string>
     <string name="record_active_game">当前游戏</string>
     <string name="record_fps_mean">帧率</string>
     <string name="record_standby">待机</string>
-
     <!-- Config Actions Popup -->
     <string name="config_actions_title">配置操作</string>
     <string name="config_actions_subtitle">备份、导入或重置 settings.toml</string>
@@ -416,7 +376,6 @@
     <string name="config_reset_factory">恢复默认设置</string>
     <string name="config_reset_factory_sub">恢复出厂预设</string>
     <string name="config_reset_factory_desc">将守护进程状态检查间隔、CPU 调速器、FAS 阈值与配置中的帧率容差全部恢复为出厂默认值。</string>
-
     <!-- Record Panes & Metrics Full Localization -->
     <string name="record_sec_electrical">电池电气参数</string>
     <string name="record_battery_power_state">电池供电状态</string>
@@ -475,7 +434,6 @@
     <string name="record_no_benchmark_desc">记录一段游戏过程，即可生成帧间隔波动、稳定性曲线与温度变化图表。</string>
     <string name="record_sessions_count_summary">已记录 %1$d 次测试 • 点击查看并导出报告</string>
     <string name="record_no_sessions_recorded_yet">暂无测试记录</string>
-
     <!-- Benchmark Session Visualizations -->
     <string name="record_chart_fps_title">帧率（FPS）</string>
     <string name="record_chart_stability_title">稳定性分布</string>
@@ -495,7 +453,6 @@
     <string name="record_timeline_perf">性能变化</string>
     <string name="record_timeline_hardware">硬件与温度变化</string>
     <string name="record_sec_thermal_peaks">温度与硬件指标峰值</string>
-
     <!-- Settings, About & Floating Overlay Full Localization -->
     <string name="about_sec_license">许可证</string>
     <string name="about_license_sub">开源许可证与条款。</string>
@@ -515,7 +472,6 @@
     <string name="about_gpl_license">GPL-3.0 许可证</string>
     <string name="about_wiki_sub">Auriya 的技术文档与个人优化实验记录。</string>
     <string name="about_open_source">开源</string>
-
     <!--  Thermal preset descriptions  -->
     <string name="thermal_desc_default">游戏运行时不对厂商温控配置做任何修改。</string>
     <string name="thermal_desc_dynamic">自适应温控配置，平衡持续性能与发热。</string>
@@ -524,6 +480,9 @@
     <string name="thermal_desc_incalls">宽松的温控配置，通话时保持较高的温控上限。</string>
     <string name="thermal_desc_thermal20">部分 ROM 默认提供的宽松温度上限。</string>
     <string name="thermal_desc_vendor">应用厂商温控值，未使用特定游戏的预设。</string>
+    <!--  Home hero / daemon info  -->
+    <string name="home_daemon_build_title">Auriya Daemon %1$s</string>
+    <string name="home_daemon_build_desc">Running daemon build (%1$s) optimized for %2$s architecture. eBPF kernel tracing engine active.</string>
     <string name="appearance_floating_island">悬浮底栏</string>
     <string name="appearance_navbar_radius_sub">调整导航栏的圆角大小。</string>
     <string name="dev_root_verified">Root 验证通过</string>
@@ -565,7 +524,6 @@
     <string name="games_auto_bench_sub">游戏启动时自动记录性能测试</string>
     <string name="games_dialog_remove_title">移除配置？</string>
     <string name="games_dialog_remove_desc">将从当前配置列表中移除 %1$s。你可以在“游戏”页面重新添加。</string>
-
     <!--  Performance Profile 性能配置弹窗  -->
     <string name="profile_preset_powersave_title">省电模式</string>
     <string name="profile_preset_powersave_subtitle">最长续航</string>
@@ -581,5 +539,4 @@
     <string name="profile_preset_fas_description">零延迟帧交付，时钟频率动态快速拉升，带来电竞级响应速度。</string>
     <string name="config_performance_profile">性能配置</string>
     <string name="config_performance_profile_sub">为 CPU、GPU 与帧调度选择优化配置</string>
-
 </resources>
