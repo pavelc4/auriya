@@ -216,7 +216,7 @@ fun GameProfileHeroHeader(
                     if (wifiLock) {
                         CompactMetricChip(
                             icon = Icons.Outlined.Wifi,
-                            text = "Low Latency",
+                            text = stringResource(R.string.games_badge_low_latency),
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
@@ -225,7 +225,7 @@ fun GameProfileHeroHeader(
                     if (touchBoost) {
                         CompactMetricChip(
                             icon = Icons.Outlined.TouchApp,
-                            text = "Touch Boost",
+                            text = stringResource(R.string.games_badge_touch_boost),
                             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                             contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                         )

@@ -16,8 +16,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.auriya.app.R
 import dev.auriya.app.ui.components.bouncyClickable
 
 /**
@@ -103,14 +105,14 @@ fun SetupBottomBar(
             ) { targetPage ->
                 if (targetPage == 0) {
                     Text(
-                        text = "Let's go",
+                        text = stringResource(R.string.setup_lets_go),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary,
                     )
                 } else {
                     Text(
-                        text = "Step $targetPage of ${pageCount - 1}",
+                        text = stringResource(R.string.setup_step_counter, targetPage, pageCount - 1),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

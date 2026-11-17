@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -470,13 +471,12 @@ private fun ThermalDefaultSheet(
 
             items(options) { opt ->
                 val isSelected = opt == currentName
-                val (icon, subtitle) = getThermalInfo(opt)
+                val (icon, subtitleRes) = getThermalInfo(opt)
                 val desc =
                     if (opt == "auto") {
-                        androidx.compose.ui.res
-                            .stringResource(R.string.settings_thermal_default_auto)
+                        stringResource(R.string.settings_thermal_default_auto)
                     } else {
-                        subtitle
+                        stringResource(subtitleRes)
                     }
 
                 Surface(

@@ -10,7 +10,6 @@ import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -20,81 +19,68 @@ import dev.auriya.app.ui.config.components.BottomSheetHeader
 import dev.auriya.app.ui.config.components.RichSelectionCard
 
 /**
- * A raw, context-free declaration of a profile preset.
+ * A profile preset declaration.
  *
- * Text is kept as string resources (or plain literals) instead of resolved strings, because
- * `stringResource(...)` is a @Composable call and therefore cannot be evaluated at top level.
+ * Text is stored as string resource ids (not resolved strings) because `stringResource(...)`
+ * is a @Composable call and cannot be evaluated in a top-level initializer. Resolution happens
+ * at render time inside [ProfilePresetItem].
  */
-data class ProfilePresetSpec(
-    val id: String,
-    @StringRes val titleRes: Int = 0,
-    val title: String = "",
-    @StringRes val subtitleRes: Int = 0,
-    val subtitle: String = "",
-    @StringRes val descriptionRes: Int = 0,
-    val description: String = "",
-    val icon: ImageVector,
-)
-
-/** A fully resolved preset, safe to pass around as plain data. */
 data class ProfilePreset(
     val id: String,
-    val title: String,
-    val subtitle: String = "",
-    val description: String,
+    @StringRes val titleRes: Int,
+    @StringRes val subtitleRes: Int,
+    @StringRes val descriptionRes: Int,
     val icon: ImageVector,
 )
 
-val DEFAULT_PROFILE_PRESET_SPECS =
+/** Plain top-level constant: no composition involved, allocated once. */
+val DEFAULT_PROFILE_PRESETS =
     listOf(
-        ProfilePresetSpec(
+        ProfilePreset(
             id = "powersave",
-            titleRes = R.string.Performance_Powerasve,
-            subtitleRes = R.string.Performance_Powerasve_sub,
-            descriptionRes = R.string.Performance_Powerasve_des,
+            titleRes = R.string.profile_preset_powersave_title,
+            subtitleRes = R.string.profile_preset_powersave_subtitle,
+            descriptionRes = R.string.profile_preset_powersave_description,
             icon = Icons.Outlined.Eco,
         ),
-        ProfilePresetSpec(
+        ProfilePreset(
             id = "balance",
-            titleRes = R.string.Performance_Balance,
-            subtitleRes = R.string.Performance_Balance_sub,
-            descriptionRes = R.string.Performance_Balance_des,
+            titleRes = R.string.profile_preset_balance_title,
+            subtitleRes = R.string.profile_preset_balance_subtitle,
+            descriptionRes = R.string.profile_preset_balance_description,
             icon = Icons.Outlined.Speed,
         ),
-        ProfilePresetSpec(
+        ProfilePreset(
             id = "performance",
-            titleRes = R.string.Performance_Performance,
-            subtitleRes = R.string.Performance_Performance_sub,
-            descriptionRes = R.string.Performance_Performance_des,
+            titleRes = R.string.profile_preset_performance_title,
+            subtitleRes = R.string.profile_preset_performance_subtitle,
+            descriptionRes = R.string.profile_preset_performance_description,
             icon = Icons.Outlined.Bolt,
         ),
-        ProfilePresetSpec(
+        ProfilePreset(
             id = "fas",
-            titleRes = R.string.Performance_FAS,
-            subtitleRes = R.string.Performance_FAS_sub,
-            descriptionRes = R.string.Performance_FAS_des,
+            titleRes = R.string.profile_preset_fas_title,
+            subtitleRes = R.string.profile_preset_fas_subtitle,
+            descriptionRes = R.string.profile_preset_fas_description,
             icon = Icons.Outlined.RocketLaunch,
         ),
     )
 
-/** Resolves a spec into a [ProfilePreset]. Must be called from a @Composable scope. */
+/** Resolves the preset's strings at render time. Only called from composition. */
 @Composable
-fun ProfilePresetSpec.resolve(): ProfilePreset =
-    ProfilePreset(
-        id = id,
-        title = if (titleRes != 0) stringResource(titleRes) else title,
-        subtitle = if (subtitleRes != 0) stringResource(subtitleRes) else subtitle,
-        description = if (descriptionRes != 0) stringResource(descriptionRes) else description,
-        icon = icon,
+private fun ProfilePresetItem(
+    preset: ProfilePreset,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    RichSelectionCard(
+        title = stringResource(preset.titleRes),
+        subtitle = stringResource(preset.subtitleRes),
+        description = stringResource(preset.descriptionRes),
+        icon = preset.icon,
+        selected = selected,
+        onClick = onClick,
     )
-
-/** Resolves the built-in presets. Must be called from a @Composable scope. */
-@Composable
-fun rememberDefaultProfilePresets(): List<ProfilePreset> {
-    val specs = DEFAULT_PROFILE_PRESET_SPECS
-    return remember(specs) { specs.map { it.id } }.let { ids ->
-        ids.zip(specs).map { (_, spec) -> spec.resolve() }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -105,10 +91,9 @@ fun ProfilePickerBottomSheet(
     onDismiss: () -> Unit,
     title: String = stringResource(R.string.config_performance_profile),
     subtitle: String = stringResource(R.string.config_performance_profile_sub),
-    presets: List<ProfilePreset>? = null,
+    presets: List<ProfilePreset> = DEFAULT_PROFILE_PRESETS,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
-    val resolvedPresets = presets ?: rememberDefaultProfilePresets()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -133,19 +118,16 @@ fun ProfilePickerBottomSheet(
                         .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(resolvedPresets.size) { i ->
-                    val p = resolvedPresets[i]
+                items(presets.size) { i ->
+                    val p = presets[i]
                     val isSelected =
                         selectedProfile.equals(p.id, ignoreCase = true) ||
                             (
                                 (selectedProfile.equals("fas", ignoreCase = true) || selectedProfile.equals("fast", ignoreCase = true)) &&
                                     (p.id.equals("fas", ignoreCase = true) || p.id.equals("fast", ignoreCase = true))
                             )
-                    RichSelectionCard(
-                        title = p.title,
-                        subtitle = p.subtitle,
-                        description = p.description,
-                        icon = p.icon,
+                    ProfilePresetItem(
+                        preset = p,
                         selected = isSelected,
                         onClick = {
                             onSelect(p.id)

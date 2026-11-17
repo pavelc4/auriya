@@ -15,9 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.R
 import dev.auriya.app.data.OverlayPrefs
 import dev.auriya.app.ui.components.*
 import dev.auriya.app.ui.overlay.components.CpuClusterInfo
@@ -172,14 +174,14 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                     }
                     Column {
                         Text(
-                            text = "Live HUD Preview",
+                            text = stringResource(R.string.overlay_preview_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontFamily = GoogleSansRounded,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = "Real-time visual preview of your overlay layout",
+                            text = stringResource(R.string.overlay_preview_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = GoogleSansRounded,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -463,7 +465,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 title =
                     androidx.compose.ui.res
                         .stringResource(dev.auriya.app.R.string.overlay_text_size),
-                description = "Scale of the floating overlay text",
+                description = stringResource(R.string.overlay_text_size_desc),
                 icon = Icons.Rounded.TextFields,
                 value = textSizeSp,
                 onValueChange = {
@@ -481,7 +483,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 title =
                     androidx.compose.ui.res
                         .stringResource(dev.auriya.app.R.string.overlay_opacity),
-                description = "Opacity level of the backing block",
+                description = stringResource(R.string.overlay_opacity_desc),
                 icon = Icons.Rounded.Opacity,
                 value = bgOpacity,
                 onValueChange = {
@@ -498,7 +500,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 title =
                     androidx.compose.ui.res
                         .stringResource(dev.auriya.app.R.string.overlay_padding),
-                description = "Thickness of internal margins",
+                description = stringResource(R.string.overlay_padding_desc),
                 icon = Icons.Rounded.AspectRatio,
                 value = paddingDp,
                 onValueChange = {
@@ -515,7 +517,7 @@ fun FloatingOverlayContent(modifier: Modifier = Modifier) {
                 title =
                     androidx.compose.ui.res
                         .stringResource(dev.auriya.app.R.string.overlay_corner_radius),
-                description = "Rounding index of the overlay capsule",
+                description = stringResource(R.string.overlay_corner_radius_desc),
                 icon = Icons.Rounded.RoundedCorner,
                 value = cornerRadiusDp,
                 onValueChange = {

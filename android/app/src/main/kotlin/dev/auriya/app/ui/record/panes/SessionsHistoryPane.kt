@@ -60,14 +60,14 @@ fun SessionsHistoryPane(
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "No Benchmark Sessions",
+                    text = stringResource(R.string.record_no_sessions_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Sessions recorded via manual recording or per-game Auto Record will appear here.",
+                    text = stringResource(R.string.record_no_sessions_desc),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -96,7 +96,12 @@ fun SessionsHistoryPane(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
                                     Text(
-                                        text = "${selectedIds.size} of ${sessions.size} selected",
+                                        text =
+                                            stringResource(
+                                                R.string.record_selection_count,
+                                                selectedIds.size,
+                                                sessions.size,
+                                            ),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary,

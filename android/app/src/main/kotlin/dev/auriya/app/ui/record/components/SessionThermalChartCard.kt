@@ -106,7 +106,7 @@ fun SessionThermalChartCard(
                             color = cpuTempColor.copy(alpha = 0.15f),
                         ) {
                             Text(
-                                text = "CPU %.1f°C".format(session.maxCpuTemp),
+                                text = stringResource(R.string.record_chart_cpu_temp, session.maxCpuTemp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = cpuTempColor,
@@ -121,7 +121,7 @@ fun SessionThermalChartCard(
                             color = batTempColor.copy(alpha = 0.15f),
                         ) {
                             Text(
-                                text = "Bat %.1f°C".format(session.maxBatteryTemp),
+                                text = stringResource(R.string.record_chart_bat_temp, session.maxBatteryTemp),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = batTempColor,
@@ -284,7 +284,7 @@ fun SessionThermalChartCard(
                             )
                             if (scrubSample.cpuTemp != null) {
                                 Text(
-                                    text = "CPU: %.1f°C".format(scrubSample.cpuTemp),
+                                    text = stringResource(R.string.record_chart_cpu_temp_scrub, scrubSample.cpuTemp),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = cpuTempColor,
@@ -292,7 +292,7 @@ fun SessionThermalChartCard(
                             }
                             if (scrubSample.batteryTemp != null) {
                                 Text(
-                                    text = "Bat: %.1f°C".format(scrubSample.batteryTemp),
+                                    text = stringResource(R.string.record_chart_bat_temp_scrub, scrubSample.batteryTemp),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = batTempColor,

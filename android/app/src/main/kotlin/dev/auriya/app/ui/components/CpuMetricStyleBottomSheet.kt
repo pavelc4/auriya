@@ -1,5 +1,6 @@
 package dev.auriya.app.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,18 +17,72 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.auriya.app.R
 import dev.auriya.app.ui.config.components.BottomSheetHeader
 
+/**
+ * A CPU metric style option.
+ *
+ * Text is stored as string resource ids rather than resolved strings so this can stay a
+ * plain top-level constant; the labels are resolved at render time in
+ * [CpuMetricStyleCard].
+ */
 data class CpuMetricStyleItem(
     val style: String,
-    val title: String,
-    val subtitle: String,
+    @StringRes val titleRes: Int,
+    @StringRes val subtitleRes: Int,
     val icon: ImageVector,
 )
+
+val DEFAULT_CPU_METRIC_STYLES =
+    listOf(
+        CpuMetricStyleItem(
+            style = "tags",
+            titleRes = R.string.cpu_style_tags_title,
+            subtitleRes = R.string.cpu_style_tags_subtitle,
+            icon = Icons.Rounded.Tag,
+        ),
+        CpuMetricStyleItem(
+            style = "clusters",
+            titleRes = R.string.cpu_style_clusters_title,
+            subtitleRes = R.string.cpu_style_clusters_subtitle,
+            icon = Icons.Rounded.Hub,
+        ),
+        CpuMetricStyleItem(
+            style = "cores",
+            titleRes = R.string.cpu_style_cores_title,
+            subtitleRes = R.string.cpu_style_cores_subtitle,
+            icon = Icons.Rounded.DeveloperBoard,
+        ),
+        CpuMetricStyleItem(
+            style = "overview",
+            titleRes = R.string.cpu_style_overview_title,
+            subtitleRes = R.string.cpu_style_overview_subtitle,
+            icon = Icons.Rounded.Speed,
+        ),
+    )
+
+/** Resolves the style's strings at render time. Only called from composition. */
+@Composable
+private fun CpuMetricStyleCard(
+    item: CpuMetricStyleItem,
+    selected: Boolean,
+    shape: Shape,
+    onClick: () -> Unit,
+) {
+    ExpressiveSelectableCard(
+        selected = selected,
+        onClick = onClick,
+        title = stringResource(item.titleRes),
+        subtitle = stringResource(item.subtitleRes),
+        leadingIcon = item.icon,
+        shape = shape,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,33 +92,7 @@ fun CpuMetricStyleBottomSheet(
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
 ) {
-    val items =
-        listOf(
-            CpuMetricStyleItem(
-                style = "tags",
-                title = "Tags",
-                subtitle = "Inline cluster frequency badges (e.g. L 1.1 · M 1.7 · P 0.8)",
-                icon = Icons.Rounded.Tag,
-            ),
-            CpuMetricStyleItem(
-                style = "clusters",
-                title = "Clusters",
-                subtitle = "Frequency and load percentage for each cluster (little, big, prime)",
-                icon = Icons.Rounded.Hub,
-            ),
-            CpuMetricStyleItem(
-                style = "cores",
-                title = "Cores",
-                subtitle = "Individual per-core frequencies and utilization (cpu0..cpu7)",
-                icon = Icons.Rounded.DeveloperBoard,
-            ),
-            CpuMetricStyleItem(
-                style = "overview",
-                title = "Overview",
-                subtitle = "Total CPU utilization percentage and maximum core clock",
-                icon = Icons.Rounded.Speed,
-            ),
-        )
+    val items = DEFAULT_CPU_METRIC_STYLES
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -79,7 +108,7 @@ fun CpuMetricStyleBottomSheet(
         ) {
             BottomSheetHeader(
                 title = stringResource(R.string.overlay_cpu_style),
-                subtitle = "Choose how CPU telemetry metrics are formatted on the HUD",
+                subtitle = stringResource(R.string.overlay_cpu_style_sub),
             )
 
             Column(
@@ -93,16 +122,14 @@ fun CpuMetricStyleBottomSheet(
                     val isSelected = selectedStyle == item.style
                     val itemShape = animatedItemShapeFor(index, items.size, isSelected = isSelected)
 
-                    ExpressiveSelectableCard(
+                    CpuMetricStyleCard(
+                        item = item,
                         selected = isSelected,
+                        shape = itemShape,
                         onClick = {
                             onStyleSelected(item.style)
                             onDismiss()
                         },
-                        title = item.title,
-                        subtitle = item.subtitle,
-                        leadingIcon = item.icon,
-                        shape = itemShape,
                     )
                 }
             }

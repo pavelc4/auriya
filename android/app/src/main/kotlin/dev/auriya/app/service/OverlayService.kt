@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
+import dev.auriya.app.R
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
@@ -268,10 +269,10 @@ class OverlayService :
             val channel =
                 NotificationChannel(
                     channelId,
-                    "Auriya Floating Overlay",
+                    getString(R.string.channel_overlay_name),
                     NotificationManager.IMPORTANCE_LOW,
                 ).apply {
-                    description = "Shows live system telemetry HUD"
+                    description = getString(R.string.channel_overlay_desc)
                     setShowBadge(false)
                 }
             notificationManager.createNotificationChannel(channel)

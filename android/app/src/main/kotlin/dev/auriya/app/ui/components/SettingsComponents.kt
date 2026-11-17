@@ -18,10 +18,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.R
 import dev.auriya.app.ui.theme.AuriyaTokens
 import dev.auriya.app.ui.theme.GoogleSansRounded
 
@@ -766,7 +768,7 @@ fun <T> SingleChoiceDialog(
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text(
-                    text = "Cancel",
+                    text = stringResource(R.string.common_cancel),
                     fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -778,15 +780,15 @@ fun <T> SingleChoiceDialog(
     )
 }
 
-internal fun getThermalInfo(preset: String): Pair<ImageVector, String> {
+internal fun getThermalInfo(preset: String): Pair<ImageVector, Int> {
     val name = preset.lowercase().trim()
     return when (name) {
-        "default" -> Icons.Outlined.Thermostat to "Leave the vendor thermal profile untouched while this game runs."
-        "dynamic" -> Icons.Outlined.Thermostat to "Adaptive thermal profile balancing sustained performance and heat."
-        "extreme" -> Icons.Outlined.LocalFireDepartment to "Max performance thermal profile; expect higher device temperatures."
-        "class0" -> Icons.Outlined.Tune to "Stock class-0 thermal profile used by most ROMs."
-        "incalls" -> Icons.Outlined.Call to "Relaxed thermal profile that keeps limits loose during calls."
-        "thermal20" -> Icons.Outlined.DeviceThermostat to "Loose thermal ceiling shipped as default by some ROMs."
-        else -> Icons.Outlined.Thermostat to "Vendor thermal value applied without a per-game preset."
+        "default" -> Icons.Outlined.Thermostat to R.string.thermal_desc_default
+        "dynamic" -> Icons.Outlined.Thermostat to R.string.thermal_desc_dynamic
+        "extreme" -> Icons.Outlined.LocalFireDepartment to R.string.thermal_desc_extreme
+        "class0" -> Icons.Outlined.Tune to R.string.thermal_desc_class0
+        "incalls" -> Icons.Outlined.Call to R.string.thermal_desc_incalls
+        "thermal20" -> Icons.Outlined.DeviceThermostat to R.string.thermal_desc_thermal20
+        else -> Icons.Outlined.Thermostat to R.string.thermal_desc_vendor
     }
 }

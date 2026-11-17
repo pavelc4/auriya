@@ -1,5 +1,6 @@
 package dev.auriya.app.ui.setup.components
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -14,9 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.auriya.app.R
 import dev.auriya.app.data.DarkThemeMode
 
 @Composable
@@ -52,8 +55,8 @@ fun SummaryItem(
 
 data class ThemeOptionItem(
     val mode: DarkThemeMode,
-    val title: String,
-    val description: String,
+    @StringRes val titleRes: Int,
+    @StringRes val descriptionRes: Int,
     val icon: ImageVector,
     val recommended: Boolean = false,
 )
@@ -117,7 +120,7 @@ fun ThemeModeOptionCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = option.title,
+                        text = stringResource(option.titleRes),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
@@ -132,7 +135,7 @@ fun ThemeModeOptionCard(
                             shape = RoundedCornerShape(999.dp),
                         ) {
                             Text(
-                                text = "Recommended",
+                                text = stringResource(R.string.setup_recommended),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
@@ -144,7 +147,7 @@ fun ThemeModeOptionCard(
                     }
                 }
                 Text(
-                    text = option.description,
+                    text = stringResource(option.descriptionRes),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

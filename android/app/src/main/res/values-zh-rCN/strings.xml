@@ -127,6 +127,9 @@
     <string name="record_fps_details_sub">测试帧率与稳定性</string>
     <string name="record_thermals">温度</string>
     <string name="record_thermals_sub">CPU 与电池温度传感器</string>
+    <string name="record_gpu_graphics">GPU 图形</string>
+    <string name="record_thermals_desc">硬件温度监控</string>
+    <string name="record_battery_power">电池功率</string>
     <string name="record_battery">电池</string>
     <string name="record_battery_sub">电池放电速率与健康状态</string>
     <string name="record_sessions">性能测试记录</string>
@@ -194,6 +197,96 @@
     <string name="appearance_corner_radius">圆角大小</string>
     <string name="appearance_nav_layout">导航布局</string>
     <string name="appearance_follow_system_desc">跟随系统设置</string>
+    <string name="appearance_theme_mode_sub">选择你偏好的外观与界面风格</string>
+    <string name="theme_mode_follow_system_sub">动态跟随设备系统设置</string>
+    <string name="theme_mode_light_sub">明亮干净的日间亮度</string>
+    <string name="theme_mode_dark_sub">省电、高对比度的深色主题</string>
+
+    <!--  Setup: Coloring / theme chooser  -->
+    <string name="setup_coloring_title">选择你的主题</string>
+    <string name="setup_coloring_subtitle">选择你偏好的视觉风格与个性化模式。</string>
+    <string name="setup_theme_dark_desc">高对比度、省电的深色界面</string>
+    <string name="setup_theme_light_desc">明亮干净的日间亮度</string>
+    <string name="setup_theme_system_desc">动态跟随 Android 设备设置</string>
+    <string name="setup_recommended">推荐</string>
+
+    <!--  Quick Settings tile  -->
+    <string name="tile_label">Auriya 配置</string>
+    <string name="tile_label_with_profile">Auriya：%1$s</string>
+    <string name="tile_toast_profile_set">Auriya：已切换到%1$s</string>
+
+    <!--  Notification channels  -->
+    <string name="channel_benchmark_name">Auriya 性能测试服务</string>
+    <string name="channel_benchmark_desc">在游戏过程中保持性能测试记录器运行</string>
+    <string name="channel_overlay_name">Auriya 悬浮窗</string>
+    <string name="channel_overlay_desc">显示实时系统遥测悬浮窗</string>
+
+    <!--  Setup: navigation bar style  -->
+    <string name="setup_navbar_title">导航栏样式</string>
+    <string name="setup_navbar_subtitle">自定义底部导航的几何形状与悬浮行为。</string>
+
+    <!--  Setup: done / bottom bar  -->
+    <string name="setup_lets_explore">开始探索 Auriya</string>
+    <string name="setup_lets_explore_sub">点击下方的对勾按钮开始使用。</string>
+    <string name="setup_lets_go">开始</string>
+    <string name="setup_step_counter">第 %1$d 步，共 %2$d 步</string>
+
+    <!--  Config: floating overlay pane  -->
+    <string name="overlay_preview_title">悬浮窗实时预览</string>
+    <string name="overlay_preview_subtitle">悬浮窗布局的实时视觉预览</string>
+    <string name="overlay_text_size_desc">调整悬浮窗文字大小</string>
+    <string name="overlay_opacity_desc">调整背景块的不透明度</string>
+    <string name="overlay_padding_desc">调整内部边距的厚度</string>
+    <string name="overlay_corner_radius_desc">调整悬浮窗胶囊的圆角程度</string>
+
+    <!--  Config: system services pane  -->
+    <string name="config_log_level_subtitle">级别：%1$s</string>
+    <string name="config_governor_subtitle">调度器：%1$s</string>
+    <string name="common_badge_tuning">调优中</string>
+
+    <!--  Games: profile detail  -->
+    <string name="games_manage_configs_for">管理 %1$s 的配置</string>
+    <string name="games_badge_low_latency">低延迟</string>
+    <string name="games_badge_touch_boost">触控加速</string>
+
+    <!--  Record: sessions history / empty states  -->
+    <string name="record_no_sessions_title">暂无性能测试记录</string>
+    <string name="record_no_sessions_desc">通过手动录制或游戏自动录制生成的记录将显示在这里。</string>
+    <string name="record_selection_count">已选择 %1$d / %2$d</string>
+
+    <!--  Record: session actions  -->
+    <string name="record_save_csv_desc">直接将完整的逐秒 CSV 数据集生成并保存到 Download/auriya 目录，无需打开分享对话框。</string>
+    <string name="record_share_csv_desc">打开 Android 分享面板，将 CSV 文件直接发送至 Google 表格、Microsoft Excel、云端硬盘或聊天应用。</string>
+    <string name="record_copy_markdown_desc">将性能测试数据格式化整洁的 Markdown 文本并复制到剪贴板，方便在聊天和论坛中分享。</string>
+    <string name="record_delete_session_desc">从设备本地存储中永久删除此录制文件。</string>
+
+    <!--  Record: detail panes  -->
+    <string name="record_thermal_insight">温控洞察</string>
+    <string name="record_peak_sensor">峰值传感器</string>
+
+    <!--  Record: summary card  -->
+    <string name="record_summary_samples">\u2022 %1$s \u2022 %2$d 个采样</string>
+    <string name="record_metrics_header">性能指标</string>
+    <string name="record_avg_frame_rate">平均帧率</string>
+    <string name="record_low1pct_stability">1%% Low 稳定性</string>
+    <string name="record_stat_low01">0.1%% Low</string>
+    <string name="record_stat_pacing">帧节奏 (σ)</string>
+    <string name="record_stat_duration">时长</string>
+
+    <!--  Record: telemetry cards (extra)  -->
+    <string name="record_load_percent">%1$d%% 负载</string>
+    <string name="record_cores_summary">%1$d 个核心 \u2022 %2$s</string>
+
+    <!--  Record: chart labels / formatted values  -->
+    <string name="record_chart_avg_fps">平均 %1$s FPS</string>
+    <string name="record_chart_fps_value">FPS：%1$s</string>
+    <string name="record_chart_low1pct_value">1%% Low：%1$s</string>
+    <string name="record_chart_cpu_load">CPU 负载：%1$.1f%%</string>
+    <string name="record_chart_cpu_temp">CPU %1$.1f\u00b0C</string>
+    <string name="record_chart_bat_temp">电池 %1$.1f\u00b0C</string>
+    <string name="record_chart_cpu_temp_scrub">CPU：%1$.1f\u00b0C</string>
+    <string name="record_chart_bat_temp_scrub">电池：%1$.1f\u00b0C</string>
+    <string name="record_history_meta">%1$s \u2022 %2$s \u2022 %3$d 秒</string>
     <string name="appearance_light_theme_desc">始终保持浅色主题</string>
     <string name="appearance_dark_theme_desc">始终保持深色主题</string>
     <string name="appearance_floating_island_desc_true">带圆角的胶囊底栏</string>
@@ -414,6 +507,23 @@
     <string name="about_support_sub">支持持续开发与更新。</string>
     <string name="about_sec_contributors">贡献者</string>
     <string name="about_contributors_sub">项目的协作者与贡献者。</string>
+    <string name="about_fetching_contributors">正在获取贡献者…</string>
+    <string name="about_no_contributors">暂无其他贡献者。</string>
+    <string name="about_buy_coffee">请喝杯咖啡？</string>
+    <string name="about_buy_coffee_sub">支持开发并表达你的鼓励</string>
+    <string name="about_contributions_count">%1$d 次贡献</string>
+    <string name="about_gpl_license">GPL-3.0 许可证</string>
+    <string name="about_wiki_sub">Auriya 的技术文档与个人优化实验记录。</string>
+    <string name="about_open_source">开源</string>
+
+    <!--  Thermal preset descriptions  -->
+    <string name="thermal_desc_default">游戏运行时不对厂商温控配置做任何修改。</string>
+    <string name="thermal_desc_dynamic">自适应温控配置，平衡持续性能与发热。</string>
+    <string name="thermal_desc_extreme">最大化性能的温控配置，设备温度会明显升高。</string>
+    <string name="thermal_desc_class0">大多数 ROM 使用的默认 class-0 温控配置。</string>
+    <string name="thermal_desc_incalls">宽松的温控配置，通话时保持较高的温控上限。</string>
+    <string name="thermal_desc_thermal20">部分 ROM 默认提供的宽松温度上限。</string>
+    <string name="thermal_desc_vendor">应用厂商温控值，未使用特定游戏的预设。</string>
     <string name="appearance_floating_island">悬浮底栏</string>
     <string name="appearance_navbar_radius_sub">调整导航栏的圆角大小。</string>
     <string name="dev_root_verified">Root 验证通过</string>
@@ -439,7 +549,16 @@
     <string name="overlay_battery_temp_sub">显示当前电池温度</string>
     <string name="overlay_sec_display_layout">显示与布局</string>
     <string name="overlay_hud_mode">悬浮窗显示模式</string>
-    <string name="overlay_cpu_style">CPU 指标样式</string>
+    <string name="overlay_cpu_style">CPU 指标格式</string>
+    <string name="overlay_cpu_style_sub">选择悬浮窗中 CPU 遥测指标的显示格式</string>
+    <string name="cpu_style_tags_title">标签</string>
+    <string name="cpu_style_tags_subtitle">行内集群频率徽标（例如 L 1.1 · M 1.7 · P 0.8）</string>
+    <string name="cpu_style_clusters_title">集群</string>
+    <string name="cpu_style_clusters_subtitle">每个集群的频率与负载百分比（小核、大核、超大核）</string>
+    <string name="cpu_style_cores_title">核心</string>
+    <string name="cpu_style_cores_subtitle">逐核心频率与占用率（cpu0..cpu7）</string>
+    <string name="cpu_style_overview_title">概览</string>
+    <string name="cpu_style_overview_subtitle">CPU 总占用率与核心最高频率</string>
     <string name="settings_app_title">应用</string>
     <string name="settings_app_sub">应用通用设置与开发者工具</string>
     <string name="games_priority_notif_sub">启动时优先显示通知</string>
@@ -448,18 +567,18 @@
     <string name="games_dialog_remove_desc">将从当前配置列表中移除 %1$s。你可以在“游戏”页面重新添加。</string>
 
     <!--  Performance Profile 性能配置弹窗  -->
-    <string name="Performance_Powerasve">省电模式</string>
-    <string name="Performance_Powerasve_sub">最长续航</string>
-    <string name="Performance_Powerasve_des">限制时钟频率，并对后台任务进行激进的限制，以最大化电池续航时间。</string>
-    <string name="Performance_Balance">均衡模式</string>
-    <string name="Performance_Balance_sub">日常平衡性能与续航</string>
-    <string name="Performance_Balance_des">均衡耗电与性能，以流畅使用软件</string>
-    <string name="Performance_Performance">性能模式</string>
-    <string name="Performance_Performance_sub">高性能</string>
-    <string name="Performance_Performance_des">释放 CPU 与 GPU 功耗限制，轻松应对高强度游戏与复杂任务。</string>
-    <string name="Performance_FAS">FAS</string>
-    <string name="Performance_FAS_sub">动态 FAS / 加速</string>
-    <string name="Performance_FAS_des">零延迟帧交付，时钟频率动态快速拉升，带来电竞级响应速度。</string>
+    <string name="profile_preset_powersave_title">省电模式</string>
+    <string name="profile_preset_powersave_subtitle">最长续航</string>
+    <string name="profile_preset_powersave_description">限制时钟频率，并对后台任务进行激进的限制，以最大化电池续航时间。</string>
+    <string name="profile_preset_balance_title">均衡模式</string>
+    <string name="profile_preset_balance_subtitle">日常平衡性能与续航</string>
+    <string name="profile_preset_balance_description">均衡耗电与性能，以流畅使用软件</string>
+    <string name="profile_preset_performance_title">性能模式</string>
+    <string name="profile_preset_performance_subtitle">高性能</string>
+    <string name="profile_preset_performance_description">释放 CPU 与 GPU 功耗限制，轻松应对高强度游戏与复杂任务。</string>
+    <string name="profile_preset_fas_title">FAS</string>
+    <string name="profile_preset_fas_subtitle">动态 FAS / 加速</string>
+    <string name="profile_preset_fas_description">零延迟帧交付，时钟频率动态快速拉升，带来电竞级响应速度。</string>
     <string name="config_performance_profile">性能配置</string>
     <string name="config_performance_profile_sub">为 CPU、GPU 与帧调度选择优化配置</string>
 

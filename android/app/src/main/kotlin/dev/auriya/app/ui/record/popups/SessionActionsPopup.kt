@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import dev.auriya.app.data.stats.BenchmarkSession
 import dev.auriya.app.ui.components.AuriyaDragHandle
 import dev.auriya.app.ui.config.components.BottomSheetHeader
@@ -51,25 +52,17 @@ fun SessionActionsPopup(
         ) {
             item {
                 BottomSheetHeader(
-                    title =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_session_actions),
-                    subtitle =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_session_actions_sub),
+                    title = stringResource(dev.auriya.app.R.string.record_session_actions),
+                    subtitle = stringResource(dev.auriya.app.R.string.record_session_actions_sub),
                 )
             }
 
             // 1. Export CSV directly to Download/auriya (No popup share sheet)
             item {
                 RichSelectionCard(
-                    title =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_save_csv),
-                    subtitle =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_save_csv_sub),
-                    description = "Generates and saves the full second-by-second CSV dataset directly to your Download/auriya directory without opening share dialogs.",
+                    title = stringResource(dev.auriya.app.R.string.record_save_csv),
+                    subtitle = stringResource(dev.auriya.app.R.string.record_save_csv_sub),
+                    description = stringResource(dev.auriya.app.R.string.record_save_csv_desc),
                     icon = Icons.Outlined.TableChart,
                     selected = false,
                     onClick = {
@@ -82,13 +75,9 @@ fun SessionActionsPopup(
             // 2. Share CSV File via App Chooser (Optional sharing)
             item {
                 RichSelectionCard(
-                    title =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_share_csv),
-                    subtitle =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_share_csv_sub),
-                    description = "Open Android's sharing sheet to send the CSV file directly to Google Sheets, Microsoft Excel, Drive, or messaging apps.",
+                    title = stringResource(dev.auriya.app.R.string.record_share_csv),
+                    subtitle =stringResource(dev.auriya.app.R.string.record_share_csv_sub),
+                    description = stringResource(dev.auriya.app.R.string.record_share_csv_desc),
                     icon = Icons.Outlined.Share,
                     selected = false,
                     onClick = {
@@ -101,13 +90,9 @@ fun SessionActionsPopup(
             // 3. Copy Markdown Summary
             item {
                 RichSelectionCard(
-                    title =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_copy_markdown),
-                    subtitle =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_copy_markdown_sub),
-                    description = "Formats benchmark stats into clean Markdown text and copies it to your clipboard for quick sharing in chats and forums.",
+                    title = stringResource(dev.auriya.app.R.string.record_copy_markdown),
+                    subtitle = stringResource(dev.auriya.app.R.string.record_copy_markdown_sub),
+                    description = stringResource(dev.auriya.app.R.string.record_copy_markdown_desc),
                     icon = Icons.Outlined.ContentCopy,
                     selected = false,
                     onClick = {
@@ -120,13 +105,9 @@ fun SessionActionsPopup(
             // 4. Delete Session
             item {
                 RichSelectionCard(
-                    title =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_delete_session),
-                    subtitle =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_delete_session_sub),
-                    description = "Permanently remove this recording file from your device local storage.",
+                    title = stringResource(dev.auriya.app.R.string.record_delete_session),
+                    subtitle = stringResource(dev.auriya.app.R.string.record_delete_session_sub),
+                    description = stringResource(dev.auriya.app.R.string.record_delete_session_desc),
                     icon = Icons.Outlined.DeleteOutline,
                     selected = false,
                     onClick = {

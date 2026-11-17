@@ -73,7 +73,7 @@ fun ThemeModeBottomSheet(
         ) {
             BottomSheetHeader(
                 title = stringResource(R.string.appearance_theme_mode),
-                subtitle = "Choose your preferred visual appearance and interface style",
+                subtitle = stringResource(R.string.appearance_theme_mode_sub),
             )
 
             Column(

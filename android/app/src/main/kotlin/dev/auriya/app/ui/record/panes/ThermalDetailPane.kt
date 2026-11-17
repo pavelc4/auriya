@@ -24,11 +24,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.auriya.app.R
 import dev.auriya.app.data.stats.Thermal
 import dev.auriya.app.ui.theme.ExpTitleTypography
 
@@ -58,9 +60,7 @@ fun ThermalDetailPane(
             // 2. Thermal Headroom & Characteristics (Compact & Uniform)
             item {
                 Text(
-                    text =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_sec_thermal_characteristics),
+                    text = stringResource(R.string.record_sec_thermal_characteristics),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -80,13 +80,9 @@ fun ThermalDetailPane(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     ThermalCharacteristicCard(
-                        title =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.record_thermal_headroom),
+                        title = stringResource(R.string.record_thermal_headroom),
                         value = if (maxTemp > 0f) "+%.1f°C".format(headroom) else "--",
-                        desc =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.record_thermal_headroom_desc),
+                        desc = stringResource(R.string.record_thermal_headroom_desc),
                         icon = Icons.Outlined.Shield,
                         modifier =
                             Modifier
@@ -94,18 +90,14 @@ fun ThermalDetailPane(
                                 .fillMaxHeight(),
                     )
                     ThermalCharacteristicCard(
-                        title =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.record_cooling_profile),
+                        title = stringResource(R.string.record_cooling_profile),
                         value =
                             when {
                                 maxTemp >= 70f -> "Throttled"
                                 maxTemp >= 50f -> "Active Load"
                                 else -> "Nominal"
                             },
-                        desc =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.record_governor_state),
+                        desc = stringResource(R.string.record_governor_state),
                         icon = Icons.Outlined.Air,
                         modifier =
                             Modifier
@@ -118,9 +110,7 @@ fun ThermalDetailPane(
             // 3. Sensor Zones Breakdown
             item {
                 Text(
-                    text =
-                        androidx.compose.ui.res
-                            .stringResource(dev.auriya.app.R.string.record_sec_sensor_zones),
+                    text = stringResource(R.string.record_sec_sensor_zones),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -131,9 +121,7 @@ fun ThermalDetailPane(
             if (thermal.cpu_c != null) {
                 item {
                     SensorDetailCard(
-                        title =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.record_cpu_processor),
+                        title = stringResource(R.string.record_cpu_processor),
                         temp = thermal.cpu_c,
                         icon = Icons.Outlined.Memory,
                         desc = "Primary core cluster junction • Target < 75°C",
@@ -144,9 +132,7 @@ fun ThermalDetailPane(
             if (thermal.battery_c != null) {
                 item {
                     SensorDetailCard(
-                        title =
-                            androidx.compose.ui.res
-                                .stringResource(dev.auriya.app.R.string.record_battery_cell),
+                        title = stringResource(R.string.record_battery_cell),
                         temp = thermal.battery_c,
                         icon = Icons.Outlined.BatteryChargingFull,
                         desc = "Lithium cell core pack • Safe range < 45°C",
@@ -237,7 +223,7 @@ fun ThermalInsightCard(
                         )
                     }
                     Text(
-                        text = "Thermal Insight",
+                        text = stringResource(R.string.record_thermal_insight),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -306,7 +292,7 @@ fun ThermalInsightCard(
                                 ),
                         )
                         Text(
-                            text = "Peak Sensor",
+                            text = stringResource(R.string.record_peak_sensor),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
