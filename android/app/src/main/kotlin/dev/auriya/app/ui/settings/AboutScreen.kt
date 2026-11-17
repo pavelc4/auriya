@@ -368,19 +368,31 @@ private fun AuriyaHeroCard(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Surface(
-                    shape = CircleShape,
+                    shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHighest,
                     modifier = Modifier.size(54.dp),
                 ) {
-                    Image(
-                        painter = painterResource(dev.auriya.app.R.drawable.hiyuki),
-                        contentDescription = "Auriya",
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape),
-                        contentScale = ContentScale.Crop,
-                    )
+                    if (appIconBitmap != null) {
+                        Image(
+                            bitmap = appIconBitmap,
+                            contentDescription = "Auriya",
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(14.dp)),
+                            contentScale = ContentScale.Crop,
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(dev.auriya.app.R.drawable.icon),
+                            contentDescription = "Auriya",
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(14.dp)),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
                 }
 
                 Column(
