@@ -648,7 +648,7 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 [[package]]
 name = "kala-ebpf"
 version = "0.2.0"
-source = "git+https://github.com/pavelc4/kala?branch=main#ff4c4a9a0eafc108859374ae4da1b677945c1fe0"
+source = "git+https://github.com/pavelc4/kala?branch=main#22be6213ee8c90b35eba58d7833b63456b81302d"
 dependencies = [
  "aya",
  "libc",
