@@ -88,7 +88,7 @@ rsbinder = { version = "0.13.0", features = ["android_14_plus", "macros"] }
 [dev-dependencies]
 dhat = "0.3.3"
 loom = { version = "0.7.2", features = ["futures"] }
-nix = { version = "0.31.3", default-features = false, features = [
+nix = { version = "0.32.0", default-features = false, features = [
   "user",
   "signal",
   "process",
