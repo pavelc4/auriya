@@ -36,16 +36,20 @@ impl DaemonContext {
 
     /// Set target FPS on FAS controller if active.
     pub async fn set_fps(&self, fps: u32) {
-        if let Some(fas) = &self.fas_controller {
-            let mut guard = fas.lock().await;
+        if let Some(fas) = &self.fas_controller
+            && let Ok(mut guard) =
+                tokio::time::timeout(std::time::Duration::from_millis(50), fas.lock()).await
+        {
             guard.set_target_fps(fps);
         }
     }
 
     /// Get current target FPS from FAS controller (or 60 default).
     pub async fn get_fps(&self) -> u32 {
-        if let Some(fas) = &self.fas_controller {
-            let guard = fas.lock().await;
+        if let Some(fas) = &self.fas_controller
+            && let Ok(guard) =
+                tokio::time::timeout(std::time::Duration::from_millis(50), fas.lock()).await
+        {
             return guard.get_target_fps();
         }
         60

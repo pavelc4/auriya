@@ -142,6 +142,7 @@ fn handle_restart() -> Result<bool> {
         .stderr(std::process::Stdio::null());
 
     unsafe {
+        // SAFETY: setsid() is an async-signal-safe POSIX call safe between fork and exec.
         cmd.pre_exec(|| {
             libc::setsid();
             Ok(())
@@ -161,22 +162,23 @@ fn handle_restart() -> Result<bool> {
 }
 
 async fn handle_list_packages() -> String {
+    use std::time::Duration;
     use tokio::process::Command as TokioCommand;
     debug!(target: "auriya::ipc", "Executing ListPackages...");
-    match TokioCommand::new("pm")
-        .arg("list")
-        .arg("packages")
-        .output()
-        .await
-    {
-        Ok(output) => {
+    let cmd = TokioCommand::new("pm").arg("list").arg("packages").output();
+    match tokio::time::timeout(Duration::from_secs(4), cmd).await {
+        Ok(Ok(output)) => {
             let stdout = String::from_utf8_lossy(&output.stdout);
             debug!(target: "auriya::ipc", "ListPackages success, len: {}", stdout.len());
             format!("{stdout}\n")
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             error!(target: "auriya::ipc", "ListPackages failed: {e:?}");
             format!("ERR LIST_PACKAGES {e:?}\n")
+        }
+        Err(_) => {
+            error!(target: "auriya::ipc", "ListPackages timed out after 4s");
+            "ERR LIST_PACKAGES TIMEOUT\n".to_string()
         }
     }
 }

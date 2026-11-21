@@ -24,7 +24,7 @@ pub fn start_config_watcher(shared_gamelist: Arc<RwLock<Arc<GameList>>>) -> mpsc
                         .unwrap_or_default();
 
                     if path_str.contains("settings.toml") {
-                        let _ = tx.blocking_send("settings".to_string());
+                        let _ = tx.try_send("settings".to_string());
                         return;
                     }
 
@@ -32,7 +32,7 @@ pub fn start_config_watcher(shared_gamelist: Arc<RwLock<Arc<GameList>>>) -> mpsc
                         crate::core::config::load_custom_blacklist(
                             crate::core::config::blacklist_path(),
                         );
-                        let _ = tx.blocking_send("blacklist".to_string());
+                        let _ = tx.try_send("blacklist".to_string());
                         return;
                     }
 
@@ -42,7 +42,7 @@ pub fn start_config_watcher(shared_gamelist: Arc<RwLock<Arc<GameList>>>) -> mpsc
 
                     debug!(target: "auriya::daemon", "Gamelist file changed, reloading...");
                     reload_gamelist_with_retry(&path, &shared_for_watcher);
-                    let _ = tx.blocking_send("gamelist".to_string());
+                    let _ = tx.try_send("gamelist".to_string());
                 }
             }) {
                 Ok(w) => w,
