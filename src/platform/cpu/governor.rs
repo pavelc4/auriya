@@ -111,11 +111,23 @@ pub fn set_governor_cached(governor: &str) {
     let paths = cpu_paths();
 
     for path in &paths.governors_cpu {
-        let _ = std::fs::write(path, target);
+        if let Err(e) = std::fs::write(path, target) {
+            tracing::debug!(
+                "Failed to write governor '{}' to {}: {e}",
+                target,
+                path.display()
+            );
+        }
     }
 
     for path in &paths.governors_policy {
-        let _ = std::fs::write(path, target);
+        if let Err(e) = std::fs::write(path, target) {
+            tracing::debug!(
+                "Failed to write governor '{}' to {}: {e}",
+                target,
+                path.display()
+            );
+        }
     }
 }
 
@@ -123,7 +135,9 @@ pub fn online_all_cores_cached() {
     let paths = cpu_paths();
 
     for path in &paths.online {
-        let _ = std::fs::write(path, "1");
+        if let Err(e) = std::fs::write(path, "1") {
+            tracing::debug!("Failed to online core via {}: {e}", path.display());
+        }
     }
 }
 pub struct SnapdragonPaths {

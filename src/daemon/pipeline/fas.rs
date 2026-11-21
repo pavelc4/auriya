@@ -42,52 +42,57 @@ impl Daemon {
         let is_game = self.cached_whitelist.contains(pkg);
         let enable_dnd = is_game && global_dnd && game_cfg.map(|c| c.enable_dnd).unwrap_or(true);
 
-        if self.status_cache.is_floating() {
-            if self.last_fps_config.as_deref() != Some("floating_30") {
-                let mut f = fas_arc.lock().await;
-                f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Single(30));
-                self.last_fps_config = Some("floating_30".to_string());
-                debug!(target: "auriya::fas", "Floating/freeform window detected for {}, capping FAS to 30 FPS", pkg);
-            }
-        } else if let Some(cfg) = game_cfg
-            && let Some(ref fps_cfg) = cfg.target_fps
-        {
-            let buf_cfg = fps_cfg.to_buffer_config();
-            let mut fps_key = String::new();
-            for (i, v) in buf_cfg.as_slice().iter().enumerate() {
-                use std::fmt::Write;
-                if i > 0 {
-                    fps_key.push(',');
+        let is_floating = self.status_cache.is_floating();
+        let configured_fps = game_cfg.and_then(|c| c.target_fps.as_ref());
+
+        match (is_floating, configured_fps) {
+            (true, _) => {
+                if self.last_fps_config.as_deref() != Some("floating_30") {
+                    let mut f = fas_arc.lock().await;
+                    f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Single(30));
+                    self.last_fps_config = Some("floating_30".to_string());
+                    debug!(target: "auriya::fas", "Floating/freeform window detected for {}, capping FAS to 30 FPS", pkg);
                 }
-                let _ = write!(fps_key, "{v}");
             }
-            if self.last_fps_config.as_deref() != Some(&fps_key) {
-                let mut f = fas_arc.lock().await;
-                f.set_target_fps_config(buf_cfg);
-                self.last_fps_config = Some(fps_key);
+            (false, Some(fps_cfg)) => {
+                let buf_cfg = fps_cfg.to_buffer_config();
+                let mut fps_key = String::new();
+                for (i, v) in buf_cfg.as_slice().iter().enumerate() {
+                    use std::fmt::Write;
+                    if i > 0 {
+                        fps_key.push(',');
+                    }
+                    let _ = write!(fps_key, "{v}");
+                }
+                if self.last_fps_config.as_deref() != Some(&fps_key) {
+                    let mut f = fas_arc.lock().await;
+                    f.set_target_fps_config(buf_cfg);
+                    self.last_fps_config = Some(fps_key);
+                }
             }
-        } else {
-            let supported_rates = crate::platform::binder::query_binder_supported_rates();
-            let max_allowed_hz = self.applied_refresh_rate.unwrap_or(0);
-            let effective_rates = if max_allowed_hz > 0 {
-                supported_rates
-                    .into_iter()
-                    .filter(|&r| r <= max_allowed_hz)
-                    .collect()
-            } else {
-                supported_rates
-            };
-            let effective_rates = match effective_rates.as_slice() {
-                [] => vec![60],
-                _ => effective_rates,
-            };
-            let auto_key = format!("auto_multi_{:?}", effective_rates);
-            if self.last_fps_config.as_deref() != Some(&auto_key) {
-                let mut f = fas_arc.lock().await;
-                f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(
-                    effective_rates,
-                ));
-                self.last_fps_config = Some(auto_key);
+            (false, None) => {
+                let supported_rates = crate::platform::binder::query_binder_supported_rates();
+                let max_allowed_hz = self.applied_refresh_rate.unwrap_or(0);
+                let effective_rates = if max_allowed_hz > 0 {
+                    supported_rates
+                        .into_iter()
+                        .filter(|&r| r <= max_allowed_hz)
+                        .collect()
+                } else {
+                    supported_rates
+                };
+                let effective_rates = match effective_rates.as_slice() {
+                    [] => vec![60],
+                    _ => effective_rates,
+                };
+                let auto_key = format!("auto_multi_{:?}", effective_rates);
+                if self.last_fps_config.as_deref() != Some(&auto_key) {
+                    let mut f = fas_arc.lock().await;
+                    f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(
+                        effective_rates,
+                    ));
+                    self.last_fps_config = Some(auto_key);
+                }
             }
         }
 
@@ -145,6 +150,15 @@ impl Daemon {
             fas_guard.set_package(pkg, pid);
             fas_guard.tick(fallback_fps).await?
         };
+
+        tracing::trace!(
+            target: "auriya::fas",
+            "FAS evaluation: pkg={} pid={:?} fallback_fps={:?} -> action={:?}",
+            pkg,
+            pid,
+            fallback_fps,
+            action
+        );
 
         let pid_opt = self.last.pid;
         match action {

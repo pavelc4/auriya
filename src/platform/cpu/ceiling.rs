@@ -61,12 +61,14 @@ impl CoreLayout {
         let mut prime_ids = Vec::new();
 
         for &c in &cores_for_classify {
-            if (prime_mask >> c) & 1 == 1 {
-                prime_ids.push(c);
-            } else if (big_mask >> c) & 1 == 1 {
-                big_ids.push(c);
-            } else if (little_mask >> c) & 1 == 1 {
-                little_ids.push(c);
+            let is_prime = (prime_mask >> c) & 1 == 1;
+            let is_big = (big_mask >> c) & 1 == 1;
+            let is_little = (little_mask >> c) & 1 == 1;
+            match (is_prime, is_big, is_little) {
+                (true, _, _) => prime_ids.push(c),
+                (_, true, _) => big_ids.push(c),
+                (_, _, true) => little_ids.push(c),
+                _ => {}
             }
         }
 

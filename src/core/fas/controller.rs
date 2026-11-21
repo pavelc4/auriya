@@ -326,12 +326,11 @@ impl FasController {
         let Some(util) = self.util_sampler.sample(UTIL_SAMPLE_INTERVAL) else {
             return;
         };
-        if util <= 0.10 {
-            self.target_fps_offset = 0.0;
-        } else if util <= 0.55 {
-            self.target_fps_offset -= 0.1;
-        } else if util >= 0.65 {
-            self.target_fps_offset += 0.1;
+        match util {
+            u if u <= 0.10 => self.target_fps_offset = 0.0,
+            u if u <= 0.55 => self.target_fps_offset -= 0.1,
+            u if u >= 0.65 => self.target_fps_offset += 0.1,
+            _ => {}
         }
         self.target_fps_offset = self.target_fps_offset.clamp(-3.0, 0.0);
     }

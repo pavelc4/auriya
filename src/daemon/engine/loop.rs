@@ -75,12 +75,10 @@ pub async fn run_with_config(cfg: DaemonConfig, filter_handle: ReloadHandle) -> 
     daemon.tick().await;
 
     loop {
-        let sleep_ms = if daemon.is_suspended() {
-            SCREEN_OFF_INTERVAL_MS
-        } else if daemon.has_active_monitored_app() {
-            INGAME_INTERVAL_MS
-        } else {
-            daemon.normal_interval_ms
+        let sleep_ms = match (daemon.is_suspended(), daemon.has_active_monitored_app()) {
+            (true, _) => SCREEN_OFF_INTERVAL_MS,
+            (false, true) => INGAME_INTERVAL_MS,
+            (false, false) => daemon.normal_interval_ms,
         };
 
         tokio::select! {

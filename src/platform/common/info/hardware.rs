@@ -93,12 +93,10 @@ fn detect_cpu_topology() -> String {
     let big = big_mask.count_ones();
     let prime = prime_mask.count_ones();
 
-    if prime > 0 {
-        format!("{total} cores ({little} Little, {big} Mid, {prime} Prime)")
-    } else if little > 0 && big > 0 {
-        format!("{total} cores ({little} Little, {big} Big)")
-    } else {
-        format!("{total} cores")
+    match (prime, little, big) {
+        (p, l, b) if p > 0 => format!("{total} cores ({l} Little, {b} Mid, {p} Prime)"),
+        (0, l, b) if l > 0 && b > 0 => format!("{total} cores ({l} Little, {b} Big)"),
+        _ => format!("{total} cores"),
     }
 }
 

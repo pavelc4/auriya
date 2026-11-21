@@ -186,10 +186,10 @@ impl GameList {
         if let Some(d) = upd.dnd {
             profile.enable_dnd = d;
         }
-        if let Some(arr) = upd.fps_array {
-            profile.target_fps = Some(TargetFpsConfig::Array(arr));
-        } else if let Some(fps) = upd.target_fps {
-            profile.target_fps = Some(TargetFpsConfig::Single(fps));
+        match (upd.fps_array, upd.target_fps) {
+            (Some(arr), _) => profile.target_fps = Some(TargetFpsConfig::Array(arr)),
+            (None, Some(fps)) => profile.target_fps = Some(TargetFpsConfig::Single(fps)),
+            (None, None) => {}
         }
         if upd.refresh_rate.is_some() {
             profile.refresh_rate = upd.refresh_rate;

@@ -12,12 +12,10 @@ pub async fn handle_info(client: &IpcClient) -> Result<()> {
             .and_then(|s| s.trim().parse::<i32>().ok());
 
         let status = client.send("STATUS").await.unwrap_or_default();
-        let fps_source = if status.contains("SOURCE=ebpf") {
-            Some("ebpf")
-        } else if status.contains("SOURCE=sysfs") {
-            Some("sysfs")
-        } else {
-            None
+        let fps_source = match () {
+            _ if status.contains("SOURCE=ebpf") => Some("ebpf"),
+            _ if status.contains("SOURCE=sysfs") => Some("sysfs"),
+            _ => None,
         };
 
         (pid, fps_source)
@@ -25,30 +23,26 @@ pub async fn handle_info(client: &IpcClient) -> Result<()> {
         (None, None)
     };
 
-    let mut display_rates =
-        if let Ok(modes) = crate::platform::display::get_app_supported_modes().await {
-            if !modes.is_empty() {
-                let mut uniq: Vec<u32> = modes.iter().map(|m| m.fps.round() as u32).collect();
-                uniq.sort_unstable();
-                uniq.dedup();
-                let current_rate = uniq.iter().max().copied().unwrap_or(60);
-                let formatted = uniq
-                    .iter()
-                    .map(|r| format!("{r}Hz"))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                let reso = modes
-                    .iter()
-                    .max_by_key(|m| m.width * m.height)
-                    .map(|m| format!("({}x{}) ", m.width, m.height))
-                    .unwrap_or_default();
-                Some(format!("{current_rate}Hz {reso}[Supported: {formatted}]"))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+    let mut display_rates = match crate::platform::display::get_app_supported_modes().await {
+        Ok(modes) if !modes.is_empty() => {
+            let mut uniq: Vec<u32> = modes.iter().map(|m| m.fps.round() as u32).collect();
+            uniq.sort_unstable();
+            uniq.dedup();
+            let current_rate = uniq.iter().max().copied().unwrap_or(60);
+            let formatted = uniq
+                .iter()
+                .map(|r| format!("{r}Hz"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let reso = modes
+                .iter()
+                .max_by_key(|m| m.width * m.height)
+                .map(|m| format!("({}x{}) ", m.width, m.height))
+                .unwrap_or_default();
+            Some(format!("{current_rate}Hz {reso}[Supported: {formatted}]"))
+        }
+        _ => None,
+    };
 
     if display_rates.is_none() && is_alive {
         display_rates = client.send("GET_SUPPORTED_RATES").await.ok().and_then(|s| {

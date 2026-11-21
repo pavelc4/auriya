@@ -22,16 +22,16 @@ pub fn decide_action(
     is_janked: bool,
     bottleneck: BottleneckType,
 ) -> ScalingAction {
-    if is_janked || control_khz > BOOST_THRESHOLD_KHZ {
-        match bottleneck {
+    let need_boost = is_janked || control_khz > BOOST_THRESHOLD_KHZ;
+    let need_reduce = control_khz < REDUCE_THRESHOLD_KHZ;
+
+    match (need_boost, need_reduce) {
+        (true, _) => match bottleneck {
             BottleneckType::Gpu => ScalingAction::BoostGpu,
             BottleneckType::Cpu => ScalingAction::BoostCpu,
-            BottleneckType::Balanced => ScalingAction::BoostBalanced,
-            BottleneckType::Unknown => ScalingAction::BoostBalanced,
-        }
-    } else if control_khz < REDUCE_THRESHOLD_KHZ {
-        ScalingAction::Reduce
-    } else {
-        ScalingAction::Maintain
+            BottleneckType::Balanced | BottleneckType::Unknown => ScalingAction::BoostBalanced,
+        },
+        (false, true) => ScalingAction::Reduce,
+        (false, false) => ScalingAction::Maintain,
     }
 }
