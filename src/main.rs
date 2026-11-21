@@ -3,7 +3,7 @@ use tracing_subscriber::{EnvFilter, prelude::*, reload};
 
 use auriya::{core, daemon};
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> Result<()> {
     // 1. Initialise tracing immediately so any early configuration or startup
     // errors are reliably captured in daemon.log instead of dropped into /dev/null.
