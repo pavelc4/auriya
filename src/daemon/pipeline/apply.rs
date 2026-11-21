@@ -80,7 +80,7 @@ impl Daemon {
         Ok(())
     }
 
-    async fn handle_no_foreground(&mut self) -> Result<()> {
+    fn apply_default_profile(&mut self, reason: &str) {
         let active_default = self.default_mode();
         if self.last.profile_mode != Some(active_default) {
             let gov_guard = self.balance_governor.read();
@@ -98,10 +98,14 @@ impl Daemon {
             if let Err(e) = res {
                 error!(target: "auriya::profile", ?e, "Failed to apply {:?}", active_default);
             } else {
-                debug!(target: "auriya::daemon", "Applied {:?} (no foreground)", active_default);
+                debug!(target: "auriya::daemon", "Applied {:?} ({})", active_default, reason);
                 self.last.profile_mode = Some(active_default);
             }
         }
+    }
+
+    async fn handle_no_foreground(&mut self) -> Result<()> {
+        self.apply_default_profile("no foreground");
 
         self.apply_ceiling_for_state(None, None);
         self.ebpf_detach_all().await;
@@ -213,27 +217,7 @@ impl Daemon {
             debug!(target: "auriya::daemon", "Foreground: {} ({})", pkg, reason);
         }
 
-        let active_default = self.default_mode();
-        if self.last.profile_mode != Some(active_default) {
-            let gov_guard = self.balance_governor.read();
-            let default_gov = gov_guard
-                .as_deref()
-                .map(|s| s.as_str())
-                .unwrap_or("schedutil");
-            let res = match active_default {
-                ProfileMode::Performance => profile::apply_performance(),
-                ProfileMode::Fast => profile::apply_fast(),
-                ProfileMode::Balance => profile::apply_balance(default_gov),
-                ProfileMode::Powersave => profile::apply_powersave(),
-            };
-
-            if let Err(e) = res {
-                error!(target: "auriya::profile", ?e, "Failed to apply {:?}", active_default);
-            } else {
-                debug!(target: "auriya::daemon", "Applied {:?} ({})", active_default, reason);
-                self.last.profile_mode = Some(active_default);
-            }
-        }
+        self.apply_default_profile(reason);
 
         self.apply_ceiling_for_state(None, None);
         let fallback_pid = [pid.unwrap_or(0)];
@@ -296,27 +280,7 @@ impl Daemon {
     }
 
     async fn monitor_app_frames(&mut self, _pkg: &str) -> Result<()> {
-        let active_default = self.default_mode();
-        if self.last.profile_mode != Some(active_default) {
-            let gov_guard = self.balance_governor.read();
-            let default_gov = gov_guard
-                .as_deref()
-                .map(|s| s.as_str())
-                .unwrap_or("schedutil");
-            let res = match active_default {
-                ProfileMode::Performance => profile::apply_performance(),
-                ProfileMode::Fast => profile::apply_fast(),
-                ProfileMode::Balance => profile::apply_balance(default_gov),
-                ProfileMode::Powersave => profile::apply_powersave(),
-            };
-
-            if let Err(e) = res {
-                error!(target: "auriya::profile", ?e, "Failed to apply {:?}", active_default);
-            } else {
-                debug!(target: "auriya::daemon", "Restored {:?} for monitored app", active_default);
-                self.last.profile_mode = Some(active_default);
-            }
-        }
+        self.apply_default_profile("monitored app");
 
         let fallback_fps = self.fps_meter.read().map(|r| r.fps);
         let Some(fas_arc) = self.fas_controller.as_ref().map(Arc::clone) else {
