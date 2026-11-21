@@ -50,10 +50,10 @@ apply_sepolicy() {
 # 4. Resolve Daemon Binary Path
 resolve_daemon_bin() {
   for candidate in \
-    "/system/bin/auriya" \
+    "$MODDIR/system/bin/auriya" \
     "/data/adb/ksu/bin/auriya" \
     "/data/adb/ap/bin/auriya" \
-    "$MODDIR/system/bin/auriya"; do
+    "/system/bin/auriya"; do
     if [ -x "$candidate" ]; then
       echo "$candidate"
       return 0
