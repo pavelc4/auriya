@@ -90,6 +90,7 @@ async fn dispatch(command: Commands, client: &IpcClient) -> Result<()> {
         Commands::AddGame { package } => commands::handle_add_game(client, &package).await?,
         Commands::RemoveGame { package } => commands::handle_remove_game(client, &package).await?,
         Commands::ListGames => commands::handle_list_games(client).await?,
+        Commands::Walt { action } => commands::handle_walt(client, action).await?,
 
         // Developer & Debug
         Commands::SetLog { level } => commands::handle_set_log(client, level).await?,

@@ -1,5 +1,13 @@
 use super::types::{CliDndMode, LogLevel, ProfileMode};
-use clap::Subcommand;
+use clap::{Subcommand, ValueEnum};
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WaltAction {
+    Status,
+    On,
+    Off,
+    Auto,
+}
 
 #[derive(Subcommand, Debug, Clone, PartialEq, Eq)]
 pub enum BinderCommands {
@@ -94,7 +102,6 @@ pub enum BinderCommands {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    // === DAEMON LIFECYCLE ===
     #[command(subcommand_help_heading = "Daemon Lifecycle")]
     #[command(about = "Display daemon status, active game, and power profile")]
     Status,
@@ -160,7 +167,17 @@ pub enum Commands {
     #[command(about = "List configured games in gamelist")]
     ListGames,
 
-    // === DIAGNOSTICS & TELEMETRY ===
+    #[command(subcommand_help_heading = "Tuning & Profiles")]
+    #[command(about = "Manage Qualcomm WALT (Window Assisted Load Tracking) scheduler")]
+    Walt {
+        #[arg(
+            value_enum,
+            default_value = "status",
+            help = "Action: status, on, off, auto"
+        )]
+        action: WaltAction,
+    },
+
     #[command(subcommand_help_heading = "Diagnostics & Telemetry")]
     #[command(about = "Inspect device hardware, SoC board, and kernel eBPF capabilities")]
     Info,
@@ -226,7 +243,6 @@ pub enum Commands {
     #[command(about = "List installed packages on the system")]
     ListPackages,
 
-    // === DEVELOPER & DEBUG ===
     #[command(subcommand_help_heading = "Developer & Debug")]
     #[command(about = "Set daemon log filtering level")]
     SetLog {

@@ -22,5 +22,5 @@ pub use stats::handle_stats;
 pub use status::handle_status;
 pub use tuning::{
     handle_add_game, handle_get_fps, handle_list_games, handle_remove_game, handle_set_fps,
-    handle_set_profile,
+    handle_set_profile, handle_walt,
 };

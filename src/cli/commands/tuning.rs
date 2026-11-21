@@ -1,5 +1,6 @@
 use crate::Result;
 use crate::cli::app::ProfileMode;
+use crate::cli::app::commands::WaltAction;
 use crate::cli::client::IpcClient;
 use crate::cli::output;
 
@@ -38,5 +39,27 @@ pub async fn handle_remove_game(client: &IpcClient, package: &str) -> Result<()>
 pub async fn handle_list_games(client: &IpcClient) -> Result<()> {
     let resp = client.send("GET_GAMELIST").await?;
     println!("Configured games:\n{resp}");
+    Ok(())
+}
+
+pub async fn handle_walt(client: &IpcClient, action: WaltAction) -> Result<()> {
+    match action {
+        WaltAction::Status => {
+            let resp = client.send("WALT STATUS").await?;
+            println!("{resp}");
+        }
+        WaltAction::On => {
+            let resp = client.send("WALT ON").await?;
+            output::print_success(&format!("WALT enabled: {resp}"));
+        }
+        WaltAction::Off => {
+            let resp = client.send("WALT OFF").await?;
+            output::print_success(&format!("WALT disabled: {resp}"));
+        }
+        WaltAction::Auto => {
+            let resp = client.send("WALT AUTO").await?;
+            output::print_success(&format!("WALT auto-tune enabled: {resp}"));
+        }
+    }
     Ok(())
 }
