@@ -21,8 +21,12 @@ target_fps = 60
 
 [dynamic_governor]
 enabled = true
-cv_threshold = 0.15
+cv_threshold = 0.22
 debounce_frames = 3
+
+[walt]
+enabled = true
+auto_tune = true
 
 [ceiling]
 default = "balance"

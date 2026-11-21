@@ -21,6 +21,8 @@ pub struct Settings {
     pub thermal: ThermalConfig,
     #[serde(default)]
     pub window: WindowConfig,
+    #[serde(default)]
+    pub walt: WaltConfig,
     #[serde(default = "default_modes")]
     pub modes: HashMap<String, FasMode>,
 }
@@ -69,6 +71,7 @@ impl Default for Settings {
             ceiling: CeilingConfig::default(),
             thermal: ThermalConfig::default(),
             window: WindowConfig::default(),
+            walt: WaltConfig::default(),
             modes: default_modes(),
         }
     }
@@ -188,6 +191,31 @@ fn default_auto_rotation() -> bool {
     false
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct WaltConfig {
+    #[serde(default = "default_walt_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_walt_auto_tune")]
+    pub auto_tune: bool,
+}
+
+fn default_walt_enabled() -> bool {
+    true
+}
+
+fn default_walt_auto_tune() -> bool {
+    true
+}
+
+impl Default for WaltConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_walt_enabled(),
+            auto_tune: default_walt_auto_tune(),
+        }
+    }
+}
+
 impl Default for CpuConfig {
     fn default() -> Self {
         Self {
@@ -272,7 +300,7 @@ fn default_dg_enabled() -> bool {
 }
 
 fn default_dg_cv_threshold() -> f64 {
-    0.15
+    0.22
 }
 
 fn default_dg_debounce() -> u32 {

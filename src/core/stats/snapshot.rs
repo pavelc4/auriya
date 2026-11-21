@@ -1,5 +1,6 @@
 use super::fps::FpsStats;
 use crate::core::profile::ProfileMode;
+pub use crate::core::scaling::walt::WaltCard;
 use crate::core::telemetry::battery::BatterySnapshot;
 use crate::core::telemetry::cpu::{ClusterType, CpuSnapshot};
 use crate::core::telemetry::gpu::GpuSnapshot;
@@ -151,6 +152,8 @@ pub struct StatsSnapshot {
     pub binder: BinderCard,
     #[serde(default)]
     pub system: Option<SystemCard>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub walt: Option<WaltCard>,
 }
 
 fn cluster_str(c: &ClusterType) -> &'static str {
@@ -408,6 +411,13 @@ impl StatsSnapshot {
             },
             binder,
             system,
+            walt: {
+                let card = crate::platform::vendor::walt::get_status_card();
+                match card.supported {
+                    true => Some(card),
+                    false => None,
+                }
+            },
         }
     }
 }

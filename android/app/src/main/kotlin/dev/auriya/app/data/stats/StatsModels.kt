@@ -37,6 +37,21 @@ data class Stats(
     val daemon: DaemonInfo? = null,
     val binder: BinderInfo? = null,
     val system: SystemInfo? = null,
+    val walt: WaltInfo? = null,
+)
+
+@Immutable
+data class WaltInfo(
+    val supported: Boolean = false,
+    val active: Boolean = false,
+    val auto_tune: Boolean = true,
+    val mode: String = "balance",
+    val upmigrate: List<Int> = emptyList(),
+    val downmigrate: List<Int> = emptyList(),
+    val group_upmigrate: Int? = null,
+    val group_downmigrate: Int? = null,
+    val window_policy: Int? = null,
+    val ravg_window_ms: Int? = null,
 )
 
 @Immutable
@@ -438,6 +453,59 @@ object StatsParser {
                     null
                 }
 
+            val waltObj = root.optJSONObject("walt")
+            val walt =
+                if (waltObj != null) {
+                    val upArr = waltObj.optJSONArray("upmigrate")
+                    val upList = mutableListOf<Int>()
+                    if (upArr != null) {
+                        for (i in 0 until upArr.length()) {
+                            upList.add(upArr.getInt(i))
+                        }
+                    }
+                    val downArr = waltObj.optJSONArray("downmigrate")
+                    val downList = mutableListOf<Int>()
+                    if (downArr != null) {
+                        for (i in 0 until downArr.length()) {
+                            downList.add(downArr.getInt(i))
+                        }
+                    }
+                    WaltInfo(
+                        supported = waltObj.optBoolean("supported", false),
+                        active = waltObj.optBoolean("active", false),
+                        auto_tune = waltObj.optBoolean("auto_tune", true),
+                        mode = waltObj.optString("mode", "balance"),
+                        upmigrate = upList,
+                        downmigrate = downList,
+                        group_upmigrate =
+                            if (waltObj.has("group_upmigrate") && !waltObj.isNull("group_upmigrate")) {
+                                waltObj.getInt("group_upmigrate")
+                            } else {
+                                null
+                            },
+                        group_downmigrate =
+                            if (waltObj.has("group_downmigrate") && !waltObj.isNull("group_downmigrate")) {
+                                waltObj.getInt("group_downmigrate")
+                            } else {
+                                null
+                            },
+                        window_policy =
+                            if (waltObj.has("window_policy") && !waltObj.isNull("window_policy")) {
+                                waltObj.getInt("window_policy")
+                            } else {
+                                null
+                            },
+                        ravg_window_ms =
+                            if (waltObj.has("ravg_window_ms") && !waltObj.isNull("ravg_window_ms")) {
+                                waltObj.getInt("ravg_window_ms")
+                            } else {
+                                null
+                            },
+                    )
+                } else {
+                    null
+                }
+
             Stats(
                 fps = fps,
                 thermal = thermal,
@@ -448,6 +516,7 @@ object StatsParser {
                 daemon = daemon,
                 binder = binder,
                 system = system,
+                walt = walt,
             )
         }.getOrNull()
 }

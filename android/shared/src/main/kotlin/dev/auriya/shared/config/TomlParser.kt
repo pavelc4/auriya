@@ -20,11 +20,14 @@ object TomlParser {
         var fasTargetFps = 60
 
         var dgEnabled = true
-        var dgCvThreshold = 0.15
+        var dgCvThreshold = 0.22
         var dgDebounceFrames = 3
 
         var thermalEnabled = true
         var thermalDefault: Int? = null
+
+        var waltEnabled = true
+        var waltAutoTune = true
 
         val modes = mutableMapOf<String, FasMode>()
 
@@ -110,6 +113,13 @@ object TomlParser {
                     }
                 }
 
+                "walt" -> {
+                    when (key) {
+                        "enabled" -> waltEnabled = value.toBooleanStrictOrNull() ?: true
+                        "auto_tune" -> waltAutoTune = value.toBooleanStrictOrNull() ?: true
+                    }
+                }
+
                 "modes" -> {
                     when (key) {
                         "margin" -> currentModeMargin = value.toDoubleOrNull()
@@ -127,6 +137,7 @@ object TomlParser {
             fas = FasConfig(fasEnabled, fasDefaultMode, fasThermalThreshold, fasPollIntervalMs, fasTargetFps),
             dynamicGovernor = DynamicGovernorConfig(dgEnabled, dgCvThreshold, dgDebounceFrames),
             thermal = ThermalConfig(thermalEnabled, thermalDefault),
+            walt = WaltConfig(waltEnabled, waltAutoTune),
             modes = modes,
         )
     }
@@ -160,6 +171,10 @@ object TomlParser {
             append("enabled = ").append(settings.thermal.enabled).append("\n")
             settings.thermal.default?.let { append("default = ").append(it).append("\n") }
             append("\n")
+
+            append("[walt]\n")
+            append("enabled = ").append(settings.walt.enabled).append("\n")
+            append("auto_tune = ").append(settings.walt.autoTune).append("\n\n")
 
             settings.modes.forEach { (name, mode) ->
                 append("[modes.").append(name).append("]\n")

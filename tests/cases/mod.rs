@@ -19,4 +19,5 @@ mod stats;
 mod stream_parser;
 mod system_status;
 mod thermal;
+mod walt;
 mod watcher;

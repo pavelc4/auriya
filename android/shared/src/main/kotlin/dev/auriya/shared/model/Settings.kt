@@ -7,6 +7,7 @@ data class Settings(
     val fas: FasConfig = FasConfig(),
     val dynamicGovernor: DynamicGovernorConfig = DynamicGovernorConfig(),
     val thermal: ThermalConfig = ThermalConfig(),
+    val walt: WaltConfig = WaltConfig(),
     val modes: Map<String, FasMode> = emptyMap(),
 )
 
@@ -34,13 +35,18 @@ data class FasConfig(
 
 data class DynamicGovernorConfig(
     val enabled: Boolean = true,
-    val cvThreshold: Double = 0.15,
+    val cvThreshold: Double = 0.22,
     val debounceFrames: Int = 3,
 )
 
 data class ThermalConfig(
     val enabled: Boolean = true,
     val default: Int? = null,
+)
+
+data class WaltConfig(
+    val enabled: Boolean = true,
+    val autoTune: Boolean = true,
 )
 
 data class FasMode(
