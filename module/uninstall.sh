@@ -1,6 +1,8 @@
 #!/system/bin/sh
 # Auriya - Clean Uninstallation Script
 
+export PATH="/system/bin:/system/xbin:$PATH"
+
 ui_status() {
   echo "$1"
 }
@@ -21,41 +23,10 @@ kill_process() {
 
 uninstall_app() {
   local pkg="$1"
-  local attempt=1
-  local max_attempts=3
-
-  pm list packages "$pkg" 2>/dev/null | grep -qx "package:$pkg" || return 0
-
-  while [ "$attempt" -le "$max_attempts" ]; do
-    ui_status "Removing $pkg (attempt $attempt/$max_attempts)..."
-    local output="/data/local/tmp/auriya-uninstall-$$-$attempt.log"
-    local timeout=15
-
-    ( pm uninstall "$pkg" >"$output" 2>&1 ) &
-    local pid=$!
-
-    while [ "$timeout" -gt 0 ]; do
-      if ! kill -0 "$pid" 2>/dev/null; then
-        wait "$pid" 2>/dev/null
-        if grep -q "Success" "$output" 2>/dev/null || ! pm list packages "$pkg" 2>/dev/null | grep -qx "package:$pkg"; then
-          rm -f "$output"
-          return 0
-        fi
-        break
-      fi
-      sleep 1
-      timeout=$((timeout - 1))
-    done
-
-    kill "$pid" 2>/dev/null || true
-    wait "$pid" 2>/dev/null || true
-    echo "Uninstall attempt $attempt failed for $pkg: $(cat "$output" 2>/dev/null)"
-    rm -f "$output"
-    attempt=$((attempt + 1))
-    [ "$attempt" -le "$max_attempts" ] && sleep 1
-  done
-
-  return 1
+  pm list packages "$pkg" 2>/dev/null | grep -q "package:$pkg" || return 0
+  ui_status "Removing $pkg..."
+  am force-stop "$pkg" >/dev/null 2>&1 || true
+  pm uninstall "$pkg" >/dev/null 2>&1 || pm uninstall --user 0 "$pkg" >/dev/null 2>&1 || cmd package uninstall "$pkg" >/dev/null 2>&1 || true
 }
 
 cleanup_module_data() {
@@ -69,6 +40,9 @@ cleanup_module_data() {
         /data/adb/ap/bin/auriya \
         /data/adb/ksu/bin/auriyactl \
         /data/adb/ap/bin/auriyactl
+
+  # Clean temp files
+  rm -f /data/local/tmp/auriya* 2>/dev/null || true
 }
 
 main() {

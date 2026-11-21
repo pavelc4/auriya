@@ -8,20 +8,22 @@ MODULE_CONFIG="${MODULE_CONFIG:-/data/adb/.config/auriya}"
 LOGDIR="${LOGDIR:-/data/adb/auriya}"
 SOCK="/dev/socket/auriya.sock"
 
-# 1. Removal Guard
-if [ -f "$MODDIR/remove" ] || [ -f "/data/adb/modules_update/auriya/remove" ]; then
-  log -t auriya "Module marked for removal, executing cleanup..."
-  [ -f "$MODDIR/uninstall.sh" ] && sh "$MODDIR/uninstall.sh"
-  exit 0
-fi
-
-# 2. Wait for Android Boot Completion
+# 1. Wait for Android Boot Completion
 wait_for_boot() {
   if [ "$(getprop sys.boot_completed)" != "1" ]; then
     until [ "$(getprop sys.boot_completed)" = "1" ]; do
       sleep 2
     done
     sleep 3
+  fi
+}
+
+# 2. Removal Guard (only runs after boot completed so PackageManager is up)
+check_removal() {
+  if [ -f "$MODDIR/remove" ] || [ -f "/data/adb/modules_update/auriya/remove" ]; then
+    log -t auriya "Module marked for removal, executing cleanup..."
+    [ -f "$MODDIR/uninstall.sh" ] && sh "$MODDIR/uninstall.sh"
+    exit 0
   fi
 }
 
@@ -98,6 +100,7 @@ setup_symlinks() {
 # Main Execution Flow
 main() {
   wait_for_boot
+  check_removal
 
   mkdir -p "$MODULE_CONFIG" "$LOGDIR"
   chmod 0755 "$MODULE_CONFIG" "$LOGDIR"

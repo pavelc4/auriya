@@ -101,14 +101,12 @@ deploy_binaries() {
     chmod 0755 "$MODPATH/system/bin/auriyactl"
     HAS_CLI=true
   fi
-
-  rm -rf "$MODPATH/libs"
 }
 
 install_manager_app() {
   if [ -f "$USER_APP_SRC" ] && command -v pm >/dev/null 2>&1; then
     ui_print "- Installing Auriya Manager..."
-    pm install -r -g "$USER_APP_SRC" >/dev/null 2>&1 || ui_print "! Manager install skipped"
+    pm install -r -d -g "$USER_APP_SRC" >/dev/null 2>&1 || ui_print "! Manager install skipped"
   fi
 }
 
@@ -187,5 +185,6 @@ install_manager_app
 setup_configs
 setup_symlinks
 set_permissions_and_sepolicy
+rm -rf "$MODPATH/libs"
 
 ui_print "- Installation complete"
