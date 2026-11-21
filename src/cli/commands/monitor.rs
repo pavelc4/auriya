@@ -15,17 +15,10 @@ pub async fn handle_monitor(client: &IpcClient, oneline: bool, interval_ms: u64)
             }
             _ = ticker.tick() => {
                 match client.send("GET_STATS").await {
-                    Ok(json_str) => {
-                        if let Ok(resp) = serde_json::from_str::<crate::core::stats::ApiResponse<crate::core::stats::StatsSnapshot>>(&json_str) {
-                            if let Some(snap) = resp.data {
-                                output::print_monitor_frame(&snap, oneline);
-                            }
-                        } else if let Ok(snap) = serde_json::from_str::<crate::core::stats::StatsSnapshot>(&json_str) {
-                            output::print_monitor_frame(&snap, oneline);
-                        } else {
-                            eprintln!("Error parsing telemetry response: {}", json_str);
-                        }
-                    }
+                    Ok(json_str) => match super::stats::parse_stats_snapshot(&json_str) {
+                        Some(snap) => output::print_monitor_frame(&snap, oneline),
+                        None => eprintln!("Error parsing telemetry response: {json_str}"),
+                    },
                     Err(e) => {
                         eprintln!("Error querying daemon stats: {e}");
                         break;

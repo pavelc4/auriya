@@ -203,25 +203,21 @@ pub fn handle_window(action: &str, param: Option<&str>) -> Result<()> {
                 }
             }
         }
-        "anim" => {
-            if let Some(p) = param {
-                if p == "status" {
-                    let scales = get_animation_scales()?;
-                    println!("Window Animation Scales: {:?}", scales);
-                } else if let Ok(scale) = p.parse::<f32>() {
-                    set_animation_scales(scale)?;
-                    println!("Applied window animation scale: {:.2}x", scale);
-                } else {
-                    eprintln!(
-                        "Invalid scale '{}'. Provide a float (e.g. 0.0, 1.0) or 'status'",
-                        p
-                    );
-                }
-            } else {
+        "anim" => match param {
+            None | Some("status") => {
                 let scales = get_animation_scales()?;
                 println!("Window Animation Scales: {:?}", scales);
             }
-        }
+            Some(p) => match p.parse::<f32>() {
+                Ok(scale) => {
+                    set_animation_scales(scale)?;
+                    println!("Applied window animation scale: {:.2}x", scale);
+                }
+                Err(_) => {
+                    eprintln!("Invalid scale '{p}'. Provide a float (e.g. 0.0, 1.0) or 'status'");
+                }
+            },
+        },
         "status" => {
             let frozen = is_display_rotation_frozen(0).unwrap_or(false);
             println!(

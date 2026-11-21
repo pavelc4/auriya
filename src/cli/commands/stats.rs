@@ -3,6 +3,15 @@ use crate::cli::client::IpcClient;
 use crate::cli::output;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
+pub(crate) fn parse_stats_snapshot(json_str: &str) -> Option<crate::core::stats::StatsSnapshot> {
+    serde_json::from_str::<crate::core::stats::ApiResponse<crate::core::stats::StatsSnapshot>>(
+        json_str,
+    )
+    .ok()
+    .and_then(|r| r.data)
+    .or_else(|| serde_json::from_str::<crate::core::stats::StatsSnapshot>(json_str).ok())
+}
+
 pub async fn handle_stats(
     client: &IpcClient,
     json: bool,
@@ -19,24 +28,17 @@ pub async fn handle_stats(
         let mut line = String::new();
         while reader.read_line(&mut line).await? > 0 {
             let s = line.trim();
-            if s.starts_with('{') {
-                if json {
-                    println!("{s}");
-                } else if let Ok(resp) = serde_json::from_str::<
-                    crate::core::stats::ApiResponse<crate::core::stats::StatsSnapshot>,
-                >(s)
-                {
-                    if let Some(snap) = resp.data {
+            match s {
+                "STREAM_STOPPED" => break,
+                payload if payload.starts_with('{') => {
+                    if json {
+                        println!("{payload}");
+                    } else if let Some(snap) = parse_stats_snapshot(payload) {
                         output::print_monitor_frame(&snap, true);
                     }
-                } else if let Ok(snap) =
-                    serde_json::from_str::<crate::core::stats::StatsSnapshot>(s)
-                {
-                    output::print_monitor_frame(&snap, true);
+                    let _ = std::io::Write::flush(&mut std::io::stdout());
                 }
-                let _ = std::io::Write::flush(&mut std::io::stdout());
-            } else if s == "STREAM_STOPPED" {
-                break;
+                _ => {}
             }
             line.clear();
         }
@@ -49,19 +51,10 @@ pub async fn handle_stats(
         return Ok(());
     }
 
-    if let Ok(api_resp) = serde_json::from_str::<
-        crate::core::stats::ApiResponse<crate::core::stats::StatsSnapshot>,
-    >(&resp)
-    {
-        if let Some(snap) = api_resp.data {
-            output::print_monitor_frame(&snap, false);
-            return Ok(());
-        }
-    } else if let Ok(snap) = serde_json::from_str::<crate::core::stats::StatsSnapshot>(&resp) {
-        output::print_monitor_frame(&snap, false);
-        return Ok(());
+    match parse_stats_snapshot(&resp) {
+        Some(snap) => output::print_monitor_frame(&snap, false),
+        None => print!("{resp}"),
     }
 
-    print!("{resp}");
     Ok(())
 }
