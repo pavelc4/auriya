@@ -3,12 +3,15 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Settings {
     #[serde(default)]
     pub daemon: DaemonConfig,
+    #[serde(default)]
     pub cpu: CpuConfig,
+    #[serde(default)]
     pub dnd: DndConfig,
+    #[serde(default)]
     pub fas: FasConfig,
     #[serde(default)]
     pub dynamic_governor: DynamicGovernorConfig,
@@ -18,7 +21,57 @@ pub struct Settings {
     pub thermal: ThermalConfig,
     #[serde(default)]
     pub window: WindowConfig,
+    #[serde(default = "default_modes")]
     pub modes: HashMap<String, FasMode>,
+}
+
+fn default_modes() -> HashMap<String, FasMode> {
+    let mut m = HashMap::new();
+    m.insert(
+        "powersave".into(),
+        FasMode {
+            margin: 5.0,
+            thermal_threshold: 80.0,
+        },
+    );
+    m.insert(
+        "balance".into(),
+        FasMode {
+            margin: 2.0,
+            thermal_threshold: 90.0,
+        },
+    );
+    m.insert(
+        "performance".into(),
+        FasMode {
+            margin: 1.0,
+            thermal_threshold: 95.0,
+        },
+    );
+    m.insert(
+        "fast".into(),
+        FasMode {
+            margin: 0.0,
+            thermal_threshold: 95.0,
+        },
+    );
+    m
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            daemon: DaemonConfig::default(),
+            cpu: CpuConfig::default(),
+            dnd: DndConfig::default(),
+            fas: FasConfig::default(),
+            dynamic_governor: DynamicGovernorConfig::default(),
+            ceiling: CeilingConfig::default(),
+            thermal: ThermalConfig::default(),
+            window: WindowConfig::default(),
+            modes: default_modes(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -167,10 +220,30 @@ impl Settings {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
 
+        if !path.exists() {
+            let default_settings = Self::default();
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            if let Ok(serialized) = toml::to_string_pretty(&default_settings) {
+                let _ = std::fs::write(path, serialized);
+            }
+            return Ok(default_settings);
+        }
+
         let content =
             std::fs::read_to_string(path).context(format!("Failed to read {}", path.display()))?;
 
-        toml::from_str(&content).context("Failed to parse settings.toml")
+        match toml::from_str(&content) {
+            Ok(s) => Ok(s),
+            Err(e) => {
+                tracing::error!(
+                    "Failed to parse {}: {e}. Recovering with default settings.",
+                    path.display()
+                );
+                Ok(Self::default())
+            }
+        }
     }
 }
 

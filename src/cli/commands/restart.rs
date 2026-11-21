@@ -34,7 +34,9 @@ fn stop_processes() {
 
 fn clear_runtime_state() {
     let _ = std::fs::remove_file(format!("{CONFIG_DIR}/system_status"));
-    let _ = std::fs::write(format!("{LOG_DIR}/daemon.log"), "");
+    let log_path = format!("{LOG_DIR}/daemon.log");
+    let old_log_path = format!("{LOG_DIR}/daemon.log.old");
+    let _ = std::fs::rename(log_path, old_log_path);
 }
 
 fn launch_service() -> Result<()> {

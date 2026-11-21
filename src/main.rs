@@ -5,21 +5,28 @@ use auriya::{core, daemon};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
-    // Load settings before initialising tracing so the user-configured
-    // log_level actually takes effect.  Early errors go to stderr raw.
-    let (settings, gamelist) = core::config::load_all()?;
-
-    let level = &settings.daemon.log_level;
-    let base_filter = EnvFilter::new(level);
-    let (filter_layer, filter_handle) = reload::Layer::new(base_filter);
-
+    // 1. Initialise tracing immediately so any early configuration or startup
+    // errors are reliably captured in daemon.log instead of dropped into /dev/null.
     let log_writer = std::sync::Arc::new(core::logger::LogWriter::default_daemon());
     let dmesg_layer = core::logger::DmesgLayer::new(log_writer);
+    let (filter_layer, filter_handle) = reload::Layer::new(EnvFilter::new("info"));
 
     tracing_subscriber::registry()
         .with(filter_layer)
         .with(dmesg_layer)
         .init();
+
+    // 2. Load settings now that tracing is operational
+    let (settings, gamelist) = match core::config::load_all() {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            tracing::error!("Fatal: failed to load configuration: {e:#}");
+            return Err(e);
+        }
+    };
+
+    // 3. Apply user-configured log level
+    let _ = filter_handle.reload(EnvFilter::new(&settings.daemon.log_level));
 
     tracing::info!(
         target: "status",
@@ -27,6 +34,14 @@ async fn main() -> Result<()> {
         std::process::id(),
         env!("CARGO_PKG_VERSION"),
         unsafe { libc::geteuid() }
+    );
+    tracing::debug!(
+        target: "status",
+        "environment: ksu_env={} apatch_env={} magisk_env={} bpf_fs={}",
+        std::path::Path::new("/data/adb/ksu").exists(),
+        std::path::Path::new("/data/adb/ap").exists(),
+        std::path::Path::new("/data/adb/magisk").exists(),
+        std::path::Path::new("/sys/fs/bpf").exists(),
     );
     tracing::info!(
         target: "code",
