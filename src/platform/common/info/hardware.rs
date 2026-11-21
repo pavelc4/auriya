@@ -107,17 +107,17 @@ fn detect_gpu_and_driver() -> (Option<String>, Option<String>) {
     if Path::new(kgsl_model_path).exists() {
         let raw = fs::read_to_string(kgsl_model_path).unwrap_or_default();
         let trimmed = raw.trim();
-        let model = if trimmed.starts_with("Adreno") {
-            let s = trimmed.trim_end_matches("v1").trim_end_matches("v0");
-            if s.len() > 6 && !s[6..].starts_with(' ') {
-                format!("Adreno {}", &s[6..])
-            } else {
-                s.to_string()
+        let model = match trimmed.trim_end_matches("v1").trim_end_matches("v0") {
+            s if let Some(rest) = s.strip_prefix("Adreno") => {
+                let suffix = rest.trim_start();
+                if suffix.is_empty() {
+                    "Adreno".to_string()
+                } else {
+                    format!("Adreno {suffix}")
+                }
             }
-        } else if !trimmed.is_empty() {
-            trimmed.to_string()
-        } else {
-            "Adreno".to_string()
+            "" => "Adreno".to_string(),
+            other => other.to_string(),
         };
 
         let driver = detect_adreno_driver();
@@ -228,15 +228,17 @@ fn detect_active_renderer() -> String {
 }
 
 fn detect_root_manager() -> String {
-    if Path::new("/data/adb/ksu").exists() {
-        "KernelSU".to_string()
-    } else if Path::new("/data/adb/ap").exists() {
-        "APatch".to_string()
-    } else if Path::new("/data/adb/magisk").exists() {
-        "Magisk".to_string()
-    } else {
-        "Rooted / Other".to_string()
-    }
+    const MANAGERS: &[(&str, &str)] = &[
+        ("/data/adb/ksu", "KernelSU"),
+        ("/data/adb/ap", "APatch"),
+        ("/data/adb/magisk", "Magisk"),
+    ];
+
+    MANAGERS
+        .iter()
+        .find(|(path, _)| Path::new(path).exists())
+        .map(|(_, name)| (*name).to_string())
+        .unwrap_or_else(|| "Rooted / Other".to_string())
 }
 
 fn detect_selinux() -> String {
@@ -253,7 +255,7 @@ fn detect_kernel_version() -> String {
         let buf = unsafe { buf.assume_init() };
         let parse_cstr = |bytes: &[libc::c_char]| -> String {
             let u8_slice: &[u8] =
-                unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u8, bytes.len()) };
+                unsafe { std::slice::from_raw_parts(bytes.as_ptr().cast::<u8>(), bytes.len()) };
             let nul_pos = u8_slice
                 .iter()
                 .position(|&b| b == 0)

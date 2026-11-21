@@ -63,18 +63,18 @@ pub fn get_online_cores() -> Result<Vec<usize>> {
 pub fn parse_online_cores(s: &str) -> Vec<usize> {
     let mut cores = Vec::new();
     for part in s.trim().split(',') {
-        if part.contains('-') {
-            let bounds: Vec<&str> = part.split('-').collect();
-            if bounds.len() == 2
-                && let (Ok(start), Ok(end)) =
-                    (bounds[0].parse::<usize>(), bounds[1].parse::<usize>())
-            {
-                for c in start..=end {
+        match part.split_once('-') {
+            Some((start_str, end_str)) => {
+                if let (Ok(start), Ok(end)) = (start_str.parse::<usize>(), end_str.parse::<usize>())
+                {
+                    cores.extend(start..=end);
+                }
+            }
+            None => {
+                if let Ok(c) = part.parse::<usize>() {
                     cores.push(c);
                 }
             }
-        } else if let Ok(c) = part.parse::<usize>() {
-            cores.push(c);
         }
     }
     cores
@@ -132,14 +132,10 @@ pub fn classify_from_freqs(core_freqs: &[(usize, u32)]) -> (u64, u64, u64) {
 
     for &(core, freq) in core_freqs {
         let bit = 1u64 << core;
-        if n_tiers >= 3 && freq == top {
-            prime_mask |= bit;
-        } else if n_tiers >= 2 && freq == bottom {
-            little_mask |= bit;
-        } else {
-            // Single-tier (all big), the middle tier of a 3+ layout, or the
-            // top tier of a 2-tier layout (no dedicated prime).
-            big_mask |= bit;
+        match freq {
+            f if n_tiers >= 3 && f == top => prime_mask |= bit,
+            f if n_tiers >= 2 && f == bottom => little_mask |= bit,
+            _ => big_mask |= bit,
         }
     }
 

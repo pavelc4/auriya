@@ -26,14 +26,14 @@ fn highest_available_freq(text: &str) -> Option<u64> {
 }
 
 pub fn detect_vendor() -> GpuVendor {
-    if Path::new("/sys/class/kgsl/kgsl-3d0").exists() {
-        GpuVendor::Adreno
-    } else if Path::new("/proc/gpufreq/gpufreq_opp_freq").exists()
-        || Path::new("/proc/gpufreqv2/fix_target_opp_index").exists()
-    {
-        GpuVendor::Mali
-    } else {
-        GpuVendor::Unknown
+    match () {
+        _ if Path::new("/sys/class/kgsl/kgsl-3d0").exists() => GpuVendor::Adreno,
+        _ if Path::new("/proc/gpufreq/gpufreq_opp_freq").exists()
+            || Path::new("/proc/gpufreqv2/fix_target_opp_index").exists() =>
+        {
+            GpuVendor::Mali
+        }
+        _ => GpuVendor::Unknown,
     }
 }
 
@@ -132,7 +132,6 @@ fn set_adreno_performance() -> Result<()> {
 fn set_mali_performance() -> Result<()> {
     if Path::new("/proc/gpufreqv2/fix_target_opp_index").exists() {
         let _ = fs::write("/proc/gpufreqv2/fix_target_opp_index", "0"); // 0 usually means max freq index
-    } else if Path::new("/proc/gpufreq/gpufreq_opp_freq").exists() {
     }
 
     // Exynos/Tensor Mali: always_on eliminates GPU wake-up latency
