@@ -43,27 +43,35 @@ fun MiniMetricRow(
             "fast", "fas", "4" -> stringResource(R.string.home_profile_fast)
             else -> profile
         }
+
+    val profileStyle =
+        when {
+            profileShort.length > 9 -> MaterialTheme.typography.headlineSmall.copy(fontSize = 20.sp, lineHeight = 34.sp)
+            profileShort.length > 7 -> MaterialTheme.typography.headlineSmall.copy(fontSize = 22.sp, lineHeight = 34.sp)
+            else -> MaterialTheme.typography.headlineMedium.copy(fontSize = 26.sp, lineHeight = 34.sp)
+        }
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small),
     ) {
         MiniCard(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).height(120.dp),
             icon = Icons.Outlined.SportsEsports,
             value = gameCount.toString(),
             label = stringResource(R.string.nav_games),
             accentColor = MaterialTheme.colorScheme.primary,
             onClick = onGamesClick,
-            valueStyle = MaterialTheme.typography.headlineMedium,
+            valueStyle = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp, lineHeight = 34.sp),
         )
         MiniCard(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).height(120.dp),
             icon = Icons.Outlined.Tune,
             value = profileShort,
             label = stringResource(R.string.home_active_profile),
             accentColor = MaterialTheme.colorScheme.primary,
             onClick = onProfileClick,
-            valueStyle = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
+            valueStyle = profileStyle,
         )
     }
 }
@@ -83,11 +91,11 @@ fun MiniCard(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier =
             modifier
-                .defaultMinSize(minHeight = 112.dp)
                 .bouncyClickable(onClick = onClick),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -112,15 +120,13 @@ fun MiniCard(
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             AnimatedTickerText(
                 text = value,

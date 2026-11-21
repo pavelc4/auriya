@@ -77,8 +77,11 @@ fun HomeHeroCard(
                                 } else {
                                     stringResource(R.string.home_status_inactive)
                                 },
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
+                            style =
+                                MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Black,
+                                ),
                             color = onCardBg,
                         )
                     }
@@ -86,8 +89,8 @@ fun HomeHeroCard(
                     val cleanVersion = systemInfo.version.removePrefix("v").removePrefix("V")
                     Text(
                         text = "v$cleanVersion",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = onCardBg.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = onCardBg.copy(alpha = 0.85f),
                     )
                 }
 
