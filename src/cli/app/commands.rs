@@ -233,6 +233,8 @@ pub enum Commands {
         lines: usize,
         #[arg(long, help = "Clear / truncate daemon log file")]
         clear: bool,
+        #[arg(long, help = "Display panic crash tombstone if available")]
+        crash: bool,
     },
 
     #[command(subcommand_help_heading = "Diagnostics & Telemetry")]

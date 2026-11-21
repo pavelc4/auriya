@@ -77,8 +77,9 @@ async fn dispatch(command: Commands, client: &IpcClient) -> Result<()> {
             follow,
             lines,
             clear,
+            crash,
         } => {
-            commands::handle_log(follow, lines, clear)?;
+            commands::handle_log(follow, lines, clear, crash)?;
         }
         Commands::GetRates => commands::handle_get_rates(client).await?,
         Commands::ListPackages => commands::handle_list_packages(client).await?,

@@ -39,5 +39,32 @@ pub fn print_status(response: &str) {
 
 pub fn print_daemon_stopped() {
     println!("       Auriya Daemon Status      ");
-    println!("  Daemon: Not running\n");
+    println!("  Daemon:      Not running");
+
+    let crash_opt = std::fs::read_to_string(crate::common::CRASH_LOG_FILE).ok();
+    let boot_err_opt = std::fs::read_to_string(crate::common::BOOT_ERROR_FILE).ok();
+
+    match (crash_opt, boot_err_opt) {
+        (Some(crash), _) if crash.contains("CRASH TOMBSTONE") || crash.contains("panic") => {
+            if let Some(first_line) = crash
+                .lines()
+                .find(|l| l.contains("CRASH TOMBSTONE") || l.contains("panic"))
+            {
+                println!("  Fatal Crash: {}", first_line.trim());
+                println!(
+                    "  (See '{}' for full backtrace)",
+                    crate::common::CRASH_LOG_FILE
+                );
+            }
+        }
+        (_, Some(boot_err)) if boot_err.contains("BOOT FAILURE") => {
+            if let Some(first_line) = boot_err.lines().find(|l| l.contains("BOOT FAILURE")) {
+                println!("  Boot Error:  {}", first_line.trim());
+                println!("  (See '{}' for details)", crate::common::BOOT_ERROR_FILE);
+            }
+        }
+        _ => {}
+    }
+
+    println!();
 }

@@ -1,15 +1,26 @@
 use crate::Result;
 use crate::cli::output;
+use crate::common::{BOOT_ERROR_FILE, CRASH_LOG_FILE, LOG_FILE};
 use anyhow::Context;
 use std::time::Duration;
 
-const LOG_FILE: &str = "/data/adb/auriya/daemon.log";
-
-pub fn handle_log(follow: bool, lines: usize, clear: bool) -> Result<()> {
-    if clear {
-        std::fs::write(LOG_FILE, "").context("Failed to clear daemon log file")?;
-        output::print_success("Daemon log cleared");
-        return Ok(());
+pub fn handle_log(follow: bool, lines: usize, clear: bool, crash: bool) -> Result<()> {
+    match (crash, clear) {
+        (true, _) => {
+            match std::fs::read_to_string(CRASH_LOG_FILE) {
+                Ok(content) => println!("{content}"),
+                Err(_) => println!("No crash tombstone found at {CRASH_LOG_FILE}"),
+            }
+            return Ok(());
+        }
+        (false, true) => {
+            let _ = std::fs::write(LOG_FILE, "");
+            let _ = std::fs::remove_file(CRASH_LOG_FILE);
+            let _ = std::fs::remove_file(BOOT_ERROR_FILE);
+            output::print_success("Daemon logs cleared");
+            return Ok(());
+        }
+        (false, false) => {}
     }
 
     if !std::path::Path::new(LOG_FILE).exists() {
