@@ -70,6 +70,7 @@ runs:
 
         if [ -n "$APP_APK" ]; then
             cp "$APP_APK" "$APPS_DIR/auriya-app.apk"
+            cp "$APP_APK" "$BUILD_DIR/auriya-app.apk"
             echo "Packaged app APK ($(du -h "$APP_APK" | cut -f1))"
         else
             echo "Warning: App APK not found — app dir will be incomplete"

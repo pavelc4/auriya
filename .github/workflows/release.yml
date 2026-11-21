@@ -136,14 +136,14 @@ jobs:
           KEY_ALIAS=${{ secrets.KEYSTORE_ALIAS }}
           KEY_PASSWORD=${{ secrets.KEYSTORE_KEY_PASSWORD }}
           EOF
-      - name: Build Android APKs
+      - name: Build Android APK
         working-directory: ./android
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleRelease
       - uses: actions/upload-artifact@v7
         with:
-          name: android-apks
+          name: android-apk
           path: |
             android/app/build/outputs/apk/release/*.apk
   package:
@@ -169,7 +169,7 @@ jobs:
           path: target/aarch64-linux-android/release/
       - uses: actions/download-artifact@v8
         with:
-          name: android-apks
+          name: android-apk
           path: .
       - uses: ./.github/actions/package-module
         id: package
@@ -177,7 +177,7 @@ jobs:
           build_type: release
       - uses: actions/upload-artifact@v7
         with:
-          name: auriya-aarch64
+          name: auriya-module
           path: |
             build/release/*.zip
             build/release/*.sha256
@@ -194,7 +194,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v8
         with:
-          name: auriya-aarch64
+          name: auriya-module
           path: build/release/
 
       - name: Upload to Release
@@ -207,6 +207,7 @@ jobs:
           files: |
             build/release/${{ needs.package.outputs.zip_name }}
             build/release/${{ needs.package.outputs.sha_name }}
+            build/release/auriya-app.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
