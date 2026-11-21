@@ -65,12 +65,15 @@ pub fn set_statusbar_lock(enable: bool) -> Result<bool> {
     {
         use rsbinder::Interface;
 
-        let mut lock_guard = STATUSBAR_TOKEN
-            .lock()
-            .map_err(|_| anyhow::anyhow!("StatusBarToken lock poisoned"))?;
+        let already_enabled = {
+            let lock_guard = STATUSBAR_TOKEN
+                .lock()
+                .map_err(|_| anyhow::anyhow!("StatusBarToken lock poisoned"))?;
+            lock_guard.is_some()
+        };
 
         if enable {
-            if lock_guard.is_some() {
+            if already_enabled {
                 return Ok(true);
             }
 
@@ -94,7 +97,7 @@ pub fn set_statusbar_lock(enable: bool) -> Result<bool> {
             let token_binder = rsbinder::Binder::new(StatusBarToken);
             let token = token_binder.as_binder();
 
-            // TRANSACTION_disable = 4
+            // TRANSACTION_disable = 4 outside lock to prevent freezing
             let mut data = proxy.prepare_transact(true)?;
             data.write(&DISABLE_STATUSBAR_LOCK)?;
             data.write(&token)?;
@@ -108,11 +111,22 @@ pub fn set_statusbar_lock(enable: bool) -> Result<bool> {
                 }
             }
 
-            *lock_guard = Some(token);
+            {
+                let mut lock_guard = STATUSBAR_TOKEN
+                    .lock()
+                    .map_err(|_| anyhow::anyhow!("StatusBarToken lock poisoned"))?;
+                *lock_guard = Some(token);
+            }
             tracing::info!(target: "auriya::binder", "Enabled status bar lock (notification shade & heads-up locked)");
             Ok(true)
         } else {
-            let Some(token) = lock_guard.take() else {
+            let token_opt = {
+                let mut lock_guard = STATUSBAR_TOKEN
+                    .lock()
+                    .map_err(|_| anyhow::anyhow!("StatusBarToken lock poisoned"))?;
+                lock_guard.take()
+            };
+            let Some(token) = token_opt else {
                 return Ok(false);
             };
 
@@ -129,7 +143,7 @@ pub fn set_statusbar_lock(enable: bool) -> Result<bool> {
                 None => return Ok(false),
             };
 
-            // TRANSACTION_disable = 4 with DISABLE_NONE
+            // TRANSACTION_disable = 4 with DISABLE_NONE without holding lock
             let mut data = proxy.prepare_transact(true)?;
             data.write(&DISABLE_NONE)?;
             data.write(&token)?;

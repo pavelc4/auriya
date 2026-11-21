@@ -36,10 +36,13 @@ pub fn set_wifi_low_latency_lock(enable: bool) -> Result<bool> {
     {
         use rsbinder::Interface;
 
-        let mut lock_guard = WIFI_LOCK_TOKEN.lock().unwrap();
+        let already_enabled = {
+            let lock_guard = WIFI_LOCK_TOKEN.lock().unwrap();
+            lock_guard.is_some()
+        };
 
         if enable {
-            if lock_guard.is_some() {
+            if already_enabled {
                 return Ok(true);
             }
 
@@ -68,6 +71,7 @@ pub fn set_wifi_low_latency_lock(enable: bool) -> Result<bool> {
             data.write(&"dev.auriya".to_string())?;
             data.write(&0i32)?; // Bundle = null
 
+            // Submit transact outside the lock to prevent deadlock if system_server delays.
             let reply_opt = proxy.submit_transact(62, &data, 0)?;
             if let Some(mut rep) = reply_opt {
                 let ex = rep.read_i32()?;
@@ -76,6 +80,7 @@ pub fn set_wifi_low_latency_lock(enable: bool) -> Result<bool> {
                 }
                 let success = rep.read_bool()?;
                 if success {
+                    let mut lock_guard = WIFI_LOCK_TOKEN.lock().unwrap();
                     *lock_guard = Some(token);
                     tracing::info!(target: "auriya::binder", "Acquired Wi-Fi Low-Latency lock (type 4)");
                     return Ok(true);
@@ -85,7 +90,11 @@ pub fn set_wifi_low_latency_lock(enable: bool) -> Result<bool> {
             }
             anyhow::bail!("acquireWifiLock received no reply");
         } else {
-            let Some(token) = lock_guard.take() else {
+            let token_opt = {
+                let mut lock_guard = WIFI_LOCK_TOKEN.lock().unwrap();
+                lock_guard.take()
+            };
+            let Some(token) = token_opt else {
                 return Ok(false);
             };
 
@@ -102,7 +111,7 @@ pub fn set_wifi_low_latency_lock(enable: bool) -> Result<bool> {
                 None => return Ok(false),
             };
 
-            // TRANSACTION_releaseWifiLock = 64
+            // TRANSACTION_releaseWifiLock = 64 without holding lock
             let mut data = proxy.prepare_transact(true)?;
             data.write(&token)?;
             let reply_opt = proxy.submit_transact(64, &data, 0)?;

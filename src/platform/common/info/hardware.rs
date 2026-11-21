@@ -248,10 +248,20 @@ fn detect_selinux() -> String {
 }
 
 fn detect_kernel_version() -> String {
-    let mut buf: libc::utsname = unsafe { std::mem::zeroed() };
-    if unsafe { libc::uname(&mut buf) } == 0 {
-        let release = unsafe { std::ffi::CStr::from_ptr(buf.release.as_ptr()) }.to_string_lossy();
-        let machine = unsafe { std::ffi::CStr::from_ptr(buf.machine.as_ptr()) }.to_string_lossy();
+    let mut buf = std::mem::MaybeUninit::<libc::utsname>::uninit();
+    if unsafe { libc::uname(buf.as_mut_ptr()) } == 0 {
+        let buf = unsafe { buf.assume_init() };
+        let parse_cstr = |bytes: &[libc::c_char]| -> String {
+            let u8_slice: &[u8] =
+                unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u8, bytes.len()) };
+            let nul_pos = u8_slice
+                .iter()
+                .position(|&b| b == 0)
+                .unwrap_or(u8_slice.len());
+            String::from_utf8_lossy(&u8_slice[..nul_pos]).into_owned()
+        };
+        let release = parse_cstr(&buf.release);
+        let machine = parse_cstr(&buf.machine);
         format!("{release} ({machine})")
     } else {
         fs::read_to_string("/proc/version")

@@ -29,7 +29,10 @@ pub async fn get_app_supported_modes() -> Result<Vec<DisplayMode>> {
         }
     }
 
-    let output = Command::new("dumpsys").arg("display").output().await?;
+    let cmd = Command::new("dumpsys").arg("display").output();
+    let output = tokio::time::timeout(std::time::Duration::from_secs(3), cmd)
+        .await
+        .map_err(|_| anyhow::anyhow!("dumpsys display timed out"))??;
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     parse_app_supported_modes(&stdout)
@@ -47,7 +50,11 @@ pub async fn get_screen_resolution() -> Option<(u32, u32)> {
         return Some((mode.width, mode.height));
     }
 
-    let output = Command::new("wm").arg("size").output().await.ok()?;
+    let cmd = Command::new("wm").arg("size").output();
+    let output = tokio::time::timeout(std::time::Duration::from_secs(2), cmd)
+        .await
+        .ok()?
+        .ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
     parse_wm_size(&text)
 }

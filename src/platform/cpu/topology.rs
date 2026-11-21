@@ -173,14 +173,17 @@ pub fn set_game_affinity_dynamic(pid: i32, profile: &str) -> Result<()> {
         return Ok(());
     }
 
+    // SAFETY: cpu_set_t is an integer bitmask array; zeroed initialization is valid and safe.
     let mut cpu_set: libc::cpu_set_t = unsafe { std::mem::zeroed() };
 
     for i in 0..64 {
         if (mask >> i) & 1 == 1 {
+            // SAFETY: CPU_SET macro operates on valid pointer within CPU bounds.
             unsafe { libc::CPU_SET(i, &mut cpu_set) };
         }
     }
 
+    // SAFETY: sched_setaffinity takes a valid pid, valid size, and initialized cpu_set.
     let result =
         unsafe { libc::sched_setaffinity(pid, std::mem::size_of::<libc::cpu_set_t>(), &cpu_set) };
 

@@ -1,11 +1,7 @@
 use std::collections::HashMap;
-use std::ffi::CString;
-use std::fs::{self, set_permissions};
-use std::os::unix::fs::PermissionsExt;
+use std::fs;
 use std::path::Path;
-use std::ptr;
 
-use libc::{MNT_DETACH, MS_BIND, MS_REC, mount, umount2};
 use tracing::{debug, warn};
 
 const VENDOR_PATHS: &[(&str, &str)] = &[
@@ -17,26 +13,6 @@ const VENDOR_PATHS: &[(&str, &str)] = &[
     ("/sys/module/migt/parameters/glk_disable", "1"),
     ("/proc/game_opt/disable_cpufreq_limit", "1"),
 ];
-
-fn do_mount_bind(src: &str, dest: &str) -> bool {
-    let src_c = CString::new(src).unwrap();
-    let dest_c = CString::new(dest).unwrap();
-    unsafe {
-        umount2(dest_c.as_ptr(), MNT_DETACH);
-        mount(
-            src_c.as_ptr().cast(),
-            dest_c.as_ptr().cast(),
-            ptr::null(),
-            MS_BIND | MS_REC,
-            ptr::null(),
-        ) == 0
-    }
-}
-
-fn do_unmount(path: &str) -> bool {
-    let p = CString::new(path).unwrap();
-    unsafe { umount2(p.as_ptr(), MNT_DETACH) == 0 }
-}
 
 #[derive(Default)]
 pub struct VendorLock {
@@ -62,20 +38,14 @@ impl VendorLock {
                 continue;
             }
 
-            let prev = fs::read_to_string(path).ok();
-            let mount_path = format!("/cache/.auriya_{}", path.replace('/', "_"));
-
-            let _ = fs::write(path, value);
-            let _ = set_permissions(path, PermissionsExt::from_mode(0o444));
-            let _ = fs::write(&mount_path, value);
-            if do_mount_bind(&mount_path, path) {
-                if let Some(saved_val) = prev {
-                    self.saved.insert(path.to_string(), saved_val);
+            if let Ok(prev) = fs::read_to_string(path) {
+                let trimmed = prev.trim().to_string();
+                if fs::write(path, value).is_ok() {
+                    self.saved.insert(path.to_string(), trimmed);
+                    debug!(target: "auriya::vendor_lock", "Locked {} -> {}", path, value);
+                } else {
+                    warn!(target: "auriya::vendor_lock", "Failed to write {} to {}", value, path);
                 }
-                debug!(target: "auriya::vendor_lock", "Locked {} → {}", path, value);
-            } else {
-                warn!(target: "auriya::vendor_lock", "Failed to mount-bind {}", path);
-                let _ = set_permissions(path, PermissionsExt::from_mode(0o644));
             }
         }
 
@@ -92,12 +62,12 @@ impl VendorLock {
                 continue;
             }
 
-            let _ = set_permissions(path, PermissionsExt::from_mode(0o644));
-            do_unmount(path);
-
             if let Some(saved_val) = self.saved.remove(*path) {
-                let _ = fs::write(path, saved_val.trim());
-                debug!(target: "auriya::vendor_lock", "Unlocked {}, restored", path);
+                if fs::write(path, &saved_val).is_ok() {
+                    debug!(target: "auriya::vendor_lock", "Unlocked {}, restored {}", path, saved_val);
+                } else {
+                    warn!(target: "auriya::vendor_lock", "Failed to restore {} to {}", saved_val, path);
+                }
             }
         }
 
