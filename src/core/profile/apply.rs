@@ -162,13 +162,14 @@ pub fn apply_powersave_with_dnd(enable_dnd: bool) -> Result<()> {
         enable_dnd
     );
 
-    let gov = match paths::available_governors()
+    paths::online_all_cores_cached();
+    let available = paths::available_governors();
+    let gov = available
         .iter()
-        .find(|&g| g == "powersave")
-    {
-        Some(gov) => gov.as_str(),
-        None => "schedutil",
-    };
+        .find(|&g| g == "schedutil" || g == "walt")
+        .map(|s| s.as_str())
+        .or_else(|| available.first().map(|s| s.as_str()))
+        .unwrap_or("schedutil");
     paths::set_governor_cached(gov);
     cpu::disable_boost()?;
 

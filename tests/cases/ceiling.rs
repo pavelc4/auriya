@@ -69,9 +69,8 @@ fn ceiling_scenarios_capture_and_restore() {
     if let Some(&c) = ctrl.layout.little_ids.first() {
         cores.push(("little", c));
     }
-    // Use the LAST big core: apply_low freezes the upper half (the
-    // first half is offlined), so this one exercises the freeze→restore
-    // path rather than offline→online.
+    // Track cores across little, big, and prime clusters to verify
+    // direct sysfs cap and restore across all cluster tiers.
     if let Some(&c) = ctrl.layout.big_ids.last() {
         cores.push(("big", c));
     }

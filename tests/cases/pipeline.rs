@@ -295,11 +295,12 @@ fn test_apply_powersave_governor_selection() {
         assert!(res.is_ok());
 
         let available = auriya::platform::cpu::governor::available_governors();
-        let expected_gov = if available.iter().any(|g| g == "powersave") {
-            "powersave"
-        } else {
-            "schedutil"
-        };
+        let expected_gov = available
+            .iter()
+            .find(|&g| g == "schedutil" || g == "walt")
+            .map(|s| s.as_str())
+            .or_else(|| available.first().map(|s| s.as_str()))
+            .unwrap_or("schedutil");
 
         let paths = crate::common::find_cpu_governor_paths().unwrap();
         let current_gov = std::fs::read_to_string(&paths[0]).unwrap();

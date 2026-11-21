@@ -220,7 +220,7 @@ impl FrameBuffer {
         }
 
         let max_ceiling = match crate::platform::binder::get_active_display_refresh_rate() {
-            hz if hz > 0.0 => hz as u32,
+            hz if hz > 60.0 => hz as u32,
             _ => 144,
         };
 
@@ -236,16 +236,16 @@ impl FrameBuffer {
             return;
         }
 
-        let mut chosen = targets.last().copied();
-        for window in targets.windows(2) {
-            let low = window[0] as f64;
-            let high = window[1] as f64;
-            let midpoint = (low + high) / 2.0;
-            if current_fps < midpoint {
-                chosen = Some(window[0]);
+        // Top-down / nearest target matching with tolerance (+3.0 FPS).
+        // Prevents the midpoint threshold trap on loading screens.
+        let mut chosen = None;
+        for &target in targets {
+            if current_fps <= f64::from(target) + 3.0 {
+                chosen = Some(target);
                 break;
             }
         }
+        let chosen = chosen.or_else(|| targets.last().copied());
         let new_target = chosen.map(|t| t.min(max_ceiling));
 
         if new_target == self.target_fps {

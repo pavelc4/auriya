@@ -67,22 +67,23 @@ impl Daemon {
                 self.last_fps_config = Some(fps_key);
             }
         } else {
-            let active_hz = crate::platform::binder::get_active_display_refresh_rate() as u32;
-            let auto_key = format!("auto_multi_{active_hz}");
+            let supported_rates = crate::platform::binder::query_binder_supported_rates();
+            let max_allowed_hz = self.applied_refresh_rate.unwrap_or(0);
+            let effective_rates = if max_allowed_hz > 0 {
+                supported_rates
+                    .into_iter()
+                    .filter(|&r| r <= max_allowed_hz)
+                    .collect()
+            } else {
+                supported_rates
+            };
+            let effective_rates = match effective_rates.as_slice() {
+                [] => vec![60],
+                _ => effective_rates,
+            };
+            let auto_key = format!("auto_multi_{:?}", effective_rates);
             if self.last_fps_config.as_deref() != Some(&auto_key) {
                 let mut f = fas_arc.lock().await;
-                let rates = crate::platform::binder::query_binder_supported_rates();
-                let filtered_rates: Vec<u32> = rates
-                    .into_iter()
-                    .filter(|&r| active_hz == 0 || r <= active_hz)
-                    .collect();
-                let effective_rates = match filtered_rates.as_slice() {
-                    [] => match active_hz {
-                        hz if hz > 0 => vec![hz],
-                        _ => vec![60],
-                    },
-                    _ => filtered_rates,
-                };
                 f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(
                     effective_rates,
                 ));

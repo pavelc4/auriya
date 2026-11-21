@@ -3,6 +3,7 @@ use crate::core::config::gamelist::GameList;
 use crate::core::profile::{self, ProfileMode};
 use crate::daemon::engine::{Daemon, bump_log, should_log_change};
 use anyhow::Result;
+use std::sync::Arc;
 use tracing::{debug, error, warn};
 
 impl Daemon {
@@ -256,19 +257,19 @@ impl Daemon {
                     .and_then(|fas| fas.try_lock().ok())
                 {
                     f.set_package(pkg, primary_pid);
-                    let active_hz =
-                        crate::platform::binder::get_active_display_refresh_rate() as u32;
-                    let rates = crate::platform::binder::query_binder_supported_rates();
-                    let filtered_rates: Vec<u32> = rates
-                        .into_iter()
-                        .filter(|&r| active_hz == 0 || r <= active_hz)
-                        .collect();
-                    let effective_rates = match filtered_rates.as_slice() {
-                        [] => match active_hz {
-                            hz if hz > 0 => vec![hz],
-                            _ => vec![60],
-                        },
-                        _ => filtered_rates,
+                    let supported_rates = crate::platform::binder::query_binder_supported_rates();
+                    let max_allowed_hz = self.applied_refresh_rate.unwrap_or(0);
+                    let effective_rates = if max_allowed_hz > 0 {
+                        supported_rates
+                            .into_iter()
+                            .filter(|&r| r <= max_allowed_hz)
+                            .collect()
+                    } else {
+                        supported_rates
+                    };
+                    let effective_rates = match effective_rates.as_slice() {
+                        [] => vec![60],
+                        _ => effective_rates,
                     };
                     f.set_target_fps_config(crate::core::fas::buffer::TargetFps::Array(
                         effective_rates,
@@ -318,13 +319,34 @@ impl Daemon {
         }
 
         let fallback_fps = self.fps_meter.read().map(|r| r.fps);
-        if let Some(mut f) = self
-            .fas_controller
-            .as_ref()
-            .and_then(|fas| fas.try_lock().ok())
-        {
-            f.drain_frames_with_fallback(fallback_fps);
+        let Some(fas_arc) = self.fas_controller.as_ref().map(Arc::clone) else {
+            return Ok(());
+        };
+
+        let fas_enabled = self
+            ._shared_settings
+            .read()
+            .map(|s| s.fas.enabled)
+            .unwrap_or(true);
+
+        if !fas_enabled {
+            if let Ok(mut f) = fas_arc.try_lock() {
+                f.drain_frames_with_fallback(fallback_fps);
+            }
+            return Ok(());
         }
+
+        let default_gov = self
+            .balance_governor
+            .read()
+            .ok()
+            .as_deref()
+            .map(String::from)
+            .unwrap_or_else(|| "schedutil".to_string());
+
+        let _ = self
+            .run_fas_tick(&fas_arc, _pkg, &default_gov, self.last.pid, false)
+            .await;
         Ok(())
     }
 
@@ -441,11 +463,7 @@ impl Daemon {
             }
         }
 
-        let ceiling_level = game_cfg.and_then(|c| c.ceiling.as_deref()).and_then(|s| {
-            s.parse::<crate::platform::cpu::ceiling::CeilingLevel>()
-                .ok()
-        });
-        self.apply_ceiling_for_state(ceiling_level, Some(pkg));
+        self.apply_ceiling_for_state(None, Some(pkg));
 
         let rr = game_cfg.and_then(|c| c.refresh_rate);
         let rr_changed = rr.is_some() && self.applied_refresh_rate != rr;

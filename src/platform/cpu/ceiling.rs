@@ -1,11 +1,8 @@
 use anyhow::Result;
-use std::ffi::CString;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
-use std::ptr;
 
-use libc::{MNT_DETACH, MS_BIND, MS_REC, mount, umount2};
 use tracing::{debug, info, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -154,31 +151,6 @@ pub fn hw_max_freq_for_core(core: usize) -> Option<u64> {
     })
 }
 
-fn do_mount_bind(src: &str, dest: &str) -> bool {
-    let src_c = CString::new(src).unwrap();
-    let dest_c = CString::new(dest).unwrap();
-    unsafe {
-        umount2(dest_c.as_ptr(), MNT_DETACH);
-        mount(
-            src_c.as_ptr().cast(),
-            dest_c.as_ptr().cast(),
-            ptr::null(),
-            MS_BIND | MS_REC,
-            ptr::null(),
-        ) == 0
-    }
-}
-
-fn do_unmount(path: &str) -> bool {
-    let p = CString::new(path).unwrap();
-    unsafe { umount2(p.as_ptr(), MNT_DETACH) == 0 }
-}
-
-/// The hardware frequency limit a frozen `scaling_{max,min}_freq` node
-/// should be reset to on restore. A max-freq cap restores to the hardware
-/// max (with a `scaling_available_frequencies` fallback — some devices make
-/// `cpuinfo_max_freq` unreadable, which used to leave clusters stuck low); a
-/// min-freq lock restores to `cpuinfo_min_freq`.
 fn hardware_limit_for(path: &str) -> Option<String> {
     let core = core_id_from_freq_path(path)?;
     match path.rsplit('/').next() {
@@ -193,12 +165,8 @@ fn hardware_limit_for(path: &str) -> Option<String> {
     }
 }
 
-/// Tear down any leftover ceiling mount-binds from a previous daemon
-/// instance. A `scaling_{max,min}_freq` node appearing as a mount point in
-/// `/proc/mounts` can only be our bind, so unmount it and reset the node to
-/// its hardware limit.
+/// Tear down any leftover ceiling mount-binds from legacy daemon instances.
 fn cleanup_stale_mounts() {
-    // 1. Unmount orphaned binds still present in /proc/mounts.
     if let Ok(mounts) = fs::read_to_string("/proc/mounts") {
         for line in mounts.lines() {
             let mut fields = line.split_whitespace();
@@ -207,7 +175,11 @@ fn cleanup_stale_mounts() {
                 continue;
             };
             if dest.ends_with("scaling_max_freq") || dest.ends_with("scaling_min_freq") {
-                do_unmount(dest);
+                if let Ok(dest_c) = std::ffi::CString::new(dest) {
+                    unsafe {
+                        libc::umount2(dest_c.as_ptr(), libc::MNT_DETACH);
+                    }
+                }
                 let cache = format!(
                     "/cache/.auriya_ceiling_{}",
                     dest.replace('/', "_").trim_end_matches('_')
@@ -218,12 +190,7 @@ fn cleanup_stale_mounts() {
         }
     }
 
-    // 2. Reset any freq node still marked read-only (0o444). Normal
-    //    scaling_{max,min}_freq nodes are writable; 0o444 is the signature
-    //    of our freeze whose bind was already torn down but whose value and
-    //    permissions persisted (the cause of a cluster stuck low after a
-    //    crash or a buggy restore). Reset perms and value to the hardware
-    //    limit so the cluster scales freely again.
+    // Reset any freq node still marked read-only (0o444) from older releases
     for core in 0..16 {
         for kind in ["scaling_max_freq", "scaling_min_freq"] {
             let p = format!("/sys/devices/system/cpu/cpu{core}/cpufreq/{kind}");
@@ -258,18 +225,9 @@ impl Default for CeilingConfig {
     }
 }
 
-struct MountEntry {
-    path: String,
-    mount_point: String,
-    /// Whether the mount-bind actually succeeded. When it fails we still
-    /// wrote the capped value to the real node, so restore must reset it
-    /// regardless.
-    bound: bool,
-}
-
 pub struct CeilingController {
     pub layout: CoreLayout,
-    mounts: Vec<MountEntry>,
+    applied_nodes: Vec<String>,
     current_level: Option<CeilingLevel>,
 }
 
@@ -281,9 +239,6 @@ impl Default for CeilingController {
 
 impl CeilingController {
     pub fn new() -> Self {
-        // A previous daemon that died mid-ceiling (crash, kill -9, update)
-        // leaves mount-binds over scaling_{max,min}_freq nodes. Tear any
-        // down and reset the nodes so we don't inherit a stuck cluster.
         cleanup_stale_mounts();
 
         let layout = CoreLayout::detect();
@@ -298,7 +253,7 @@ impl CeilingController {
         }
         Self {
             layout,
-            mounts: Vec::new(),
+            applied_nodes: Vec::new(),
             current_level: None,
         }
     }
@@ -315,6 +270,7 @@ impl CeilingController {
             CeilingLevel::Balance => {
                 self.online_all();
                 self.uncap_all_scaling_max();
+                self.restore_all_scaling_min();
                 self.current_level = Some(CeilingLevel::Balance);
                 Ok(())
             }
@@ -322,162 +278,134 @@ impl CeilingController {
         }
     }
 
+    fn write_freq_node(&mut self, path: &str, value: u64) {
+        if Path::new(path).exists() {
+            let _ = fs::set_permissions(path, PermissionsExt::from_mode(0o644));
+            let val_str = value.to_string();
+            if let Err(e) = fs::write(path, &val_str) {
+                warn!(target: "auriya::ceiling", "Failed to write {} to {}: {}", val_str, path, e);
+            } else {
+                debug!(target: "auriya::ceiling", "Set {} = {} kHz", path, val_str);
+                if !self.applied_nodes.contains(&path.to_string()) {
+                    self.applied_nodes.push(path.to_string());
+                }
+            }
+        }
+    }
+
     fn apply_low(&mut self, config: &CeilingConfig) -> Result<()> {
+        // Modern Auriya: 100% cores remain online. DynamIQ C-states provide superior
+        // power saving and latency compared to core hotplug offlining.
+        self.online_all();
+
         let little_freq = config
             .low_freq_little_khz
+            .or_else(|| {
+                self.layout
+                    .little_freqs_khz
+                    .get(self.layout.little_freqs_khz.len() / 2)
+                    .copied()
+            })
             .or_else(|| self.layout.little_freqs_khz.first().copied());
         let big_freq = config
             .low_freq_big_khz
+            .or_else(|| {
+                self.layout
+                    .big_freqs_khz
+                    .get(self.layout.big_freqs_khz.len() / 2)
+                    .copied()
+            })
             .or_else(|| self.layout.big_freqs_khz.first().copied());
 
-        for &core in &self.layout.prime_ids {
-            let path = format!("/sys/devices/system/cpu/cpu{}/online", core);
-            if Path::new(&path).exists() {
-                let _ = fs::write(&path, "0");
-                debug!(target: "auriya::ceiling", "Low: offline prime core {}", core);
-            }
-        }
+        let little_ids = self.layout.little_ids.clone();
+        let big_ids = self.layout.big_ids.clone();
+        let prime_ids = self.layout.prime_ids.clone();
 
-        let half = self.layout.big_ids.len() / 2;
-        for &core in self.layout.big_ids.iter().take(half) {
-            let path = format!("/sys/devices/system/cpu/cpu{}/online", core);
-            if Path::new(&path).exists() {
-                let _ = fs::write(&path, "0");
-                debug!(target: "auriya::ceiling", "Low: offline big core {}", core);
-            }
-        }
-
-        let mut freq_targets = Vec::new();
         if let Some(freq) = little_freq {
-            for &core in &self.layout.little_ids {
-                freq_targets.push((
-                    format!(
-                        "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_max_freq",
-                        core
-                    ),
-                    freq,
-                ));
+            for core in little_ids {
+                let path = format!("/sys/devices/system/cpu/cpu{core}/cpufreq/scaling_max_freq");
+                self.write_freq_node(&path, freq);
             }
         }
 
         if let Some(freq) = big_freq {
-            for &core in self.layout.big_ids.iter().skip(half) {
-                freq_targets.push((
-                    format!(
-                        "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_max_freq",
-                        core
-                    ),
-                    freq,
-                ));
+            for core in big_ids {
+                let path = format!("/sys/devices/system/cpu/cpu{core}/cpufreq/scaling_max_freq");
+                self.write_freq_node(&path, freq);
             }
         }
 
-        for (p, freq) in &freq_targets {
-            self.freeze_freq(p, *freq);
+        // Cap prime cores to the same efficiency sweet-spot as big cores
+        if let Some(freq) = big_freq {
+            for core in prime_ids {
+                let path = format!("/sys/devices/system/cpu/cpu{core}/cpufreq/scaling_max_freq");
+                self.write_freq_node(&path, freq);
+            }
         }
 
         self.current_level = Some(CeilingLevel::Low);
-        debug!(target: "auriya::ceiling", "Applied LOW ceiling");
+        debug!(target: "auriya::ceiling", "Applied LOW ceiling (all cores online, direct sysfs scaling)");
         Ok(())
     }
 
     fn apply_high(&mut self, _config: &CeilingConfig) -> Result<()> {
         self.online_all();
 
-        let all_ids = &self.layout.all_core_ids;
-        let mut freq_targets: Vec<(String, u64)> = Vec::new();
-
-        for &core in all_ids {
+        let all_core_ids = self.layout.all_core_ids.clone();
+        for core in all_core_ids {
             if let Some(max_val) = hw_max_freq_for_core(core) {
-                let min_path = format!(
-                    "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_min_freq",
-                    core
-                );
-                freq_targets.push((min_path, max_val));
+                let min_path =
+                    format!("/sys/devices/system/cpu/cpu{core}/cpufreq/scaling_min_freq");
+                self.write_freq_node(&min_path, max_val);
             }
-        }
-
-        for (path, val) in &freq_targets {
-            self.freeze_freq(path, *val);
         }
 
         self.current_level = Some(CeilingLevel::High);
-        debug!(target: "auriya::ceiling", "Applied HIGH ceiling");
+        debug!(target: "auriya::ceiling", "Applied HIGH ceiling (all cores online, min freq boosted)");
         Ok(())
     }
 
-    fn freeze_freq(&mut self, path: &str, value: u64) {
-        let mount_point = format!(
-            "/cache/.auriya_ceiling_{}",
-            path.replace('/', "_").trim_end_matches('_')
-        );
-        let value_str = value.to_string();
-        let _ = fs::write(path, &value_str);
-        let _ = fs::set_permissions(path, PermissionsExt::from_mode(0o444));
-        let _ = fs::write(&mount_point, &value_str);
-        let bound = do_mount_bind(&mount_point, path);
-        if bound {
-            debug!(target: "auriya::ceiling", "Froze {} = {} kHz", path, value_str);
-        } else {
-            let _ = fs::set_permissions(path, PermissionsExt::from_mode(0o644));
-            warn!(target: "auriya::ceiling", "Mount-bind failed for {}, freq cap active without bind", path);
-        }
-        // Track the path either way: even without a bind we overwrote the
-        // real node and must reset it on restore.
-        self.mounts.push(MountEntry {
-            path: path.to_string(),
-            mount_point,
-            bound,
-        });
-    }
-
     pub fn restore(&mut self) {
-        for entry in self.mounts.drain(..) {
-            // Unmount FIRST so the following chmod/write hit the real sysfs
-            // node, not the cache file shadowing it. Doing it the other way
-            // round leaves the real node read-only (0o444) and stuck at the
-            // capped value (e.g. prime min pinned at max after a game).
-            if entry.bound {
-                do_unmount(&entry.path);
-            }
-            let _ = fs::remove_file(&entry.mount_point);
-            let _ = fs::set_permissions(&entry.path, PermissionsExt::from_mode(0o644));
-            // The revealed node still holds the capped value we wrote before
-            // binding; reset it to the hardware limit so the governor can
-            // scale freely again.
-            if let Some(limit) = hardware_limit_for(&entry.path) {
-                let _ = fs::write(&entry.path, &limit);
-                debug!(target: "auriya::ceiling", "Restored {} = {} kHz", entry.path, limit);
-            } else {
-                debug!(target: "auriya::ceiling", "Unmounted {}", entry.path);
+        for path in self.applied_nodes.drain(..) {
+            let _ = fs::set_permissions(&path, PermissionsExt::from_mode(0o644));
+            if let Some(limit) = hardware_limit_for(&path) {
+                let _ = fs::write(&path, &limit);
+                debug!(target: "auriya::ceiling", "Restored {} = {} kHz", path, limit);
             }
         }
+        self.uncap_all_scaling_max();
+        self.restore_all_scaling_min();
+        self.online_all();
         self.current_level = None;
     }
 
     pub fn online_all(&self) {
         for &core in &self.layout.all_core_ids {
-            let path = format!("/sys/devices/system/cpu/cpu{}/online", core);
+            let path = format!("/sys/devices/system/cpu/cpu{core}/online");
             if Path::new(&path).exists() {
                 let _ = fs::write(&path, "1");
             }
         }
     }
 
-    /// Explicitly release any freq cap on every core: restore writable
-    /// permissions and set `scaling_max_freq` back to the hardware max.
-    /// Self-heals a stuck-low state even when no mount entry was tracked
-    /// (e.g. a previous daemon crashed mid-ceiling before this instance's
-    /// `cleanup_stale_mounts` could see the bind).
+    /// Explicitly release scaling_max_freq on every core to hardware max limit.
     fn uncap_all_scaling_max(&self) {
         for &core in &self.layout.all_core_ids {
-            let p = format!(
-                "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_max_freq",
-                core
-            );
+            let p = format!("/sys/devices/system/cpu/cpu{core}/cpufreq/scaling_max_freq");
             let _ = fs::set_permissions(&p, PermissionsExt::from_mode(0o644));
             if let Some(limit) = hw_max_freq_for_core(core) {
                 let _ = fs::write(&p, limit.to_string());
+            }
+        }
+    }
+
+    /// Explicitly release scaling_min_freq on every core to hardware min limit.
+    fn restore_all_scaling_min(&self) {
+        for &core in &self.layout.all_core_ids {
+            let p = format!("/sys/devices/system/cpu/cpu{core}/cpufreq/scaling_min_freq");
+            let _ = fs::set_permissions(&p, PermissionsExt::from_mode(0o644));
+            if let Some(limit) = hardware_limit_for(&p) {
+                let _ = fs::write(&p, limit);
             }
         }
     }

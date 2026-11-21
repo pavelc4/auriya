@@ -117,3 +117,32 @@ fn recent_real_frametimes_filters_synthetic_stalls() {
         assert!(ft < Duration::from_millis(200));
     }
 }
+
+#[test]
+fn target_fps_does_not_trap_at_30_on_35fps() {
+    let mut buf = FrameBuffer::new(TargetFps::Array(vec![30, 45, 60, 90, 120]));
+    for _ in 0..200 {
+        buf.push(ft_for_fps(35));
+    }
+    // At 35 FPS, target should match 45 (or higher), never trapped at 30
+    assert!(buf.target_fps.unwrap_or(0) >= 45);
+}
+
+#[test]
+fn target_fps_matches_top_down_with_tolerance() {
+    let mut buf = FrameBuffer::new(TargetFps::Array(vec![60, 90, 120]));
+    for _ in 0..200 {
+        buf.push(ft_for_fps(58));
+    }
+    assert_eq!(buf.target_fps, Some(60));
+
+    for _ in 0..400 {
+        buf.push(ft_for_fps(88));
+    }
+    assert_eq!(buf.target_fps, Some(90));
+
+    for _ in 0..400 {
+        buf.push(ft_for_fps(118));
+    }
+    assert_eq!(buf.target_fps, Some(120));
+}
