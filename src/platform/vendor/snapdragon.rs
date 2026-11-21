@@ -139,6 +139,9 @@ pub fn apply_performance() -> Result<()> {
     }
     apply_gpu_performance();
     apply_memlat_performance();
+    if let Err(e) = super::walt::apply_performance() {
+        warn!("Failed to apply WALT performance tuning: {}", e);
+    }
 
     debug!("Applied Snapdragon performance tweaks");
     Ok(())
@@ -191,6 +194,9 @@ pub fn apply_normal() -> Result<()> {
     }
     apply_gpu_normal();
     apply_memlat_normal();
+    if let Err(e) = super::walt::apply_normal() {
+        warn!("Failed to apply WALT normal tuning: {}", e);
+    }
 
     debug!("Restored Snapdragon normal tweaks");
     Ok(())
