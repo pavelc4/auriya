@@ -19,7 +19,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.auriya.app.R
 import dev.auriya.app.ui.components.AnimatedTickerText
 import dev.auriya.app.ui.components.bouncyClickable
@@ -42,30 +44,26 @@ fun MiniMetricRow(
             else -> profile
         }
     Row(
-        modifier = modifier.height(IntrinsicSize.Min),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AuriyaTokens.padding.small),
     ) {
         MiniCard(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
+            modifier = Modifier.weight(1f),
             icon = Icons.Outlined.SportsEsports,
             value = gameCount.toString(),
             label = stringResource(R.string.nav_games),
             accentColor = MaterialTheme.colorScheme.primary,
             onClick = onGamesClick,
+            valueStyle = MaterialTheme.typography.headlineMedium,
         )
         MiniCard(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
+            modifier = Modifier.weight(1f),
             icon = Icons.Outlined.Tune,
             value = profileShort,
             label = stringResource(R.string.home_active_profile),
             accentColor = MaterialTheme.colorScheme.primary,
             onClick = onProfileClick,
+            valueStyle = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
         )
     }
 }
@@ -78,13 +76,14 @@ fun MiniCard(
     accentColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    valueStyle: TextStyle = MaterialTheme.typography.headlineMedium,
 ) {
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier =
             modifier
-                .clip(RoundedCornerShape(24.dp))
+                .defaultMinSize(minHeight = 112.dp)
                 .bouncyClickable(onClick = onClick),
     ) {
         Column(
@@ -125,9 +124,11 @@ fun MiniCard(
 
             AnimatedTickerText(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium,
+                style = valueStyle,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

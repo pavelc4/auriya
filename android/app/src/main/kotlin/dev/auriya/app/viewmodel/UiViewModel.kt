@@ -130,6 +130,10 @@ class UiViewModel(
     private var saveSettingsJob: Job? = null
     private var updateProfileJob: Job? = null
     private var gameListJob: Job? = null
+    private var pendingProfile: String? = null
+
+    @Volatile
+    private var lastProfileUpdateTime: Long = 0L
 
     fun loadInstalledApps(pm: PackageManager) {
         if (_installedApps.value.isNotEmpty() || _isAppsLoading.value) return
@@ -415,6 +419,20 @@ class UiViewModel(
                 } else {
                     rawProfile.replaceFirstChar { it.uppercase() }
                 }
+
+            // Guard against rubber-band / bounce-back:
+            // Prevent stale polling snapshots from overwriting a user's recent manual profile selection
+            val effectiveProfile =
+                if (System.currentTimeMillis() - lastProfileUpdateTime < 2500L && pendingProfile != null) {
+                    if (rawProfile.equals(pendingProfile, ignoreCase = true)) {
+                        pendingProfile = null
+                    }
+                    _systemInfo.value.profile
+                } else {
+                    pendingProfile = null
+                    profileStr
+                }
+
             val battery = stats.battery.pct?.let { "$it%" } ?: sysBattery
             val temp = stats.thermal.cpu_c?.let { "${it.toInt()}°C" }
                 ?: stats.thermal.battery_c?.let { "${it.toInt()}°C" }
@@ -446,14 +464,16 @@ class UiViewModel(
                     arch = daemonArch,
                     deviceArch = daemonArch,
                     updateTime = updateTimeStr,
-                    profile = profileStr,
+                    profile = effectiveProfile,
                     battery = battery,
                     temp = temp,
                     pid = pid,
                     daemonStatus = "working",
                     ram = ram,
                 )
-            _currentProfile.value = stats.session.profile.lowercase()
+            if (pendingProfile == null) {
+                _currentProfile.value = stats.session.profile.lowercase()
+            }
         } else {
             val currentProfileFile = RootShell.readText(ConfigPaths.CURRENT_PROFILE_FILE)?.trim()
             val rawProfile =
@@ -541,7 +561,13 @@ class UiViewModel(
                 "4", "fast", "fas" -> "fast"
                 else -> "balance"
             }
+        val displayProfile = if (modeString == "fast") "FAS" else modeString.replaceFirstChar { it.uppercase() }
+
+        // Instant, optimistic state updates
         _currentProfile.value = modeString
+        pendingProfile = modeString
+        lastProfileUpdateTime = System.currentTimeMillis()
+
         val current = _settings.value
         val updated =
             current.copy(
@@ -549,17 +575,22 @@ class UiViewModel(
                 fas = current.fas.copy(defaultMode = modeString),
             )
         _settings.value = updated
-        _systemInfo.value =
-            _systemInfo.value.copy(
-                profile = if (modeString == "fast") "FAS" else modeString.replaceFirstChar { it.uppercase() },
-            )
+        _systemInfo.value = _systemInfo.value.copy(profile = displayProfile)
 
         updateProfileJob?.cancel()
         updateProfileJob =
             viewModelScope.launch(Dispatchers.IO) {
+                val resp = dev.auriya.app.data.stats.StatsParser.sendCommand("SETPROFILE ${modeString.uppercase()}")
+                if (resp == null || !resp.startsWith("OK")) {
+                    RootShell.exec("${ConfigPaths.AURIYACTL_BIN} set-profile $modeString")
+                }
+
+                // 2. Persist to settings.toml
                 val content = TomlParser.serializeSettings(updated)
                 RootShell.writeText(ConfigPaths.SETTINGS_FILE, content)
-                RootShell.exec("${ConfigPaths.AURIYACTL_BIN} set-profile $modeString")
+
+                // 3. Immediately trigger poll to reconcile state
+                pollOnce()
             }
     }
 

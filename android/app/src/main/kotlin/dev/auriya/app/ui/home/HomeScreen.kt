@@ -159,14 +159,14 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
                 ) {
-                    item {
+                    item(key = "home_hero_card", contentType = "hero") {
                         HomeHeroCard(
                             isDaemonRunning = isDaemonRunning,
                             systemInfo = systemInfo,
                             onInfoClick = { showInfoSheet = true },
                         )
                     }
-                    item {
+                    item(key = "home_mini_metrics", contentType = "metrics_row") {
                         MiniMetricRow(
                             profile = systemInfo.profile,
                             gameCount = gameList.games.size,
@@ -174,7 +174,9 @@ fun HomeScreen(
                             onProfileClick = { showProfileSheet = true },
                         )
                     }
-                    item { SystemMetricsList(systemInfo = systemInfo) }
+                    item(key = "home_system_metrics", contentType = "metrics_list") {
+                        SystemMetricsList(systemInfo = systemInfo)
+                    }
                     item {
                         HomeLinkRow(
                             iconVector = Icons.AutoMirrored.Outlined.MenuBook,

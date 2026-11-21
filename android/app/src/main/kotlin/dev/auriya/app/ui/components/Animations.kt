@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * Adds a responsive spring bouncy scale effect on click / press.
@@ -62,35 +63,38 @@ fun AnimatedTickerText(
     style: TextStyle = MaterialTheme.typography.headlineMedium,
     color: Color = MaterialTheme.colorScheme.onSurface,
     fontWeight: FontWeight = FontWeight.ExtraBold,
+    maxLines: Int = 1,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
 ) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        AnimatedContent(
-            targetState = text,
-            transitionSpec = {
-                (
-                    slideInVertically(
-                        animationSpec =
-                            spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMediumLow,
-                            ),
-                        initialOffsetY = { fullHeight -> fullHeight / 2 },
-                    ) + fadeIn(animationSpec = tween(150))
-                ).togetherWith(
-                    slideOutVertically(
-                        animationSpec = tween(150),
-                        targetOffsetY = { fullHeight -> -fullHeight / 2 },
-                    ) + fadeOut(animationSpec = tween(120)),
-                )
-            },
-            label = "ticker-transition",
-        ) { target ->
-            Text(
-                text = target,
-                style = style,
-                color = color,
-                fontWeight = fontWeight,
+    AnimatedContent(
+        targetState = text,
+        modifier = modifier,
+        transitionSpec = {
+            (
+                slideInVertically(
+                    animationSpec =
+                        spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium,
+                        ),
+                    initialOffsetY = { fullHeight -> fullHeight / 2 },
+                ) + fadeIn(animationSpec = tween(120))
+            ).togetherWith(
+                slideOutVertically(
+                    animationSpec = tween(120),
+                    targetOffsetY = { fullHeight -> -fullHeight / 2 },
+                ) + fadeOut(animationSpec = tween(100)),
             )
-        }
+        },
+        label = "ticker-transition",
+    ) { target ->
+        Text(
+            text = target,
+            style = style,
+            color = color,
+            fontWeight = fontWeight,
+            maxLines = maxLines,
+            overflow = overflow,
+        )
     }
 }

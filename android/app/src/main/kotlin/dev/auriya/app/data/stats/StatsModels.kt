@@ -131,6 +131,21 @@ data class Session(
 )
 
 object StatsParser {
+    fun sendCommand(cmd: String): String? {
+        return runCatching {
+            val sock = LocalSocket()
+            sock.connect(LocalSocketAddress(ConfigPaths.SOCKET_PATH, LocalSocketAddress.Namespace.FILESYSTEM))
+            sock.soTimeout = 1000
+            val writer = sock.outputStream.bufferedWriter()
+            val reader = sock.inputStream.bufferedReader()
+            writer.write("$cmd\n")
+            writer.flush()
+            val line = reader.readLine()
+            sock.close()
+            line
+        }.getOrNull()
+    }
+
     fun fetchStats(): Stats? {
         runCatching {
             val sock = LocalSocket()
