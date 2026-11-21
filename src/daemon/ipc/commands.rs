@@ -19,7 +19,7 @@ pub const HELP: &str = "CMDS:
         - SET_GOVERNOR <governor>
         - ADD_GAME <pkg>
         - REMOVE_GAME <pkg>
-        - UPDATE_GAME <pkg> [gov=..] [dnd=..] [fps=..] [rate=..] [mode=..] [ceiling=..] [fps_array=..]
+        - UPDATE_GAME <pkg> [gov=..] [dnd=..] [fps=..] [rate=..] [mode=..] [fps_array=..]
         - WALT <STATUS|ON|OFF|AUTO>
 ";
 
@@ -102,7 +102,6 @@ impl FromStr for Command {
                         }
                         Some(("rate", v)) => update.refresh_rate = v.parse::<u32>().ok(),
                         Some(("mode", v)) => update.mode = Some(v.to_string()),
-                        Some(("ceiling", v)) => update.ceiling = Some(v.to_string()),
                         _ => {}
                     }
                 }

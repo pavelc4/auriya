@@ -44,7 +44,6 @@ impl DaemonContext {
             target_fps: None,
             refresh_rate: None,
             mode: Some("performance".to_string()),
-            ceiling: None,
             thermal_preset: None,
             wifi_lock: true,
             statusbar_lock: true,

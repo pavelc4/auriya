@@ -210,7 +210,6 @@ object TomlParser {
                         targetFps = currentFps,
                         refreshRate = currentRate,
                         mode = currentMode,
-                        ceiling = currentCeiling,
                         thermalPreset = currentThermal,
                         wifiLock = currentWifiLock,
                         statusbarLock = currentStatusbarLock,
@@ -235,7 +234,6 @@ object TomlParser {
                 currentFps = null
                 currentRate = null
                 currentMode = null
-                currentCeiling = null
                 currentThermal = null
                 currentWifiLock = true
                 currentStatusbarLock = true
@@ -258,7 +256,6 @@ object TomlParser {
                 "target_fps" -> currentFps = value.toIntOrNull()
                 "refresh_rate" -> currentRate = value.toIntOrNull()
                 "mode" -> currentMode = parseStringValue(value)
-                "ceiling" -> currentCeiling = parseStringValue(value)
                 "thermal_preset" -> currentThermal = parseStringValue(value)
                 "wifi_lock" -> currentWifiLock = value.toBooleanStrictOrNull() ?: true
                 "statusbar_lock" -> currentStatusbarLock = value.toBooleanStrictOrNull() ?: true
@@ -288,9 +285,6 @@ object TomlParser {
                 }
                 if (game.mode != null) {
                     append("mode = \"").append(game.mode).append("\"\n")
-                }
-                if (game.ceiling != null) {
-                    append("ceiling = \"").append(game.ceiling).append("\"\n")
                 }
                 if (game.thermalPreset != null) {
                     append("thermal_preset = \"").append(game.thermalPreset).append("\"\n")

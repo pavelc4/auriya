@@ -11,7 +11,6 @@ fn test_gamelist_add_find_and_update() {
         target_fps: None,
         refresh_rate: None,
         mode: None,
-        ceiling: None,
         thermal_preset: None,
         wifi_lock: true,
         statusbar_lock: true,
@@ -32,7 +31,6 @@ fn test_gamelist_add_find_and_update() {
         target_fps: None,
         refresh_rate: None,
         mode: None,
-        ceiling: None,
         thermal_preset: None,
         wifi_lock: true,
         statusbar_lock: true,
@@ -51,7 +49,6 @@ fn test_gamelist_add_find_and_update() {
         refresh_rate: Some(120),
         mode: Some("fast".to_string()),
         fps_array: None,
-        ceiling: Some("high".to_string()),
         thermal_preset: None,
         wifi_lock: Some(false),
         statusbar_lock: Some(true),
@@ -67,7 +64,6 @@ fn test_gamelist_add_find_and_update() {
     assert!(found.enable_dnd);
     assert_eq!(found.refresh_rate, Some(120));
     assert_eq!(found.mode.as_deref(), Some("fast"));
-    assert_eq!(found.ceiling.as_deref(), Some("high"));
     assert!(!found.wifi_lock);
     assert!(found.silence_vibrator);
     assert!(found.freeze_rotation);
@@ -94,7 +90,6 @@ fn test_gamelist_remove() {
             target_fps: None,
             refresh_rate: None,
             mode: None,
-            ceiling: None,
             thermal_preset: None,
             wifi_lock: true,
             statusbar_lock: true,

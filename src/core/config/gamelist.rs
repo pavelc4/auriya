@@ -109,8 +109,6 @@ pub struct GameProfile {
     #[serde(default)]
     pub mode: Option<String>,
     #[serde(default)]
-    pub ceiling: Option<String>,
-    #[serde(default)]
     pub thermal_preset: Option<String>,
     #[serde(default = "default_true")]
     pub wifi_lock: bool,
@@ -199,9 +197,6 @@ impl GameList {
         if let Some(m) = upd.mode {
             profile.mode = Some(m);
         }
-        if upd.ceiling.is_some() {
-            profile.ceiling = upd.ceiling;
-        }
         if upd.thermal_preset.is_some() {
             profile.thermal_preset = upd.thermal_preset;
         }
@@ -235,7 +230,6 @@ pub struct GameProfileUpdate {
     pub refresh_rate: Option<u32>,
     pub mode: Option<String>,
     pub fps_array: Option<Vec<u32>>,
-    pub ceiling: Option<String>,
     pub thermal_preset: Option<String>,
     pub wifi_lock: Option<bool>,
     pub statusbar_lock: Option<bool>,

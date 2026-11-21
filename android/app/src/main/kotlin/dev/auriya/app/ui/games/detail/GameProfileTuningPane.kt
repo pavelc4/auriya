@@ -152,62 +152,6 @@ fun GovernorRow(
 }
 
 @Composable
-fun CeilingRow(
-    selected: String,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AuriyaTokens.padding.normal, vertical = AuriyaTokens.padding.small),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.games_cpu_ceiling),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = stringResource(R.string.games_cpu_ceiling_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Surface(
-            onClick = onClick,
-            shape = RoundedCornerShape(AuriyaTokens.rounding.full),
-            color = MaterialTheme.colorScheme.tertiaryContainer,
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = selected.uppercase(),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                )
-                Icon(
-                    imageVector = Icons.Filled.ArrowDropDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun ThermalRow(
     selected: String,
     onClick: () -> Unit,
@@ -497,17 +441,6 @@ fun getGovernorInfo(gov: String): Pair<ImageVector, String> {
                 }
             }
         }
-    }
-}
-
-fun getCeilingInfo(ceiling: String): Pair<ImageVector, String> {
-    val name = ceiling.lowercase().trim()
-    return when (name) {
-        "default" -> Icons.Outlined.Tune to "Vendor kernel default power capping and thermal limits."
-        "low" -> Icons.Outlined.EnergySavingsLeaf to "Strict thermal cap for maximum battery conservation and cool thermals."
-        "balance" -> Icons.Outlined.Balance to "Balanced power limit balancing sustained FPS and thermal dissipation."
-        "high" -> Icons.Outlined.LocalFireDepartment to "High burst power ceiling allowing sustained peak graphical performance."
-        else -> Icons.Outlined.Tune to "Custom cluster frequency ceiling cap."
     }
 }
 

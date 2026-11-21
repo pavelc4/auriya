@@ -108,7 +108,6 @@ fun GameProfileHeroHeader(
     targetFps: Int,
     dnd: Boolean,
     gov: String,
-    ceiling: String,
     wifiLock: Boolean = true,
     touchBoost: Boolean = true,
     modifier: Modifier = Modifier,
@@ -194,15 +193,6 @@ fun GameProfileHeroHeader(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
-
-                    if (ceiling != "default") {
-                        CompactMetricChip(
-                            icon = Icons.Outlined.LocalFireDepartment,
-                            text = ceiling.uppercase(),
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                        )
-                    }
 
                     if (dnd) {
                         CompactMetricChip(

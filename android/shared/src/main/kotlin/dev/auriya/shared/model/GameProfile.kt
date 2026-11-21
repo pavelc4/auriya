@@ -7,7 +7,6 @@ data class GameProfile(
     val targetFps: Int? = null,
     val refreshRate: Int? = null,
     val mode: String? = null,
-    val ceiling: String? = null,
     val thermalPreset: String? = null,
     val wifiLock: Boolean = true,
     val statusbarLock: Boolean = true,

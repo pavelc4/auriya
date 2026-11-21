@@ -52,7 +52,6 @@ fun GameProfileScreen(
     var targetFps by remember(game.packageName, game.targetFps) { mutableStateOf(game.targetFps?.toFloat() ?: 60f) }
     var refreshRate by remember(game.packageName, game.refreshRate) { mutableStateOf(game.refreshRate?.toFloat() ?: 0f) }
     var enableDnd by remember(game.packageName, game.enableDnd) { mutableStateOf(game.enableDnd) }
-    var selectedCeiling by remember(game.packageName, game.ceiling) { mutableStateOf(game.ceiling ?: "default") }
     var selectedThermal by remember(game.packageName, game.thermalPreset) { mutableStateOf(game.thermalPreset ?: "default") }
     var wifiLock by remember(game.packageName, game.wifiLock) { mutableStateOf(game.wifiLock) }
     var statusbarLock by remember(game.packageName, game.statusbarLock) { mutableStateOf(game.statusbarLock) }
@@ -61,7 +60,6 @@ fun GameProfileScreen(
     var silenceVibrator by remember(game.packageName, game.silenceVibrator) { mutableStateOf(game.silenceVibrator) }
     var freezeRotation by remember(game.packageName, game.freezeRotation) { mutableStateOf(game.freezeRotation) }
 
-    val ceilingOptions = remember { listOf("default", "low", "balance", "high") }
     val thermalOptions = remember { listOf("default", "dynamic", "extreme", "class0", "incalls", "thermal20") }
     val effectiveGovOptions =
         remember(governorOptions, selectedGov) {
@@ -74,13 +72,11 @@ fun GameProfileScreen(
 
     var showModeSheet by remember { mutableStateOf(false) }
     var showGovSheet by remember { mutableStateOf(false) }
-    var showCeilingSheet by remember { mutableStateOf(false) }
     var showThermalSheet by remember { mutableStateOf(false) }
     var showActionsSheet by remember { mutableStateOf(false) }
 
     val modeSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val govSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val ceilingSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val thermalSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val actionsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -89,7 +85,6 @@ fun GameProfileScreen(
     fun updateAndSave(
         mode: String = selectedMode,
         gov: String = selectedGov,
-        ceiling: String = selectedCeiling,
         thermal: String = selectedThermal,
         fps: Float = targetFps,
         refresh: Float = refreshRate,
@@ -103,7 +98,6 @@ fun GameProfileScreen(
     ) {
         selectedMode = mode
         selectedGov = gov
-        selectedCeiling = ceiling
         selectedThermal = thermal
         targetFps = fps
         refreshRate = refresh
@@ -122,7 +116,6 @@ fun GameProfileScreen(
                 targetFps = fps.toInt(),
                 refreshRate = if (refresh.toInt() == 0) null else refresh.toInt(),
                 mode = mode,
-                ceiling = if (ceiling == "default") null else ceiling,
                 thermalPreset = if (thermal == "default") null else thermal,
                 wifiLock = wifi,
                 statusbarLock = statusbar,
@@ -153,16 +146,6 @@ fun GameProfileScreen(
         )
     }
 
-    if (showCeilingSheet) {
-        CeilingSelectionBottomSheet(
-            selectedCeiling = selectedCeiling,
-            options = ceilingOptions,
-            onSelect = { updateAndSave(ceiling = it) },
-            onDismiss = { showCeilingSheet = false },
-            sheetState = ceilingSheetState,
-        )
-    }
-
     if (showThermalSheet) {
         ThermalSelectionBottomSheet(
             selectedThermal = selectedThermal,
@@ -181,7 +164,6 @@ fun GameProfileScreen(
                 val defaultGov = governorOptions.firstOrNull() ?: game.cpuGovernor
                 updateAndSave(
                     gov = defaultGov,
-                    ceiling = "default",
                     thermal = "default",
                     fps = 60f,
                     refresh = 0f,
@@ -243,7 +225,6 @@ fun GameProfileScreen(
                         targetFps = targetFps.toInt(),
                         dnd = enableDnd,
                         gov = selectedGov,
-                        ceiling = selectedCeiling,
                         wifiLock = wifiLock,
                         touchBoost = touchBoost,
                     )
@@ -255,7 +236,7 @@ fun GameProfileScreen(
                 }
 
                 item {
-                    ExpressiveList(count = if (thermalAvailable) 6 else 5) { index ->
+                    ExpressiveList(count = if (thermalAvailable) 5 else 4) { index ->
                         when (index) {
                             0 -> {
                                 ProfileModeRow(
@@ -272,13 +253,6 @@ fun GameProfileScreen(
                             }
 
                             2 -> {
-                                CeilingRow(
-                                    selected = selectedCeiling,
-                                    onClick = { showCeilingSheet = true },
-                                )
-                            }
-
-                            3 -> {
                                 SliderRow(
                                     title = stringResource(R.string.games_target_fps),
                                     value = targetFps,
@@ -290,7 +264,7 @@ fun GameProfileScreen(
                                 )
                             }
 
-                            4 -> {
+                            3 -> {
                                 SliderRow(
                                     title = stringResource(R.string.games_refresh_rate),
                                     value = refreshRate,
@@ -302,7 +276,7 @@ fun GameProfileScreen(
                                 )
                             }
 
-                            5 -> {
+                            4 -> {
                                 if (thermalAvailable) {
                                     ThermalRow(
                                         selected = selectedThermal,
