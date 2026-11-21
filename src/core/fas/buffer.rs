@@ -219,16 +219,8 @@ impl FrameBuffer {
             return;
         }
 
-        #[cfg(not(test))]
-        let max_ceiling = match crate::platform::binder::get_active_display_refresh_rate() {
-            hz if hz > 60.0 => hz as u32,
-            _ => 144,
-        };
-        #[cfg(test)]
-        let max_ceiling = 144;
-
         if let [single] = targets {
-            let target = (*single).min(max_ceiling);
+            let target = *single;
             if self.target_fps == Some(target) {
                 return;
             }
@@ -248,8 +240,7 @@ impl FrameBuffer {
                 break;
             }
         }
-        let chosen = chosen.or_else(|| targets.last().copied());
-        let new_target = chosen.map(|t| t.min(max_ceiling));
+        let new_target = chosen.or_else(|| targets.last().copied());
 
         if new_target == self.target_fps {
             return;
@@ -258,10 +249,9 @@ impl FrameBuffer {
         if let Some(t) = new_target {
             tracing::debug!(
                 target: "auriya::fas",
-                "FAS    | Target FPS: {} (current: {:.1}, ceiling: {})",
+                "FAS    | Target FPS: {} (current: {:.1})",
                 t,
-                current_fps,
-                max_ceiling
+                current_fps
             );
         }
 
