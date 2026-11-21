@@ -219,10 +219,13 @@ impl FrameBuffer {
             return;
         }
 
+        #[cfg(not(test))]
         let max_ceiling = match crate::platform::binder::get_active_display_refresh_rate() {
             hz if hz > 60.0 => hz as u32,
             _ => 144,
         };
+        #[cfg(test)]
+        let max_ceiling = 144;
 
         if let [single] = targets {
             let target = (*single).min(max_ceiling);

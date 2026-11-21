@@ -94,6 +94,7 @@ pub fn get_boottime_secs() -> f64 {
         tv_nsec: 0,
     };
     // SAFETY: Valid pointer to stack-allocated timespec structure.
+    // SAFETY: ts is a valid stack-allocated timespec pointer. CLOCK_BOOTTIME is supported on Linux/Android.
     let res = unsafe { libc::clock_gettime(libc::CLOCK_BOOTTIME, &mut ts) };
     if res == 0 {
         ts.tv_sec as f64 + (ts.tv_nsec as f64 / 1_000_000_000.0)
