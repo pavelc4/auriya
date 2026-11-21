@@ -69,6 +69,9 @@ pub async fn run_with_config(cfg: DaemonConfig, filter_handle: ReloadHandle) -> 
 
     debug!(target: "auriya::daemon", "Tick loop started (adaptive: {}ms idle, {}ms gaming)", daemon.normal_interval_ms, INGAME_INTERVAL_MS);
 
+    let mut sigterm =
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()).ok();
+
     daemon.tick().await;
 
     loop {
@@ -84,6 +87,16 @@ pub async fn run_with_config(cfg: DaemonConfig, filter_handle: ReloadHandle) -> 
             biased;
             _ = signal::ctrl_c() => {
                 info!(target: "auriya::daemon", "Daemon | Received Ctrl-C, shutting down");
+                daemon.shutdown_cleanup();
+                break;
+            }
+            _ = async {
+                match sigterm.as_mut() {
+                    Some(s) => { s.recv().await; }
+                    None => { std::future::pending::<()>().await; }
+                }
+            } => {
+                info!(target: "auriya::daemon", "Daemon | Received SIGTERM, shutting down");
                 daemon.shutdown_cleanup();
                 break;
             }

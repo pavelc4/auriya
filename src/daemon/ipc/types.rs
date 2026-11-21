@@ -45,4 +45,8 @@ pub enum Command {
     GetSupportedRates,
     GetStats,
     StreamStats(u64),
+    WaltStatus,
+    WaltEnable,
+    WaltDisable,
+    WaltAuto,
 }

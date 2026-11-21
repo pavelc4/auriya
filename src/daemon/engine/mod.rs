@@ -391,6 +391,7 @@ impl Daemon {
             crate::platform::binder::PowerMode::DeviceIdle,
             false,
         );
+        let _ = crate::platform::vendor::walt::restore_stock();
         self.sync_rotation(false);
     }
 

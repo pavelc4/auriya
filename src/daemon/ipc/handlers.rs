@@ -107,6 +107,22 @@ pub async fn handle_client(stream: UnixStream, ctx: Arc<DaemonContext>) -> Resul
             Command::StreamStats(interval_ms) => {
                 handle_stream_stats(&mut reader, &mut w, &ctx, interval_ms).await?;
             }
+            Command::WaltStatus => {
+                let summary = crate::platform::vendor::walt::get_status_summary();
+                w.write_all(format!("{summary}\n").as_bytes()).await?;
+            }
+            Command::WaltEnable => {
+                let resp = crate::platform::vendor::walt::set_enabled(true);
+                w.write_all(format!("{resp}\n").as_bytes()).await?;
+            }
+            Command::WaltDisable => {
+                let resp = crate::platform::vendor::walt::set_enabled(false);
+                w.write_all(format!("{resp}\n").as_bytes()).await?;
+            }
+            Command::WaltAuto => {
+                let resp = crate::platform::vendor::walt::set_auto_tune(true);
+                w.write_all(format!("{resp}\n").as_bytes()).await?;
+            }
         }
         line.clear();
     }

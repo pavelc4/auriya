@@ -20,6 +20,7 @@ pub const HELP: &str = "CMDS:
         - ADD_GAME <pkg>
         - REMOVE_GAME <pkg>
         - UPDATE_GAME <pkg> [gov=..] [dnd=..] [fps=..] [rate=..] [mode=..] [ceiling=..] [fps_array=..]
+        - WALT <STATUS|ON|OFF|AUTO>
 ";
 
 impl FromStr for Command {
@@ -65,6 +66,11 @@ impl FromStr for Command {
 
             ["INJECT", pkg] => Ok(Command::Inject(pkg.to_string())),
             ["CLEAR_INJECT"] | ["CLEARINJECT"] => Ok(Command::ClearInject),
+
+            ["WALT_STATUS"] | ["WALT", "STATUS"] => Ok(Command::WaltStatus),
+            ["WALT_ENABLE"] | ["WALT", "ON"] | ["WALT", "ENABLE"] => Ok(Command::WaltEnable),
+            ["WALT_DISABLE"] | ["WALT", "OFF"] | ["WALT", "DISABLE"] => Ok(Command::WaltDisable),
+            ["WALT_AUTO"] | ["WALT", "AUTO"] => Ok(Command::WaltAuto),
 
             ["SET_PROFILE", mode] | ["SETPROFILE", mode] => match mode.to_uppercase().as_str() {
                 "PERFORMANCE" | "1" => Ok(Command::SetProfile(ProfileMode::Performance)),
