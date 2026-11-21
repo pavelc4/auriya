@@ -28,17 +28,37 @@ pub fn apply_dnd(mode: DndMode) -> Result<()> {
             DndMode::All => "all",
             DndMode::Priority => "priority",
         };
-        let _ = std::process::Command::new("cmd")
+        let cmd_res = std::process::Command::new("cmd")
             .args(["notification", "set_dnd", arg])
-            .status();
+            .output();
+        if let Ok(ref out) = cmd_res
+            && !out.status.success()
+        {
+            let err = String::from_utf8_lossy(&out.stderr);
+            tracing::debug!(
+                target: "auriya::binder",
+                "Notification set_dnd fallback rejected by framework: {}",
+                err.trim()
+            );
+        }
 
         let zen_val = match mode {
             DndMode::All => "0",
             DndMode::Priority => "1",
         };
-        let _ = std::process::Command::new("settings")
+        let zen_res = std::process::Command::new("settings")
             .args(["put", "global", "zen_mode", zen_val])
-            .status();
+            .output();
+        if let Ok(ref out) = zen_res
+            && !out.status.success()
+        {
+            let err = String::from_utf8_lossy(&out.stderr);
+            tracing::debug!(
+                target: "auriya::binder",
+                "zen_mode settings fallback rejected by framework: {}",
+                err.trim()
+            );
+        }
 
         tracing::debug!(target: "auriya::binder", "Applied DnD {:?}", mode);
         Ok(())

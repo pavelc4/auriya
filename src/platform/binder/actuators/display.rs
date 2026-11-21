@@ -271,58 +271,39 @@ pub fn apply_refresh_rate(rate_hz: u32) -> Result<()> {
         let _ = set_binder_display_mode(rate_hz as f32);
 
         // 2. Settings synchronization (for app/game engines inspecting ContentResolver)
-        if rate_hz == 0 {
-            // Restore snapshot
-            if let Some(peak) = state.saved_peak_hz {
-                let _ = std::process::Command::new("cmd")
-                    .args([
-                        "settings",
-                        "put",
-                        "system",
-                        "peak_refresh_rate",
-                        &peak.to_string(),
-                    ])
-                    .status();
-            } else {
-                let _ = std::process::Command::new("cmd")
-                    .args(["settings", "delete", "system", "peak_refresh_rate"])
-                    .status();
-            }
+        match rate_hz {
+            0 => {
+                // Restore snapshot
+                match state.saved_peak_hz {
+                    Some(peak) => {
+                        sync_settings_param("put", "peak_refresh_rate", Some(&peak.to_string()));
+                    }
+                    None => sync_settings_param("delete", "peak_refresh_rate", None),
+                }
 
-            if let Some(min) = state.saved_min_hz {
-                let _ = std::process::Command::new("cmd")
-                    .args([
-                        "settings",
-                        "put",
-                        "system",
-                        "min_refresh_rate",
-                        &min.to_string(),
-                    ])
-                    .status();
-            } else {
-                let _ = std::process::Command::new("cmd")
-                    .args(["settings", "delete", "system", "min_refresh_rate"])
-                    .status();
+                match state.saved_min_hz {
+                    Some(min) => {
+                        sync_settings_param("put", "min_refresh_rate", Some(&min.to_string()));
+                    }
+                    None => sync_settings_param("delete", "min_refresh_rate", None),
+                }
+                tracing::info!(target: "auriya::binder", "Restored display refresh rate to dynamic");
             }
-            tracing::info!(target: "auriya::binder", "Restored display refresh rate to dynamic");
-        } else {
-            // Capture snapshot if not yet taken
-            if !state.snapshot_taken {
-                state.saved_peak_hz = read_settings_float("peak_refresh_rate");
-                state.saved_min_hz = read_settings_float("min_refresh_rate");
-                state.snapshot_taken = true;
+            hz => {
+                // Capture snapshot if not yet taken
+                if !state.snapshot_taken {
+                    state.saved_peak_hz = read_settings_float("peak_refresh_rate");
+                    state.saved_min_hz = read_settings_float("min_refresh_rate");
+                    state.snapshot_taken = true;
+                }
+
+                // Write both peak and min so framework ContentObservers trigger
+                let hz_str = (hz as f32).to_string();
+                sync_settings_param("put", "peak_refresh_rate", Some(&hz_str));
+                sync_settings_param("put", "min_refresh_rate", Some(&hz_str));
+
+                tracing::info!(target: "auriya::binder", "Set display refresh rate to {}Hz", hz);
             }
-
-            // Write both peak and min so framework ContentObservers trigger
-            let hz_str = (rate_hz as f32).to_string();
-            let _ = std::process::Command::new("cmd")
-                .args(["settings", "put", "system", "peak_refresh_rate", &hz_str])
-                .status();
-            let _ = std::process::Command::new("cmd")
-                .args(["settings", "put", "system", "min_refresh_rate", &hz_str])
-                .status();
-
-            tracing::info!(target: "auriya::binder", "Set display refresh rate to {}Hz", rate_hz);
         }
     }
 
@@ -341,6 +322,35 @@ fn read_settings_float(key: &str) -> Option<f32> {
         .args(["settings", "get", "system", key])
         .output()
         .ok()?;
+    if !out.status.success() {
+        return None;
+    }
     let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
     text.parse::<f32>().ok()
+}
+
+#[cfg(target_os = "android")]
+fn sync_settings_param(action: &str, key: &str, val: Option<&str>) {
+    let mut cmd = std::process::Command::new("cmd");
+    cmd.args(["settings", action, "system", key]);
+    if let Some(v) = val {
+        cmd.arg(v);
+    }
+    match cmd.output() {
+        Ok(out) if !out.status.success() => {
+            let err = String::from_utf8_lossy(&out.stderr);
+            tracing::debug!(
+                target: "auriya::display",
+                "Settings sync fallback ({action} {key}): {}",
+                err.trim()
+            );
+        }
+        Err(e) => {
+            tracing::debug!(
+                target: "auriya::display",
+                "Failed to execute cmd settings ({action} {key}): {e}"
+            );
+        }
+        _ => {}
+    }
 }
