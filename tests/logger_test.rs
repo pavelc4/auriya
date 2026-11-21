@@ -148,3 +148,24 @@ fn test_module_prop_status_update() {
     let updated2 = fs::read_to_string(&prop_path).unwrap();
     assert!(updated2.contains("description=Ferris, let's goo!\\nstatus: sleep 💤\n"));
 }
+
+#[test]
+fn test_crash_tombstone_and_boot_error_diagnostics() {
+    let dir = tempdir().unwrap();
+    let crash_path = dir.path().join("crash.log");
+    let boot_err_path = dir.path().join("boot_error.log");
+
+    let mock_crash = "[   12.345678] auriya: FAIL   | CRASH TOMBSTONE: panic at [src/foo.rs:42:10]: index out of bounds\nStack backtrace:\n  0: foo\n";
+    fs::write(&crash_path, mock_crash).unwrap();
+
+    let content = fs::read_to_string(&crash_path).unwrap();
+    assert!(content.contains("CRASH TOMBSTONE"));
+    assert!(content.contains("panic at [src/foo.rs:42:10]"));
+
+    let mock_boot_err = "[    0.123456] auriya: FAIL   | BOOT FAILURE: Daemon must run as root (EUID=0, found EUID=2000)\n";
+    fs::write(&boot_err_path, mock_boot_err).unwrap();
+
+    let boot_content = fs::read_to_string(&boot_err_path).unwrap();
+    assert!(boot_content.contains("BOOT FAILURE"));
+    assert!(boot_content.contains("Daemon must run as root"));
+}
