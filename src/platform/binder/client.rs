@@ -99,11 +99,17 @@ impl BinderClient {
 
             let atm = match rsbinder::hub::check_service("activity_task") {
                 Some(s) => s,
-                None => return Ok(None),
+                None => {
+                    tracing::debug!(target: "auriya::binder", "activity_task service unavailable");
+                    return Ok(None);
+                }
             };
             let proxy = match atm.as_proxy() {
                 Some(p) => p,
-                None => return Ok(None),
+                None => {
+                    tracing::debug!(target: "auriya::binder", "activity_task proxy unavailable");
+                    return Ok(None);
+                }
             };
 
             let data = proxy.prepare_transact(true)?;
@@ -111,19 +117,29 @@ impl BinderClient {
             let reply_opt = proxy.submit_transact(30, &data, 0)?;
             let mut reply = match reply_opt {
                 Some(r) => r,
-                None => return Ok(None),
+                None => {
+                    tracing::debug!(target: "auriya::binder", "getFocusedRootTaskInfo returned None");
+                    return Ok(None);
+                }
             };
 
             if reply.data_size() < 0x28 {
+                tracing::debug!(
+                    target: "auriya::binder",
+                    "getFocusedRootTaskInfo data_size (0x{:x}) below minimum header",
+                    reply.data_size()
+                );
                 return Ok(None);
             }
 
             let ex = reply.read_i32()?;
             if ex != 0 {
+                tracing::debug!(target: "auriya::binder", "getFocusedRootTaskInfo exception: {ex}");
                 return Ok(None);
             }
             let is_null = reply.read_i32()?;
             if is_null == 0 {
+                tracing::debug!(target: "auriya::binder", "getFocusedRootTaskInfo root task is null");
                 return Ok(None);
             }
 
@@ -144,19 +160,32 @@ impl BinderClient {
             reply.set_data_position(0x24);
             let has_comp = reply.read_i32()?;
             if has_comp == 0 {
+                tracing::debug!(
+                    target: "auriya::binder",
+                    "No ComponentName at offset 0x24 (data_size: 0x{:x})",
+                    reply.data_size()
+                );
                 return Ok(None);
             }
 
             let comp_str: Option<String> = reply.read()?;
             let comp = match comp_str {
                 Some(c) => c,
-                None => return Ok(None),
+                None => {
+                    tracing::debug!(target: "auriya::binder", "ComponentName read returned None");
+                    return Ok(None);
+                }
             };
 
             let pkg = comp.split('/').next().unwrap_or(&comp).trim().to_string();
             if pkg.is_empty() {
                 return Ok(None);
             }
+
+            tracing::debug!(
+                target: "auriya::binder",
+                "Binder detected foreground: pkg={pkg} floating={is_floating}"
+            );
 
             let pid = crate::platform::common::procfs::find_pid_by_package(&pkg);
             Ok(Some(ForegroundTask {

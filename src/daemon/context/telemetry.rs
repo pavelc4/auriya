@@ -77,7 +77,7 @@ impl DaemonContext {
                     }
                     Some(f)
                 }
-                (None, true) => {
+                (None, _) => {
                     let fallback_val = st.and_then(|s| s.fps).or_else(|| {
                         crate::core::fps::SysfsFpsReader::new()
                             .read()
@@ -102,8 +102,16 @@ impl DaemonContext {
                         None => None,
                     }
                 }
-                (None, false) => None,
             };
+
+            tracing::debug!(
+                target: "auriya::telemetry",
+                "StatsSnapshot: pkg={:?} profile={:?} fps={:?} is_monitored={}",
+                st.and_then(|s| s.pkg.as_deref()),
+                st.map(|s| s.profile),
+                fps.as_ref().map(|f| f.avg),
+                is_monitored
+            );
 
             StatsSnapshot::build(
                 fps,

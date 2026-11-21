@@ -175,10 +175,12 @@ where
     R: AsyncRead + Unpin,
     W: AsyncWrite + Unpin,
 {
+    tracing::debug!(target: "auriya::ipc", "Starting StreamStats (interval: {interval_ms}ms)");
     w.write_all(b"STREAM_START\n").await?;
     let mut ticker = tokio::time::interval(std::time::Duration::from_millis(interval_ms));
     ticker.tick().await;
     let mut line = String::new();
+    let mut frame_count: u64 = 0;
 
     loop {
         tokio::select! {
@@ -188,21 +190,29 @@ where
                     Ok(n) if n > 0 => {
                         let cmd = line.trim();
                         if cmd == "STOP" || cmd == "QUIT" {
+                            tracing::debug!(target: "auriya::ipc", "StreamStats client requested {cmd}");
                             let _ = w.write_all(b"STREAM_STOPPED\n").await;
                             break;
                         }
                         line.clear();
                     }
-                    _ => break,
+                    _ => {
+                        tracing::debug!(target: "auriya::ipc", "StreamStats client reader reached EOF / closed");
+                        break;
+                    }
                 }
             }
             _ = ticker.tick() => {
                 let json = ctx.build_stats_json().await;
-                if w.write_all(json.as_bytes()).await.is_err() {
+                frame_count = frame_count.wrapping_add(1);
+                tracing::trace!(target: "auriya::ipc", "StreamStats frame #{frame_count} ({} bytes)", json.len());
+                if w.write_all(json.as_bytes()).await.is_err() || w.flush().await.is_err() {
+                    tracing::debug!(target: "auriya::ipc", "StreamStats socket write/flush failed (client disconnected)");
                     break;
                 }
             }
         }
     }
+    tracing::debug!(target: "auriya::ipc", "StreamStats loop terminated (total frames sent: {frame_count})");
     Ok(())
 }

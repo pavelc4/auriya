@@ -166,14 +166,84 @@ pub fn query_current_foreground() -> Option<(String, Option<i32>)> {
 pub fn query_current_foreground_task() -> Option<crate::platform::binder::ForegroundTask> {
     #[cfg(target_os = "android")]
     {
-        crate::platform::binder::BinderClient::new()
+        if let Some(task) = crate::platform::binder::BinderClient::new()
             .get_foreground_task()
             .ok()
             .flatten()
+        {
+            return Some(task);
+        }
+
+        detect_foreground_task_from_cpuset()
     }
 
     #[cfg(not(target_os = "android"))]
     {
         None
     }
+}
+
+fn is_ignorable_system_proc(pkg: &str) -> bool {
+    pkg == "system_server"
+        || pkg == "surfaceflinger"
+        || pkg == "zygote"
+        || pkg == "zygote64"
+        || pkg == "auriya"
+        || pkg == "auriyactl"
+        || pkg == "sh"
+        || pkg == "su"
+        || pkg == "ksud"
+        || pkg == "magisk"
+        || pkg == "adbd"
+        || pkg == "logd"
+        || pkg.starts_with("android.hardware.")
+        || pkg.starts_with("vendor.")
+        || !pkg.contains('.')
+}
+
+/// Fallback foreground task detector using Android kernel cgroups (`top-app`).
+///
+/// On Android, ActivityManager Service (AMS) automatically assigns the focused foreground
+/// application's threads and processes into the `top-app` cpuset.
+/// This provides a robust, zero-IPC kernel-level fallback when Binder AIDL parcel layouts
+/// shift between Android versions or OEM frameworks.
+pub fn detect_foreground_task_from_cpuset() -> Option<crate::platform::binder::ForegroundTask> {
+    for cpuset_path in [
+        "/dev/cpuset/top-app/cgroup.procs",
+        "/sys/fs/cgroup/top-app/cgroup.procs",
+    ] {
+        let Ok(content) = fs::read_to_string(cpuset_path) else {
+            continue;
+        };
+
+        let mut candidates: Vec<(i32, String, u64)> = Vec::new();
+        for line in content.lines() {
+            let Ok(pid) = line.trim().parse::<i32>() else {
+                continue;
+            };
+            if pid <= 0 {
+                continue;
+            }
+            let Some(pkg) = get_process_package(pid) else {
+                continue;
+            };
+
+            if is_ignorable_system_proc(&pkg) {
+                continue;
+            }
+
+            let ticks = get_pid_cpu_ticks(pid);
+            candidates.push((pid, pkg, ticks));
+        }
+
+        if let Some((pid, pkg, _)) = candidates.into_iter().max_by_key(|&(_, _, ticks)| ticks) {
+            return Some(crate::platform::binder::ForegroundTask {
+                package: pkg,
+                pid: Some(pid),
+                is_floating: false,
+            });
+        }
+    }
+
+    None
 }

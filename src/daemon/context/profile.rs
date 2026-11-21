@@ -54,7 +54,17 @@ impl DaemonContext {
     /// Retrieve FPS window stats from FAS controller.
     pub async fn get_fps_stats(&self) -> Option<FpsStats> {
         match &self.fas_controller {
-            Some(fas) => Some(fas.lock().await.fps_stats()),
+            Some(fas) => match fas.try_lock() {
+                Ok(guard) => Some(guard.fps_stats()),
+                Err(_) => {
+                    match tokio::time::timeout(std::time::Duration::from_millis(50), fas.lock())
+                        .await
+                    {
+                        Ok(guard) => Some(guard.fps_stats()),
+                        Err(_) => None,
+                    }
+                }
+            },
             None => None,
         }
     }

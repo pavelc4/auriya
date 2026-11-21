@@ -99,10 +99,22 @@ fn handle_cmd(probe: &mut FrameProbe, cmd: Cmd) {
     match cmd {
         Cmd::Attach(pid, reply) => {
             let res = probe.attach(pid).map_err(|e| anyhow!("attach({pid}): {e}"));
+            tracing::debug!(
+                target: "auriya::ebpf",
+                "eBPF attach to pid {pid}: success={} (currently attached: {})",
+                res.is_ok(),
+                probe.attached()
+            );
             let _ = reply.send(res);
         }
         Cmd::Detach(pid, reply) => {
             let res = probe.detach(pid).map_err(|e| anyhow!("detach({pid}): {e}"));
+            tracing::debug!(
+                target: "auriya::ebpf",
+                "eBPF detach from pid {pid}: res={:?} (currently attached: {})",
+                res.as_ref().ok(),
+                probe.attached()
+            );
             let _ = reply.send(res);
         }
     }

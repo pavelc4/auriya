@@ -36,6 +36,15 @@ impl Daemon {
             fas_available: self.fas_controller.is_some(),
         };
 
-        PolicyEngine::evaluate(&snapshot, &ctx)
+        let decision = PolicyEngine::evaluate(&snapshot, &ctx);
+        tracing::debug!(
+            target: "auriya::pipeline",
+            "Pipeline decision: pkg={:?} pid={:?} whitelisted={} -> {:?}",
+            input.foreground_pkg,
+            input.focused_pid,
+            is_whitelisted,
+            decision
+        );
+        decision
     }
 }
