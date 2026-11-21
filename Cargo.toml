@@ -39,6 +39,10 @@ path = "tests/loom_concurrency.rs"
 name = "logger_test"
 path = "tests/logger_test.rs"
 
+[[test]]
+name = "dhat_alloc"
+path = "tests/dhat_alloc.rs"
+
 [profile.release]
 opt-level = "z"
 lto = "fat"
