@@ -25,6 +25,31 @@ pub fn start_module_update_watcher(event_tx: EventSender) {
                 if !matches!(event.kind, EventKind::Create(_)) {
                     return;
                 }
+                let is_remove = event
+                    .paths
+                    .iter()
+                    .any(|p| p.file_name().is_some_and(|n| n == "remove"));
+                if is_remove {
+                    warn!(target: "auriya::daemon", "Module removal detected, immediately uninstalling manager app and cleaning up");
+                    std::thread::spawn(|| {
+                        let _ = std::process::Command::new("pm")
+                            .args(["uninstall", "dev.auriya.app"])
+                            .status();
+                        let _ = std::process::Command::new("pm")
+                            .args(["uninstall", "dev.auriya.app.debug"])
+                            .status();
+                        let _ = std::fs::remove_file("/dev/socket/auriya.sock");
+                        let _ = std::fs::remove_dir_all("/data/adb/.config/auriya");
+                        let _ = std::fs::remove_dir_all("/data/adb/auriya");
+                        let _ = std::fs::remove_file("/data/adb/ksu/bin/auriya");
+                        let _ = std::fs::remove_file("/data/adb/ap/bin/auriya");
+                        let _ = std::fs::remove_file("/data/adb/ksu/bin/auriyactl");
+                        let _ = std::fs::remove_file("/data/adb/ap/bin/auriyactl");
+                        std::process::exit(0);
+                    });
+                    return;
+                }
+
                 let is_update = event
                     .paths
                     .iter()
