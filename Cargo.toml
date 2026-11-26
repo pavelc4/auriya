@@ -48,7 +48,7 @@ strip = true
 
 [dependencies]
 anyhow = "1.0.104"
-notify = "8.2.0"
+notify = "9.0.0"
 toml = "1.1.8"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
