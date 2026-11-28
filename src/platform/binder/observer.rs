@@ -83,8 +83,10 @@ impl ProcessObserver {
                 loop {
                     tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
 
-                    if let Some((pkg, pid_opt)) =
-                        crate::platform::common::procfs::query_current_foreground()
+                    if let Ok(Some((pkg, pid_opt))) = tokio::task::spawn_blocking(
+                        crate::platform::common::procfs::query_current_foreground,
+                    )
+                    .await
                     {
                         let hash = {
                             use std::hash::{Hash, Hasher};
@@ -95,6 +97,13 @@ impl ProcessObserver {
                         let changed = last_pkg_hash != Some(hash)
                             || (pid_opt.is_some() && pid_opt != last_pid);
                         if changed {
+                            tracing::debug!(
+                                target: "auriya::binder",
+                                "ProcessObserver foreground changed: pkg={} pid={:?} (prev_pid={:?})",
+                                pkg,
+                                pid_opt,
+                                last_pid
+                            );
                             last_pkg_hash = Some(hash);
                             last_pid = pid_opt;
                             let pid = pid_opt.unwrap_or(0);

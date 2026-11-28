@@ -162,6 +162,72 @@ pub fn query_current_foreground() -> Option<(String, Option<i32>)> {
     query_current_foreground_task().map(|t| (t.package, t.pid))
 }
 
+const CPUSET_TOP_APP_PATHS: &[&str] = &[
+    "/dev/cpuset/top-app/cgroup.procs",
+    "/dev/cpuset/top-app/tasks",
+    "/sys/fs/cgroup/top-app/cgroup.procs",
+    "/sys/fs/cgroup/top-app/tasks",
+];
+
+#[cfg(target_os = "android")]
+fn query_foreground_from_dumpsys_throttled() -> Option<crate::platform::binder::ForegroundTask> {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    static LAST_DUMPSYS_MS: AtomicU64 = AtomicU64::new(0);
+    let now_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    let prev = LAST_DUMPSYS_MS.load(Ordering::Relaxed);
+    if now_ms.saturating_sub(prev) < 2000 {
+        return None;
+    }
+    if LAST_DUMPSYS_MS
+        .compare_exchange(prev, now_ms, Ordering::AcqRel, Ordering::Relaxed)
+        .is_err()
+    {
+        return None;
+    }
+
+    let output = std::process::Command::new("dumpsys")
+        .args(["window", "displays"])
+        .output()
+        .ok()?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let pkg = match parse_focused_package_from_dumpsys(&stdout) {
+        Some(p) => p,
+        None => {
+            tracing::debug!(
+                target: "auriya::procfs",
+                "dumpsys window displays returned no focused package (bytes={})",
+                stdout.len()
+            );
+            return None;
+        }
+    };
+    if is_ignorable_system_proc(&pkg) {
+        tracing::debug!(
+            target: "auriya::procfs",
+            "dumpsys focused package ignored as system proc: {}",
+            pkg
+        );
+        return None;
+    }
+    let pid = find_pid_by_package(&pkg);
+    tracing::debug!(
+        target: "auriya::procfs",
+        "dumpsys fallback detected foreground: pkg={} pid={:?}",
+        pkg,
+        pid
+    );
+    Some(crate::platform::binder::ForegroundTask {
+        package: pkg,
+        pid,
+        is_floating: false,
+    })
+}
+
 /// Query the currently focused foreground task including floating/freeform state.
 pub fn query_current_foreground_task() -> Option<crate::platform::binder::ForegroundTask> {
     #[cfg(target_os = "android")]
@@ -174,7 +240,21 @@ pub fn query_current_foreground_task() -> Option<crate::platform::binder::Foregr
             return Some(task);
         }
 
-        detect_foreground_task_from_cpuset()
+        if let Some(task) = detect_foreground_task_from_cpuset() {
+            tracing::debug!(
+                target: "auriya::procfs",
+                "cpuset fallback detected foreground: pkg={} pid={:?}",
+                task.package,
+                task.pid
+            );
+            return Some(task);
+        }
+
+        tracing::debug!(
+            target: "auriya::procfs",
+            "Both Binder and cpuset top-app returned no foreground app; trying dumpsys fallback"
+        );
+        query_foreground_from_dumpsys_throttled()
     }
 
     #[cfg(not(target_os = "android"))]
@@ -208,10 +288,14 @@ fn is_ignorable_system_proc(pkg: &str) -> bool {
 /// This provides a robust, zero-IPC kernel-level fallback when Binder AIDL parcel layouts
 /// shift between Android versions or OEM frameworks.
 pub fn detect_foreground_task_from_cpuset() -> Option<crate::platform::binder::ForegroundTask> {
-    for cpuset_path in [
-        "/dev/cpuset/top-app/cgroup.procs",
-        "/sys/fs/cgroup/top-app/cgroup.procs",
-    ] {
+    detect_foreground_task_from_cpuset_paths(CPUSET_TOP_APP_PATHS)
+}
+
+/// Scan the specified cgroup/cpuset files for the highest-CPU active application process.
+pub fn detect_foreground_task_from_cpuset_paths(
+    paths: &[&str],
+) -> Option<crate::platform::binder::ForegroundTask> {
+    for cpuset_path in paths {
         let Ok(content) = fs::read_to_string(cpuset_path) else {
             continue;
         };
