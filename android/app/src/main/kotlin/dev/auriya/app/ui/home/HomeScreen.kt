@@ -177,7 +177,7 @@ fun HomeScreen(
                     item(key = "home_system_metrics", contentType = "metrics_list") {
                         SystemMetricsList(systemInfo = systemInfo)
                     }
-                    item {
+                    item(key = "home_docs", contentType = "link_row") {
                         HomeLinkRow(
                             iconVector = Icons.AutoMirrored.Outlined.MenuBook,
                             title = stringResource(R.string.home_documentation),
@@ -189,7 +189,7 @@ fun HomeScreen(
                             },
                         )
                     }
-                    item {
+                    item(key = "home_github", contentType = "link_row") {
                         HomeLinkRow(
                             iconPainter = painterResource(R.drawable.ic_github),
                             title = stringResource(R.string.home_github_star),
@@ -201,7 +201,7 @@ fun HomeScreen(
                             },
                         )
                     }
-                    item {
+                    item(key = "home_telegram", contentType = "link_row") {
                         HomeLinkRow(
                             iconPainter = painterResource(R.drawable.ic_telegram),
                             title = stringResource(R.string.home_telegram_channel),

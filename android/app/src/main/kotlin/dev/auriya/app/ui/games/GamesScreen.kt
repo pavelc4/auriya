@@ -69,13 +69,16 @@ private val appIconShape = RoundedCornerShape(14.dp)
 private fun shapeFor(packageName: String): Shape = appIconShape
 
 @Composable
-fun rememberAppIcon(packageName: String): ImageBitmap? {
-    val context = LocalContext.current
-    return produceState<ImageBitmap?>(initialValue = AppIconCache.get(packageName), packageName) {
+fun rememberAppIcon(
+    packageName: String,
+    packageManager: android.content.pm.PackageManager? = null,
+): ImageBitmap? {
+    val pm = packageManager ?: LocalContext.current.packageManager
+    return produceState<ImageBitmap?>(initialValue = AppIconCache.get(packageName), packageName, pm) {
         if (value == null && !AppIconCache.isMiss(packageName)) {
             value =
                 withContext(Dispatchers.IO) {
-                    AppIconCache.load(context.packageManager, packageName)
+                    AppIconCache.load(pm, packageName)
                 }
         }
     }.value
@@ -121,19 +124,21 @@ fun GamesScreen(
             gameList.games.associateBy { it.packageName }
         }
     val (activeApps, inactiveApps) =
-        remember(installedApps, gameList.games, sortMode) {
+        remember(installedApps, gameList.games, activeProfilesMap, sortMode) {
             val active = mutableListOf<ActiveAppItem>()
+            val seenActivePackages = HashSet<String>(gameList.games.size)
             val inactive = mutableListOf<AppInfoItem>()
             installedApps.forEach { app ->
                 val profile = activeProfilesMap[app.packageName]
                 if (profile != null) {
                     active += ActiveAppItem(app.packageName, app.label, profile)
+                    seenActivePackages.add(app.packageName)
                 } else {
                     inactive += app
                 }
             }
             gameList.games.forEach { game ->
-                if (active.none { it.packageName == game.packageName }) {
+                if (seenActivePackages.add(game.packageName)) {
                     val label =
                         runCatching {
                             pm.getApplicationLabel(pm.getApplicationInfo(game.packageName, 0)).toString()
@@ -395,7 +400,7 @@ fun GamesScreen(
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         if (!bannerDismissed) {
-                            item {
+                            item(key = "games_banner", contentType = "banner") {
                                 HeroBanner(
                                     onDismiss = {
                                         appPrefs.setGamesBannerDismissed(true)
@@ -405,7 +410,7 @@ fun GamesScreen(
                         }
 
                         if (isAppsLoading && installedApps.isEmpty()) {
-                            item {
+                            item(key = "games_loading", contentType = "loading") {
                                 Box(
                                     modifier =
                                         Modifier
@@ -429,7 +434,7 @@ fun GamesScreen(
                         }
 
                         if (filteredActive.isNotEmpty()) {
-                            item {
+                            item(key = "games_active_header", contentType = "section_header") {
                                 SectionLabel(
                                     label = stringResource(dev.auriya.app.R.string.games_activeprofiles),
                                     count = filteredActive.size,
@@ -439,15 +444,20 @@ fun GamesScreen(
                             itemsIndexed(
                                 items = filteredActive,
                                 key = { _, a -> "active-${a.packageName}" },
+                                contentType = { _, _ -> "active_app" },
                             ) { index, app ->
                                 ContinuousRow(index = index, lastIndex = filteredActive.lastIndex) {
-                                    ActiveRowContent(app, onClick = { onEditGame(app.profile) })
+                                    ActiveRowContent(
+                                        app = app,
+                                        packageManager = pm,
+                                        onClick = { onEditGame(app.profile) },
+                                    )
                                 }
                             }
                         }
 
                         if (filteredInactive.isNotEmpty()) {
-                            item {
+                            item(key = "games_inactive_header", contentType = "section_header") {
                                 SectionLabel(
                                     label = stringResource(dev.auriya.app.R.string.games_installedapplications),
                                     count = filteredInactive.size,
@@ -457,24 +467,29 @@ fun GamesScreen(
                             itemsIndexed(
                                 items = filteredInactive,
                                 key = { _, a -> "inactive-${a.packageName}" },
+                                contentType = { _, _ -> "inactive_app" },
                             ) { index, app ->
                                 ContinuousRow(index = index, lastIndex = filteredInactive.lastIndex) {
-                                    InactiveRowContent(app, onClick = {
-                                        onEditGame(
-                                            GameProfile(
-                                                packageName = app.packageName,
-                                                cpuGovernor = "performance",
-                                                enableDnd = true,
-                                                targetFps = 60,
-                                            ),
-                                        )
-                                    })
+                                    InactiveRowContent(
+                                        app = app,
+                                        packageManager = pm,
+                                        onClick = {
+                                            onEditGame(
+                                                GameProfile(
+                                                    packageName = app.packageName,
+                                                    cpuGovernor = "performance",
+                                                    enableDnd = true,
+                                                    targetFps = 60,
+                                                ),
+                                            )
+                                        },
+                                    )
                                 }
                             }
                         }
 
                         if (filteredActive.isEmpty() && filteredInactive.isEmpty()) {
-                            item { EmptyState() }
+                            item(key = "games_empty", contentType = "empty_state") { EmptyState() }
                         }
                     }
                 }
@@ -783,6 +798,7 @@ private fun ContinuousRow(
 @Composable
 private fun ActiveRowContent(
     app: ActiveAppItem,
+    packageManager: android.content.pm.PackageManager,
     onClick: () -> Unit,
 ) {
     Box(
@@ -797,7 +813,11 @@ private fun ActiveRowContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            AppIconBox(packageName = app.packageName, shape = shapeFor(app.packageName))
+            AppIconBox(
+                packageName = app.packageName,
+                shape = shapeFor(app.packageName),
+                packageManager = packageManager,
+            )
             Text(
                 text = app.label,
                 style =
@@ -837,6 +857,7 @@ private fun ActiveRowContent(
 @Composable
 private fun InactiveRowContent(
     app: AppInfoItem,
+    packageManager: android.content.pm.PackageManager,
     onClick: () -> Unit,
 ) {
     Box(
@@ -851,7 +872,11 @@ private fun InactiveRowContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            AppIconBox(packageName = app.packageName, shape = shapeFor(app.packageName))
+            AppIconBox(
+                packageName = app.packageName,
+                shape = shapeFor(app.packageName),
+                packageManager = packageManager,
+            )
             Text(
                 text = app.label,
                 style =
@@ -872,8 +897,9 @@ private fun InactiveRowContent(
 private fun AppIconBox(
     packageName: String,
     shape: Shape,
+    packageManager: android.content.pm.PackageManager,
 ) {
-    val bitmap = rememberAppIcon(packageName)
+    val bitmap = rememberAppIcon(packageName, packageManager)
     Box(
         modifier =
             Modifier
