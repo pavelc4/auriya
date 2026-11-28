@@ -1,5 +1,6 @@
 use anyhow::{Result, anyhow};
 use kala_ebpf::FrameProbe;
+use std::collections::HashSet;
 use std::sync::mpsc as std_mpsc;
 use std::thread;
 use std::time::Duration;
@@ -26,6 +27,11 @@ impl EbpfFrameStream {
     pub fn new(poll_interval_ms: u64) -> Result<Self> {
         let poll = Duration::from_millis(poll_interval_ms.clamp(1, 500));
         let mut probe = FrameProbe::new().map_err(|e| anyhow!("kala init: {e}"))?;
+        tracing::debug!(
+            target: "auriya::ebpf",
+            "eBPF FrameProbe initialized (poll_interval={}ms)",
+            poll.as_millis()
+        );
 
         let (cmd_tx, cmd_rx) = std_mpsc::channel::<Cmd>();
         let (frame_tx, rx) = broadcast::channel(4096);
@@ -33,10 +39,12 @@ impl EbpfFrameStream {
         thread::Builder::new()
             .name("auriya-ebpf".into())
             .spawn(move || {
+                let mut seen_pids: HashSet<i32> = HashSet::new();
+                let mut total_frames: u64 = 0;
                 loop {
                     if probe.attached() == 0 {
                         match cmd_rx.recv() {
-                            Ok(cmd) => handle_cmd(&mut probe, cmd),
+                            Ok(cmd) => handle_cmd(&mut probe, &mut seen_pids, cmd),
                             Err(_) => return,
                         }
                         continue;
@@ -44,13 +52,30 @@ impl EbpfFrameStream {
 
                     loop {
                         match cmd_rx.try_recv() {
-                            Ok(cmd) => handle_cmd(&mut probe, cmd),
+                            Ok(cmd) => handle_cmd(&mut probe, &mut seen_pids, cmd),
                             Err(std_mpsc::TryRecvError::Empty) => break,
                             Err(std_mpsc::TryRecvError::Disconnected) => return,
                         }
                     }
 
-                    if let Some((_pid, frametime)) = probe.recv_with_deadline(poll) {
+                    if let Some((pid, frametime)) = probe.recv_with_deadline(poll) {
+                        total_frames = total_frames.wrapping_add(1);
+                        match (seen_pids.insert(pid), total_frames.is_multiple_of(300)) {
+                            (true, _) => tracing::debug!(
+                                target: "auriya::ebpf",
+                                "eBPF first frame received: pid={} frametime={:.2}ms",
+                                pid,
+                                frametime.as_secs_f64() * 1000.0
+                            ),
+                            (false, true) => tracing::trace!(
+                                target: "auriya::ebpf",
+                                "eBPF stream active: pid={} total_frames={} last_dt={:.2}ms",
+                                pid,
+                                total_frames,
+                                frametime.as_secs_f64() * 1000.0
+                            ),
+                            (false, false) => {}
+                        }
                         let _ = frame_tx.send(frametime);
                     }
                 }
@@ -95,19 +120,26 @@ impl EbpfFrameStream {
     }
 }
 
-fn handle_cmd(probe: &mut FrameProbe, cmd: Cmd) {
+fn handle_cmd(probe: &mut FrameProbe, seen_pids: &mut HashSet<i32>, cmd: Cmd) {
     match cmd {
         Cmd::Attach(pid, reply) => {
             let res = probe.attach(pid).map_err(|e| anyhow!("attach({pid}): {e}"));
-            tracing::debug!(
-                target: "auriya::ebpf",
-                "eBPF attach to pid {pid}: success={} (currently attached: {})",
-                res.is_ok(),
-                probe.attached()
-            );
+            match &res {
+                Ok(()) => tracing::debug!(
+                    target: "auriya::ebpf",
+                    "eBPF attach to pid {pid} succeeded (currently attached: {})",
+                    probe.attached()
+                ),
+                Err(e) => tracing::warn!(
+                    target: "auriya::ebpf",
+                    "eBPF attach to pid {pid} failed: {e:#} (currently attached: {})",
+                    probe.attached()
+                ),
+            }
             let _ = reply.send(res);
         }
         Cmd::Detach(pid, reply) => {
+            seen_pids.remove(&pid);
             let res = probe.detach(pid).map_err(|e| anyhow!("detach({pid}): {e}"));
             tracing::debug!(
                 target: "auriya::ebpf",

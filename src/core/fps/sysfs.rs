@@ -45,9 +45,15 @@ impl SysfsFpsReader {
                 && let Ok(content) = fs::read_to_string(p)
                 && !content.trim().is_empty()
             {
+                tracing::debug!(target: "auriya::fps", "Sysfs FPS node matched: {}", p);
                 return Some(p.to_string());
             }
         }
+        tracing::trace!(
+            target: "auriya::fps",
+            "Sysfs FPS probe found no matching node ({} candidates checked)",
+            FPS_SYSFS_PATHS.len()
+        );
         None
     }
 

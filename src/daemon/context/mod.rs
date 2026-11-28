@@ -51,9 +51,49 @@ impl DaemonContext {
         }
         if let Some(ref handle) = self.reload_handle {
             match handle.reload(EnvFilter::new(filter_str)) {
-                Ok(_) => debug!(target: "auriya::ipc", "Log level changed to {:?}", lvl),
+                Ok(_) => {
+                    debug!(target: "auriya::ipc", "Log level changed to {:?}", lvl);
+                    if matches!(lvl, LogLevelCmd::Debug | LogLevelCmd::Trace) {
+                        self.log_debug_baseline();
+                    }
+                }
                 Err(e) => error!(target: "auriya::ipc", "Failed to change log level: {}", e),
             }
+        }
+    }
+
+    fn log_debug_baseline(&self) {
+        let soc = crate::platform::vendor::detect_soc();
+        let gpu_vendor = crate::platform::gpu::detect_vendor();
+        let caps = crate::core::scaling::PlatformCapabilities::detect();
+        let sysfs_fps = crate::core::fps::SysfsFpsReader::detect_sysfs();
+        let state_summary = self.current_state.read().ok().map(|s| {
+            (
+                s.pkg.clone(),
+                s.pid,
+                s.profile,
+                s.game_session,
+                s.fps,
+                s.fps_source,
+                s.gpu_telemetry.clone(),
+            )
+        });
+        debug!(
+            target: "auriya::diag",
+            "Debug baseline | soc={} gpu_vendor={:?} caps=(gpu={}, cpu={}) sysfs_fps={:?} fas_enabled={}",
+            soc,
+            gpu_vendor,
+            caps.gpu_controllable,
+            caps.cpu_controllable,
+            sysfs_fps,
+            self.fas_controller.is_some(),
+        );
+        if let Some((pkg, pid, profile, game_session, fps, fps_src, gpu)) = state_summary {
+            debug!(
+                target: "auriya::diag",
+                "Debug state    | pkg={:?} pid={:?} profile={:?} game_session={} fps={:?} src={:?} gpu={:?}",
+                pkg, pid, profile, game_session, fps, fps_src, gpu
+            );
         }
     }
 }

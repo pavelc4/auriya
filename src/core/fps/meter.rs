@@ -55,8 +55,26 @@ impl FpsMeter {
         };
 
         match ebpf_reading {
-            Some(reading) => Some(reading),
-            None => self.sysfs.read(),
+            Some(reading) => {
+                tracing::trace!(
+                    target: "auriya::fps",
+                    "FPS read | source=ebpf fps={:.1} window={}",
+                    reading.fps,
+                    self.frametimes.len()
+                );
+                Some(reading)
+            }
+            None => {
+                let sysfs_reading = self.sysfs.read();
+                tracing::trace!(
+                    target: "auriya::fps",
+                    "FPS read | ebpf_idle (buffered={}, elapsed_ms={}) -> sysfs={:?}",
+                    self.frametimes.len(),
+                    self.last_ebpf_frame.elapsed().as_millis(),
+                    sysfs_reading.map(|r| r.fps)
+                );
+                sysfs_reading
+            }
         }
     }
 
