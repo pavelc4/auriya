@@ -48,7 +48,11 @@ val auriyaVersionCode: Int by lazy {
 
 android {
     namespace = "dev.auriya.app"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 1
+        }
+    }
 
     defaultConfig {
         applicationId = "dev.auriya.app"

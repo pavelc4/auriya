@@ -605,21 +605,30 @@ fun SettingsSliderCard(
                 }
 
                 val safeValue = if (value.isNaN()) valueRange.start else value.coerceIn(valueRange.start, valueRange.endInclusive)
+                val sliderState =
+                    remember(valueRange, steps) {
+                        SliderState(
+                            value = safeValue,
+                            steps = steps,
+                            trackRange = valueRange,
+                        )
+                    }
+                SideEffect(safeValue) {
+                    if (sliderState.value != safeValue) {
+                        sliderState.value = safeValue
+                    }
+                }
                 Slider(
-                    value = safeValue,
-                    onValueChange = onValueChange,
+                    state = sliderState,
+                    onValueChange = { newValue ->
+                        sliderState.value = newValue
+                        onValueChange(newValue)
+                    },
                     onValueChangeFinished = onValueChangeFinished,
-                    valueRange = valueRange,
-                    steps = steps,
                     enabled = enabled,
                     modifier = Modifier.fillMaxWidth(),
-                    track = { _ ->
-                        val fraction =
-                            if (valueRange.endInclusive > valueRange.start) {
-                                ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
-                            } else {
-                                0f
-                            }
+                    track = { state ->
+                        val fraction = state.coercedValueAsFraction.coerceIn(0f, 1f)
                         Box(
                             modifier =
                                 Modifier
