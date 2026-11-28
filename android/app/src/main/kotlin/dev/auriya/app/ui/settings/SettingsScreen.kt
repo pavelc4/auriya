@@ -238,7 +238,7 @@ fun SettingsScreen(
                 ) {
                     when (targetSubScreen) {
                         SettingsSubScreen.NONE -> {
-                            item {
+                            item(key = "settings_main", contentType = "settings_group") {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -285,7 +285,7 @@ fun SettingsScreen(
                         }
 
                         SettingsSubScreen.APP -> {
-                            item {
+                            item(key = "app_display_metrics", contentType = "settings_group") {
                                 val roundFps by viewModel.roundFps.collectAsStateWithLifecycle()
                                 SettingsSubsection(
                                     title =
@@ -307,7 +307,7 @@ fun SettingsScreen(
                                 }
                             }
 
-                            item {
+                            item(key = "app_thermal", contentType = "settings_group") {
                                 if (thermalAvailable) {
                                     SettingsSubsection(
                                         title =
@@ -346,7 +346,7 @@ fun SettingsScreen(
                                 }
                             }
 
-                            item {
+                            item(key = "app_general_tools", contentType = "settings_group") {
                                 SettingsSubsection(
                                     title =
                                         androidx.compose.ui.res
@@ -369,7 +369,7 @@ fun SettingsScreen(
                         }
 
                         SettingsSubScreen.DEVELOPER_OPTIONS -> {
-                            item {
+                            item(key = "dev_options", contentType = "developer_options") {
                                 DeveloperOptionsContent(
                                     viewModel = viewModel,
                                     onResetOobe = onResetOobe,

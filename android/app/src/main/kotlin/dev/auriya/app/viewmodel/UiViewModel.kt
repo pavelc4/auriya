@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.auriya.app.data.AppIconCache
+import dev.auriya.app.data.LogExporter
 import dev.auriya.app.data.RootShell
 import dev.auriya.app.data.stats.BenchmarkRecorder
 import dev.auriya.app.data.stats.BenchmarkSession
@@ -18,8 +19,11 @@ import dev.auriya.shared.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -111,6 +115,15 @@ class UiViewModel(
 
     private val _isCheckingRoot = MutableStateFlow(false)
     val isCheckingRoot: StateFlow<Boolean> = _isCheckingRoot.asStateFlow()
+
+    private val _debugLogsEnabled = MutableStateFlow(false)
+    val debugLogsEnabled: StateFlow<Boolean> = _debugLogsEnabled.asStateFlow()
+
+    private val _isExportingLogs = MutableStateFlow(false)
+    val isExportingLogs: StateFlow<Boolean> = _isExportingLogs.asStateFlow()
+
+    private val _exportLogsResult = MutableSharedFlow<Result<String>>(extraBufferCapacity = 1)
+    val exportLogsResult: SharedFlow<Result<String>> = _exportLogsResult.asSharedFlow()
 
     // Set to true when checkRoot() is called while a check is already in flight.
     // The running coroutine reads this in its finally block and immediately
@@ -643,7 +656,29 @@ class UiViewModel(
 
     fun restartDaemon() {
         viewModelScope.launch(Dispatchers.IO) {
-            RootShell.exec("/data/adb/modules/auriya/system/bin/auriyactl restart")
+            RootShell.exec("${ConfigPaths.AURIYACTL_BIN} restart")
+        }
+    }
+
+    fun setDebugLogs(enabled: Boolean) {
+        _debugLogsEnabled.value = enabled
+        viewModelScope.launch(Dispatchers.IO) {
+            val level = if (enabled) "debug" else "info"
+            RootShell.exec("${ConfigPaths.AURIYACTL_BIN} set-log $level")
+        }
+    }
+
+    fun exportLogs() {
+        if (_isExportingLogs.value) return
+        _isExportingLogs.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            val result =
+                try {
+                    LogExporter.export()
+                } finally {
+                    _isExportingLogs.value = false
+                }
+            _exportLogsResult.tryEmit(result)
         }
     }
 }
