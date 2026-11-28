@@ -42,3 +42,16 @@ fn test_toml_parsing() {
     let cfg2: BlacklistConfig = toml::from_str(toml_str_section).unwrap();
     assert_eq!(cfg2.blacklist.unwrap().packages, vec!["com.section.bank"]);
 }
+
+#[test]
+fn test_blacklist_load_strips_nul_bytes() {
+    let tmp = tempfile::NamedTempFile::new().unwrap();
+    let payload = format!(
+        "{}packages = [\"com.nul.protected.bank\"]\n",
+        "\0".repeat(696),
+    );
+    std::fs::write(tmp.path(), payload.as_bytes()).unwrap();
+
+    load_custom_blacklist(tmp.path());
+    assert!(is_tamper_sensitive("com.nul.protected.bank"));
+}

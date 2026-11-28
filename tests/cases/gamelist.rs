@@ -104,3 +104,39 @@ fn test_gamelist_remove() {
     assert!(gl.game.is_empty());
     assert!(gl.remove("com.tencent.ig").is_err());
 }
+
+#[test]
+fn test_gamelist_load_strips_leading_nul_bytes_and_bom() {
+    let tmp = tempfile::NamedTempFile::new().unwrap();
+    let payload = format!(
+        "{}\u{FEFF}[[game]]\npackage = \"com.mobile.legends\"\ncpu_governor = \"performance\"\nenable_dnd = true\ntarget_fps = 120\n",
+        "\0".repeat(10),
+    );
+    std::fs::write(tmp.path(), payload.as_bytes()).unwrap();
+
+    let loaded = GameList::load(tmp.path()).expect("NUL-padded gamelist.toml should recover");
+    assert_eq!(loaded.game.len(), 1);
+    assert_eq!(loaded.game[0].package, "com.mobile.legends");
+    assert_eq!(loaded.game[0].cpu_governor, "performance");
+}
+
+#[test]
+fn test_load_all_from_recovers_on_corrupted_gamelist() {
+    let dir = tempfile::tempdir().unwrap();
+    let settings_path = dir.path().join("settings.toml");
+    let gamelist_path = dir.path().join("gamelist.toml");
+    let blacklist_path = dir.path().join("blacklist.toml");
+
+    std::fs::write(&settings_path, "[daemon]\ndefault_mode = \"fast\"\n").unwrap();
+    std::fs::write(
+        &gamelist_path,
+        "[[game\nbroken syntax without closing bracket",
+    )
+    .unwrap();
+
+    let (settings, gamelist) =
+        auriya::core::config::load_all_from(&settings_path, &gamelist_path, &blacklist_path)
+            .expect("daemon boot must recover with empty gamelist on broken gamelist.toml");
+    assert_eq!(settings.daemon.default_mode, "fast");
+    assert!(gamelist.game.is_empty());
+}

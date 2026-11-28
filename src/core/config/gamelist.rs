@@ -135,8 +135,9 @@ impl GameList {
 
         let content =
             std::fs::read_to_string(path).context(format!("Failed to read {}", path.display()))?;
+        let sanitized = crate::core::config::sanitize_toml_content(path, &content);
 
-        toml::from_str(&content).context("Failed to parse gamelist.toml")
+        toml::from_str(&sanitized).context("Failed to parse gamelist.toml")
     }
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let path = path.as_ref();

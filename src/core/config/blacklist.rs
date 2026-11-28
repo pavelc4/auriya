@@ -30,8 +30,9 @@ pub fn load_custom_blacklist<P: AsRef<Path>>(path: P) {
         Ok(c) => c,
         Err(_) => return,
     };
+    let sanitized = crate::core::config::sanitize_toml_content(path, &content);
 
-    match toml::from_str::<BlacklistConfig>(&content) {
+    match toml::from_str::<BlacklistConfig>(&sanitized) {
         Ok(cfg) => {
             let mut list = cfg.packages;
             if let Some(inner) = cfg.blacklist {

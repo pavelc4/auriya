@@ -261,8 +261,9 @@ impl Settings {
 
         let content =
             std::fs::read_to_string(path).context(format!("Failed to read {}", path.display()))?;
+        let sanitized = crate::core::config::sanitize_toml_content(path, &content);
 
-        match toml::from_str(&content) {
+        match toml::from_str(&sanitized) {
             Ok(s) => Ok(s),
             Err(e) => {
                 tracing::error!(
