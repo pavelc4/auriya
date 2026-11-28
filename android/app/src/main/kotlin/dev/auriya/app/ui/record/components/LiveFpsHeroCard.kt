@@ -1,7 +1,6 @@
 package dev.auriya.app.ui.record.components
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -15,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -358,58 +358,67 @@ fun FpsSparkline(
     lineColor: Color,
     modifier: Modifier = Modifier,
 ) {
-    Canvas(modifier = modifier) {
-        if (values.size < 2) return@Canvas
+    val path = androidx.compose.runtime.remember { Path() }
+    val fillPath = androidx.compose.runtime.remember { Path() }
 
-        val maxVal = (values.maxOrNull() ?: 60f).coerceAtLeast(30f)
-        val minVal = (values.minOrNull() ?: 0f).coerceAtLeast(0f)
-        val range = (maxVal - minVal).coerceAtLeast(10f)
+    Spacer(
+        modifier =
+            modifier.drawWithCache {
+                val width = size.width
+                val height = size.height
+                val fillBrush =
+                    Brush.verticalGradient(
+                        colors = listOf(lineColor.copy(alpha = 0.25f), Color.Transparent),
+                        startY = 0f,
+                        endY = height,
+                    )
+                val lineStroke = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
 
-        val width = size.width
-        val height = size.height
-        val stepX = width / (values.size - 1)
+                onDrawBehind {
+                    if (values.size < 2) return@onDrawBehind
 
-        val path = Path()
-        val fillPath = Path()
+                    var minVal = Float.MAX_VALUE
+                    var maxVal = 30f
+                    for (i in values.indices) {
+                        val v = values[i]
+                        if (v > maxVal) maxVal = v
+                        if (v < minVal) minVal = v
+                    }
+                    minVal = minVal.coerceAtLeast(0f)
+                    val range = (maxVal - minVal).coerceAtLeast(10f)
+                    val stepX = width / (values.size - 1)
 
-        values.forEachIndexed { index, v ->
-            val x = index * stepX
-            val normalized = (v - minVal) / range
-            val y = height - (normalized * height * 0.85f) - (height * 0.05f)
+                    path.rewind()
+                    fillPath.rewind()
 
-            if (index == 0) {
-                path.moveTo(x, y)
-                fillPath.moveTo(x, height)
-                fillPath.lineTo(x, y)
-            } else {
-                val prevX = (index - 1) * stepX
-                val prevNormalized = (values[index - 1] - minVal) / range
-                val prevY = height - (prevNormalized * height * 0.85f) - (height * 0.05f)
-                val cX = (prevX + x) / 2f
-                path.cubicTo(cX, prevY, cX, y, x, y)
-                fillPath.cubicTo(cX, prevY, cX, y, x, y)
-            }
-        }
+                    for (index in values.indices) {
+                        val v = values[index]
+                        val x = index * stepX
+                        val normalized = (v - minVal) / range
+                        val y = height - (normalized * height * 0.85f) - (height * 0.05f)
 
-        fillPath.lineTo(width, height)
-        fillPath.close()
+                        if (index == 0) {
+                            path.moveTo(x, y)
+                            fillPath.moveTo(x, height)
+                            fillPath.lineTo(x, y)
+                        } else {
+                            val prevX = (index - 1) * stepX
+                            val prevNormalized = (values[index - 1] - minVal) / range
+                            val prevY = height - (prevNormalized * height * 0.85f) - (height * 0.05f)
+                            val cX = (prevX + x) / 2f
+                            path.cubicTo(cX, prevY, cX, y, x, y)
+                            fillPath.cubicTo(cX, prevY, cX, y, x, y)
+                        }
+                    }
 
-        drawPath(
-            path = fillPath,
-            brush =
-                Brush.verticalGradient(
-                    colors = listOf(lineColor.copy(alpha = 0.25f), Color.Transparent),
-                    startY = 0f,
-                    endY = height,
-                ),
-        )
+                    fillPath.lineTo(width, height)
+                    fillPath.close()
 
-        drawPath(
-            path = path,
-            color = lineColor,
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
-        )
-    }
+                    drawPath(path = fillPath, brush = fillBrush)
+                    drawPath(path = path, color = lineColor, style = lineStroke)
+                }
+            },
+    )
 }
 
 fun formatDuration(seconds: Long): String {
