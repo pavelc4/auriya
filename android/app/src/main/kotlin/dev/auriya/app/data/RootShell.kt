@@ -5,6 +5,15 @@ import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.io.SuFile
 import com.topjohnwu.superuser.io.SuFileInputStream
 import com.topjohnwu.superuser.io.SuFileOutputStream
+import java.io.ByteArrayOutputStream
+import java.io.OutputStream
+
+data class RootFileEntry(
+    val name: String,
+    val path: String,
+    val isDirectory: Boolean,
+    val lastModified: Long,
+)
 
 /**
  * Thin facade over libsu so the rest of the app does not import
@@ -48,10 +57,62 @@ object RootShell {
         return res.out.joinToString("\n").trim()
     }
 
+    /** Run a shell command capturing both stdout and stderr. */
+    fun runWithStderr(cmd: String): String {
+        val out = mutableListOf<String>()
+        Shell.cmd(cmd).to(out, out).exec()
+        return out.joinToString("\n").trim()
+    }
+
     /** Run a shell command and return exit code; ignores output. */
     fun exec(cmd: String): Int {
         val res = Shell.cmd(cmd).exec()
         return if (res.isSuccess) 0 else res.code
+    }
+
+    /** List entries inside [dirPath] with root visibility. */
+    fun listEntries(dirPath: String): List<RootFileEntry> =
+        runCatching {
+            SuFile(dirPath)
+                .listFiles()
+                ?.map { file ->
+                    RootFileEntry(
+                        name = file.name,
+                        path = file.absolutePath,
+                        isDirectory = file.isDirectory,
+                        lastModified = file.lastModified(),
+                    )
+                }.orEmpty()
+        }.getOrDefault(emptyList())
+
+    /** Read up to [maxBytes] of [path] as raw bytes (handles virtual proc/sys files). */
+    fun readBytes(
+        path: String,
+        maxBytes: Int = 16 * 1024 * 1024,
+    ): ByteArray? =
+        try {
+            SuFileInputStream.open(SuFile(path)).use { input ->
+                val out = ByteArrayOutputStream()
+                val buf = ByteArray(8192)
+                var total = 0
+                while (total < maxBytes) {
+                    val toRead = minOf(buf.size, maxBytes - total)
+                    val read = input.read(buf, 0, toRead)
+                    if (read <= 0) break
+                    out.write(buf, 0, read)
+                    total += read
+                }
+                out.toByteArray()
+            }
+        } catch (_: Throwable) {
+            null
+        }
+
+    /** Open an output stream with root write access, ensuring parent directories exist. */
+    fun openOutputStream(path: String): OutputStream {
+        val targetFile = SuFile(path)
+        targetFile.parentFile?.mkdirs()
+        return SuFileOutputStream.open(targetFile)
     }
 
     /** Read the full contents of [path] as UTF-8 (root file access). */
