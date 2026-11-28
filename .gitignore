@@ -16,6 +16,7 @@ android/local.properties
 android/captures/
 android/.externalNativeBuild/
 android/.cxx/
+android/app/src/test/
 
 # Gradle
 .gradle/
