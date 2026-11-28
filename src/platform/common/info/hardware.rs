@@ -100,9 +100,40 @@ fn detect_cpu_topology() -> String {
     }
 }
 
-fn detect_gpu_and_driver() -> (Option<String>, Option<String>) {
-    let kgsl_model_path = "/sys/class/kgsl/kgsl-3d0/gpu_model";
-    if Path::new(kgsl_model_path).exists() {
+fn has_sysfs_suffix(dir: &Path, suffix: &str) -> bool {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return false;
+    };
+    entries
+        .flatten()
+        .any(|e| e.file_name().to_string_lossy().contains(suffix))
+}
+
+/// Infer Samsung Xclipse GPU marketing name from SoC board/model property.
+pub fn infer_xclipse_model(soc_hint: Option<&str>) -> String {
+    let hint = soc_hint.unwrap_or_default().to_ascii_lowercase();
+    let model = match hint.as_str() {
+        h if h.contains("9925") => "Samsung Xclipse 920",
+        h if h.contains("9935") => "Samsung Xclipse 930",
+        h if h.contains("9945") => "Samsung Xclipse 940",
+        h if h.contains("9955") => "Samsung Xclipse 950",
+        h if h.contains("8845") => "Samsung Xclipse 530",
+        h if h.contains("8855") => "Samsung Xclipse 540",
+        _ => "Samsung Xclipse",
+    };
+    model.to_string()
+}
+
+/// Detect GPU model and driver string using the supplied sysfs roots and hints.
+pub fn detect_gpu_and_driver_in(
+    kgsl_model_path: &Path,
+    platform_dir: &Path,
+    devfreq_dir: &Path,
+    mali0_dir: &Path,
+    soc_hint: Option<&str>,
+    gfx_driver_prop: Option<&str>,
+) -> (Option<String>, Option<String>) {
+    if kgsl_model_path.exists() {
         let raw = fs::read_to_string(kgsl_model_path).unwrap_or_default();
         let trimmed = raw.trim();
         let model = match trimmed.trim_end_matches("v1").trim_end_matches("v0") {
@@ -122,14 +153,38 @@ fn detect_gpu_and_driver() -> (Option<String>, Option<String>) {
         return (Some(model), Some(driver));
     }
 
-    // Check Mali
+    if has_sysfs_suffix(platform_dir, ".sgpu") || has_sysfs_suffix(devfreq_dir, ".sgpu") {
+        let model = infer_xclipse_model(soc_hint);
+        let driver = match gfx_driver_prop {
+            Some(prop) if !prop.is_empty() => format!("{prop} (sgpu)"),
+            _ => "Samsung sgpu (devfreq)".to_string(),
+        };
+        return (Some(model), Some(driver));
+    }
+
     if Path::new("/proc/gpufreq/gpufreq_opp_freq").exists()
-        || Path::new("/sys/class/misc/mali0").exists()
+        || mali0_dir.exists()
+        || has_sysfs_suffix(platform_dir, ".mali")
     {
         return (Some("Mali".to_string()), Some("Mali Driver".to_string()));
     }
 
     (None, None)
+}
+
+fn detect_gpu_and_driver() -> (Option<String>, Option<String>) {
+    let soc_hint = get_system_property("ro.soc.model")
+        .or_else(|| get_system_property("ro.board.platform"))
+        .or_else(|| get_system_property("ro.hardware"));
+    let gfx_driver = get_system_property("ro.gfx.driver.1");
+    detect_gpu_and_driver_in(
+        Path::new("/sys/class/kgsl/kgsl-3d0/gpu_model"),
+        Path::new("/sys/devices/platform"),
+        Path::new("/sys/class/devfreq"),
+        Path::new("/sys/class/misc/mali0"),
+        soc_hint.as_deref(),
+        gfx_driver.as_deref(),
+    )
 }
 
 fn detect_adreno_driver() -> String {

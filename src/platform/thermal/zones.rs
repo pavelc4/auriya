@@ -7,8 +7,12 @@ const THERMAL_ZONES: &[(&str, &str)] = &[
     ("cpu", "cpu-"),
     ("cpu", "cpu_"),
     ("cpu", "cpuss"),
+    ("cpu", "cpucl"),
     ("cpu", "mtkts_cpu"),
     ("cpu", "exynos"),
+    ("cpu", "big"),
+    ("cpu", "mid"),
+    ("cpu", "little"),
     ("gpu", "gpu"),
     ("gpu", "kgsl"),
     ("gpu", "mali"),
@@ -16,6 +20,7 @@ const THERMAL_ZONES: &[(&str, &str)] = &[
     ("gpu", "gpuss"),
     ("gpu", "mtkts_gpu"),
     ("gpu", "g3d"),
+    ("gpu", "sgpu"),
     ("x5-usr", "x5-usr"),
 ];
 
@@ -130,10 +135,15 @@ fn read_thermal_service() -> Option<ThermalSnapshot> {
 }
 
 fn read_sysfs_zones() -> ThermalSnapshot {
+    read_sysfs_zones_from(std::path::Path::new("/sys/class/thermal"))
+}
+
+/// Read highest CPU and GPU temperatures from sysfs `thermal_zone*` entries in `thermal_dir`.
+pub fn read_sysfs_zones_from(thermal_dir: &std::path::Path) -> ThermalSnapshot {
     let mut cpu_temp_c: Option<f32> = None;
     let mut gpu_temp_c: Option<f32> = None;
 
-    if let Ok(entries) = fs::read_dir("/sys/class/thermal") {
+    if let Ok(entries) = fs::read_dir(thermal_dir) {
         for entry in entries.flatten() {
             let file_name = entry.file_name();
             let name_str = file_name.to_string_lossy();

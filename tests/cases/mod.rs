@@ -7,6 +7,7 @@ mod ceiling;
 mod concurrency;
 mod context;
 mod cpu;
+mod exynos_sgpu;
 mod fas;
 mod fuzz;
 mod gamelist;
